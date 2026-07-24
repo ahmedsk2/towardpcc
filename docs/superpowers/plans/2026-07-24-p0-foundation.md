@@ -17,6 +17,7 @@
 ### Task 1: Git repository + base hygiene files
 
 **Files:**
+
 - Create: `.gitignore`
 - Create: `.editorconfig`
 - Create: `.nvmrc`
@@ -25,9 +26,11 @@
 - [ ] **Step 1: Initialize the repository on `main`**
 
 Run:
+
 ```bash
 git init -b main
 ```
+
 Expected: `Initialized empty Git repository in C:/Users/ahmed/Documents/TowardPCC/.git/`
 
 - [ ] **Step 2: Write `.gitignore`**
@@ -86,7 +89,7 @@ trim_trailing_whitespace = false
 
 - [ ] **Step 5: Write `README.md`**
 
-```markdown
+````markdown
 # TowardPCC
 
 The digital home of pediatric critical care — free clinical calculators,
@@ -113,6 +116,7 @@ pnpm install
 docker compose up -d   # postgres, umami, mailpit, minio, web
 pnpm dev               # Next.js dev server on http://localhost:3000
 ```
+````
 
 ## Scripts (root)
 
@@ -128,20 +132,22 @@ pnpm dev               # Next.js dev server on http://localhost:3000
 - `docs/runbooks/` — operational runbooks
 - `SECURITY.md` — security policy and responsible disclosure
 - `PRIVACY-ENGINEERING.md` — privacy-by-design commitments
-```
+
+````
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add .gitignore .editorconfig .nvmrc README.md docs/
 git commit -m "chore: initialize repository with base hygiene files and P0 plan"
-```
+````
 
 ---
 
 ### Task 2: pnpm workspace root
 
 **Files:**
+
 - Create: `package.json`
 - Create: `pnpm-workspace.yaml`
 - Create: `.npmrc`
@@ -149,14 +155,18 @@ git commit -m "chore: initialize repository with base hygiene files and P0 plan"
 - [ ] **Step 1: Enable corepack and pin pnpm**
 
 Run:
+
 ```bash
 corepack enable
 ```
+
 Then create a minimal `package.json` and pin pnpm into it:
+
 ```bash
 pnpm init
 corepack use pnpm@latest-10
 ```
+
 Expected: `package.json` gains a `"packageManager": "pnpm@10.x.y+sha512..."` field; `pnpm --version` prints that version.
 
 - [ ] **Step 2: Replace `package.json` with the workspace root manifest**
@@ -213,6 +223,7 @@ git commit -m "chore: scaffold pnpm workspace root"
 ### Task 3: `packages/config` — shared TypeScript base
 
 **Files:**
+
 - Create: `packages/config/package.json`
 - Create: `packages/config/tsconfig.base.json`
 
@@ -268,6 +279,7 @@ smallest honest module: an engine version constant and an (empty) score
 registry.
 
 **Files:**
+
 - Create: `packages/scoring-engine/package.json`
 - Create: `packages/scoring-engine/tsconfig.json`
 - Create: `packages/scoring-engine/vitest.config.ts`
@@ -301,9 +313,11 @@ review and, from P2, by CI.)
 - [ ] **Step 2: Install dev dependencies**
 
 Run:
+
 ```bash
 pnpm --filter @towardpcc/scoring-engine add -D typescript vitest @vitest/coverage-v8
 ```
+
 Expected: resolves current stable versions; lockfile updated.
 
 - [ ] **Step 3: Write `packages/scoring-engine/tsconfig.json`**
@@ -408,10 +422,11 @@ git commit -m "feat(scoring-engine): package skeleton with vitest harness and 10
 ### Task 5: `packages/ui` — design token stubs
 
 Real token values are decided in P1 through the design process (PRD §5). P0
-creates the token *architecture* so `apps/web` wires against stable names.
+creates the token _architecture_ so `apps/web` wires against stable names.
 Stub values are neutral and clearly marked for P1 replacement.
 
 **Files:**
+
 - Create: `packages/ui/package.json`
 - Create: `packages/ui/tsconfig.json`
 - Create: `packages/ui/src/tokens.css`
@@ -440,6 +455,7 @@ Stub values are neutral and clearly marked for P1 replacement.
 - [ ] **Step 2: Install dev dependency**
 
 Run:
+
 ```bash
 pnpm --filter @towardpcc/ui add -D typescript
 ```
@@ -468,8 +484,8 @@ pnpm --filter @towardpcc/ui add -D typescript
  */
 :root {
   /* Surfaces — "midnight-petrol" dark hero band into "porcelain" light content */
-  --color-surface-hero: #12242b;      /* P1: refine midnight-petrol */
-  --color-surface-page: #f7f7f5;      /* P1: refine porcelain */
+  --color-surface-hero: #12242b; /* P1: refine midnight-petrol */
+  --color-surface-page: #f7f7f5; /* P1: refine porcelain */
   --color-surface-raised: #ffffff;
 
   /* Ink */
@@ -479,12 +495,12 @@ pnpm --filter @towardpcc/ui add -D typescript
   --color-ink-on-dark: #eef4f5;
 
   /* Accents — one primary, one used sparingly */
-  --color-accent-teal: #1fa8a0;       /* P1: refine monitor-teal */
-  --color-accent-coral: #f06455;      /* P1: refine pulse-coral; alerts + single primary CTA only */
+  --color-accent-teal: #1fa8a0; /* P1: refine monitor-teal */
+  --color-accent-coral: #f06455; /* P1: refine pulse-coral; alerts + single primary CTA only */
 
   /* Type roles — families finalized in P1 after license verification */
-  --font-display: system-ui, sans-serif;   /* P1: characterful grotesk, self-hosted */
-  --font-body: system-ui, sans-serif;      /* P1: quiet legible body face */
+  --font-display: system-ui, sans-serif; /* P1: characterful grotesk, self-hosted */
+  --font-body: system-ui, sans-serif; /* P1: quiet legible body face */
   --font-numeric: ui-monospace, monospace; /* P1: mono with tabular-nums for all scores/results */
 
   /* Spacing / radius / motion scaffolding */
@@ -536,6 +552,7 @@ git commit -m "feat(ui): design token architecture with P0 stub values"
 ### Task 6: `apps/web` — Next.js app boots
 
 **Files:**
+
 - Create: `apps/web/package.json`
 - Create: `apps/web/next.config.ts`
 - Create: `apps/web/tsconfig.json`
@@ -566,11 +583,13 @@ git commit -m "feat(ui): design token architecture with P0 stub values"
 - [ ] **Step 2: Install dependencies**
 
 Run:
+
 ```bash
 pnpm --filter @towardpcc/web add next@latest react@latest react-dom@latest
 pnpm --filter @towardpcc/web add @towardpcc/ui@workspace:* @towardpcc/scoring-engine@workspace:*
 pnpm --filter @towardpcc/web add -D typescript @types/react @types/react-dom @types/node tailwindcss @tailwindcss/postcss postcss
 ```
+
 Expected: Next.js ≥15 resolved (record actual in commit body); workspace links created.
 
 - [ ] **Step 3: Write `apps/web/next.config.ts`**
@@ -687,9 +706,9 @@ export default function HomePage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-6">
       <h1 className="text-3xl font-semibold text-ink-strong">TowardPCC</h1>
       <p className="text-lg">
-        The digital home of pediatric critical care — free clinical
-        calculators, knowledge and data systems for PICU teams, and research
-        support for investigators. Built from Saudi Arabia for the world.
+        The digital home of pediatric critical care — free clinical calculators, knowledge and data
+        systems for PICU teams, and research support for investigators. Built from Saudi Arabia for
+        the world.
       </p>
       <p className="text-ink-muted">In development. Launching soon.</p>
     </main>
@@ -737,6 +756,7 @@ git commit -m "feat(web): Next.js app boots with token-wired Tailwind v4 and /ap
 ### Task 7: Lint, format, and commit hygiene
 
 **Files:**
+
 - Create: `eslint.config.mjs`
 - Create: `.prettierrc.json`
 - Create: `.prettierignore`
@@ -748,6 +768,7 @@ git commit -m "feat(web): Next.js app boots with token-wired Tailwind v4 and /ap
 - [ ] **Step 1: Install root dev dependencies**
 
 Run:
+
 ```bash
 pnpm add -w -D eslint @eslint/js typescript-eslint eslint-config-next eslint-config-prettier prettier husky lint-staged @commitlint/cli @commitlint/config-conventional
 ```
@@ -808,14 +829,19 @@ export default { extends: ["@commitlint/config-conventional"] };
 - [ ] **Step 6: Initialize husky and write hooks**
 
 Run:
+
 ```bash
 pnpm exec husky init
 ```
+
 Replace `.husky/pre-commit` with:
+
 ```sh
 pnpm exec lint-staged
 ```
+
 Create `.husky/commit-msg` with:
+
 ```sh
 pnpm exec commitlint --edit "$1"
 ```
@@ -831,6 +857,7 @@ pnpm exec commitlint --edit "$1"
   }
 }
 ```
+
 (Merge into the existing file — keep all Task 2 scripts.)
 
 - [ ] **Step 8: Verify the gates work**
@@ -852,6 +879,7 @@ git commit -m "chore: eslint flat config, prettier, husky, lint-staged, commitli
 ### Task 8: Docker stack + `.env.example`
 
 **Files:**
+
 - Create: `apps/web/Dockerfile`
 - Create: `apps/web/.dockerignore`
 - Create: `docker-compose.yml`
@@ -1049,6 +1077,7 @@ git commit -m "chore: docker stack (web, postgres, umami, mailpit, minio) and do
 ### Task 9: CI skeleton (GitHub Actions)
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Write `.github/workflows/ci.yml`**
@@ -1109,6 +1138,7 @@ git commit -m "ci: typecheck, lint, unit, build, and gitleaks on push/PR"
 ### Task 10: Governance docs + ADR-0001
 
 **Files:**
+
 - Create: `docs/decisions/ADR-0001-stack.md`
 - Create: `SECURITY.md`
 - Create: `PRIVACY-ENGINEERING.md`
@@ -1290,6 +1320,7 @@ git commit -m "docs: ADR-0001 stack decision, security policy, privacy engineeri
 - [ ] **Step 1: Clean-workspace verification**
 
 Run, in order, each expected to exit 0:
+
 ```bash
 pnpm install --frozen-lockfile
 pnpm typecheck
@@ -1315,6 +1346,7 @@ If absent: confirm the LAUNCH-BLOCKERS.md entry exists; done.
 git clone . ../towardpcc-clone-test
 cd ../towardpcc-clone-test && corepack enable && pnpm install && pnpm build
 ```
+
 Expected: green from a pristine checkout. Delete `../towardpcc-clone-test` after.
 
 - [ ] **Step 5: Close the slice**
@@ -1322,6 +1354,7 @@ Expected: green from a pristine checkout. Delete `../towardpcc-clone-test` after
 Invoke `superpowers:requesting-code-review` on the P0 diff, address findings,
 then `superpowers:verification-before-completion`, then report P0 complete
 with evidence (command outputs + screenshot).
+
 ```
 
 ---
@@ -1331,3 +1364,4 @@ with evidence (command outputs + screenshot).
 - **Spec coverage (PRD §13 P0):** repo ✓ (T1) · monorepo tooling ✓ (T2/T3/T7) · CI skeleton ✓ (T9) · Docker stack ✓ (T8) · Next.js boots ✓ (T6) · design tokens stubbed ✓ (T5) · `.env.example` ✓ (T8) · ADR-0001 ✓ (T10) · acceptance ✓ (T11). Scoring-engine skeleton (T4) is pulled forward from P2 only as harness proof — architecture still lands in P2.
 - **Placeholder scan:** the only TODO markers are the PRD-mandated variable placeholders (`[CONTACT_EMAIL]` etc.), which are tracked in LAUNCH-BLOCKERS.md by design, and two explicitly version-dependent points (Tailwind `@theme inline` fallback, Next flat-config wiring) where the plan instructs verification against resolved versions instead of guessing.
 - **Type consistency:** `ENGINE_VERSION`/`listScores` names match between T4 test/impl and T6 health route; token names match between `tokens.css`, `index.ts`, and `globals.css`.
+```
