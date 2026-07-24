@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import "@towardpcc/ui/tokens.css";
+
+/* Map design tokens (single source of truth: packages/ui/src/tokens.css)
+   into Tailwind theme keys. `inline` makes utilities carry the var()
+   expression directly, so the :root definitions above stay authoritative. */
+@theme inline {
+  --color-surface-hero: var(--color-surface-hero);
+  --color-surface-page: var(--color-surface-page);
+  --color-surface-raised: var(--color-surface-raised);
+  --color-ink-strong: var(--color-ink-strong);
+  --color-ink-body: var(--color-ink-body);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-on-dark: var(--color-ink-on-dark);
+  --color-accent-teal: var(--color-accent-teal);
+  --color-accent-coral: var(--color-accent-coral);
+}
+
+body {
+  background: var(--color-surface-page);
+  color: var(--color-ink-body);
+  font-family: var(--font-body, system-ui, sans-serif);
+}
