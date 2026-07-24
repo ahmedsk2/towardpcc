@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" <<SQL
+  CREATE USER umami WITH PASSWORD '${UMAMI_DB_PASSWORD}';
+  CREATE DATABASE umami OWNER umami;
+SQL
