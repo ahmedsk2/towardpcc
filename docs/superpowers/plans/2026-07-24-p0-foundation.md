@@ -1,5 +1,11 @@
 # TowardPCC P0 — Foundation Implementation Plan
 
+> **STATUS: EXECUTED 2026-07-24 — all 11 tasks complete.** Deviations are
+> recorded in commit bodies, LAUNCH-BLOCKERS.md, and the amended notes below.
+> Post-execution multi-lens review findings were fixed in the follow-up
+> commit; the unchecked boxes remaining below are inside authored file
+> content, not steps.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Stand up the TowardPCC pnpm monorepo so that a fresh clone gives `pnpm i && docker compose up` → a running Next.js app, with CI (typecheck → lint → unit → build), the Docker infra stack defined, design tokens stubbed, `.env.example` documented, and ADR-0001 recorded.
@@ -8,7 +14,7 @@
 
 **Tech Stack:** Node 24, pnpm 10 (via corepack), TypeScript strict, Next.js 15+ (App Router, standalone output), Tailwind CSS v4 (CSS-first `@theme`), Vitest + coverage-v8, ESLint flat config + typescript-eslint + eslint-config-next, Prettier, Husky + lint-staged + commitlint (Conventional Commits), gitleaks in CI, GitHub Actions.
 
-**Environment notes (verified 2026-07-24):** Node v24.15.0 and git 2.54 present. pnpm NOT installed → Task 2 enables it via corepack. Docker NOT installed → compose files are authored and validated syntactically (`docker compose config` once Docker exists); live-stack verification is tracked in LAUNCH-BLOCKERS.md until Docker Desktop is available.
+**Environment notes (verified 2026-07-24; amended post-execution):** Node v24.15.0 and git 2.54 present. pnpm NOT installed → as executed: `corepack use pnpm@latest-10` pinned 10.34.5 into `packageManager`, but `corepack enable` failed (EPERM, non-admin Windows shell), so the binary was installed via `npm i -g pnpm@10.34.5` — documented in README. Docker NOT installed → compose files authored; live verification tracked in LAUNCH-BLOCKERS.md. Task 8's per-app `apps/web/.dockerignore` was intentionally not created: the build context is the repo root, so only the root `.dockerignore` is ever consulted — a per-app copy would be dead configuration.
 
 **Execution conventions:** All commands run from repo root `C:\Users\ahmed\Documents\TowardPCC` unless stated. Shell is PowerShell-compatible unless a step says Bash. P0 bootstraps directly on `main` (there is nothing to branch from yet); branch-per-slice discipline starts at P1. Every commit is a Conventional Commit. Where a step installs `@latest`, the executor records the resolved version in the commit body; the lockfile is the pin.
 
@@ -23,7 +29,7 @@
 - Create: `.nvmrc`
 - Create: `README.md`
 
-- [ ] **Step 1: Initialize the repository on `main`**
+- [x] **Step 1: Initialize the repository on `main`**
 
 Run:
 
@@ -33,7 +39,7 @@ git init -b main
 
 Expected: `Initialized empty Git repository in C:/Users/ahmed/Documents/TowardPCC/.git/`
 
-- [ ] **Step 2: Write `.gitignore`**
+- [x] **Step 2: Write `.gitignore`**
 
 ```gitignore
 # dependencies
@@ -64,7 +70,7 @@ playwright-report/
 test-results/
 ```
 
-- [ ] **Step 3: Write `.editorconfig`**
+- [x] **Step 3: Write `.editorconfig`**
 
 ```ini
 root = true
@@ -81,13 +87,13 @@ trim_trailing_whitespace = true
 trim_trailing_whitespace = false
 ```
 
-- [ ] **Step 4: Write `.nvmrc`**
+- [x] **Step 4: Write `.nvmrc`**
 
 ```
 24
 ```
 
-- [ ] **Step 5: Write `README.md`**
+- [x] **Step 5: Write `README.md`**
 
 ````markdown
 # TowardPCC
@@ -135,7 +141,7 @@ pnpm dev               # Next.js dev server on http://localhost:3000
 
 ````
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add .gitignore .editorconfig .nvmrc README.md docs/
@@ -152,7 +158,7 @@ git commit -m "chore: initialize repository with base hygiene files and P0 plan"
 - Create: `pnpm-workspace.yaml`
 - Create: `.npmrc`
 
-- [ ] **Step 1: Enable corepack and pin pnpm**
+- [x] **Step 1: Enable corepack and pin pnpm**
 
 Run:
 
@@ -169,7 +175,7 @@ corepack use pnpm@latest-10
 
 Expected: `package.json` gains a `"packageManager": "pnpm@10.x.y+sha512..."` field; `pnpm --version` prints that version.
 
-- [ ] **Step 2: Replace `package.json` with the workspace root manifest**
+- [x] **Step 2: Replace `package.json` with the workspace root manifest**
 
 Keep the exact `packageManager` value corepack wrote; everything else becomes:
 
@@ -191,7 +197,7 @@ Keep the exact `packageManager` value corepack wrote; everything else becomes:
 }
 ```
 
-- [ ] **Step 3: Write `pnpm-workspace.yaml`**
+- [x] **Step 3: Write `pnpm-workspace.yaml`**
 
 ```yaml
 packages:
@@ -199,19 +205,19 @@ packages:
   - "packages/*"
 ```
 
-- [ ] **Step 4: Write `.npmrc`**
+- [x] **Step 4: Write `.npmrc`**
 
 ```ini
 engine-strict=true
 save-exact=false
 ```
 
-- [ ] **Step 5: Verify pnpm resolves the workspace**
+- [x] **Step 5: Verify pnpm resolves the workspace**
 
 Run: `pnpm install`
 Expected: completes without error, creates `pnpm-lock.yaml` (empty-ish is fine — no deps yet).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add package.json pnpm-workspace.yaml .npmrc pnpm-lock.yaml
@@ -227,7 +233,7 @@ git commit -m "chore: scaffold pnpm workspace root"
 - Create: `packages/config/package.json`
 - Create: `packages/config/tsconfig.base.json`
 
-- [ ] **Step 1: Write `packages/config/package.json`**
+- [x] **Step 1: Write `packages/config/package.json`**
 
 ```json
 {
@@ -238,7 +244,7 @@ git commit -m "chore: scaffold pnpm workspace root"
 }
 ```
 
-- [ ] **Step 2: Write `packages/config/tsconfig.base.json`**
+- [x] **Step 2: Write `packages/config/tsconfig.base.json`**
 
 ```json
 {
@@ -262,7 +268,7 @@ git commit -m "chore: scaffold pnpm workspace root"
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add packages/config
@@ -286,7 +292,7 @@ registry.
 - Create: `packages/scoring-engine/src/index.ts`
 - Test: `packages/scoring-engine/src/index.test.ts`
 
-- [ ] **Step 1: Write `packages/scoring-engine/package.json`**
+- [x] **Step 1: Write `packages/scoring-engine/package.json`**
 
 ```json
 {
@@ -310,7 +316,7 @@ added only when the mobile app needs it — YAGNI. `build` runs the typecheck so
 `pnpm -r build` still gates this package. Zero `dependencies` — enforced by
 review and, from P2, by CI.)
 
-- [ ] **Step 2: Install dev dependencies**
+- [x] **Step 2: Install dev dependencies**
 
 Run:
 
@@ -320,7 +326,7 @@ pnpm --filter @towardpcc/scoring-engine add -D typescript vitest @vitest/coverag
 
 Expected: resolves current stable versions; lockfile updated.
 
-- [ ] **Step 3: Write `packages/scoring-engine/tsconfig.json`**
+- [x] **Step 3: Write `packages/scoring-engine/tsconfig.json`**
 
 ```json
 {
@@ -336,7 +342,7 @@ Expected: resolves current stable versions; lockfile updated.
 (No `dom` in `lib` and no ambient types: the engine must stay free of
 browser/DOM APIs per PRD §12 — the compiler now enforces it.)
 
-- [ ] **Step 4: Write `packages/scoring-engine/vitest.config.ts`**
+- [x] **Step 4: Write `packages/scoring-engine/vitest.config.ts`**
 
 ```typescript
 import { defineConfig } from "vitest/config";
@@ -353,7 +359,7 @@ export default defineConfig({
 });
 ```
 
-- [ ] **Step 5: Write the failing test `packages/scoring-engine/src/index.test.ts`**
+- [x] **Step 5: Write the failing test `packages/scoring-engine/src/index.test.ts`**
 
 ```typescript
 import { describe, expect, it } from "vitest";
@@ -370,12 +376,12 @@ describe("scoring-engine skeleton", () => {
 });
 ```
 
-- [ ] **Step 6: Run the test to verify it fails**
+- [x] **Step 6: Run the test to verify it fails**
 
 Run: `pnpm --filter @towardpcc/scoring-engine test`
 Expected: FAIL — `Cannot find module './index'` (or missing exports).
 
-- [ ] **Step 7: Write minimal implementation `packages/scoring-engine/src/index.ts`**
+- [x] **Step 7: Write minimal implementation `packages/scoring-engine/src/index.ts`**
 
 ```typescript
 /**
@@ -400,17 +406,17 @@ export function listScores(): readonly ScoreSummary[] {
 }
 ```
 
-- [ ] **Step 8: Run tests to verify they pass with 100% coverage**
+- [x] **Step 8: Run tests to verify they pass with 100% coverage**
 
 Run: `pnpm --filter @towardpcc/scoring-engine test`
 Expected: PASS, coverage table shows 100% lines/branches/functions/statements, exit 0.
 
-- [ ] **Step 9: Typecheck**
+- [x] **Step 9: Typecheck**
 
 Run: `pnpm --filter @towardpcc/scoring-engine typecheck`
 Expected: exit 0, no output.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add packages/scoring-engine pnpm-lock.yaml
@@ -432,7 +438,7 @@ Stub values are neutral and clearly marked for P1 replacement.
 - Create: `packages/ui/src/tokens.css`
 - Create: `packages/ui/src/index.ts`
 
-- [ ] **Step 1: Write `packages/ui/package.json`**
+- [x] **Step 1: Write `packages/ui/package.json`**
 
 ```json
 {
@@ -452,7 +458,7 @@ Stub values are neutral and clearly marked for P1 replacement.
 }
 ```
 
-- [ ] **Step 2: Install dev dependency**
+- [x] **Step 2: Install dev dependency**
 
 Run:
 
@@ -460,7 +466,7 @@ Run:
 pnpm --filter @towardpcc/ui add -D typescript
 ```
 
-- [ ] **Step 3: Write `packages/ui/tsconfig.json`**
+- [x] **Step 3: Write `packages/ui/tsconfig.json`**
 
 ```json
 {
@@ -473,7 +479,7 @@ pnpm --filter @towardpcc/ui add -D typescript
 }
 ```
 
-- [ ] **Step 4: Write `packages/ui/src/tokens.css`**
+- [x] **Step 4: Write `packages/ui/src/tokens.css`**
 
 ```css
 /*
@@ -513,7 +519,7 @@ pnpm --filter @towardpcc/ui add -D typescript
 }
 ```
 
-- [ ] **Step 5: Write `packages/ui/src/index.ts`**
+- [x] **Step 5: Write `packages/ui/src/index.ts`**
 
 ```typescript
 /**
@@ -535,12 +541,12 @@ export const tokens = {
 export type TokenName = keyof typeof tokens;
 ```
 
-- [ ] **Step 6: Typecheck**
+- [x] **Step 6: Typecheck**
 
 Run: `pnpm --filter @towardpcc/ui typecheck`
 Expected: exit 0.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/ui pnpm-lock.yaml
@@ -562,7 +568,7 @@ git commit -m "feat(ui): design token architecture with P0 stub values"
 - Create: `apps/web/app/globals.css`
 - Create: `apps/web/app/api/v1/health/route.ts`
 
-- [ ] **Step 1: Write `apps/web/package.json` (deps installed next step)**
+- [x] **Step 1: Write `apps/web/package.json` (deps installed next step)**
 
 ```json
 {
@@ -580,7 +586,7 @@ git commit -m "feat(ui): design token architecture with P0 stub values"
 }
 ```
 
-- [ ] **Step 2: Install dependencies**
+- [x] **Step 2: Install dependencies**
 
 Run:
 
@@ -592,7 +598,7 @@ pnpm --filter @towardpcc/web add -D typescript @types/react @types/react-dom @ty
 
 Expected: Next.js ≥15 resolved (record actual in commit body); workspace links created.
 
-- [ ] **Step 3: Write `apps/web/next.config.ts`**
+- [x] **Step 3: Write `apps/web/next.config.ts`**
 
 ```typescript
 import type { NextConfig } from "next";
@@ -606,7 +612,7 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-- [ ] **Step 4: Write `apps/web/tsconfig.json`**
+- [x] **Step 4: Write `apps/web/tsconfig.json`**
 
 ```json
 {
@@ -631,7 +637,7 @@ export default nextConfig;
 (`verbatimModuleSyntax` off here: Next's generated files don't conform; the
 strict flags that matter — `strict`, `noUncheckedIndexedAccess` — inherit.)
 
-- [ ] **Step 5: Write `apps/web/postcss.config.mjs`**
+- [x] **Step 5: Write `apps/web/postcss.config.mjs`**
 
 ```javascript
 export default {
@@ -639,7 +645,7 @@ export default {
 };
 ```
 
-- [ ] **Step 6: Write `apps/web/app/globals.css`**
+- [x] **Step 6: Write `apps/web/app/globals.css`**
 
 ```css
 @import "tailwindcss";
@@ -672,7 +678,7 @@ self-referential `@theme inline` mapping, fall back to defining the Tailwind
 theme names directly from the token values in `tokens.css` — the token file
 stays the single source of truth either way.)
 
-- [ ] **Step 7: Write `apps/web/app/layout.tsx`**
+- [x] **Step 7: Write `apps/web/app/layout.tsx`**
 
 ```tsx
 import type { Metadata } from "next";
@@ -696,7 +702,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
-- [ ] **Step 8: Write `apps/web/app/page.tsx`**
+- [x] **Step 8: Write `apps/web/app/page.tsx`**
 
 Honest pre-launch placeholder — no fake claims, replaced in P4:
 
@@ -716,7 +722,7 @@ export default function HomePage() {
 }
 ```
 
-- [ ] **Step 9: Write `apps/web/app/api/v1/health/route.ts`**
+- [x] **Step 9: Write `apps/web/app/api/v1/health/route.ts`**
 
 ```typescript
 import { ENGINE_VERSION } from "@towardpcc/scoring-engine";
@@ -734,17 +740,17 @@ export function GET(): Response {
 
 (Also proves the workspace package boundary compiles into the app.)
 
-- [ ] **Step 10: Verify the app boots**
+- [x] **Step 10: Verify the app boots**
 
 Run: `pnpm --filter @towardpcc/web dev` in the background; then request `http://localhost:3000/` and `http://localhost:3000/api/v1/health`.
 Expected: page renders the headline; health returns `{"status":"ok","service":"towardpcc-web","engine":"0.1.0"}`. Stop the dev server.
 
-- [ ] **Step 11: Verify production build**
+- [x] **Step 11: Verify production build**
 
 Run: `pnpm --filter @towardpcc/web build`
 Expected: build succeeds; `.next/standalone` produced; typecheck clean.
 
-- [ ] **Step 12: Commit**
+- [x] **Step 12: Commit**
 
 ```bash
 git add apps/web pnpm-lock.yaml
@@ -765,7 +771,7 @@ git commit -m "feat(web): Next.js app boots with token-wired Tailwind v4 and /ap
 - Create: `.husky/commit-msg`
 - Modify: `package.json` (root — add devDeps via install, `lint-staged` block, `prepare` script)
 
-- [ ] **Step 1: Install root dev dependencies**
+- [x] **Step 1: Install root dev dependencies**
 
 Run:
 
@@ -773,7 +779,7 @@ Run:
 pnpm add -w -D eslint @eslint/js typescript-eslint eslint-config-next eslint-config-prettier prettier husky lint-staged @commitlint/cli @commitlint/config-conventional
 ```
 
-- [ ] **Step 2: Write `eslint.config.mjs`**
+- [x] **Step 2: Write `eslint.config.mjs`**
 
 ```javascript
 import js from "@eslint/js";
@@ -799,7 +805,7 @@ Next-specific rules: the executor wires `eslint-config-next` into
 `apps/web`'s lint per the flat-config pattern the installed Next version
 documents — verify against the resolved version rather than assuming.)
 
-- [ ] **Step 3: Write `.prettierrc.json`**
+- [x] **Step 3: Write `.prettierrc.json`**
 
 ```json
 {
@@ -810,7 +816,7 @@ documents — verify against the resolved version rather than assuming.)
 }
 ```
 
-- [ ] **Step 4: Write `.prettierignore`**
+- [x] **Step 4: Write `.prettierignore`**
 
 ```
 node_modules
@@ -820,13 +826,13 @@ dist
 pnpm-lock.yaml
 ```
 
-- [ ] **Step 5: Write `commitlint.config.mjs`**
+- [x] **Step 5: Write `commitlint.config.mjs`**
 
 ```javascript
 export default { extends: ["@commitlint/config-conventional"] };
 ```
 
-- [ ] **Step 6: Initialize husky and write hooks**
+- [x] **Step 6: Initialize husky and write hooks**
 
 Run:
 
@@ -846,7 +852,7 @@ Create `.husky/commit-msg` with:
 pnpm exec commitlint --edit "$1"
 ```
 
-- [ ] **Step 7: Add `lint-staged` block and `prepare` script to root `package.json`**
+- [x] **Step 7: Add `lint-staged` block and `prepare` script to root `package.json`**
 
 ```json
 {
@@ -860,14 +866,14 @@ pnpm exec commitlint --edit "$1"
 
 (Merge into the existing file — keep all Task 2 scripts.)
 
-- [ ] **Step 8: Verify the gates work**
+- [x] **Step 8: Verify the gates work**
 
 Run: `pnpm lint` → expected exit 0 across all packages.
 Run: `pnpm format:check` → fix any drift with `pnpm format`.
 Make a deliberately bad commit message to confirm commitlint rejects it:
 `git commit --allow-empty -m "bad message"` → expected: commit-msg hook fails.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A
@@ -886,7 +892,7 @@ git commit -m "chore: eslint flat config, prettier, husky, lint-staged, commitli
 - Create: `docker/postgres-init/01-create-databases.sh`
 - Create: `.env.example`
 
-- [ ] **Step 1: Write `apps/web/Dockerfile`**
+- [x] **Step 1: Write `apps/web/Dockerfile`**
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -923,7 +929,7 @@ CMD ["node", "apps/web/server.js"]
 (Base image is pinned by digest during P7 hardening; version tag pin now.
 `apps/web/public/` is added to the runner stage once P1 creates it.)
 
-- [ ] **Step 2: Write `apps/web/.dockerignore`**
+- [x] **Step 2: Write `apps/web/.dockerignore`**
 
 ```
 node_modules
@@ -937,7 +943,7 @@ coverage
 Note: build context is the repo root (see compose), so also create an
 identical root `.dockerignore`.
 
-- [ ] **Step 3: Write `docker/postgres-init/01-create-databases.sh`**
+- [x] **Step 3: Write `docker/postgres-init/01-create-databases.sh`**
 
 ```bash
 #!/bin/sh
@@ -948,7 +954,7 @@ psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" <<SQL
 SQL
 ```
 
-- [ ] **Step 4: Write `docker-compose.yml`**
+- [x] **Step 4: Write `docker-compose.yml`**
 
 ```yaml
 name: towardpcc
@@ -1023,7 +1029,7 @@ volumes:
 executor's discretion once Docker is available to test pulls; the prod compose
 file in P8 pins everything by digest.)
 
-- [ ] **Step 5: Write `.env.example`**
+- [x] **Step 5: Write `.env.example`**
 
 ```ini
 # ── TowardPCC environment ──────────────────────────────────────────────
@@ -1060,12 +1066,12 @@ S3_ACCESS_KEY=towardpcc
 S3_SECRET_KEY=change-me-dev-only
 ```
 
-- [ ] **Step 6: Validate compose syntax (Docker permitting)**
+- [x] **Step 6: Validate compose syntax (Docker permitting)**
 
 If Docker is installed: run `docker compose --env-file .env.example config` → expected: rendered config, exit 0.
 If Docker is NOT installed: record in `LAUNCH-BLOCKERS.md` (Task 10) that the stack is unverified; validation happens the moment Docker Desktop lands.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/Dockerfile apps/web/.dockerignore .dockerignore docker-compose.yml docker/ .env.example
@@ -1080,7 +1086,7 @@ git commit -m "chore: docker stack (web, postgres, umami, mailpit, minio) and do
 
 - Create: `.github/workflows/ci.yml`
 
-- [ ] **Step 1: Write `.github/workflows/ci.yml`**
+- [x] **Step 1: Write `.github/workflows/ci.yml`**
 
 ```yaml
 name: CI
@@ -1126,7 +1132,7 @@ are current majors as of authoring — the executor bumps if setup-node/pnpm
 majors have moved. Runs on GitHub once a remote exists — pending the founder's
 answer on repo hosting.)
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add .github
@@ -1146,7 +1152,7 @@ git commit -m "ci: typecheck, lint, unit, build, and gitleaks on push/PR"
 - Create: `LAUNCH-BLOCKERS.md`
 - Create: `docs/runbooks/.gitkeep`, `docs/ideas/.gitkeep`
 
-- [ ] **Step 1: Write `docs/decisions/ADR-0001-stack.md`**
+- [x] **Step 1: Write `docs/decisions/ADR-0001-stack.md`**
 
 ```markdown
 # ADR-0001: Full TypeScript/Node stack on Next.js
@@ -1189,7 +1195,7 @@ Umami, Docker deployment to a KSA-region host.
   path cheap.
 ```
 
-- [ ] **Step 2: Write `SECURITY.md`**
+- [x] **Step 2: Write `SECURITY.md`**
 
 ```markdown
 # Security Policy
@@ -1220,7 +1226,7 @@ logging of admin actions · dependency audit + gitleaks in CI · encrypted
 backups with a tested restore runbook.
 ```
 
-- [ ] **Step 3: Write `PRIVACY-ENGINEERING.md`**
+- [x] **Step 3: Write `PRIVACY-ENGINEERING.md`**
 
 ```markdown
 # Privacy Engineering
@@ -1249,7 +1255,7 @@ Rules of construction for every feature in this repo (from PRD §8):
    names, never values; gitleaks guards the history.
 ```
 
-- [ ] **Step 4: Write `CONTRIBUTING.md`**
+- [x] **Step 4: Write `CONTRIBUTING.md`**
 
 ```markdown
 # Contributing
@@ -1272,7 +1278,7 @@ and the door open.
   are explicitly marked and tracked in `LAUNCH-BLOCKERS.md`.
 ```
 
-- [ ] **Step 5: Write `LAUNCH-BLOCKERS.md`**
+- [x] **Step 5: Write `LAUNCH-BLOCKERS.md`**
 
 ```markdown
 # Launch Blockers
@@ -1302,11 +1308,11 @@ AND listed here.
 - [ ] Tier-B instruments blocked on per-instrument IP checks (P3+)
 ```
 
-- [ ] **Step 6: Create empty runbook/ideas dirs**
+- [x] **Step 6: Create empty runbook/ideas dirs**
 
 Create `docs/runbooks/.gitkeep` and `docs/ideas/.gitkeep` (empty files).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add docs SECURITY.md PRIVACY-ENGINEERING.md CONTRIBUTING.md LAUNCH-BLOCKERS.md
@@ -1317,7 +1323,7 @@ git commit -m "docs: ADR-0001 stack decision, security policy, privacy engineeri
 
 ### Task 11: P0 acceptance verification
 
-- [ ] **Step 1: Clean-workspace verification**
+- [x] **Step 1: Clean-workspace verification**
 
 Run, in order, each expected to exit 0:
 
@@ -1329,18 +1335,18 @@ pnpm test
 pnpm build
 ```
 
-- [ ] **Step 2: Boot verification with evidence**
+- [x] **Step 2: Boot verification with evidence**
 
 Start `pnpm dev`, load `http://localhost:3000/` in the connected browser,
 screenshot it, hit `/api/v1/health`, confirm the JSON. Stop the server.
 
-- [ ] **Step 3: Compose verification (conditional)**
+- [x] **Step 3: Compose verification (conditional)**
 
 If Docker present: `docker compose --env-file .env.example config` exits 0,
 then `docker compose up -d --build` and `wget -qO- localhost:3000/api/v1/health`.
 If absent: confirm the LAUNCH-BLOCKERS.md entry exists; done.
 
-- [ ] **Step 4: Fresh-clone simulation**
+- [x] **Step 4: Fresh-clone simulation**
 
 ```bash
 git clone . ../towardpcc-clone-test
@@ -1349,7 +1355,7 @@ cd ../towardpcc-clone-test && corepack enable && pnpm install && pnpm build
 
 Expected: green from a pristine checkout. Delete `../towardpcc-clone-test` after.
 
-- [ ] **Step 5: Close the slice**
+- [x] **Step 5: Close the slice**
 
 Invoke `superpowers:requesting-code-review` on the P0 diff, address findings,
 then `superpowers:verification-before-completion`, then report P0 complete

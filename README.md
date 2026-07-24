@@ -9,18 +9,22 @@ investigators. Built from Saudi Arabia for the world. https://towardpcc.com
 - `apps/web` — Next.js site, API, and admin
 - `packages/scoring-engine` — pure-TypeScript clinical scoring engine (zero runtime deps)
 - `packages/ui` — design tokens and UI primitives
-- `packages/config` — shared tsconfig/lint/format config
+- `packages/config` — shared strict tsconfig base (lint/format config live at the repo root)
 
 ## Prerequisites
 
-- Node 24+ (`corepack enable` to get pnpm)
+- Node 24+ with pnpm 10 — `corepack enable` is the standard path. If it fails
+  (Windows shells without admin rights hit an EPERM writing shims), use
+  `npm install -g pnpm@10.34.5` instead; the `packageManager` field still
+  pins the exact version either way.
 - Docker Desktop (for the local infra stack)
 
 ## Getting started
 
 ```bash
-corepack enable
+corepack enable        # or: npm install -g pnpm@10.34.5 (see Prerequisites)
 pnpm install
+cp .env.example .env   # then fill in secrets — see the comments in the file
 docker compose up -d   # postgres, umami, mailpit, minio, web
 pnpm dev               # Next.js dev server on http://localhost:3000
 ```
@@ -36,6 +40,6 @@ pnpm dev               # Next.js dev server on http://localhost:3000
 ## Documentation
 
 - `docs/decisions/` — architecture decision records
-- `docs/runbooks/` — operational runbooks
+- `docs/runbooks/` — operational runbooks (authored in P8; empty until then)
 - `SECURITY.md` — security policy and responsible disclosure
 - `PRIVACY-ENGINEERING.md` — privacy-by-design commitments

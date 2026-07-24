@@ -17,10 +17,16 @@ fix before disclosure.
 towardpcc.com and this repository. The separate PedsCC Library codebase has
 its own process.
 
-## Practices (v1 baseline)
+## Practices
 
-Strict CSP and security headers · server-side Zod validation on every input
-· Prisma parameterization only · CSRF protection and rate limiting on all
-mutations · Argon2id password hashing, mandatory TOTP for admin · audit
-logging of admin actions · dependency audit + gitleaks in CI · encrypted
-backups with a tested restore runbook.
+**In place today:** secret scanning of the full git history (gitleaks,
+pinned and checksum-verified) in CI · lockfile-frozen installs · non-root,
+healthchecked containers · commit-signing-ready history hygiene.
+
+**v1 launch gate (built and verified across P5–P8, before any public
+deploy):** strict CSP and security headers · server-side Zod validation on
+every input · Prisma parameterization only · CSRF protection and rate
+limiting on all mutations · Argon2id password hashing with mandatory TOTP
+for admin · audit logging of admin actions · dependency audit in CI ·
+encrypted backups with a tested restore runbook. Progress is tracked in
+`LAUNCH-BLOCKERS.md`.

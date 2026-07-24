@@ -16,10 +16,19 @@ AND listed here.
 ## Environment
 
 - [ ] Docker Desktop not installed on the dev machine — compose stack authored
-      but unverified; run `docker compose --env-file .env.example config` then
-      `docker compose up -d --build` the moment it lands (P0 gap). WAMP does
-      not cover this (no containers, no PostgreSQL).
-- [x] GitHub remote — approved by founder 2026-07-24; created during P0.
+      but unverified; when it lands: `cp .env.example .env`, fill secrets, then
+      `docker compose config` and `docker compose up -d --build`, and verify
+      the unverified-by-design healthcheck endpoints (umami `/api/heartbeat`,
+      mailpit `/livez`, minio `mc ready local`). WAMP does not cover this
+      (no containers, no PostgreSQL).
+- [ ] Pre-commit secret scanning deferred: `gitleaks protect --staged` needs a
+      local gitleaks binary this machine doesn't have. Secrets are caught in CI
+      (pinned, checksum-verified CLI). Install gitleaks locally by P5 (forms =
+      first real secrets risk) and add it to `.husky/pre-commit`.
+- [x] GitHub remote — approved by founder 2026-07-24; created during P0
+      (private, https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
+      fails without admin on this machine (EPERM in Program Files); pnpm is
+      installed via `npm i -g pnpm@10.34.5`, documented in README.
 
 ## Content / legal
 
