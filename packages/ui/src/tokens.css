@@ -1,35 +1,52 @@
 /*
- * TowardPCC design tokens — P0 STUB.
- * Names are the contract; values are finalized in P1 via the §5 design
- * process (mood review → design plan → self-critique). Do not ship P1
- * without replacing the placeholder values below.
+ * TowardPCC design tokens — Pulse Crimson, founder-chosen 2026-07-24.
+ * Source of truth for every color/type/radius/motion decision.
+ * Rationale + contrast math: docs/decisions/ADR-design-direction.md.
+ * Discipline: crimson is the single accent (one full-strength use per
+ * screen); alerts/errors are amber + icon, never brand crimson; no blue,
+ * no teal, anywhere.
  */
 :root {
-  /* Surfaces — "midnight-petrol" dark hero band into "porcelain" light content */
-  --color-surface-hero: #12242b; /* P1: refine midnight-petrol */
-  --color-surface-page: #f7f7f5; /* P1: refine porcelain */
+  /* Surfaces — oxblood night band into blush porcelain light */
+  --color-surface-hero: #231018;
+  --color-surface-hero-raised: #311a24;
+  --color-surface-page: #f7f4f3;
   --color-surface-raised: #ffffff;
+  --color-surface-sunken: #ebe4e3;
 
   /* Ink */
-  --color-ink-strong: #16262c;
-  --color-ink-body: #33444b;
-  --color-ink-muted: #5c6e75;
-  --color-ink-on-dark: #eef4f5;
+  --color-ink-strong: #231a1c;
+  --color-ink-body: #4a3d40;
+  --color-ink-muted: #75646a;
+  --color-ink-on-dark: #f4e9ec;
 
-  /* Accents — one primary, one used sparingly */
-  --color-accent-teal: #1fa8a0; /* P1: refine monitor-teal */
-  --color-accent-coral: #f06455; /* P1: refine pulse-coral; alerts + single primary CTA only */
+  /* Accent — crimson, the one and only */
+  --color-accent: #b01e32;
+  --color-accent-deep: #8f1728;
+  --color-accent-bright: #ff7d8e; /* crimson's voice on the night canvas */
+  --color-accent-tint: #f6e3e6; /* chip/selection backgrounds on light */
 
-  /* Type roles — families finalized in P1 after license verification */
-  --font-display: system-ui, sans-serif; /* P1: characterful grotesk, self-hosted */
-  --font-body: system-ui, sans-serif; /* P1: quiet legible body face */
-  --font-numeric: ui-monospace, monospace; /* P1: mono with tabular-nums for all scores/results */
+  /* Semantic signals — deliberately NOT crimson */
+  --color-alert-text: #8a5900;
+  --color-alert-bg: #fbeed7;
+  --color-success-text: #2e6b4f;
+  --color-success-bg: #e2f0e8;
 
-  /* Spacing / radius / motion scaffolding */
+  /* Type roles — all self-hosted, SIL OFL (see ADR-design-direction) */
+  --font-display: "Space Grotesk Variable", system-ui, sans-serif;
+  --font-body: "Inter Variable", system-ui, sans-serif;
+  --font-numeric: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.75rem;
   --radius-lg: 1.25rem;
+
+  /* Motion — single easing voice; all animation honors reduced-motion */
   --motion-duration-fast: 150ms;
   --motion-duration-slow: 400ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Focus — visible everywhere, keyboard-first */
+  --focus-ring: 0 0 0 2px var(--color-surface-page), 0 0 0 4px var(--color-accent);
 }

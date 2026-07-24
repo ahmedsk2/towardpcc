@@ -1,9 +1,13 @@
 # ADR-design-direction: TowardPCC visual direction
 
-- Status: **draft** — §5.1 mood review complete (this document); design plan +
-  self-critique (§5.2) follow in this ADR before any component code.
+- Status: **accepted** — direction approved by the founder 2026-07-24 with one
+  major revision: the original petrol/teal palette was rejected ("something
+  other than blue and teal") and replaced by **Pulse Crimson**, chosen by the
+  founder from three candidates grounded in field research
+  (docs/research/2026-07-24-picu-brand-colors.md). Part 2's palette table
+  reflects the chosen palette; the original petrol/teal table is superseded.
 - Date: 2026-07-24
-- Deciders: founding engineer, against the founder's brief (PRD §5)
+- Deciders: founder + founding engineer, against the founder's brief (PRD §5)
 
 ## Part 1 — Mood-reference review (§5.1)
 
@@ -55,13 +59,15 @@ downloaded and no purchasable kit informs any asset in this repo.
 
 ### Implication for "Precision and pulse" (§5.3)
 
-The concept holds against the field and sharpens: midnight-petrol hero with
+The concept holds against the field and sharpens: a tinted-dark hero with
 one breathing waveform element and sparse real-information mono annotation;
-porcelain content surfaces with hairline rules and structured cards;
-monitor-teal as the sole full-strength accent with pulse-coral strictly for
-alerts and the single primary CTA; every number in tabular mono. The
+porcelain content surfaces with hairline rules and structured cards; one
+sole full-strength accent; every number in tabular mono. The
 scientific-line-diagram idiom is a strong from-scratch reference for
-rendering formulas and score anatomy transparently.
+rendering formulas and score anatomy transparently. _(Historical note: this
+paragraph originally concluded for midnight-petrol/monitor-teal; the color
+world was revised to Pulse Crimson by founder decision — the structural
+conclusions stand unchanged.)_
 
 ## Part 2 — Design plan (§5.2 pass 1)
 
@@ -72,27 +78,33 @@ instrument" visual language. Dials: site-wide variance 4-5, motion 3
 sanctioned bold moment being the home hero (P4). Boldness is spent in
 exactly one place; everything else is quiet.
 
-### Palette (named tokens, hex)
+### Palette — Pulse Crimson (founder-chosen 2026-07-24)
 
-| Token         | Hex       | Role                                                           |
-| ------------- | --------- | -------------------------------------------------------------- |
-| `petrol-950`  | `#0B1F26` | hero canvas — midnight-petrol, never near-black                |
-| `petrol-800`  | `#123036` | dark-band elevation / gradient end                             |
-| `porcelain`   | `#F4F7F7` | page surface — cool porcelain, not cream                       |
-| `raised`      | `#FFFFFF` | cards/raised surfaces                                          |
-| `mist`        | `#E7EEEE` | sunken zones, hairline tint                                    |
-| `ink-strong`  | `#0F1F24` | headings on light (ties to petrol)                             |
-| `ink-body`    | `#35494F` | body text (≈7.5:1 on porcelain)                                |
-| `ink-muted`   | `#5E7176` | secondary text (≥4.5:1 on porcelain)                           |
-| `ink-on-dark` | `#E9F1F2` | text on petrol                                                 |
-| `teal-600`    | `#0E7C74` | monitor-teal: links, focus, interactive (≥4.5:1 on porcelain)  |
-| `teal-300`    | `#2BD9C7` | monitor-teal on dark: waveform, accents on petrol              |
-| `coral-600`   | `#C6402E` | pulse-coral: THE primary CTA + alerts only (white text ≥4.5:1) |
-| `coral-300`   | `#FF8A73` | pulse-coral on dark, sparing                                   |
+| Token         | Hex       | Role                                                          |
+| ------------- | --------- | ------------------------------------------------------------- |
+| `night-950`   | `#231018` | hero canvas — oxblood night, tinted, never near-black         |
+| `night-800`   | `#311A24` | dark-band elevation / gradient end                            |
+| `porcelain`   | `#F7F4F3` | page surface — blush porcelain, cool-warm neutral, not cream  |
+| `raised`      | `#FFFFFF` | cards/raised surfaces                                         |
+| `mist`        | `#EBE4E3` | sunken zones, hairline tint                                   |
+| `ink-strong`  | `#231A1C` | headings on light (ties to night)                             |
+| `ink-body`    | `#4A3D40` | body text (≈8:1 on porcelain)                                 |
+| `ink-muted`   | `#75646A` | secondary text (≈5:1 on porcelain)                            |
+| `ink-on-dark` | `#F4E9EC` | text on night                                                 |
+| `crimson-600` | `#B01E32` | THE accent: links, focus, interactive, the single primary CTA |
+| `crimson-700` | `#8F1728` | hover/pressed, deep accents                                   |
+| `rose-300`    | `#FF7D8E` | crimson's voice on dark: waveform, accents on night           |
+| `amber-700`   | `#8A5900` | alerts/warnings/errors — WITH icon, never bare color          |
+| `amber-100`   | `#FBEED7` | alert background tint                                         |
+| `moss-700`    | `#2E6B4F` | success/confirmation text                                     |
+| `moss-100`    | `#E2F0E8` | success background tint                                       |
 
-Rules: teal is the everyday accent; coral appears at most once per screen
-(the single most important action, or a true alert). One accent at full
-strength per surface. No gradients except the petrol band's own depth.
+Rules: crimson is the one accent and appears at full strength once per
+screen as a CTA; brand crimson **never** doubles as an error color — alerts
+and errors are amber + icon, so a red button always means "act", never
+"wrong". No blue, no teal, anywhere. No gradients except the night band's
+own depth. Kinship grounding: Saudi Critical Care Society red, PCICS
+cardiac red; full research in docs/research/2026-07-24-picu-brand-colors.md.
 
 ### Typography
 
@@ -109,28 +121,33 @@ strength per surface. No gradients except the petrol band's own depth.
   which appear only where they encode real information (score version,
   category, residency fact), never as decoration.
 
-All three are SIL OFL — self-hosting is unambiguous (task 2.3 verifies
-from the upstream license files and records findings here).
+All three are SIL OFL — **verified 2026-07-24** from the LICENSE files
+shipped inside the installed packages (`@fontsource-variable/space-grotesk`
+5.3.0, `@fontsource-variable/inter` 5.3.0, `@fontsource/ibm-plex-mono`
+5.3.0 — each `license: OFL-1.1` with the full SIL OFL text; Space Grotesk
+© The Space Grotesk Project Authors, Inter © The Inter Project Authors,
+IBM Plex Mono © IBM Corp.). Self-hosting via Fontsource webfonts is
+squarely within the OFL.
 
 ### Layout concept
 
 Global: porcelain pages, 12-col grid capped `max-w-[1400px]`, section
 rhythm `py-16..py-24`, nav ≤72px single-line. The home page opens with the
-one petrol band; the dark→light boundary is drawn by the signature
-waveform edge (below). All other pages are light with petrol reserved for
+one night band; the dark→light boundary is drawn by the signature
+waveform edge (below). All other pages are light with night reserved for
 the footer band, keeping the brand bracket.
 
 Home (§6.1):
 
 ```
 ┌─────────────────────────────────────────────────┐
-│ nav: wordmark · four pillars · About · Contact  │ 68px, on petrol
+│ nav: wordmark · four pillars · About · Contact  │ 68px, on night
 ├─────────────────────────────────────────────────┤
-│ PETROL BAND                                     │
+│ NIGHT BAND                                     │
 │  H1 (5-7 words)          ~ breathing waveform ~ │ split hero: text left,
 │  one-sentence promise      (P4 R3F / poster)    │ signature scene right
 │  [Explore the calculators] [Request a pilot]    │ coral primary, quiet secondary
-│ ~~~~ waveform edge dissolves petrol → porcelain │ the transition moment
+│ ~~~~ waveform edge dissolves night → porcelain │ the transition moment
 ├─────────────────────────────────────────────────┤
 │ PORCELAIN                                       │
 │  four-pillar bento — exactly 4 cells, rhythm:   │
@@ -142,7 +159,7 @@ Home (§6.1):
 │  trust strip (full-width, not a bento cell)     │ → /legal/data-protection
 │  mission excerpt (short, quiet)                 │
 │  honest roadmap: live · piloting · next         │
-│  footer on petrol: pillars · legal · KSA line   │
+│  footer on night: pillars · legal · KSA line   │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -173,7 +190,7 @@ The **breathing waveform**: a single slow respiratory-rhythm trace (calm
 sinusoid — deliberately respiratory, never a cardiac trace that could
 flatline). It exists in exactly two forms: (1) the P4 hero scene — lines/
 particles breathing and resolving into the four pillars; (2) the static
-waveform edge where the petrol band dissolves into porcelain — which is
+waveform edge where the night band dissolves into porcelain — which is
 also the hero's poster fallback ingredient. It appears nowhere else; it is
 the one memorable thing.
 
@@ -187,7 +204,7 @@ The orchestrated hero moment is P4's job and stays inside these guards.
 
 ### Theme
 
-v1 ships light-locked (single page theme; petrol is a band, not a mode).
+v1 ships light-locked (single page theme; night is a band, not a mode).
 Tokens are semantic CSS variables, so a true dark theme later is a token
 swap, not a rework — worth doing post-v1 for night-shift bedside use, and
 noted on the honest roadmap as "considering," only if the founder agrees
@@ -199,12 +216,12 @@ Checked against "the generic default you'd produce for any medical SaaS":
 
 1. **Generic medical SaaS** would be hospital-blue + Inter-everything +
    three equal feature cards + stock smiling clinicians. This plan has
-   none of those: petrol/porcelain/teal/coral is not a hospital palette,
+   none of those: night/porcelain/crimson is not a hospital palette,
    display and numeric faces carry distinct voices, the bento has exact
    cell count with rhythm, and imagery is real product screenshots only.
 2. **Banned AI-default looks** (PRD §5.2): cream+serif+terracotta — no
    serif anywhere, porcelain is cool not cream; near-black+acid-green —
-   petrol is tinted and teal is desaturated; broadsheet hairlines —
+   the night canvas is tinted and teal is desaturated; broadsheet hairlines —
    hairlines only inside annotation contexts that encode real data.
    Revised during this pass: pulse-coral tuned red-ward (`#C6402E`) so it
    reads alert/pulse, not artisan terracotta.
@@ -212,7 +229,7 @@ Checked against "the generic default you'd produce for any medical SaaS":
    reads as death in a pediatric ICU context. The motif is explicitly a
    respiratory waveform — continuous, calm, breathing.
 4. **Split-hero commonness**: left-text/right-asset is common; what makes
-   it specific here is the petrol→porcelain waveform dissolve and the
+   it specific here is the night→porcelain waveform dissolve and the
    annotation idiom. Kept, with the boundary doing the memorable work.
 5. **Space Grotesk popularity**: common in tech, yes — but license-safe,
    technically-voiced, and executed with this palette and the Plex Mono
