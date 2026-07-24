@@ -1,0 +1,35 @@
+/*
+ * TowardPCC design tokens — P0 STUB.
+ * Names are the contract; values are finalized in P1 via the §5 design
+ * process (mood review → design plan → self-critique). Do not ship P1
+ * without replacing the placeholder values below.
+ */
+:root {
+  /* Surfaces — "midnight-petrol" dark hero band into "porcelain" light content */
+  --color-surface-hero: #12242b; /* P1: refine midnight-petrol */
+  --color-surface-page: #f7f7f5; /* P1: refine porcelain */
+  --color-surface-raised: #ffffff;
+
+  /* Ink */
+  --color-ink-strong: #16262c;
+  --color-ink-body: #33444b;
+  --color-ink-muted: #5c6e75;
+  --color-ink-on-dark: #eef4f5;
+
+  /* Accents — one primary, one used sparingly */
+  --color-accent-teal: #1fa8a0; /* P1: refine monitor-teal */
+  --color-accent-coral: #f06455; /* P1: refine pulse-coral; alerts + single primary CTA only */
+
+  /* Type roles — families finalized in P1 after license verification */
+  --font-display: system-ui, sans-serif; /* P1: characterful grotesk, self-hosted */
+  --font-body: system-ui, sans-serif; /* P1: quiet legible body face */
+  --font-numeric: ui-monospace, monospace; /* P1: mono with tabular-nums for all scores/results */
+
+  /* Spacing / radius / motion scaffolding */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+  --motion-duration-fast: 150ms;
+  --motion-duration-slow: 400ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
