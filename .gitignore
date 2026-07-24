@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
+# env — only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# tooling
+.turbo/
+.vercel/
+*.log
+.DS_Store
+Thumbs.db
+
+# test artifacts
+playwright-report/
+test-results/
+
+# taskmanager volatile state (db itself is committed; WAL/logs are not)
+.taskmanager/logs/
+.taskmanager/*.db-wal
+.taskmanager/*.db-shm
