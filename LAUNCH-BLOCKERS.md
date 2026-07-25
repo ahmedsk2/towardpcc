@@ -30,6 +30,23 @@ AND listed here.
       fails without admin on this machine (EPERM in Program Files); pnpm is
       installed via `npm i -g pnpm@10.34.5`, documented in README.
 
+## Security (from docs/security/threat-model.md, 2026-07-24)
+
+- [ ] **Domain trust program (TM-008, high/firm)** — registrar + registry lock,
+      org-owned auto-renew payment method and contact email, renewal calendar
+      with two owners, DNSSEC, CAA records, CT-log + lookalike monitoring,
+      defensive typo/sibling registrations, dangling-DNS hygiene. The Saudi
+      Critical Care Society's lapsed domain is squatted by a gambling site —
+      that exact fate must be impossible for towardpcc.com. (P8, before DNS)
+- [ ] **Email authentication before first send (TM-008)** — SPF, DKIM,
+      DMARC `p=reject`, MTA-STS. (P8, before any form notification)
+- [ ] **CSP + security headers ship WITH P5**, not P7 (TM-005) — forms and
+      admin never run without them.
+- [ ] **Privacy-invariant test suite (TM-001)** — Playwright zero-network
+      calculator compute test + CI grep-guards (no useSearchParams /
+      "use server" under calculator routes) + Umami configured to strip
+      query/hash. Lands with P3 e2e and runs in CI forever.
+
 ## Content / legal
 
 - [ ] Legal pages need counsel review (`TODO:counsel-review` markers, P6)

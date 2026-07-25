@@ -1,17 +1,34 @@
 /**
- * TowardPCC design system. Components land in P1; P0 exports token names so
- * consumers reference tokens through one typed surface from day one.
+ * TowardPCC design system — Pulse Crimson.
+ * Token values live in tokens.css (single source of truth); this module
+ * exposes the typed token surface and the core primitives.
  */
 export const tokens = {
   surfaceHero: "var(--color-surface-hero)",
+  surfaceHeroRaised: "var(--color-surface-hero-raised)",
   surfacePage: "var(--color-surface-page)",
   surfaceRaised: "var(--color-surface-raised)",
+  surfaceSunken: "var(--color-surface-sunken)",
   inkStrong: "var(--color-ink-strong)",
   inkBody: "var(--color-ink-body)",
   inkMuted: "var(--color-ink-muted)",
   inkOnDark: "var(--color-ink-on-dark)",
-  accentTeal: "var(--color-accent-teal)",
-  accentCoral: "var(--color-accent-coral)",
+  accent: "var(--color-accent)",
+  accentDeep: "var(--color-accent-deep)",
+  accentBright: "var(--color-accent-bright)",
+  accentTint: "var(--color-accent-tint)",
+  alertText: "var(--color-alert-text)",
+  alertBg: "var(--color-alert-bg)",
+  successText: "var(--color-success-text)",
+  successBg: "var(--color-success-bg)",
 } as const;
 
 export type TokenName = keyof typeof tokens;
+
+export { cn } from "./cn";
+export { Button, type ButtonProps } from "./button";
+export { Card } from "./card";
+export { StatusChip, type StatusChipProps } from "./status-chip";
+export { Label, Input, Field, type FieldProps } from "./field";
+export { Callout, type CalloutProps } from "./callout";
+export { Skeleton } from "./skeleton";

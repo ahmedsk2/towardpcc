@@ -1,23 +1,48 @@
 @import "tailwindcss";
 @import "@towardpcc/ui/tokens.css";
 
+/* Tailwind must scan the UI package sources for class usage. */
+@source "../../../packages/ui/src";
+
 /* Map design tokens (single source of truth: packages/ui/src/tokens.css)
    into Tailwind theme keys. `inline` makes utilities carry the var()
-   expression directly, so the :root definitions above stay authoritative. */
+   expression directly, so the :root definitions stay authoritative. */
 @theme inline {
   --color-surface-hero: var(--color-surface-hero);
+  --color-surface-hero-raised: var(--color-surface-hero-raised);
   --color-surface-page: var(--color-surface-page);
   --color-surface-raised: var(--color-surface-raised);
+  --color-surface-sunken: var(--color-surface-sunken);
   --color-ink-strong: var(--color-ink-strong);
   --color-ink-body: var(--color-ink-body);
   --color-ink-muted: var(--color-ink-muted);
   --color-ink-on-dark: var(--color-ink-on-dark);
-  --color-accent-teal: var(--color-accent-teal);
-  --color-accent-coral: var(--color-accent-coral);
+  --color-accent: var(--color-accent);
+  --color-accent-deep: var(--color-accent-deep);
+  --color-accent-bright: var(--color-accent-bright);
+  --color-accent-tint: var(--color-accent-tint);
+  --color-ink-on-accent: var(--color-ink-on-accent);
+  --color-edge: var(--color-edge);
+  --color-alert-text: var(--color-alert-text);
+  --color-alert-bg: var(--color-alert-bg);
+  --color-success-text: var(--color-success-text);
+  --color-success-bg: var(--color-success-bg);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-numeric: var(--font-numeric);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
 }
 
 body {
   background: var(--color-surface-page);
   color: var(--color-ink-body);
-  font-family: var(--font-body, system-ui, sans-serif);
+  font-family: var(--font-body);
+}
+
+/* Numbers are the product: any element carrying scores/results opts in. */
+.numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
 }

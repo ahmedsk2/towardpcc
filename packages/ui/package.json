@@ -8,11 +8,18 @@
     "./tokens.css": "./src/tokens.css"
   },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit",
     "lint": "eslint src"
   },
+  "peerDependencies": {
+    "react": ">=19"
+  },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "@types/react": "^19.2.17",
+    "react": "^19.2.8",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }
