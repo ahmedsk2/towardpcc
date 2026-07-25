@@ -30,7 +30,7 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold (see research [NEEDS SOURCE])
+      // input-validity bound, not a cited threshold
       max: 50,
       step: 0.5,
       helpText: defineText(
@@ -45,7 +45,7 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold (see research [NEEDS SOURCE])
+      // input-validity bound, not a cited threshold
       max: 40,
       step: 0.5,
       helpText: defineText(
@@ -60,7 +60,7 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold (see research [NEEDS SOURCE])
+      // input-validity bound, not a cited threshold
       max: 2,
       step: 0.01,
       helpText: defineText(
@@ -75,7 +75,7 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold (see research [NEEDS SOURCE])
+      // input-validity bound, not a cited threshold
       max: 1.5,
       step: 0.05,
       helpText: defineText(
@@ -90,7 +90,7 @@ export const vis = defineScore({
       type: "numeric",
       unit: unitsPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold (see research [NEEDS SOURCE]).
+      // input-validity bound, not a cited threshold.
       // Unit trap: canonical is units/kg/min with coefficient 10,000 — accepts
       // milliunits/kg/min (÷1000). 0.0003 units/kg/min = 3 VIS points.
       max: 0.01,
@@ -107,7 +107,7 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold (see research [NEEDS SOURCE])
+      // input-validity bound, not a cited threshold
       max: 2,
       step: 0.01,
       helpText: defineText(
