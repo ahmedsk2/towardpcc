@@ -6,14 +6,21 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ServiceWorker } from "@/components/pwa/service-worker";
 import { site } from "@/content/site";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://towardpcc.com"),
   title: {
     default: site.metaTitle,
     template: `%s · ${site.name}`,
   },
   description: site.description,
+  appleWebApp: { capable: true, title: site.name, statusBarStyle: "default" },
+};
+
+export const viewport = {
+  themeColor: "#231018",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           {site.nav.skipToContent}
         </a>
+        <ServiceWorker />
         <SiteHeader />
         <main id="content" tabIndex={-1} className="flex-1">
           {children}

@@ -1,0 +1,177 @@
+import { defineScore } from "../define-score";
+import { defineText } from "../i18n/text";
+import { CM_PER_INCH, cmWithInAndM } from "../units/length";
+
+/**
+ * Ideal body weight (pediatric) — height-based estimates. IBW in children is
+ * NOT a single formula; the published methods disagree (differences ≥10 kg in
+ * adolescents; Ward 2018, PMID 30277896), so this calculator emits every method
+ * that is cleanly computable from height side by side and never silently picks
+ * one (research: "let the clinician pick/label the method").
+ *
+ * Emitted (all output IBW in kg, raw — `precision` rounds for DISPLAY only):
+ *   - Traub–Kichen (A1, exponential):  IBW = 2.396 × e^(0.01863 × height_cm)
+ *       primary pediatric height-based equation, sex-independent, ages 1–17 y
+ *       (Traub & Kichen 1983, PMID 6823980; cross-checked vs the R `physiology`
+ *        package → 15.44 kg at 100 cm).
+ *   - Simplified Traub (A2, Lexicomp): IBW = (height_cm² × 1.65) ÷ 1000
+ *       quadratic approximation of A1, ~7% higher (Kang 2019, PMID 31598106).
+ *   - Devine (A3, adult-derived):      IBW = base + 2.3 × (height_in − 60)
+ *       base 50.0 (male) / 45.5 (female); ONLY defined for height > 60 in
+ *       (152.4 cm) so it is emitted only at/above that height (Devine 1974,
+ *       reproduced in Kang 2019).
+ *
+ * Growth-chart / percentile methods (McLaren, Moore, ADA, BMI50) require CDC/WHO
+ * LMS table lookups and are NOT computable from height alone — documented in
+ * notes, not implemented here. IBW has NO interpretation bands (research:
+ * "IBW itself has no interpretive bands"); interpretation is intentionally [].
+ * Research + full sourcing: docs/research/scores/ideal-body-weight.md.
+ */
+
+// Devine is only defined for height > 60 in (152.4 cm) — research §A3. This is a
+// cited domain floor of the Devine formula, not an engineering input bound.
+const DEVINE_MIN_HEIGHT_CM = 152.4;
+
+export const idealBodyWeight = defineScore({
+  id: "ideal-body-weight",
+  slug: "ideal-body-weight",
+  name: "Ideal body weight (pediatric)",
+  version: "1.0.0",
+  status: "published",
+  category: "general",
+  inputs: [
+    {
+      id: "height",
+      label: defineText("ibw.height", "Height / recumbent length"),
+      required: true,
+      type: "numeric",
+      unit: cmWithInAndM,
+      // Input-validity bounds, not a cited clinical threshold: ~45 cm (term
+      // newborn length) to ~200 cm (tall adolescent), per the research inputs
+      // table framing the CDC 2000 chart range.
+      min: 45,
+      max: 200,
+      helpText: defineText(
+        "ibw.height.help",
+        "Standing height (or recumbent length in infants). Accepts cm, inches, or metres. The Traub methods are validated 1–17 years; the Devine method appears only at or above 152.4 cm (60 inches).",
+      ),
+    },
+    {
+      id: "sex",
+      label: defineText("ibw.sex", "Sex"),
+      required: true,
+      type: "categorical",
+      helpText: defineText(
+        "ibw.sex.help",
+        "Used only by the Devine method (male base 50.0 kg, female 45.5 kg). The Traub–Kichen and simplified Traub equations are sex-independent by design, so sex does not change those values.",
+      ),
+      options: [
+        { value: "male", label: defineText("ibw.sex.male", "Male") },
+        { value: "female", label: defineText("ibw.sex.female", "Female") },
+      ],
+    },
+  ] as const,
+  // IBW is an input (to drug dosing, %-IBW nutritional classification, and
+  // lung-protective tidal-volume setting), not a severity measure — research
+  // §"Interpretation bands": "IBW itself has no interpretive bands." Left empty
+  // intentionally; see notes.
+  interpretation: [],
+  references: [
+    {
+      citation:
+        "Traub SL, Kichen L. Estimating ideal body mass in children. Am J Hosp Pharm. 1983;40(1):107–110.",
+      pmid: "6823980",
+      note: "Primary height-based pediatric IBW equation (A1); IBM = 50th-percentile weight for height; ages 1–17 y; sex-independent.",
+    },
+    {
+      citation:
+        "Kang K, Absher R, Farrington E, Ackley R, So T-Y. Evaluation of Different Methods Used to Calculate Ideal Body Weight in the Pediatric Population. J Pediatr Pharmacol Ther. 2019;24(5):421–430.",
+      pmid: "31598106",
+      doi: "10.5863/1551-6776-24.5.421",
+      note: "Source for the simplified Traub (A2) and Devine (A3) formulas and for the seven-method comparison.",
+    },
+    {
+      citation:
+        "Ward SL, Quinn CM, Steurer MA, Liu KD, Flori HR, Matthay MA. Variability in Pediatric Ideal Body Weight Calculation: Implications for Lung-Protective Mechanical Ventilation Strategies in Pediatric ARDS. Pediatr Crit Care Med. 2018;19(12):e643–e652.",
+      pmid: "30277896",
+      doi: "10.1097/PCC.0000000000001740",
+      note: "PICU relevance: method choice shifts IBW by ≥10 kg in some children and changes prescribed tidal volume; the BMI method was usable in only 61% of a cohort.",
+    },
+    {
+      citation:
+        "Moylan A, et al. Assessing the Agreement of 5 Ideal Body Weight Calculations for Selecting Medication Dosages for Children With Obesity. 2019.",
+      url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6547219/",
+      note: "Cross-check of five methods; source of the simplified-Traub inches-vs-centimetres transcription-error flag (use centimetres).",
+    },
+    {
+      citation: "physiology R package — ideal_weight_Traub.",
+      url: "https://rdrr.io/cran/physiology/man/ideal_weight_Traub.html",
+      note: "Independent encoding of the Traub 1983 equation; cross-checks Worked example 1 (returns 15.44 kg at 100 cm); validated ages 1–17 y.",
+    },
+  ],
+  validators: [{ status: "pending" }, { status: "pending" }],
+  changelog: [
+    {
+      version: "1.0.0",
+      date: "2026-07-25",
+      summary:
+        "Initial release: pediatric IBW via Traub–Kichen, simplified Traub, and (height > 152.4 cm) Devine.",
+      reason: "initial-release",
+    },
+  ],
+  ipStatus: {
+    kind: "freely-reproducible",
+    evidence:
+      'Formulas, coefficients, and numeric thresholds are facts / mathematical relationships, not copyrightable expression — Traub, simplified Traub, and Devine may be implemented freely (research §"IP status"). No verbatim proprietary scale text is reproduced.',
+  },
+  formula: defineText(
+    "ibw.formula",
+    "Ideal body weight (kg) is estimated from height, shown per method. Traub–Kichen (exponential): IBW = 2.396 × e^(0.01863 × height in cm) — sex-independent, validated 1–17 years. Simplified Traub (Lexicomp quadratic): IBW = (height in cm)² × 1.65 ÷ 1000 — same domain, runs about 7% higher than Traub–Kichen (16.50 vs 15.44 kg at 100 cm). Devine (adult-derived, shown only when height is at or above 60 inches / 152.4 cm): height in inches = height in cm ÷ 2.54, then IBW = 50.0 + 2.3 × (height in inches − 60) for males and 45.5 + 2.3 × (height in inches − 60) for females. Pick the method appropriate to the child's age and height (see notes). Values are raw; the display rounds to 0.1 kg.",
+  ),
+  notes: defineText(
+    "ibw.notes",
+    "No consensus method exists — the published methods disagree, most in adolescents and at extreme percentiles (≥10 kg in Ward 2018, PMID 30277896; 13.7–16.6% median disagreement in Moylan 2019), so each height-computable method is shown separately and none is silently chosen. IBW has NO interpretive bands: it is an input to weight-based drug dosing, to %-IBW nutritional classification (%IBW = actual weight ÷ IBW × 100; the McLaren & Read 1972 malnutrition categories attach to that derived ratio, NOT to IBW), and to lung-protective tidal-volume setting in pediatric ARDS — interpretation is intentionally empty. Method applicability by age/height: Traub–Kichen (A1) is the primary pediatric height-based equation, validated ages 1–17 y and sex-independent by design; the simplified Traub quadratic (A2) is a Lexicomp approximation over the same domain and is NOT numerically equal to A1 (~7% higher). Devine (A3) is ADULT-DERIVED (a 1974 gentamicin-dosing formula), requires sex, and is only defined for height > 60 in (152.4 cm), so it is emitted only at/above 152.4 cm and over-estimates versus pediatric methods (~65.9 vs 56.9 kg at 170 cm). Units caveat: the simplified Traub formula takes CENTIMETRES — Moylan 2019 prints it with 'inches', an apparent transcription error that yields non-physiologic values; centimetres reproduces the Traub curve. Below ~1–2 years, height-only equations are weakest (Traub validated from 1 y; Devine invalid), and the reference-standard growth-chart methods (McLaren, Moore, ADA, BMI50) require CDC/WHO LMS percentile-table lookups — they are NOT computable from height alone and are therefore documented but NOT implemented here (BMI-for-age is undefined < 2 y). [NEEDS SOURCE] carried from the research file: Traub & Johnson 1980 PMID (not fetched); McLaren & Read 1972 PMID (not confirmed); Moore 1985 exact volume/pages; ADA 2003 exact page; the BMI50 original primary citation; and the Moylan 2019 exact journal/venue. Training aid, not a prescription — confirm any weight-based dose against a current pediatric reference.",
+  ),
+  calculate: (values) => {
+    // Canonical height is in centimetres (cmWithInAndM). Return RAW formula
+    // values; per-value `precision` rounds for display only.
+    const heightCm = values.height.value;
+
+    const traubKichen = 2.396 * Math.exp(0.01863 * heightCm); // A1, Traub & Kichen 1983
+    const simplifiedTraub = (heightCm * heightCm * 1.65) / 1000; // A2, Lexicomp (Kang 2019)
+
+    const results = [
+      {
+        id: "traub_kichen",
+        label: defineText("ibw.out.traub", "IBW — Traub–Kichen (exponential, height-based)"),
+        value: traubKichen,
+        unit: "kg",
+        precision: 1,
+      },
+      {
+        id: "simplified_traub",
+        label: defineText("ibw.out.simplified", "IBW — simplified Traub (Lexicomp)"),
+        value: simplifiedTraub,
+        unit: "kg",
+        precision: 1,
+      },
+    ];
+
+    // Devine is only defined for height > 60 in (152.4 cm); below that it is not
+    // emitted (research §A3) rather than reporting an out-of-domain extrapolation.
+    if (heightCm >= DEVINE_MIN_HEIGHT_CM) {
+      const heightIn = heightCm / CM_PER_INCH;
+      const base = values.sex.value === "male" ? 50.0 : 45.5; // Devine 1974
+      const devine = base + 2.3 * (heightIn - 60);
+      results.push({
+        id: "devine",
+        label: defineText("ibw.out.devine", "IBW — Devine (adult-derived, height ≥ 152.4 cm)"),
+        value: devine,
+        unit: "kg",
+        precision: 1,
+      });
+    }
+
+    return results;
+  },
+});

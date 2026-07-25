@@ -1,4 +1,14 @@
 import type { ScoreCategory, ScoreDefinition, ScoreStatus, ScoreSummary } from "../types";
+import { anionGap } from "./anion-gap";
+import { aplsWeight } from "./apls-weight";
+import { bsaMosteller } from "./bsa-mosteller";
+import { burnResuscitation } from "./burn-resuscitation";
+import { correctedCalcium } from "./corrected-calcium";
+import { correctedSodium } from "./corrected-sodium";
+import { ettSize } from "./ett-size";
+import { hollidaySegar } from "./holliday-segar";
+import { idealBodyWeight } from "./ideal-body-weight";
+import { kdigoAki } from "./kdigo-aki";
 import { oxygenationIndex } from "./oxygenation-index";
 import { oxygenSaturationIndex } from "./oxygen-saturation-index";
 import { pediatricGcs } from "./pediatric-gcs";
@@ -7,14 +17,26 @@ import { pfRatio } from "./pf-ratio";
 import { phoenix } from "./phoenix";
 import { pim3 } from "./pim3";
 import { psofa } from "./psofa";
+import { qtc } from "./qtc";
+import { serumOsmolality } from "./serum-osmolality";
 import { sfRatio } from "./sf-ratio";
 import { vis } from "./vis";
 
 /**
  * The only file that statically imports every score (ADR-0002 decision 1).
- * Scores are added here exactly when they ship, alphabetically.
+ * Scores are added here exactly when they ship, alphabetically by slug.
  */
 export const registry: readonly ScoreDefinition[] = [
+  anionGap,
+  aplsWeight,
+  bsaMosteller,
+  burnResuscitation,
+  correctedCalcium,
+  correctedSodium,
+  ettSize,
+  hollidaySegar,
+  idealBodyWeight,
+  kdigoAki,
   oxygenationIndex,
   oxygenSaturationIndex,
   pediatricGcs,
@@ -23,6 +45,8 @@ export const registry: readonly ScoreDefinition[] = [
   phoenix,
   pim3,
   psofa,
+  qtc,
+  serumOsmolality,
   sfRatio,
   vis,
 ];

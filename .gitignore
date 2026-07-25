@@ -10,6 +10,10 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
+# Serwist-generated service worker
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+
 # env — only .env.example is committed
 .env
 .env.*
@@ -25,6 +29,7 @@ Thumbs.db
 # test artifacts
 playwright-report/
 test-results/
+.lighthouseci/
 
 # taskmanager volatile state (db itself is committed; WAL/logs are not)
 .taskmanager/logs/

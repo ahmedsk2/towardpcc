@@ -50,14 +50,25 @@ AND listed here.
       DMARC `p=reject`, MTA-STS. (P8, before any form notification)
 - [ ] **CSP + security headers ship WITH P5**, not P7 (TM-005) — forms and
       admin never run without them.
-- [ ] **Privacy-invariant test suite (TM-001)** — Playwright zero-network
-      calculator compute test + CI grep-guards (no useSearchParams /
-      "use server" under calculator routes) + Umami configured to strip
-      query/hash. Lands with P3 e2e and runs in CI forever.
+- [~] **Privacy-invariant test suite (TM-001)** — DONE in P3: Playwright
+  zero-network/airplane-mode calculator compute test (apps/web/e2e/
+  calculator-privacy.spec.ts, CI `e2e` job) + static grep-guards (no
+  useSearchParams/searchParams/"use server" under calculator routes,
+  apps/web/content/privacy-invariant.test.ts, runs under `pnpm test`).
+  **Remaining (P5, when analytics lands):** configure Umami to strip
+  query/hash from collected URLs — deferred because Umami is not yet
+  integrated into the app.
 
 ## Content / legal
 
 - [ ] Legal pages need counsel review (`TODO:counsel-review` markers, P6)
 - [ ] Calculator validator slots empty by design — badge shows
       "Independent clinical validation: pending" until real names provided
-- [ ] Tier-B instruments blocked on per-instrument IP checks (P3+)
+- [x] Tier-B instrument IP checks done (docs/decisions/ADR-tier-b-ip.md,
+      2026-07-25): all 8 stay unbuilt in v1 — 5 need permission (COMFORT-B,
+      CAPD, SOS-PD, FLACC, Bedside PEWS), 4 need legal review. To build any,
+      the founder must obtain written permission (FLACC/CAPD are the cleanest
+      routes). Not a launch blocker for v1 (v1 ships the IP-clean scores).
+- [ ] PWA raster PNG icons (192/512 + maskable) — currently SVG-only, which
+      installs in modern browsers; generate PNGs before launch for maximum
+      Android/Lighthouse compatibility (sharp unavailable on this ARM dev box).

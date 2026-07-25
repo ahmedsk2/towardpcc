@@ -145,6 +145,15 @@ function CalculatorFormInner({ definition }: { definition: ScoreDefinition }) {
     return m;
   }, [outcome]);
 
+  // Honest partial-result cue (PRD §6.4): additive composites (pSOFA, Phoenix,
+  // VIS) score a blank component as normal, so a not-yet-complete entry can read
+  // falsely low. Flag it whenever such a score computes with an optional field
+  // still blank, so the number is never mistaken for a complete assessment.
+  const showPartialCue = useMemo(() => {
+    if (!definition.missingAsNormal || !outcome?.ok) return false;
+    return inputs.some((i) => !i.required && (state[i.id]?.raw ?? "") === "");
+  }, [definition.missingAsNormal, outcome, inputs, state]);
+
   const copySummary = useCallback(() => {
     if (!outcome || !outcome.ok) return;
     const lines = [
@@ -176,7 +185,13 @@ function CalculatorFormInner({ definition }: { definition: ScoreDefinition }) {
         ))}
       </form>
 
-      <ResultPanel definition={definition} outcome={outcome} copied={copied} onCopy={copySummary} />
+      <ResultPanel
+        definition={definition}
+        outcome={outcome}
+        copied={copied}
+        onCopy={copySummary}
+        showPartialCue={showPartialCue}
+      />
     </div>
   );
 }
@@ -293,13 +308,19 @@ function ResultPanel({
   outcome,
   copied,
   onCopy,
+  showPartialCue,
 }: {
   definition: ScoreDefinition;
   outcome: ComputeResult | null;
   copied: boolean;
   onCopy: () => void;
+  showPartialCue: boolean;
 }) {
   const ok = outcome?.ok ? outcome : null;
+  // One output → a single dominant headline. Several outputs → an equal-weight
+  // list, so the panel stays scannable without implying one value is "the"
+  // answer (e.g. IBW deliberately shows every method and chooses none).
+  const multi = (ok?.result.values.length ?? 0) > 1;
   return (
     <aside
       aria-live="polite"
@@ -311,36 +332,59 @@ function ResultPanel({
         <p className="mt-4 text-sm text-ink-muted">{c.resultPlaceholder}</p>
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          {ok.result.values.map((v) => {
-            const band: InterpretationBand | undefined = matchInterpretationBand(
-              definition,
-              v.id,
-              v.value,
-            );
-            return (
-              <div key={v.id}>
-                {ok.result.values.length > 1 && (
-                  <p className="text-sm text-ink-muted">{v.label.en}</p>
-                )}
-                <p className="numeric text-4xl font-medium tabular-nums text-ink-strong">
-                  {v.value.toFixed(v.precision)}
-                  {v.unit ? <span className="ml-1 text-xl text-ink-muted">{v.unit}</span> : null}
-                </p>
-                {band && (
-                  <p className="mt-1 text-sm text-ink-body">
-                    <span className="font-medium">{c.interpretationLabel}: </span>
-                    {band.label.en} — {band.description.en}
+          <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
+            {ok.result.values.map((v) => {
+              const band: InterpretationBand | undefined = matchInterpretationBand(
+                definition,
+                v.id,
+                v.value,
+              );
+              return (
+                <div
+                  key={v.id}
+                  className={
+                    multi
+                      ? "border-t border-surface-sunken pt-3 first:border-t-0 first:pt-0"
+                      : undefined
+                  }
+                >
+                  {multi && <p className="text-sm text-ink-muted">{v.label.en}</p>}
+                  <p
+                    className={cn(
+                      "numeric font-medium tabular-nums text-ink-strong",
+                      multi ? "text-2xl" : "text-4xl",
+                    )}
+                  >
+                    {v.value.toFixed(v.precision)}
+                    {v.unit ? (
+                      <span className={cn("ml-1 text-ink-muted", multi ? "text-base" : "text-xl")}>
+                        {v.unit}
+                      </span>
+                    ) : null}
                   </p>
-                )}
-              </div>
-            );
-          })}
+                  {band && (
+                    <p className="mt-1 text-sm text-ink-body">
+                      <span className="font-medium">{c.interpretationLabel}: </span>
+                      {band.label.en} — {band.description.en}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {showPartialCue && (
+            <Callout tone="note" className="text-[13px]" data-print="hide">
+              {c.partialResultNote}
+            </Callout>
+          )}
+
           <button
             type="button"
             onClick={onCopy}
             data-print="hide"
             className={cn(
-              "mt-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ink-muted/40 px-4 text-sm font-medium text-ink-strong",
+              "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ink-muted/40 px-4 text-sm font-medium text-ink-strong",
               "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             )}
           >

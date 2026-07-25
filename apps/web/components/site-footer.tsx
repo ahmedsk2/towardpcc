@@ -11,6 +11,7 @@ const pillarLinks = [
 const siteLinks = [
   { href: "/about", label: site.nav.about },
   { href: "/contact", label: site.nav.contact },
+  { href: "/install", label: site.pwa.installTitle },
 ];
 // Legal links join this footer in P6, when those pages actually exist —
 // working links only (PRD §2.2).

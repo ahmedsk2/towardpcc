@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TowardPCC">
+  <rect width="512" height="512" rx="112" fill="#231018"/>
+  <!-- breathing respiratory waveform — the brand signature -->
+  <path d="M56 300 C112 300 128 196 200 196 S296 356 360 356 S440 240 456 240"
+        fill="none" stroke="#B01E32" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M56 300 C112 300 128 196 200 196 S296 356 360 356 S440 240 456 240"
+        fill="none" stroke="#FF7D8E" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+</svg>

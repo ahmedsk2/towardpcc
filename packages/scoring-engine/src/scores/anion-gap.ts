@@ -1,0 +1,224 @@
+import { defineScore } from "../define-score";
+import { defineText } from "../i18n/text";
+import type { ScoreValue } from "../types";
+import { albuminGdl, electrolyteMeqL } from "../units/electrolytes";
+
+/**
+ * Serum anion gap (AG), with the Figge (1998) albumin correction. The AG is an
+ * arithmetic index of unmeasured anions from the routine electrolyte panel,
+ * used to detect and classify metabolic acidosis (high- vs normal-AG) and, at
+ * the low end, to flag hypoalbuminemia/paraproteinemia. Because albumin is the
+ * dominant unmeasured anion, hypoalbuminemia lowers the AG and can MASK a
+ * high-AG acidosis; the albumin correction (2.5 mEq/L per 1 g/dL fall in
+ * albumin below 4.0) restores sensitivity.
+ *
+ *   AG          = Na − (Cl + HCO₃)                    [potassium-exclusive form]
+ *   AG(K)       = (Na + K) − (Cl + HCO₃)              [potassium-inclusive form]
+ *   AG_corrected = AG + 2.5 × (4.0 − albumin[g/dL])   [Figge 1998]
+ *
+ * This is a DIAGNOSTIC INDEX, not a directive severity score. Reference
+ * intervals are strongly method-dependent (flame photometry vs modern
+ * ion-selective electrodes) and lab-specific, so NO interpretation bands are
+ * emitted — classify against the reporting lab's own interval (see notes).
+ *
+ * Outputs adapt to which optional inputs are supplied: the base (K-exclusive)
+ * AG is always returned; the K-inclusive AG is added when potassium is given;
+ * albumin-corrected versions of each are added when albumin is given. Both K
+ * forms are surfaced rather than silently picking one — their reference
+ * intervals differ (K-inclusive runs ~3.5–5 units higher).
+ *
+ * Research + full sourcing: docs/research/scores/anion-gap.md.
+ */
+export const anionGap = defineScore({
+  id: "anion-gap",
+  slug: "anion-gap",
+  name: "Anion gap (with albumin correction)",
+  version: "1.0.0",
+  status: "published",
+  category: "renal-metabolic",
+  inputs: [
+    {
+      id: "na",
+      label: defineText("ag.na", "Serum sodium (Na⁺)"),
+      required: true,
+      type: "numeric",
+      unit: electrolyteMeqL,
+      // Input-validity bounds, not a cited clinical threshold (anion-gap.md
+      // marks these hard bounds [NEEDS SOURCE]).
+      min: 100,
+      max: 180,
+      helpText: defineText(
+        "ag.na.help",
+        "From the electrolyte panel. Accepts mEq/L or mmol/L (identical).",
+      ),
+    },
+    {
+      id: "cl",
+      label: defineText("ag.cl", "Serum chloride (Cl⁻)"),
+      required: true,
+      type: "numeric",
+      unit: electrolyteMeqL,
+      // input-validity bound, not a cited threshold
+      min: 70,
+      max: 130,
+      helpText: defineText(
+        "ag.cl.help",
+        "From the electrolyte panel. Accepts mEq/L or mmol/L (identical).",
+      ),
+    },
+    {
+      id: "hco3",
+      label: defineText("ag.hco3", "Serum bicarbonate (HCO₃⁻ or total CO₂)"),
+      required: true,
+      type: "numeric",
+      unit: electrolyteMeqL,
+      // input-validity bound, not a cited threshold
+      min: 3,
+      max: 45,
+      helpText: defineText(
+        "ag.hco3.help",
+        "Bicarbonate or the total CO₂ reported on a basic metabolic panel (used interchangeably here). Accepts mEq/L or mmol/L (identical).",
+      ),
+    },
+    {
+      id: "k",
+      label: defineText("ag.k", "Serum potassium (K⁺, optional)"),
+      required: false,
+      type: "numeric",
+      unit: electrolyteMeqL,
+      // input-validity bound, not a cited threshold
+      min: 1.5,
+      max: 9,
+      helpText: defineText(
+        "ag.k.help",
+        "Optional. Supply only to also compute the potassium-inclusive AG, which uses a higher reference interval.",
+      ),
+    },
+    {
+      id: "albumin",
+      label: defineText("ag.albumin", "Serum albumin (optional)"),
+      required: false,
+      type: "numeric",
+      unit: albuminGdl,
+      // input-validity bound, not a cited threshold; Figge 1998 spanned severe
+      // hypoalbuminemia so the correction is defined across this range.
+      min: 1.0,
+      max: 6.0,
+      helpText: defineText(
+        "ag.albumin.help",
+        "Optional. Supply to also compute the albumin-corrected AG (baseline 4.0 g/dL). Accepts g/dL or g/L.",
+      ),
+    },
+  ] as const,
+  // Diagnostic index with strongly method-dependent, lab-specific reference
+  // intervals and no management-directive thresholds → no interpretation bands
+  // (anion-gap.md §Interpretation bands). Classify against the lab's own range.
+  interpretation: [],
+  references: [
+    {
+      citation:
+        "Figge J, Jabor A, Kazda A, Fencl V. Anion gap and hypoalbuminemia. Crit Care Med. 1998;26(11):1807–1810.",
+      pmid: "9824071",
+      doi: "10.1097/00003246-199811000-00019",
+    },
+    {
+      citation:
+        "Kraut JA, Madias NE. Serum anion gap: its uses and limitations in clinical medicine. Clin J Am Soc Nephrol. 2007;2(1):162–174.",
+      pmid: "17699401",
+      doi: "10.2215/CJN.03020906",
+    },
+    {
+      citation:
+        "Chionh CY, Poh CB, Roy DM, et al. Serum anion gap revisited: a verified reference interval for contemporary use. Intern Med J. 2022;52(9):1531–1537.",
+      pmid: "34028972",
+      doi: "10.1111/imj.15396",
+    },
+    {
+      citation:
+        "Anion Gap and Non–Anion Gap Metabolic Acidosis. StatPearls (NCBI Bookshelf), NBK448090.",
+      url: "https://www.ncbi.nlm.nih.gov/books/NBK448090/",
+    },
+  ],
+  validators: [{ status: "pending" }, { status: "pending" }],
+  changelog: [
+    {
+      version: "1.0.0",
+      date: "2026-07-25",
+      summary:
+        "Initial release: anion gap (K-exclusive and K-inclusive) with the Figge 1998 albumin correction.",
+      reason: "initial-release",
+    },
+  ],
+  ipStatus: {
+    kind: "freely-reproducible",
+    evidence:
+      "The anion gap is an arithmetic identity (Na − [Cl + HCO₃], optionally + K) and the Figge albumin correction is a regression coefficient (2.5 per g/dL) applied to a linear formula; formulas, coefficients, and reference intervals are facts, not copyrightable expression. No verbatim scale wording is embedded (anion-gap.md IP status).",
+  },
+  formula: defineText(
+    "ag.formula",
+    "Base anion gap = sodium − (chloride + bicarbonate). When potassium is supplied, the potassium-inclusive anion gap = (sodium + potassium) − (chloride + bicarbonate); it runs about 3.5–5 units higher and uses a higher reference interval, so the two forms are shown separately. When albumin is supplied, the albumin-corrected anion gap = anion gap + 2.5 × (4.0 − albumin in g/dL): each 1 g/dL of albumin below the 4.0 g/dL baseline adds 2.5 mEq/L back to the gap (Figge 1998), unmasking a high-anion-gap acidosis that hypoalbuminemia would otherwise hide. Values are reported in mEq/L (numerically equal to mmol/L for these monovalent ions).",
+  ),
+  notes: defineText(
+    "ag.notes",
+    "The anion gap is a diagnostic/classification index, not a graded severity or outcome score — do not read it as a mortality or acuity score. It has NO interpretation bands here because reference intervals are strongly method-dependent (flame photometry gave ~12 ± 4 mEq/L; modern ion-selective electrodes shifted it down to ~6 ± 3, and verified lab intervals range widely, e.g. 10–18 mmol/L K-exclusive in Chionh 2022): always classify against the reporting lab's own reference interval, not a fixed cutoff. The potassium-inclusive form runs ~3.5–5 units higher and requires a correspondingly higher reference interval — never compare a K-inclusive value against a K-exclusive range. The albumin correction uses the Figge 1998 slope of 2.5 mEq/L per 1 g/dL below a 4.0 g/dL baseline (equivalently 0.25 per g/L below 40 g/L); a small number of sources use a 2.3 coefficient or a 4.5 g/dL baseline (results are clinically near-identical) — this implementation uses 2.5 and 4.0, the most common clinical form. Correcting for albumin increases sensitivity, not specificity, and is an adjunct to — not a replacement for — direct measurement of lactate, ketones, etc. Pediatric-first flag: the 2.5 coefficient and the reference intervals were derived predominantly in ADULTS (Figge's cohort was adults); they are applied to children by convention, not from pediatric-derived data. Total CO₂ from a basic metabolic panel is used interchangeably with HCO₃ (a ~1–2 mmol/L offset, conventionally ignored). [NEEDS SOURCE]: the na (100–180), cl (70–130), hco3 (3–45), k (1.5–9) mEq/L and albumin (1.0–6.0 g/dL) input limits are engineering input-validity bounds, not thresholds from a specific publication. Garbage-in caveat: spurious electrolyte values (pseudohyponatremia, bromide interference with the chloride assay) distort the AG directly.",
+  ),
+  calculate: (values) => {
+    // Return RAW computed values; `precision` rounds for display only. There
+    // are no interpretation bands, so precision is purely cosmetic.
+    const na = values.na.value;
+    const cl = values.cl.value;
+    const hco3 = values.hco3.value;
+
+    const results: ScoreValue[] = [];
+
+    // Base (potassium-exclusive) anion gap — the common form; always emitted.
+    const ag = na - (cl + hco3);
+    results.push({
+      id: "ag",
+      label: defineText("ag.out.ag", "Anion gap (K-exclusive)"),
+      value: ag,
+      unit: "mEq/L",
+      precision: 0,
+    });
+
+    // Potassium-inclusive form — only when potassium is supplied. Its reference
+    // interval differs (higher); both forms are surfaced, never picked silently.
+    const k = values.k?.value;
+    let agK: number | undefined;
+    if (k !== undefined) {
+      agK = na + k - (cl + hco3);
+      results.push({
+        id: "ag_k",
+        label: defineText("ag.out.agk", "Anion gap (K-inclusive)"),
+        value: agK,
+        unit: "mEq/L",
+        precision: 0,
+      });
+    }
+
+    // Albumin correction (Figge 1998) — only when albumin is supplied. Applied
+    // identically to each AG form present (albumin acts on the gap, not on K).
+    const albumin = values.albumin?.value;
+    if (albumin !== undefined) {
+      const correction = 2.5 * (4.0 - albumin);
+      results.push({
+        id: "ag_corrected",
+        label: defineText("ag.out.corr", "Albumin-corrected AG (K-exclusive)"),
+        value: ag + correction,
+        unit: "mEq/L",
+        precision: 1,
+      });
+      if (agK !== undefined) {
+        results.push({
+          id: "ag_k_corrected",
+          label: defineText("ag.out.kcorr", "Albumin-corrected AG (K-inclusive)"),
+          value: agK + correction,
+          unit: "mEq/L",
+          precision: 1,
+        });
+      }
+    }
+
+    return results;
+  },
+});

@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="TowardPCC">
+  <rect width="512" height="512" fill="#231018"/>
+  <!-- maskable: mark kept inside the central 80% safe zone -->
+  <path d="M112 300 C156 300 168 216 226 216 S304 344 356 344 S420 252 432 252"
+        fill="none" stroke="#B01E32" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

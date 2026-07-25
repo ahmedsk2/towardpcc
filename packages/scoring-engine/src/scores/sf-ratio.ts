@@ -132,6 +132,10 @@ export const sfRatio = defineScore({
     evidence:
       "Arithmetic ratio; PALICC-2 numeric thresholds and the Rice/Khemani regression coefficients are facts, not copyrightable expression (pf-sf.md IP status). No verbatim scale-item wording is reproduced.",
   },
+  formula: defineText(
+    "sf.formula",
+    "S/F ratio = SpO₂ (%) ÷ FiO₂ (fraction), where SpO₂ is the pulse-oximeter saturation as a percent and FiO₂ is the inspired-oxygen fraction (0.21–1.0); the single reported value is dimensionless. Interpretation follows the PALICC-2 (2023) non-invasive-ventilation PARDS strata: S/F ≤ 150 corresponds to the severe category, > 150 to ≤ 250 to the mild/moderate category (S/F ≤ 250 meets the NIV-PARDS oxygenation criterion), and > 250 is above that threshold. The ratio is computed only for SpO₂ 80–97%; values outside that cited validity window are rejected rather than scored, because above 97% the oxyhemoglobin dissociation curve plateaus and S/F loses discrimination.",
+  ),
   notes: defineText(
     "sf.notes",
     "S/F is interpretable only for SpO₂ 80–97% (enforced as input bounds; above 97% the dissociation curve plateaus and the ratio cannot discriminate severity — a value above 97% is rejected, not scored). PALICC-2 restricts NIV-PARDS grading to full-facemask CPAP/BiPAP with PEEP ≥ 5 cm H₂O; FiO₂ estimation on nasal-cannula/low-flow is unreliable and the ratio should not be trusted there. When an arterial gas is available, PaO₂-based P/F is preferred; on invasive ventilation, OI/OSI are preferred over S/F. The published P/F↔S/F conversion equations (Rice 2007; Khemani 2009/2012) are notes only and are not computed here. No [NEEDS SOURCE] items apply to this score's inputs — the SpO₂ 80–97% window and FiO₂ 0.21–1.0 bounds are all cited; the research note's [NEEDS SOURCE] flags concern PaO₂/PF outer bounds, which are not inputs to S/F.",
