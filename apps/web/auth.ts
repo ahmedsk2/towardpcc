@@ -9,6 +9,7 @@ import {
   matchRecoveryCode,
   verifyTotpStep,
 } from "@/lib/auth/totp";
+import { logger } from "@/lib/logger";
 
 const MAX_FAILED = 5;
 const LOCK_MINUTES = 15;
@@ -80,10 +81,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user || locked || !passwordOk || !secondFactorOk) {
           if (user && !locked) await bumpFailure(user.id);
+          logger.warn({ locked }, "admin login failed");
           return null;
         }
 
-        const ok = (u: AdminUser) => ({ id: u.id, email: u.email, role: u.role });
+        const ok = (u: AdminUser) => {
+          logger.info({ userId: u.id }, "admin login");
+          return { id: u.id, email: u.email, role: u.role };
+        };
         const resetData = { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() };
 
         if (totpStep !== null) {

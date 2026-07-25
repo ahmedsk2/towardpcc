@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { db, type SubmissionType } from "@towardpcc/db";
 import { notifyAdminOfSubmission } from "@/lib/email";
+import { logger } from "@/lib/logger";
 
 /**
  * The one server-side path every public form goes through (PRD §9): Zod
@@ -145,6 +146,7 @@ export async function handleSubmission(
 
   const ipHash = await hashClientIp();
   if (!rateLimit(ipHash, Date.now())) {
+    logger.warn({ ipHash, type }, "submission rate-limited");
     return { ok: false, error: "Too many messages from here. Please try again in a few minutes." };
   }
 
@@ -166,11 +168,12 @@ export async function handleSubmission(
   const created = await db.submission.create({
     data: { type, payload: parsed.data, ipHash },
   });
+  logger.info({ submissionId: created.id, type }, "submission stored");
   // Best-effort admin ping — a mail failure must never fail the submission.
   try {
     await notifyAdminOfSubmission(type, created.id);
-  } catch {
-    // swallow — the submission is stored; the operator will see it in the inbox
+  } catch (err) {
+    logger.error({ submissionId: created.id, err }, "admin notification email failed");
   }
   return { ok: true };
 }

@@ -44,9 +44,10 @@ AND listed here.
       packages/db, but the image is not built/scanned in CI. Add a
       `docker build` + Trivy/hadolint job before staging. Verify the standalone
       output ships Prisma's WASM query compiler (driver-adapter runtime).
-- [ ] **Structured request logging (pre-launch)** — the app logs almost nothing
-      (no PII leak, good) but has no request IDs / error telemetry for incident
-      triage. Add minimal structured logging (e.g. pino) before launch.
+- [x] **Structured request logging** — DONE (polish pass): pino JSON logger
+      (apps/web/lib/logger.ts) with PII redaction; wired at submission-stored /
+      rate-limited / admin-login outcomes. Error telemetry (Sentry/GlitchTip
+      DSN) is still a deploy-time config (P8).
 - [x] GitHub remote — approved by founder 2026-07-24; created during P0
       (private, https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
       fails without admin on this machine (EPERM in Program Files); pnpm is
@@ -94,6 +95,7 @@ AND listed here.
       CAPD, SOS-PD, FLACC, Bedside PEWS), 4 need legal review. To build any,
       the founder must obtain written permission (FLACC/CAPD are the cleanest
       routes). Not a launch blocker for v1 (v1 ships the IP-clean scores).
-- [ ] PWA raster PNG icons (192/512 + maskable) — currently SVG-only, which
-      installs in modern browsers; generate PNGs before launch for maximum
-      Android/Lighthouse compatibility (sharp unavailable on this ARM dev box).
+- [x] PWA raster PNG icons (192/512 + maskable) — DONE (polish pass): generated
+      from the SVGs via Playwright/Chromium (sharp has no ARM64 dev binary),
+      committed to public/, and wired into manifest.ts. Regenerate with
+      `node apps/web/scripts/generate-icons.mjs`.
