@@ -1,11 +1,12 @@
 /* global process, console, Buffer */
 /**
  * Create the first admin operator. Run once, locally:
- *   node --env-file=.env.local scripts/create-admin.mjs <email> <password> [OWNER|EDITOR]
+ *   ADMIN_BOOTSTRAP_PASSWORD='...' node --env-file=.env.local scripts/create-admin.mjs <email> [OWNER|EDITOR]
  *
- * Prints the TOTP provisioning URI (add it to an authenticator) and the
- * one-time recovery codes — shown ONCE, never stored in plaintext. Requires
- * DATABASE_URL and TOTP_ENC_KEY in the environment (via --env-file).
+ * The password is read from the ADMIN_BOOTSTRAP_PASSWORD env var (never argv, so
+ * it can't leak into the process table or shell history). Prints the TOTP
+ * provisioning URI and one-time recovery codes ONCE. Requires DATABASE_URL and
+ * TOTP_ENC_KEY in the environment (via --env-file).
  */
 import { createCipheriv, createHash, randomBytes } from "node:crypto";
 import { argon2id } from "hash-wasm";
@@ -13,10 +14,11 @@ import { Secret, TOTP } from "otpauth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-const [, , emailArg, passwordArg, roleArg] = process.argv;
+const [, , emailArg, roleArg] = process.argv;
+const passwordArg = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 if (!emailArg || !passwordArg) {
   console.error(
-    "Usage: node --env-file=.env.local scripts/create-admin.mjs <email> <password> [OWNER|EDITOR]",
+    "Usage: ADMIN_BOOTSTRAP_PASSWORD='...' node --env-file=.env.local scripts/create-admin.mjs <email> [OWNER|EDITOR]",
   );
   process.exit(1);
 }
@@ -74,8 +76,12 @@ const provisioningUri = new TOTP({
 const recoveryPlain = [];
 const recoveryHashed = [];
 for (let i = 0; i < 10; i++) {
-  const raw = randomBytes(5).toString("hex");
-  const code = `${raw.slice(0, 5)}-${raw.slice(5)}`;
+  // 80 bits of entropy so the stored hash isn't brute-forceable on a DB leak.
+  const code = (
+    randomBytes(10)
+      .toString("hex")
+      .match(/.{1,5}/g) ?? []
+  ).join("-");
   recoveryPlain.push(code);
   recoveryHashed.push(hashRecoveryCode(code));
 }

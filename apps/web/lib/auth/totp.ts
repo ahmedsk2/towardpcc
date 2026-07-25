@@ -58,25 +58,36 @@ export function totpProvisioningUri(secretBase32: string, accountEmail: string):
   }).toString();
 }
 
-/** Accepts the current step ±1 for clock skew. */
-export function verifyTotp(secretBase32: string, token: string): boolean {
+/**
+ * Accepts the current step ±1 for clock skew and returns the MATCHED absolute
+ * period (step), or null. The caller records the step so a code can be used at
+ * most once (anti-replay, RFC 6238 §5.2).
+ */
+export function verifyTotpStep(secretBase32: string, token: string): number | null {
   const clean = token.replace(/\s+/g, "");
-  if (!/^\d{6}$/.test(clean)) return false;
+  if (!/^\d{6}$/.test(clean)) return null;
   const totp = new TOTP({ issuer: ISSUER, secret: Secret.fromBase32(secretBase32) });
-  return totp.validate({ token: clean, window: 1 }) !== null;
+  const delta = totp.validate({ token: clean, window: 1 });
+  if (delta === null) return null;
+  return Math.floor(Date.now() / 1000 / 30) + delta;
 }
 
 export function hashRecoveryCode(code: string): string {
   return createHash("sha256").update(code.trim().toLowerCase()).digest("hex");
 }
 
-/** High-entropy single-use codes; returns plaintext (shown once) + hashes (stored). */
+/** High-entropy single-use codes; returns plaintext (shown once) + hashes
+ *  (stored). 80 bits of entropy per code so an unsalted fast hash of the stored
+ *  column is not brute-forceable on a DB leak (2^80 is out of reach). */
 export function generateRecoveryCodes(count = 10): { plain: string[]; hashed: string[] } {
   const plain: string[] = [];
   const hashed: string[] = [];
   for (let i = 0; i < count; i++) {
-    const raw = randomBytes(5).toString("hex"); // 40 bits
-    const formatted = `${raw.slice(0, 5)}-${raw.slice(5)}`;
+    const formatted = (
+      randomBytes(10)
+        .toString("hex")
+        .match(/.{1,5}/g) ?? []
+    ).join("-");
     plain.push(formatted);
     hashed.push(hashRecoveryCode(formatted));
   }

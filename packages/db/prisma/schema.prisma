@@ -44,6 +44,7 @@ model AdminUser {
   passwordHash      String
   totpSecret        String // application-encrypted
   totpRecoveryCodes String[] // hashed, single-use
+  lastTotpStep      BigInt? // last consumed TOTP period — blocks code replay (RFC 6238 §5.2)
   role              AdminRole        @default(EDITOR)
   failedLoginCount  Int              @default(0)
   lockedUntil       DateTime?

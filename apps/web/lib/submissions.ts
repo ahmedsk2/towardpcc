@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { db, type SubmissionType } from "@towardpcc/db";
@@ -50,36 +50,81 @@ export type SubmitResult =
 
 // ── Rate limiting (in-memory sliding window) ────────────────────────────────
 // Single-instance store — fine for v1. A shared store (Redis) is needed once
-// the app runs more than one replica; tracked for P8. Bounded to avoid growth.
+// the app runs more than one replica; tracked for P8.
 const PER_IP = { max: 5, windowMs: 10 * 60_000 };
-const GLOBAL = { max: 200, windowMs: 10 * 60_000 };
+// The global cap counts ONLY accepted submissions and is checked after the
+// per-IP gate, so a per-IP-rejected flood can never saturate it and lock
+// everyone out (the old design's DoS). It bounds DB writes under a distributed
+// attack; a genuine legitimate surge above it just degrades gracefully.
+const GLOBAL = { max: 300, windowMs: 10 * 60_000 };
+const MAX_TRACKED_IPS = 20_000;
 const MIN_FILL_MS = 2_500; // faster than this = almost certainly a bot
 
 const ipHits = new Map<string, number[]>();
 let globalHits: number[] = [];
 
-function withinLimit(store: number[], now: number, cfg: { max: number; windowMs: number }) {
+// Records a hit ONLY when the request is accepted, so rejected attempts cannot
+// keep the sliding window pinned at saturation.
+function tryConsume(store: number[], now: number, cfg: { max: number; windowMs: number }) {
   const fresh = store.filter((t) => now - t < cfg.windowMs);
-  fresh.push(now);
-  return { ok: fresh.length <= cfg.max, fresh };
+  const ok = fresh.length < cfg.max;
+  if (ok) fresh.push(now);
+  return { ok, fresh };
 }
 
-function rateLimit(ipHash: string, now: number): boolean {
-  const g = withinLimit(globalHits, now, GLOBAL);
+function rateLimit(ipKey: string, now: number): boolean {
+  const perIp = tryConsume(ipHits.get(ipKey) ?? [], now, PER_IP);
+  if (perIp.fresh.length === 0) ipHits.delete(ipKey);
+  else ipHits.set(ipKey, perIp.fresh);
+  if (!perIp.ok) return false; // rejected per-IP requests never touch the global bucket
+
+  // Bounded map: evict oldest keys rather than clear() (which wiped everyone).
+  if (ipHits.size > MAX_TRACKED_IPS) {
+    let excess = ipHits.size - MAX_TRACKED_IPS;
+    for (const k of ipHits.keys()) {
+      if (excess-- <= 0) break;
+      ipHits.delete(k);
+    }
+  }
+
+  const g = tryConsume(globalHits, now, GLOBAL);
   globalHits = g.fresh;
-  if (ipHits.size > 5000) ipHits.clear(); // hard cap on map growth
-  const perIp = withinLimit(ipHits.get(ipHash) ?? [], now, PER_IP);
-  ipHits.set(ipHash, perIp.fresh);
-  return g.ok && perIp.ok;
+  return g.ok;
 }
 
 // ── IP hashing (abuse forensics only, never identity) ───────────────────────
-async function hashClientIp(): Promise<string> {
+function ipSalt(): string {
+  const s = process.env.SUBMISSION_IP_SALT;
+  if (s && s.length >= 16) return s;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SUBMISSION_IP_SALT must be set (>=16 chars) in production");
+  }
+  return "dev-only-salt-not-for-production";
+}
+
+// Trusted-proxy client IP. Production runs behind a single reverse proxy that
+// SETS x-real-ip to the connecting client (overwrite, not append). We trust
+// that; if absent, fall back to the RIGHTMOST x-forwarded-for hop (the address
+// our own proxy observed) — never the spoofable leftmost, attacker-controlled
+// token (CWE-348).
+async function clientIp(): Promise<string> {
   const h = await headers();
-  const fwd = h.get("x-forwarded-for");
-  const ip = (fwd ? fwd.split(",")[0] : h.get("x-real-ip"))?.trim() || "unknown";
-  const salt = process.env.SUBMISSION_IP_SALT ?? "dev-only-salt-set-in-prod";
-  return createHash("sha256").update(`${salt}:${ip}`).digest("hex").slice(0, 24);
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real;
+  const xff = h.get("x-forwarded-for");
+  if (xff) {
+    const hops = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (hops.length) return hops[hops.length - 1]!;
+  }
+  return "unknown";
+}
+
+async function hashClientIp(): Promise<string> {
+  const ip = await clientIp();
+  return createHmac("sha256", ipSalt()).update(ip).digest("hex").slice(0, 24);
 }
 
 /**
