@@ -9,10 +9,8 @@ import {
   matchRecoveryCode,
   verifyTotpStep,
 } from "@/lib/auth/totp";
+import { lockoutArm } from "@/lib/auth/lockout";
 import { logger } from "@/lib/logger";
-
-const MAX_FAILED = 5;
-const LOCK_MINUTES = 15;
 
 // A fixed dummy Argon2id hash (of a random string, computed once) so the
 // no-such-user path runs a real verify and costs the same as a real login —
@@ -29,11 +27,11 @@ async function bumpFailure(userId: string): Promise<void> {
     where: { id: userId },
     data: { failedLoginCount: { increment: 1 } },
   });
-  if (updated.failedLoginCount >= MAX_FAILED && !updated.lockedUntil) {
-    await db.adminUser.update({
-      where: { id: userId },
-      data: { lockedUntil: new Date(Date.now() + LOCK_MINUTES * 60_000) },
-    });
+  // Re-arm on every threshold breach where the account is not currently locked,
+  // so a stale (expired) lockedUntil can't permanently disable the throttle.
+  const arm = lockoutArm(updated.failedLoginCount, updated.lockedUntil, new Date());
+  if (arm) {
+    await db.adminUser.update({ where: { id: userId }, data: arm });
   }
 }
 
