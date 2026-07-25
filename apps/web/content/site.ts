@@ -28,8 +28,7 @@ export const site = {
     siteHeading: "Site",
     navAriaLabel: "Footer",
     residency: "Servers located in Saudi Arabia",
-    // TODO:legal — replace with [ORG_LEGAL_NAME] when provided (LAUNCH-BLOCKERS.md)
-    orgName: "TowardPCC",
+    orgName: "Toward Pediatric Critical Care",
   },
 
   home: {
@@ -81,7 +80,9 @@ export const site = {
     heading: "Contact",
     status: "in development",
     description:
-      "A contact form lands here soon. Until then, this page exists so you always know where to reach us once the platform launches.",
+      "A contact form lands here soon. Until then, you can reach the team directly by email.",
+    emailLabel: "Email us at",
+    email: "info@towardpcc.com",
     metaDescription: "How to reach the TowardPCC team.",
   },
 

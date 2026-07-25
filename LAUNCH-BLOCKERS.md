@@ -4,13 +4,20 @@ Running list of everything that must be resolved before public launch.
 Working agreement §16.1: every placeholder on the site is marked in code
 AND listed here.
 
-## Variables pending from founder
+## Variables (founder-provided 2026-07-25)
 
-- [ ] `[CONTACT_EMAIL]` — public contact address (SECURITY.md, /contact, legal pages)
-- [ ] `[ADMIN_EMAIL]` — form notification recipient (needed by P5)
-- [ ] `[HOSTING_TARGET]` — KSA-region host; verify region physically before DNS (P8).
-      Note: Infomaniak (connected MCP) is Swiss-hosted — does not satisfy residency.
-- [ ] `[ORG_LEGAL_NAME]` — footer/terms; "TowardPCC" placeholder marked `TODO:legal`
+- [x] `[CONTACT_EMAIL]` = info@towardpcc.com (SECURITY.md, /contact updated).
+      **Remaining:** verify the mailbox actually exists and receives mail
+      before launch — a dead contact address is a trust failure.
+- [x] `[ADMIN_EMAIL]` = ahmedsk2@gmail.com ("for now") — used as the form
+      notification recipient env value in P5; never hardcoded in public code.
+- [x] `[HOSTING_TARGET]` = founder's Oracle OCI tenancy; default region
+      confirmed `me-riyadh-1` (Riyadh, Saudi Arabia) from local OCI config.
+      **Remaining (P8):** verify the actual deployment resources are created
+      in me-riyadh-1/me-jeddah-1 before DNS — the residency claim depends on
+      the deployed region, not the config default.
+- [x] `[ORG_LEGAL_NAME]` = Toward Pediatric Critical Care (footer updated).
+      Legal pages (P6) still get `TODO:counsel-review`.
 - [ ] Path to the PedsCC Library repo on this machine (needed by P5 feature audit)
 
 ## Environment

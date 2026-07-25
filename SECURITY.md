@@ -7,7 +7,7 @@ contact/request data through forms.
 
 ## Reporting a vulnerability
 
-Email **[CONTACT_EMAIL] <!-- TODO:variable -->** with details and
+Email **info@towardpcc.com** with details and
 reproduction steps. We aim to acknowledge within 72 hours. Please do not
 open public issues for security reports, and allow reasonable time for a
 fix before disclosure.
