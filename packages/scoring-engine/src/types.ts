@@ -175,6 +175,12 @@ export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonl
   readonly validators: ValidatorSlots;
   readonly changelog: readonly ChangelogEntry[];
   readonly ipStatus: IpStatus;
+  /**
+   * How the score is computed, in plain words (PRD §6.4 formula transparency).
+   * Optional for now; where absent the detail page falls back to `notes`.
+   */
+  readonly formula?: LocalizedText;
+  /** Clinical limitations, caveats, and any [NEEDS SOURCE] gaps. */
   readonly notes: LocalizedText;
 }
 

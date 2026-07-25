@@ -46,3 +46,40 @@ body {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
 }
+
+/* Print stylesheet (PRD §6.4): a calculator result should print as a clean,
+   self-contained clinical record — chrome and interactive controls removed,
+   the computed result and its interpretation preserved. Opt elements out with
+   `data-print="hide"` / `data-print="block"`. */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+  header,
+  footer,
+  nav,
+  [data-print="hide"] {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+  /* Show link targets so a printed reference stays traceable. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.75em;
+    word-break: break-all;
+  }
+  /* Result panel: full width, no sticky, always visible. */
+  [data-print="result"] {
+    position: static !important;
+    width: 100% !important;
+    border: 1px solid #000 !important;
+    break-inside: avoid;
+  }
+}

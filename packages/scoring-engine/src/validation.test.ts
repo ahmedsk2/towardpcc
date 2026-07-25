@@ -46,4 +46,9 @@ describe("runValidation numeric edge branches", () => {
     const { errors } = runValidation([numeric()], { n: { value: 5, unit: "psi" } });
     expect(errors[0]?.message).toContain("mmHg or kPa");
   });
+
+  it("treats an explicit null like a missing required value (never throws)", () => {
+    const { errors } = runValidation([numeric()], { n: null as never });
+    expect(errors[0]?.code).toBe("missing-required");
+  });
 });

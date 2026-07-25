@@ -1,5 +1,6 @@
 import type { ScoreCategory, ScoreDefinition, ScoreStatus, ScoreSummary } from "../types";
-import { oiOsi } from "./oi-osi";
+import { oxygenationIndex } from "./oxygenation-index";
+import { oxygenSaturationIndex } from "./oxygen-saturation-index";
 import { pediatricGcs } from "./pediatric-gcs";
 import { pelod2 } from "./pelod2";
 import { pfRatio } from "./pf-ratio";
@@ -14,7 +15,8 @@ import { vis } from "./vis";
  * Scores are added here exactly when they ship, alphabetically.
  */
 export const registry: readonly ScoreDefinition[] = [
-  oiOsi,
+  oxygenationIndex,
+  oxygenSaturationIndex,
   pediatricGcs,
   pelod2,
   pfRatio,

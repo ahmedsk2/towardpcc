@@ -15,17 +15,20 @@ describeScore(pfRatio, (ctx) => {
   );
 
   // kPa entry and % FiO₂ must convert before computing: 10.67 kPa ≈ 80 mmHg, 50% → 0.5.
+  // Tolerance: the value is now the raw (unrounded) ratio, and unit conversion
+  // introduces sub-unit float noise (~160.0006).
   ctx.workedExample(
     { ...berlin, locator: "unit-conversion equivalent of example 1" },
     { pao2: { value: 10.6657, unit: "kPa" }, fio2: { value: 50, unit: "%" } },
-    [{ id: "pf_ratio", value: 160 }],
+    [{ id: "pf_ratio", value: 160, tolerance: 0.05 }],
   );
 
   // Severe boundary: P/F exactly 100 sits in the severe band (≤ 100).
+  // 60/0.6 is 99.999… in binary float; tolerance covers it (displays as 100).
   ctx.workedExample(
     { ...berlin, locator: "severe boundary, P/F = 100" },
     { pao2: { value: 60, unit: "mmHg" }, fio2: { value: 0.6, unit: "fraction" } },
-    [{ id: "pf_ratio", value: 100 }],
+    [{ id: "pf_ratio", value: 100, tolerance: 1e-9 }],
   );
 
   ctx.boundaryTest("pao2", "min", {

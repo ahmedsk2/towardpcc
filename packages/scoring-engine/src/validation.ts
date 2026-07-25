@@ -16,7 +16,9 @@ export function runValidation(
   for (const input of inputs) {
     const raw = values[input.id];
 
-    if (raw === undefined) {
+    // Treat null like undefined so an explicit null never reaches property
+    // access below — compute must reject, never throw (PRD §6.3).
+    if (raw === undefined || raw === null) {
       if (input.required) {
         errors.push({
           inputId: input.id,

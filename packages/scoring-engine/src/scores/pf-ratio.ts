@@ -125,12 +125,15 @@ export const pfRatio = defineScore({
     "The Berlin bands are validated in adults and require PEEP/CPAP ≥ 5 cm H₂O. In children, PALICC-2 grades invasive-ventilation severity by oxygenation index (OI/OSI) rather than P/F, and uses P/F on non-invasive support. Berlin mortality figures are population associations, not individual predictions.",
   ),
   calculate: (values) => {
+    // Return the raw ratio; `precision` rounds for DISPLAY only. Interpretation
+    // bands are matched against this raw value so a true P/F of 100.4 bands as
+    // moderate (not severe), even though it displays as 100.
     const ratio = values.pao2.value / values.fio2.value;
     return [
       {
         id: "pf_ratio",
         label: defineText("pf.output", "P/F ratio"),
-        value: Math.round(ratio),
+        value: ratio,
         unit: "",
         precision: 0,
       },

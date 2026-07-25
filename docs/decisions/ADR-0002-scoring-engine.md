@@ -14,12 +14,19 @@ inputs rejected, never computed; formula changes only via code+tests).
 
 ## Decisions
 
-1. **Per-score modules + two access paths.** `scores/registry.ts` statically
-   imports every score and serves `listScores()`/`getScore()` summaries for
-   the index page; calculator detail pages load one score via the
-   `"./scores/*"` package export (`import("@towardpcc/scoring-engine/scores/<slug>")`),
-   which code-splits per slug. Array registries don't tree-shake; per-route
-   dynamic imports do.
+1. **Per-score modules + a static registry.** `scores/registry.ts` statically
+   imports every score and serves `listScores()`/`getScore()`. Both the index
+   and the calculator detail client resolve through this registry.
+
+   **Amended P2:** the original plan called for per-slug dynamic imports
+   (`import("@towardpcc/scoring-engine/scores/<slug>")`) on detail pages so
+   each page's client bundle ships only its own score. As implemented, the
+   client `CalculatorForm` uses `getScore(slug)` from the static registry, so
+   every calculator page's client bundle currently includes all scores (~10
+   small pure-TS modules — negligible today). The per-slug dynamic import is a
+   bundle-size optimization deferred to P3 (Lighthouse/perf work); recorded
+   here rather than left as silent drift.
+
 2. **`defineScore()` factory owns validation and unit normalization.**
    Authors write only pure arithmetic (`calculate`) over canonical-unit
    values. Rejection-before-arithmetic is a property of the wrapper, not a

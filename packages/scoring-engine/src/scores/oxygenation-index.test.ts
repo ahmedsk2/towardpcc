@@ -1,6 +1,8 @@
 import { describeScore } from "../testing/harness";
-import { oiOsi } from "./oi-osi";
+import { oxygenationIndex } from "./oxygenation-index";
 
+// OI worked examples are traced to docs/research/scores/oi-osi.md; the PALICC-2
+// severity bands carry the primary citation.
 const palicc2 = {
   citation:
     "Emeriaud G, et al; PALICC-2. Executive Summary of the Second International Guidelines for the Diagnosis and Management of Pediatric ARDS (PALICC-2). Pediatr Crit Care Med. 2023;24(2):143–168.",
@@ -12,9 +14,9 @@ const slaughter2025 = {
   pmid: "40630719",
 };
 
-describeScore(oiOsi, (ctx) => {
+describeScore(oxygenationIndex, (ctx) => {
   // Worked example 1 (oi-osi.md): MAP 20, FiO₂ 0.60, PaO₂ 60 → OI (20×0.60×100)/60 = 20
-  // (PALICC-2 severe, OI ≥ 16). SpO₂ supplied only so OSI can also be emitted.
+  // (PALICC-2 severe, OI ≥ 16). No SpO₂ needed — OI is arterial only.
   ctx.workedExample(
     {
       ...palicc2,
@@ -24,25 +26,8 @@ describeScore(oiOsi, (ctx) => {
       map_awp: { value: 20, unit: "cmH2O" },
       fio2: { value: 0.6, unit: "fraction" },
       pao2: { value: 60, unit: "mmHg" },
-      spo2: { value: 90, unit: "%" },
     },
     [{ id: "oi", value: 20, tolerance: 0.1 }],
-  );
-
-  // Worked example 2 (oi-osi.md): MAP 15, FiO₂ 0.50, SpO₂ 92 (≤ 97, valid) →
-  // OSI (15×0.50×100)/92 = 8.15 (PALICC-2 mild–moderate). PaO₂ supplied only so OI can also be emitted.
-  ctx.workedExample(
-    {
-      ...palicc2,
-      locator: "Worked example 2 (oi-osi.md): OSI = 750/92 = 8.15, PALICC-2 mild–moderate",
-    },
-    {
-      map_awp: { value: 15, unit: "cmH2O" },
-      fio2: { value: 0.5, unit: "fraction" },
-      pao2: { value: 90, unit: "mmHg" },
-      spo2: { value: 92, unit: "%" },
-    },
-    [{ id: "osi", value: 8.15, tolerance: 0.1 }],
   );
 
   // Worked example 3 (oi-osi.md): the ×100 / FiO₂-convention equivalence. FiO₂ entered as
@@ -57,13 +42,12 @@ describeScore(oiOsi, (ctx) => {
       map_awp: { value: 20, unit: "cmH2O" },
       fio2: { value: 60, unit: "%" },
       pao2: { value: 60, unit: "mmHg" },
-      spo2: { value: 90, unit: "%" },
     },
     [{ id: "oi", value: 20, tolerance: 0.1 }],
   );
 
   // Worked example 6 (oi-osi.md): MAP 10, FiO₂ 0.50, PaO₂ 150 → OI (10×0.50×100)/150 = 3.33,
-  // below the OI ≥ 4 diagnostic criterion. SpO₂ supplied only so OSI can also be emitted.
+  // below the OI ≥ 4 diagnostic criterion.
   ctx.workedExample(
     {
       ...palicc2,
@@ -73,20 +57,14 @@ describeScore(oiOsi, (ctx) => {
       map_awp: { value: 10, unit: "cmH2O" },
       fio2: { value: 0.5, unit: "fraction" },
       pao2: { value: 150, unit: "mmHg" },
-      spo2: { value: 90, unit: "%" },
     },
     [{ id: "oi", value: 3.33, tolerance: 0.1 }],
   );
-
-  // Worked example 5 (oi-osi.md) is a neonatal OI↔OSI regression cross-check
-  // (OI = 1.978×OSI − 6.743, Slaughter 2025), not a computation this engine performs, so it
-  // has no workedExample here — the engine returns the direct OI/OSI formulas only.
 
   const base = {
     map_awp: { value: 20, unit: "cmH2O" },
     fio2: { value: 0.6, unit: "fraction" },
     pao2: { value: 60, unit: "mmHg" },
-    spo2: { value: 90, unit: "%" },
   } as const;
 
   ctx.boundaryTest("map_awp", "min", base);
@@ -95,37 +73,44 @@ describeScore(oiOsi, (ctx) => {
   ctx.boundaryTest("fio2", "max", base);
   ctx.boundaryTest("pao2", "min", base);
   ctx.boundaryTest("pao2", "max", base);
-  ctx.boundaryTest("spo2", "min", base);
-  ctx.boundaryTest("spo2", "max", base);
 
-  // Worked example 4 (oi-osi.md): the OSI validity guard. SpO₂ 99 > 97 must be rejected —
-  // OSI is not interpretable above 97% (dissociation curve plateau; Thomas 2010 / PALICC-2).
+  // One clinically-framed rejection per required input.
   ctx.rejectsImplausible(
-    "an SpO₂ above the 97% OSI validity ceiling",
+    "a mean airway pressure below the positive-pressure floor",
     {
-      map_awp: { value: 12, unit: "cmH2O" },
-      fio2: { value: 0.4, unit: "fraction" },
-      pao2: { value: 90, unit: "mmHg" },
-      spo2: { value: 99, unit: "%" },
+      map_awp: { value: 3, unit: "cmH2O" },
+      fio2: { value: 0.6, unit: "fraction" },
+      pao2: { value: 60, unit: "mmHg" },
     },
-    { inputId: "spo2", code: "out-of-range" },
+    { inputId: "map_awp", code: "out-of-range" },
   );
-
   ctx.rejectsImplausible(
     "an FiO₂ below room air",
     {
       map_awp: { value: 20, unit: "cmH2O" },
       fio2: { value: 0.1, unit: "fraction" },
       pao2: { value: 60, unit: "mmHg" },
-      spo2: { value: 90, unit: "%" },
     },
     { inputId: "fio2", code: "out-of-range" },
   );
+  ctx.rejectsImplausible(
+    "an implausibly low PaO₂",
+    {
+      map_awp: { value: 20, unit: "cmH2O" },
+      fio2: { value: 0.6, unit: "fraction" },
+      pao2: { value: 5, unit: "mmHg" },
+    },
+    { inputId: "pao2", code: "out-of-range" },
+  );
 
-  // PALICC-2 (2023) OI bands: diagnosis OI ≥ 4, severe OI ≥ 16.
-  ctx.interpretationBoundary("oi", 4, "oi-below-threshold", "oi-mild-moderate");
-  ctx.interpretationBoundary("oi", 16, "oi-mild-moderate", "oi-severe");
-  // PALICC-2 (2023) OSI bands: diagnosis OSI ≥ 5, severe OSI ≥ 12.
-  ctx.interpretationBoundary("osi", 5, "osi-below-threshold", "osi-mild-moderate");
-  ctx.interpretationBoundary("osi", 12, "osi-mild-moderate", "osi-severe");
+  // PALICC-2 (2023) OI bands: diagnosis OI ≥ 4, severe OI ≥ 16 (ascending [min, max)).
+  // Cutpoint 4: below → oi-below-threshold; at/above → oi-mild-moderate.
+  ctx.expectBand("oi", 3.33, "oi-below-threshold"); // worked example 6 value
+  ctx.expectBand("oi", 3.9, "oi-below-threshold");
+  ctx.expectBand("oi", 4, "oi-mild-moderate"); // cutpoint belongs to the higher band
+  ctx.expectBand("oi", 8, "oi-mild-moderate");
+  // Cutpoint 16: below → oi-mild-moderate; at/above → oi-severe.
+  ctx.expectBand("oi", 15.9, "oi-mild-moderate");
+  ctx.expectBand("oi", 16, "oi-severe"); // cutpoint belongs to the higher band
+  ctx.expectBand("oi", 20, "oi-severe"); // worked example 1 value
 });

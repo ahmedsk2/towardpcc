@@ -37,6 +37,7 @@ export default async function CalculatorDetailPage({
     <div className="mx-auto max-w-[1100px] px-6 py-12">
       <Link
         href="/calculators"
+        data-print="hide"
         className="font-numeric text-xs tracking-[0.06em] text-ink-muted uppercase hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         ← {c.backToIndex}
@@ -56,22 +57,27 @@ export default async function CalculatorDetailPage({
         <ValidationBadge validators={score.validators} />
       </div>
 
-      {/* Formula transparency (PRD §6.4): plain-text derivation from references. */}
+      {/* Formula transparency (PRD §6.4). */}
       <section className="mt-12 border-t border-surface-sunken pt-8">
         <h2 className="font-display text-xl font-medium text-ink-strong">{c.formulaHeading}</h2>
-        <p className="mt-3 max-w-[65ch] leading-relaxed text-ink-body">{score.notes.en}</p>
+        <p className="mt-3 max-w-[65ch] leading-relaxed text-ink-body">
+          {(score.formula ?? score.notes).en}
+        </p>
       </section>
 
       <section className="mt-10">
         <h2 className="font-display text-xl font-medium text-ink-strong">{c.limitationsHeading}</h2>
-        <ul className="mt-3 max-w-[65ch] list-disc space-y-2 pl-5 leading-relaxed text-ink-body">
+        {/* Clinical caveats live in notes; the input-range list follows. */}
+        <p className="mt-3 max-w-[65ch] leading-relaxed text-ink-body">{score.notes.en}</p>
+        <h3 className="mt-6 text-sm font-medium text-ink-strong">{c.acceptedRangesHeading}</h3>
+        <ul className="mt-2 max-w-[65ch] list-disc space-y-2 pl-5 leading-relaxed text-ink-body">
           {score.inputs.map((input) => (
             <li key={input.id}>
               <span className="font-medium">{input.label.en}</span>
               {input.type === "numeric" ? (
                 <span className="numeric text-ink-muted">
                   {" "}
-                  — plausible range {input.min}–{input.max}
+                  — {input.min}–{input.max}
                   {input.unit.canonical ? ` ${input.unit.canonical}` : ""}
                 </span>
               ) : null}

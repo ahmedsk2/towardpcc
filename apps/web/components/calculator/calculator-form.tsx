@@ -36,7 +36,10 @@ function initialState(inputs: readonly ScoreInput[]): FieldState {
 function encodeFragment(state: FieldState): string {
   const parts = Object.entries(state)
     .filter(([, v]) => v.raw !== "")
-    .map(([id, v]) => (v.unit ? `${id}=${v.raw}~${v.unit}` : `${id}=${v.raw}`));
+    .map(([id, v]) => {
+      const val = encodeURIComponent(v.raw);
+      return v.unit ? `${id}=${val}~${encodeURIComponent(v.unit)}` : `${id}=${val}`;
+    });
   return parts.join(";");
 }
 
@@ -44,16 +47,26 @@ function decodeFragment(hash: string, inputs: readonly ScoreInput[]): FieldState
   const state = initialState(inputs);
   const clean = hash.replace(/^#/, "");
   if (!clean) return state;
-  for (const pair of clean.split(";")) {
-    const [id, rest] = pair.split("=");
-    if (!id || rest === undefined || !(id in state)) continue;
-    const [value, unit] = rest.split("~");
-    const existing = state[id];
-    if (!existing) continue;
-    state[id] = {
-      raw: decodeURIComponent(value ?? ""),
-      ...(unit ? { unit } : existing.unit ? { unit: existing.unit } : {}),
-    };
+  // A shared or corrupted link may carry a malformed percent-escape; a bad
+  // fragment must degrade to an empty form, never throw.
+  try {
+    for (const pair of clean.split(";")) {
+      const [id, rest] = pair.split("=");
+      if (!id || rest === undefined || !(id in state)) continue;
+      const [value, unit] = rest.split("~");
+      const existing = state[id];
+      if (!existing) continue;
+      state[id] = {
+        raw: decodeURIComponent(value ?? ""),
+        ...(unit
+          ? { unit: decodeURIComponent(unit) }
+          : existing.unit
+            ? { unit: existing.unit }
+            : {}),
+      };
+    }
+  } catch {
+    return initialState(inputs);
   }
   return state;
 }
@@ -241,9 +254,10 @@ function InputField({
         <select
           id={id}
           value={field.raw}
+          aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           onChange={(e) => onChange({ raw: e.target.value })}
-          className="h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          className="h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
         >
           <option value="">—</option>
           <option value="true">Yes</option>
@@ -289,6 +303,7 @@ function ResultPanel({
   return (
     <aside
       aria-live="polite"
+      data-print="result"
       className="h-max rounded-lg border border-surface-sunken bg-surface-raised p-6 lg:sticky lg:top-6"
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
@@ -323,6 +338,7 @@ function ResultPanel({
           <button
             type="button"
             onClick={onCopy}
+            data-print="hide"
             className={cn(
               "mt-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ink-muted/40 px-4 text-sm font-medium text-ink-strong",
               "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",

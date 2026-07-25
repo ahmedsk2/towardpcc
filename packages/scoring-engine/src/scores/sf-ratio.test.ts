@@ -15,7 +15,7 @@ describeScore(sfRatio, (ctx) => {
   ctx.workedExample(
     { ...palicc2, locator: "worked example 2 — SpO₂ 90%, FiO₂ 0.6 → S/F 150 (severe NIV-PARDS)" },
     { spo2: { value: 90, unit: "%" }, fio2: { value: 0.6, unit: "fraction" } },
-    [{ id: "sf_ratio", value: 150 }],
+    [{ id: "sf_ratio", value: 150, tolerance: 1e-9 }],
   );
 
   // Same clinical case with FiO₂ entered as a percentage (60% → 0.6): the
@@ -23,7 +23,7 @@ describeScore(sfRatio, (ctx) => {
   ctx.workedExample(
     { ...palicc2, locator: "unit-conversion equivalent of worked example 2 (FiO₂ entered as %)" },
     { spo2: { value: 90, unit: "%" }, fio2: { value: 60, unit: "%" } },
-    [{ id: "sf_ratio", value: 150 }],
+    [{ id: "sf_ratio", value: 150, tolerance: 1e-9 }],
   );
 
   // Boundary coverage for both inputs.

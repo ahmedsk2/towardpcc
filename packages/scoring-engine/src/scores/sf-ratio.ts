@@ -142,7 +142,8 @@ export const sfRatio = defineScore({
       {
         id: "sf_ratio",
         label: defineText("sf.output", "S/F ratio"),
-        value: Math.round(ratio),
+        // Raw value; `precision` rounds for display only. Bands match the raw.
+        value: ratio,
         unit: "",
         precision: 0,
       },

@@ -131,6 +131,7 @@ export const site = {
     referencesHeading: "References",
     versionHeading: "Version and changelog",
     limitationsHeading: "Limitations and notes",
+    acceptedRangesHeading: "Accepted input ranges",
     disclaimerHeading: "Important",
     // Medical disclaimer summary on every calculator (PRD §6.6)
     disclaimer:
