@@ -120,6 +120,10 @@ export const pfRatio = defineScore({
     evidence:
       "Arithmetic ratio; Berlin/PALICC-2 numeric thresholds are facts, not copyrightable expression (pf-sf.md IP status).",
   },
+  formula: defineText(
+    "pf.formula",
+    "P/F ratio = PaO₂ ÷ FiO₂, with PaO₂ in mmHg (kPa is converted using 1 kPa = 7.50062 mmHg) and FiO₂ as a fraction from 0.21 to 1. A single dimensionless value is returned; it is displayed rounded to a whole number, but the interpretation bands are matched against the unrounded ratio. Bands follow the Berlin (2012) adult ARDS severity strata: ≤ 100 severe, > 100 to ≤ 200 moderate, > 200 to ≤ 300 mild, and > 300 above the ARDS oxygenation threshold.",
+  ),
   notes: defineText(
     "pf.notes",
     "The Berlin bands are validated in adults and require PEEP/CPAP ≥ 5 cm H₂O. In children, PALICC-2 grades invasive-ventilation severity by oxygenation index (OI/OSI) rather than P/F, and uses P/F on non-invasive support. Berlin mortality figures are population associations, not individual predictions.",

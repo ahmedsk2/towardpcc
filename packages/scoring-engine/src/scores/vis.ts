@@ -163,6 +163,11 @@ export const vis = defineScore({
     evidence:
       "VIS is a weighted arithmetic sum of drug infusion rates (facts plus a mathematical formula). Coefficients and the formula are not copyrightable, and VIS has no free-text scale-item descriptors to license (vis.md IP status).",
   },
+  missingAsNormal: true,
+  formula: defineText(
+    "vis.formula",
+    "VIS = dopamine + dobutamine + 100×epinephrine + 10×milrinone + 10,000×vasopressin + 100×norepinephrine — the original six-drug weighted sum of Gaies et al. 2010. Every rate is in mcg/kg/min except vasopressin, which is in units/kg/min (coefficient 10,000). Each drug is optional; an agent not running contributes 0. There are no branches, floor, ceiling, or age adjustment: the result is a single continuous index (displayed to one decimal place) with no interpretation bands applied.",
+  ),
   notes: defineText(
     "vis.notes",
     "Original six-drug Gaies 2010 VIS = dopamine + dobutamine + 100×epinephrine + 10×milrinone + 10,000×vasopressin(units/kg/min) + 100×norepinephrine. Published extensions (levosimendan ×50, phenylephrine ×10) are intentionally excluded so the output is always a true Gaies VIS; the phenylephrine ×10 coefficient is itself [NEEDS SOURCE] (no directly-fetched primary text). VIS is a continuous index of vasoactive/inotropic support intensity, not a diagnostic test or clinical device, and higher values are an association marker for morbidity/mortality in the cited cohorts, not a treatment trigger. There is no single official cut-point: Davidson 2012 reports a cohort-specific VIS-at-48h threshold of 10.5 in neonates/infants after cardiac surgery, and Gaies 2010 reports an adjusted OR 8.1 (95% CI 3.4–19.2) for high vs low maximum VIS over the first 48h; the exact Gaies high/low dichotomization value is [NEEDS SOURCE] (primary text paywalled). Cut-points do not transfer across populations (sepsis, ECMO, general PICU). VIS is a snapshot; the prognostic quantity in the literature is typically the maximum over a defined window (e.g., first 48h), which the platform must define and label. Per-drug plausible-dose ceilings used for input validation are input-validity bounds, not cited clinical thresholds ([NEEDS SOURCE] — needs a pediatric formulary). Vasopressin unit trap: it is dosed in units/kg/min (coefficient 10,000), the only agent not in mcg/kg/min.",

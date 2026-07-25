@@ -180,6 +180,15 @@ export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonl
    * Optional for now; where absent the detail page falls back to `notes`.
    */
   readonly formula?: LocalizedText;
+  /**
+   * True when a blank non-required input is scored as normal (0 points / not
+   * on that therapy) rather than omitted — the additive organ-dysfunction and
+   * vasoactive composites (PELOD-2, pSOFA, Phoenix, VIS). The calculator UI
+   * shows a partial-result cue for these so a clinician never mistakes a
+   * not-yet-complete entry for a genuinely low score. Absent/false means every
+   * input either is required or simply adds detail when supplied.
+   */
+  readonly missingAsNormal?: boolean;
   /** Clinical limitations, caveats, and any [NEEDS SOURCE] gaps. */
   readonly notes: LocalizedText;
 }
