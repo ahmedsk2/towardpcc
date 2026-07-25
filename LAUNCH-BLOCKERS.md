@@ -50,10 +50,14 @@ AND listed here.
       DMARC `p=reject`, MTA-STS. (P8, before any form notification)
 - [ ] **CSP + security headers ship WITH P5**, not P7 (TM-005) — forms and
       admin never run without them.
-- [ ] **Privacy-invariant test suite (TM-001)** — Playwright zero-network
-      calculator compute test + CI grep-guards (no useSearchParams /
-      "use server" under calculator routes) + Umami configured to strip
-      query/hash. Lands with P3 e2e and runs in CI forever.
+- [~] **Privacy-invariant test suite (TM-001)** — DONE in P3: Playwright
+  zero-network/airplane-mode calculator compute test (apps/web/e2e/
+  calculator-privacy.spec.ts, CI `e2e` job) + static grep-guards (no
+  useSearchParams/searchParams/"use server" under calculator routes,
+  apps/web/content/privacy-invariant.test.ts, runs under `pnpm test`).
+  **Remaining (P5, when analytics lands):** configure Umami to strip
+  query/hash from collected URLs — deferred because Umami is not yet
+  integrated into the app.
 
 ## Content / legal
 
