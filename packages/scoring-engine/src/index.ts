@@ -1,20 +1,39 @@
 /**
  * TowardPCC scoring engine — pure TypeScript, zero runtime dependencies,
- * no DOM/browser APIs (enforced by tsconfig `lib`/`types`).
- * Score definitions, compute functions, and interpretation bands land in P2.
+ * no DOM/browser APIs (enforced by tsconfig `lib`/`types` and CI guards).
+ * Architecture: docs/decisions/ADR-0002-scoring-engine.md.
+ * Note: `testing/*` is deliberately NOT exported — dev-time only.
  */
 
-export const ENGINE_VERSION = "0.1.0";
+export const ENGINE_VERSION = "0.2.0";
 
-export interface ScoreSummary {
-  id: string;
-  slug: string;
-  name: string;
-  version: string;
-}
+export type {
+  BooleanInput,
+  CategoricalInput,
+  CategoricalOption,
+  ChangelogEntry,
+  ComputeResult,
+  InputRejection,
+  InputValues,
+  InterpretationBand,
+  IpStatus,
+  NumericInput,
+  Reference,
+  RejectionCode,
+  ScoreCategory,
+  ScoreDefinition,
+  ScoreInput,
+  ScoreResult,
+  ScoreStatus,
+  ScoreSummary,
+  ScoreValue,
+  ValidatorSlot,
+  ValidatorSlots,
+} from "./types";
 
-const registry: ScoreSummary[] = [];
-
-export function listScores(): readonly ScoreSummary[] {
-  return registry;
-}
+export { defineScore, type ScoreSpec } from "./define-score";
+export { matchInterpretationBand } from "./interpretation";
+export { defineText, type LocalizedText } from "./i18n/text";
+export { NO_UNIT, toCanonical, type UnitConversion, type UnitSpec } from "./units/types";
+export { KPA_PER_MMHG, cmH2O, kpaForMmhg, mmhgWithKpa } from "./units/pressure";
+export { getScore, listScores, registry, type ListScoresFilter } from "./scores/registry";

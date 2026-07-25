@@ -91,6 +91,54 @@ export const site = {
       "This section is being built right now. What you read above is the real scope; nothing here is final marketing.",
   },
 
+  calculators: {
+    indexTitle: "Calculators",
+    indexHeading: "PICU calculators",
+    indexLede:
+      "Free, clinically referenced pediatric critical care scores. Every calculation runs in your browser and cites its published source.",
+    searchPlaceholder: "Search calculators",
+    searchLabel: "Search calculators by name",
+    noResults: "No calculators match your search.",
+    categoryLabels: {
+      "mortality-severity": "Mortality and severity",
+      "organ-dysfunction": "Organ dysfunction",
+      sepsis: "Sepsis",
+      respiratory: "Respiratory",
+      "sedation-analgesia-withdrawal": "Sedation, analgesia, and withdrawal",
+      "fluids-resuscitation": "Fluids and resuscitation",
+      "airway-equipment": "Airway and equipment",
+      "renal-metabolic": "Renal and metabolic",
+      general: "General",
+    },
+    // Detail page
+    backToIndex: "All calculators",
+    resultHeading: "Result",
+    resultPlaceholder: "Enter values to compute.",
+    interpretationLabel: "Interpretation",
+    copyResult: "Copy result summary",
+    copied: "Copied",
+    printLabel: "Print",
+    unitLabel: "Unit",
+    // Privacy line — must be architecturally true (PRD §6.4)
+    privacyLine:
+      "Calculations run entirely in your browser. Nothing you enter is transmitted or stored.",
+    // Validation badge (PRD §6.4 — honest pending state)
+    validationPending: "Independent clinical validation: pending",
+    validationPendingDetail:
+      "Two independent clinical validators will be named here once review is complete.",
+    validatedByPrefix: "Validated by",
+    formulaHeading: "How it is calculated",
+    referencesHeading: "References",
+    versionHeading: "Version and changelog",
+    limitationsHeading: "Limitations and notes",
+    acceptedRangesHeading: "Accepted input ranges",
+    disclaimerHeading: "Important",
+    // Medical disclaimer summary on every calculator (PRD §6.6)
+    disclaimer:
+      "For use by qualified health professionals as an informational and educational aid. It supports clinical judgment and does not replace it. Verify every result independently before making a clinical decision. This is not a medical device.",
+    validatorSlotEmpty: "Validator slot open",
+  },
+
   errors: {
     notFound: {
       metaTitle: "Page not found",
