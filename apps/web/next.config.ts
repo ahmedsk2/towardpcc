@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   transpilePackages: ["@towardpcc/ui", "@towardpcc/scoring-engine"],
   // Static security headers (PRD §9). The per-request nonce CSP lives in
-  // middleware.ts; these are the constant ones, applied to every response.
+  // proxy.ts; these are the constant ones, applied to every response.
   async headers() {
     return [
       {

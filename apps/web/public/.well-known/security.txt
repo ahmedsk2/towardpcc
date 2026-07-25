@@ -1,0 +1,5 @@
+Contact: mailto:info@towardpcc.com
+Expires: 2027-07-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://towardpcc.com/.well-known/security.txt
+Policy: https://towardpcc.com/legal/data-protection
