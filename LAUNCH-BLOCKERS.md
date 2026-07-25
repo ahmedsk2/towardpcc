@@ -35,6 +35,18 @@ AND listed here.
       local gitleaks binary this machine doesn't have. Secrets are caught in CI
       (pinned, checksum-verified CLI). Install gitleaks locally by P5 (forms =
       first real secrets risk) and add it to `.husky/pre-commit`.
+- [ ] **Database backup + tested restore drill (P8, prod-readiness HIGH)** —
+      procedure written (docs/runbooks/backup-restore.md); the scheduled
+      encrypted, in-region backup and a _tested_ restore must be stood up on the
+      deployed OCI infra before launch. A backup never restored is not a backup.
+- [ ] **Container image build + scan in CI (P8)** — the Dockerfile is hardened
+      (non-root, healthcheck, digest-pinned base, dumb-init) and now copies
+      packages/db, but the image is not built/scanned in CI. Add a
+      `docker build` + Trivy/hadolint job before staging. Verify the standalone
+      output ships Prisma's WASM query compiler (driver-adapter runtime).
+- [ ] **Structured request logging (pre-launch)** — the app logs almost nothing
+      (no PII leak, good) but has no request IDs / error telemetry for incident
+      triage. Add minimal structured logging (e.g. pino) before launch.
 - [x] GitHub remote — approved by founder 2026-07-24; created during P0
       (private, https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
       fails without admin on this machine (EPERM in Program Files); pnpm is
@@ -50,6 +62,11 @@ AND listed here.
       that exact fate must be impossible for towardpcc.com. (P8, before DNS)
 - [ ] **Email authentication before first send (TM-008)** — SPF, DKIM,
       DMARC `p=reject`, MTA-STS. (P8, before any form notification)
+- [ ] **HSTS preload-list submission (P8)** — the `Strict-Transport-Security`
+      header already sets `preload`, but do NOT submit the domain to the browser
+      preload list until HTTPS is confirmed working on the apex AND every
+      subdomain — preload is hard to reverse and would break any plain-HTTP
+      subdomain.
 - [~] **CSP + security headers ship WITH P5** (TM-005). DONE: strict static
   security headers (HSTS, nosniff, Referrer-Policy, X-Frame-Options, a
   restrictive Permissions-Policy, COOP) + a two-tier CSP in

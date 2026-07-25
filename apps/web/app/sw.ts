@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import { NetworkOnly, Serwist } from "serwist";
 
 // Serwist injects the precache manifest (all build assets + calculator pages)
 // at build time. The calculator catalog is precached so it works offline
@@ -20,7 +20,18 @@ const serwist = new Serwist({
   skipWaiting: false,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  // Never cache the authenticated admin area — its pages render submitter PII,
+  // so a cached copy could be served offline on a shared device or read via
+  // caches.match. This NetworkOnly rule is matched before the defaultCache
+  // catch-all (Serwist evaluates in order), so no /admin document or RSC
+  // response is ever stored; /admin is dynamic, so it is never precached either.
+  runtimeCaching: [
+    {
+      matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith("/admin"),
+      handler: new NetworkOnly(),
+    },
+    ...defaultCache,
+  ],
 });
 
 serwist.addEventListeners();

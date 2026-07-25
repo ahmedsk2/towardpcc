@@ -36,5 +36,11 @@
     "lint-staged": "^17.2.0",
     "prettier": "^3.9.6",
     "typescript-eslint": "^8.65.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss@<8.5.18": ">=8.5.18",
+      "sharp@<0.35.0": ">=0.35.0"
+    }
   }
 }
