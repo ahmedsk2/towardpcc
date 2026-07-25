@@ -60,4 +60,11 @@ AND listed here.
 - [ ] Legal pages need counsel review (`TODO:counsel-review` markers, P6)
 - [ ] Calculator validator slots empty by design — badge shows
       "Independent clinical validation: pending" until real names provided
-- [ ] Tier-B instruments blocked on per-instrument IP checks (P3+)
+- [x] Tier-B instrument IP checks done (docs/decisions/ADR-tier-b-ip.md,
+      2026-07-25): all 8 stay unbuilt in v1 — 5 need permission (COMFORT-B,
+      CAPD, SOS-PD, FLACC, Bedside PEWS), 4 need legal review. To build any,
+      the founder must obtain written permission (FLACC/CAPD are the cleanest
+      routes). Not a launch blocker for v1 (v1 ships the IP-clean scores).
+- [ ] PWA raster PNG icons (192/512 + maskable) — currently SVG-only, which
+      installs in modern browsers; generate PNGs before launch for maximum
+      Android/Lighthouse compatibility (sharp unavailable on this ARM dev box).
