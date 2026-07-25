@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { site } from "@/content/site";
 
-export const metadata = { title: "Page not found" };
+export const metadata = { title: site.errors.notFound.metaTitle };
 
 export default function NotFound() {
   return (

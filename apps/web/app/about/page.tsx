@@ -1,13 +1,17 @@
 import { PillarStub } from "@/components/pillar-stub";
+import { site } from "@/content/site";
 
-export const metadata = { title: "About" };
+export const metadata = {
+  title: site.about.title,
+  description: site.about.metaDescription,
+};
 
 export default function AboutPage() {
   return (
     <PillarStub
-      title="About TowardPCC"
-      status="in development"
-      description="TowardPCC builds the digital backbone of pediatric critical care: free clinical calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world."
+      title={site.about.heading}
+      status={site.about.status}
+      description={site.about.description}
     />
   );
 }

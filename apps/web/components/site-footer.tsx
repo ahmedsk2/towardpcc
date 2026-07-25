@@ -39,7 +39,7 @@ export function SiteFooter() {
             </p>
             <p className="mt-2 text-sm text-ink-on-dark/75">{site.tagline}</p>
           </div>
-          <div className="flex gap-16">
+          <nav aria-label={site.footer.navAriaLabel} className="flex gap-16">
             <div>
               <h2 className="text-sm font-semibold">{site.footer.pillarsHeading}</h2>
               <ul className="mt-3 space-y-2">
@@ -56,11 +56,13 @@ export function SiteFooter() {
                 ))}
               </ul>
             </div>
-          </div>
+          </nav>
         </div>
         <div className="mt-12 flex flex-col gap-3 border-t border-ink-on-dark/15 pt-6 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-ink-on-dark/60">{site.footer.copyright}</p>
-          <p className="font-numeric text-xs tracking-[0.08em] text-ink-on-dark/60">
+          <p className="text-sm text-ink-on-dark/60">
+            © {new Date().getFullYear()} {site.footer.orgName}
+          </p>
+          <p className="font-numeric text-xs tracking-[0.08em] text-ink-on-dark/60 uppercase">
             {site.footer.residency}
           </p>
         </div>

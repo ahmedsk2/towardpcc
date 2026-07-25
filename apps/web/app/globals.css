@@ -21,6 +21,8 @@
   --color-accent-deep: var(--color-accent-deep);
   --color-accent-bright: var(--color-accent-bright);
   --color-accent-tint: var(--color-accent-tint);
+  --color-ink-on-accent: var(--color-ink-on-accent);
+  --color-edge: var(--color-edge);
   --color-alert-text: var(--color-alert-text);
   --color-alert-bg: var(--color-alert-bg);
   --color-success-text: var(--color-success-text);

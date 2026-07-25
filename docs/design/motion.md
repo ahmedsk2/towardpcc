@@ -19,6 +19,9 @@ same guards.
    `active:` presses translate 1px. Nothing else moves.
 5. **Banned:** marquees, parallax, scroll-hijack, infinite loops,
    attention pulses, animated backgrounds outside the P4 hero scene.
+   One carve-out: `Skeleton`'s loading pulse — motivated state feedback
+   that stops the moment content arrives, and disabled under reduced
+   motion (`motion-reduce:animate-none`).
 6. **Performance:** animate `transform`/`opacity` only; no
    `window.addEventListener("scroll")` — Motion's `useScroll`/observers
    only (relevant from P4).

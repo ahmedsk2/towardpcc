@@ -6,6 +6,7 @@
 export const site = {
   name: "TowardPCC",
   tagline: "The digital home of pediatric critical care",
+  metaTitle: "TowardPCC · the digital home of pediatric critical care",
   description:
     "Free clinical calculators, knowledge and data systems, and research support for the pediatric critical care community. Built from Saudi Arabia for the world.",
 
@@ -17,15 +18,18 @@ export const site = {
     about: "About",
     contact: "Contact",
     menuLabel: "Menu",
+    mainAriaLabel: "Main",
     homeAriaLabel: "TowardPCC home",
+    skipToContent: "Skip to content",
   },
 
   footer: {
     pillarsHeading: "Platform",
     siteHeading: "Site",
-    residency: "servers located in saudi arabia",
+    navAriaLabel: "Footer",
+    residency: "Servers located in Saudi Arabia",
     // TODO:legal — replace with [ORG_LEGAL_NAME] when provided (LAUNCH-BLOCKERS.md)
-    copyright: "© 2026 TowardPCC",
+    orgName: "TowardPCC",
   },
 
   home: {
@@ -62,6 +66,25 @@ export const site = {
     },
   },
 
+  about: {
+    title: "About",
+    heading: "About TowardPCC",
+    status: "in development",
+    description:
+      "TowardPCC builds the digital backbone of pediatric critical care: free clinical calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world.",
+    metaDescription:
+      "The mission, story, and honest roadmap of TowardPCC — built from Saudi Arabia for the pediatric critical care community worldwide.",
+  },
+
+  contactPage: {
+    title: "Contact",
+    heading: "Contact",
+    status: "in development",
+    description:
+      "A contact form lands here soon. Until then, this page exists so you always know where to reach us once the platform launches.",
+    metaDescription: "How to reach the TowardPCC team.",
+  },
+
   stub: {
     notice:
       "This section is being built right now. What you read above is the real scope; nothing here is final marketing.",
@@ -69,6 +92,7 @@ export const site = {
 
   errors: {
     notFound: {
+      metaTitle: "Page not found",
       code: "404",
       heading: "This page does not exist",
       body: "The address may have changed or never existed. The pages below are real.",
@@ -76,8 +100,9 @@ export const site = {
     },
     serverError: {
       heading: "Something went wrong on our side",
-      body: "The error has been contained and nothing you entered has been stored. Try again, and if it keeps happening, tell us.",
+      body: "Try again. If it keeps happening, let us know on the contact page.",
       retry: "Try again",
+      contactLink: "Go to the contact page",
     },
   },
 } as const;

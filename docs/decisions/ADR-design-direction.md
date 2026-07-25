@@ -80,24 +80,27 @@ exactly one place; everything else is quiet.
 
 ### Palette — Pulse Crimson (founder-chosen 2026-07-24)
 
-| Token         | Hex       | Role                                                          |
-| ------------- | --------- | ------------------------------------------------------------- |
-| `night-950`   | `#231018` | hero canvas — oxblood night, tinted, never near-black         |
-| `night-800`   | `#311A24` | dark-band elevation / gradient end                            |
-| `porcelain`   | `#F7F4F3` | page surface — blush porcelain, cool-warm neutral, not cream  |
-| `raised`      | `#FFFFFF` | cards/raised surfaces                                         |
-| `mist`        | `#EBE4E3` | sunken zones, hairline tint                                   |
-| `ink-strong`  | `#231A1C` | headings on light (ties to night)                             |
-| `ink-body`    | `#4A3D40` | body text (≈8:1 on porcelain)                                 |
-| `ink-muted`   | `#75646A` | secondary text (≈5:1 on porcelain)                            |
-| `ink-on-dark` | `#F4E9EC` | text on night                                                 |
-| `crimson-600` | `#B01E32` | THE accent: links, focus, interactive, the single primary CTA |
-| `crimson-700` | `#8F1728` | hover/pressed, deep accents                                   |
-| `rose-300`    | `#FF7D8E` | crimson's voice on dark: waveform, accents on night           |
-| `amber-700`   | `#8A5900` | alerts/warnings/errors — WITH icon, never bare color          |
-| `amber-100`   | `#FBEED7` | alert background tint                                         |
-| `moss-700`    | `#2E6B4F` | success/confirmation text                                     |
-| `moss-100`    | `#E2F0E8` | success background tint                                       |
+| Token           | Hex       | Role                                                            |
+| --------------- | --------- | --------------------------------------------------------------- |
+| `night-950`     | `#231018` | hero canvas — oxblood night, tinted, never near-black           |
+| `night-800`     | `#311A24` | dark-band elevation / gradient end                              |
+| `porcelain`     | `#F7F4F3` | page surface — blush porcelain, cool-warm neutral, not cream    |
+| `raised`        | `#FFFFFF` | cards/raised surfaces                                           |
+| `mist`          | `#EBE4E3` | sunken zones, hairline tint                                     |
+| `ink-strong`    | `#231A1C` | headings on light (ties to night)                               |
+| `ink-body`      | `#4A3D40` | body text (≈8:1 on porcelain)                                   |
+| `ink-muted`     | `#75646A` | secondary text (≈5:1 on porcelain)                              |
+| `ink-on-dark`   | `#F4E9EC` | text on night                                                   |
+| `crimson-600`   | `#B01E32` | THE accent: links, focus, interactive, the single primary CTA   |
+| `crimson-700`   | `#8F1728` | hover/pressed, deep accents                                     |
+| `rose-300`      | `#FF7D8E` | crimson's voice on dark: waveform, accents on night             |
+| `amber-700`     | `#8A5900` | alerts/warnings/errors — WITH icon, never bare color            |
+| `amber-100`     | `#FBEED7` | alert background tint                                           |
+| `moss-700`      | `#2E6B4F` | success/confirmation text                                       |
+| `moss-100`      | `#E2F0E8` | success background tint                                         |
+| `accent-tint`   | `#F6E3E6` | chip/selection backgrounds on light (crimson at whisper volume) |
+| `ink-on-accent` | `#FFFFFF` | text on accent fills (6.8:1 on crimson-600)                     |
+| `edge`          | `#8E7E84` | control borders — ≥3:1 non-text contrast on white and porcelain |
 
 Rules: crimson is the one accent and appears at full strength once per
 screen as a CTA; brand crimson **never** doubles as an error color — alerts
@@ -146,7 +149,7 @@ Home (§6.1):
 │ NIGHT BAND                                     │
 │  H1 (5-7 words)          ~ breathing waveform ~ │ split hero: text left,
 │  one-sentence promise      (P4 R3F / poster)    │ signature scene right
-│  [Explore the calculators] [Request a pilot]    │ coral primary, quiet secondary
+│  [Explore the calculators] [Request a pilot]    │ crimson primary, quiet secondary
 │ ~~~~ waveform edge dissolves night → porcelain │ the transition moment
 ├─────────────────────────────────────────────────┤
 │ PORCELAIN                                       │
@@ -196,11 +199,13 @@ the one memorable thing.
 
 ### Motion guidelines (P1 scope)
 
-Hover/focus states that aid comprehension; one-time 200ms fade/6px-rise
+Hover/focus states that aid comprehension; one-time 400ms fade/12px-rise
 reveals on section entry; durations/easings only from motion tokens; all
 behind the central `prefers-reduced-motion` guard (reduce ⇒ static,
 no exceptions). No marquees, no parallax, no scroll-hijack anywhere.
 The orchestrated hero moment is P4's job and stays inside these guards.
+**Operative motion spec: docs/design/motion.md** — if that file and this
+paragraph ever disagree, motion.md wins.
 
 ### Theme
 
@@ -221,10 +226,11 @@ Checked against "the generic default you'd produce for any medical SaaS":
    cell count with rhythm, and imagery is real product screenshots only.
 2. **Banned AI-default looks** (PRD §5.2): cream+serif+terracotta — no
    serif anywhere, porcelain is cool not cream; near-black+acid-green —
-   the night canvas is tinted and teal is desaturated; broadsheet hairlines —
-   hairlines only inside annotation contexts that encode real data.
-   Revised during this pass: pulse-coral tuned red-ward (`#C6402E`) so it
-   reads alert/pulse, not artisan terracotta.
+   the night canvas is tinted and no green accent exists; broadsheet
+   hairlines — hairlines only inside annotation contexts that encode real
+   data. _(Historical note: this item originally discussed tuning
+   pulse-coral away from terracotta; superseded by the Pulse Crimson
+   revision — crimson `#B01E32` is unambiguously red, not earthy.)_
 3. **Flatline trap** (caught and fixed): an ECG-style trace that goes flat
    reads as death in a pediatric ICU context. The motif is explicitly a
    respiratory waveform — continuous, calm, breathing.
@@ -235,5 +241,7 @@ Checked against "the generic default you'd produce for any medical SaaS":
    technically-voiced, and executed with this palette and the Plex Mono
    numeric voice it reads as an instrument, not a template. The trendier
    alternative (Clash Display) has the wrong register for clinical trust.
-6. **Coral once per screen** is the discipline that keeps the palette from
-   collapsing into a generic two-accent SaaS look.
+6. **Crimson once per screen** is the discipline that keeps the palette
+   from collapsing into a generic two-accent SaaS look. _(Originally
+   written as "coral once per screen"; the rule carried over unchanged to
+   the crimson accent.)_

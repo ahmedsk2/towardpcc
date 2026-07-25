@@ -25,6 +25,11 @@
   --color-accent-deep: #8f1728;
   --color-accent-bright: #ff7d8e; /* crimson's voice on the night canvas */
   --color-accent-tint: #f6e3e6; /* chip/selection backgrounds on light */
+  --color-ink-on-accent: #ffffff; /* text on accent fills (6.8:1 on crimson-600) */
+
+  /* Control edges — inputs/toggles need >=3:1 non-text contrast (WCAG 1.4.11):
+     3.83:1 on white, 3.49:1 on porcelain */
+  --color-edge: #8e7e84;
 
   /* Semantic signals — deliberately NOT crimson */
   --color-alert-text: #8a5900;
@@ -47,6 +52,8 @@
   --motion-duration-slow: 400ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Focus — visible everywhere, keyboard-first */
-  --focus-ring: 0 0 0 2px var(--color-surface-page), 0 0 0 4px var(--color-accent);
+  /* Focus — visible everywhere, keyboard-first. The canonical idiom is the
+     utility string "focus-visible:outline-2 focus-visible:outline-offset-2
+     focus-visible:outline-accent" (accent-bright on dark surfaces); there is
+     deliberately no ring token so exactly one focus idiom exists. */
 }

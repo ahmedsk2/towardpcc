@@ -17,7 +17,7 @@ const base =
   "active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-accent text-white hover:bg-accent-deep",
+  primary: "bg-accent text-ink-on-accent hover:bg-accent-deep",
   secondary:
     "border border-ink-muted/40 bg-surface-raised text-ink-strong hover:border-ink-strong/60 hover:bg-surface-sunken/60",
   ghost: "text-accent-deep hover:bg-accent-tint",

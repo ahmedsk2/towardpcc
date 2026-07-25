@@ -32,13 +32,17 @@ export default function HomePage() {
             <Reveal key={p.href}>
               <Link
                 href={p.href}
+                aria-labelledby={`pillar-${p.href.slice(1)}`}
                 className="group block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <Card className="h-full transition-colors duration-150 group-hover:border-ink-muted/40">
                   <StatusChip tone={p.href === "/calculators" ? "accent" : "neutral"}>
                     {p.status}
                   </StatusChip>
-                  <h3 className="mt-3 font-display text-xl font-medium text-ink-strong">
+                  <h3
+                    id={`pillar-${p.href.slice(1)}`}
+                    className="mt-3 font-display text-xl font-medium text-ink-strong"
+                  >
                     {p.title}
                   </h3>
                   <p className="mt-2 text-[15px] leading-relaxed text-ink-muted">{p.description}</p>
