@@ -18,7 +18,9 @@ AND listed here.
       the deployed region, not the config default.
 - [x] `[ORG_LEGAL_NAME]` = Toward Pediatric Critical Care (footer updated).
       Legal pages (P6) still get `TODO:counsel-review`.
-- [ ] Path to the PedsCC Library repo on this machine (needed by P5 feature audit)
+- [x] PedsCC Library repo — founder provided github.com/ahmedsk2/pedscc-library
+      (2026-07-25); read-only feature audit done
+      (docs/research/pedscc-library-audit.md), informs /knowledge.
 
 ## Environment
 
