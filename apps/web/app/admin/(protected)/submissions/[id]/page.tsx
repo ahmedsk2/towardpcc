@@ -28,8 +28,11 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
 
   return (
     <div className="max-w-[760px]">
-      <Link href="/admin" className="text-sm text-accent-deep hover:text-accent">
-        ← Inbox
+      <Link
+        href="/admin"
+        className="rounded-sm text-sm text-accent-deep hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        <span aria-hidden="true">←</span> Inbox
       </Link>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">

@@ -40,7 +40,7 @@ export default async function CalculatorDetailPage({
         data-print="hide"
         className="font-numeric text-xs tracking-[0.06em] text-ink-muted uppercase hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        ← {c.backToIndex}
+        <span aria-hidden="true">←</span> {c.backToIndex}
       </Link>
 
       <header className="mt-4">

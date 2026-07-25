@@ -36,7 +36,7 @@ export default function DataProtectionPage() {
             <thead className="border-b border-surface-sunken bg-surface-sunken/40 text-ink-muted">
               <tr>
                 {dp.collection.columns.map((c) => (
-                  <th key={c} className="px-4 py-2 font-medium">
+                  <th key={c} scope="col" className="px-4 py-2 font-medium">
                     {c}
                   </th>
                 ))}

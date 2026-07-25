@@ -12,13 +12,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="border-b border-surface-sunken bg-surface-raised">
         <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4 px-6 py-3">
           <nav className="flex items-center gap-5" aria-label="Admin">
-            <Link href="/admin" className="font-display text-sm font-semibold text-ink-strong">
+            <Link
+              href="/admin"
+              className="rounded-sm font-display text-sm font-semibold text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
               TowardPCC admin
             </Link>
-            <Link href="/admin" className="text-sm text-ink-body hover:text-ink-strong">
+            <Link
+              href="/admin"
+              className="rounded-sm text-sm text-ink-body hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
               Inbox
             </Link>
-            <Link href="/admin/calculators" className="text-sm text-ink-body hover:text-ink-strong">
+            <Link
+              href="/admin/calculators"
+              className="rounded-sm text-sm text-ink-body hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
               Calculators
             </Link>
           </nav>

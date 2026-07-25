@@ -82,7 +82,7 @@ export function CalculatorsIndex({ scores }: { scores: readonly ScoreSummary[] }
               setActiveCategory(null);
             }}
           >
-            ★ {c.filterFavorites} ({favoriteCount})
+            <span aria-hidden="true">★</span> {c.filterFavorites} ({favoriteCount})
           </FilterChip>
         )}
         {presentCategories.map((cat) => (
@@ -173,13 +173,17 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors duration-150",
+        "rounded-full border px-3.5 py-1.5 text-sm transition-colors duration-150",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        // Selected state carries a non-color cue (checkmark + heavier weight) so
+        // it never relies on color alone (WCAG 1.4.1); cf. the active nav link's
+        // underline.
         active
-          ? "border-accent/40 bg-accent-tint text-accent-deep"
-          : "border-surface-sunken bg-surface-raised text-ink-body hover:border-ink-muted/40 hover:text-ink-strong",
+          ? "border-accent/40 bg-accent-tint font-semibold text-accent-deep"
+          : "border-surface-sunken bg-surface-raised font-medium text-ink-body hover:border-ink-muted/40 hover:text-ink-strong",
       )}
     >
+      {active && <span aria-hidden="true">✓ </span>}
       {children}
     </button>
   );

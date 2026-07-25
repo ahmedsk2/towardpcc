@@ -59,10 +59,18 @@ export default async function InboxPage({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-surface-sunken bg-surface-sunken/40 text-ink-muted">
               <tr>
-                <th className="px-4 py-2 font-medium">Type</th>
-                <th className="px-4 py-2 font-medium">From</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Received</th>
+                <th scope="col" className="px-4 py-2 font-medium">
+                  Type
+                </th>
+                <th scope="col" className="px-4 py-2 font-medium">
+                  From
+                </th>
+                <th scope="col" className="px-4 py-2 font-medium">
+                  Status
+                </th>
+                <th scope="col" className="px-4 py-2 font-medium">
+                  Received
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -104,12 +112,14 @@ function FilterTab({ href, active, label }: { href: string; active: boolean; lab
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       className={
         active
-          ? "rounded-full bg-accent-tint px-3 py-1 text-sm font-medium text-accent-deep"
-          : "rounded-full border border-surface-sunken px-3 py-1 text-sm text-ink-body hover:border-ink-muted/40"
+          ? "rounded-full bg-accent-tint px-3 py-1 text-sm font-semibold text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          : "rounded-full border border-surface-sunken px-3 py-1 text-sm text-ink-body hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       }
     >
+      {active && <span aria-hidden="true">✓ </span>}
       {label}
     </Link>
   );

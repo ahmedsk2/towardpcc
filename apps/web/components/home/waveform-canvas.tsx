@@ -115,7 +115,11 @@ export function WaveformCanvas({ active }: { active: boolean }) {
   }, []);
 
   return (
+    // Decorative: this animation duplicates the labelled poster (HeroWaveform,
+    // role="img"), so it is hidden from assistive tech (WCAG 1.1.1). R3F spreads
+    // unknown props onto its container <div>, so aria-hidden lands on the wrapper.
     <Canvas
+      aria-hidden="true"
       camera={{ position: [0, 0, 8.5], fov: 48 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       dpr={[1, 2]}

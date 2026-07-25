@@ -74,7 +74,7 @@ export default function HomePage() {
                 href="/services"
                 className={cn(
                   ctaBase,
-                  "border border-ink-on-dark/25 text-ink-on-dark hover:border-ink-on-dark/50 hover:bg-white/5",
+                  "border border-ink-on-dark/40 text-ink-on-dark hover:border-ink-on-dark/60 hover:bg-white/5",
                 )}
               >
                 {h.ctaSecondary}

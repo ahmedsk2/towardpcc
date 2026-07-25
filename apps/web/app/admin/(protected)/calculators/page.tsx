@@ -25,10 +25,16 @@ export default async function AdminCalculatorsPage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-surface-sunken bg-surface-sunken/40 text-ink-muted">
             <tr>
-              <th className="px-4 py-2 font-medium">Calculator</th>
-              <th className="px-4 py-2 font-medium">Validators</th>
-              <th className="px-4 py-2 font-medium">Published</th>
-              <th className="px-4 py-2 font-medium"></th>
+              <th scope="col" className="px-4 py-2 font-medium">
+                Calculator
+              </th>
+              <th scope="col" className="px-4 py-2 font-medium">
+                Validators
+              </th>
+              <th scope="col" className="px-4 py-2 font-medium">
+                Published
+              </th>
+              <th scope="col" className="px-4 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -53,8 +59,8 @@ export default async function AdminCalculatorsPage() {
                         type="submit"
                         className={
                           published
-                            ? "rounded-full bg-success-bg px-2.5 py-1 font-numeric text-[11px] tracking-wide text-success-text uppercase"
-                            : "rounded-full bg-surface-sunken px-2.5 py-1 font-numeric text-[11px] tracking-wide text-ink-body uppercase"
+                            ? "rounded-full bg-success-bg px-2.5 py-1 font-numeric text-[11px] tracking-wide text-success-text uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            : "rounded-full bg-surface-sunken px-2.5 py-1 font-numeric text-[11px] tracking-wide text-ink-body uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         }
                         title="Toggle published"
                       >
@@ -65,9 +71,9 @@ export default async function AdminCalculatorsPage() {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/calculators/${s.slug}`}
-                      className="text-sm font-medium text-accent-deep hover:text-accent"
+                      className="rounded-sm text-sm font-medium text-accent-deep hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
-                      Validators →
+                      Validators <span aria-hidden="true">→</span>
                     </Link>
                   </td>
                 </tr>

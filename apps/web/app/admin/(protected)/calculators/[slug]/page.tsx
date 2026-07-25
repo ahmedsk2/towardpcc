@@ -26,8 +26,11 @@ export default async function ValidatorEditor({ params }: { params: Promise<{ sl
 
   return (
     <div className="max-w-[640px]">
-      <Link href="/admin/calculators" className="text-sm text-accent-deep hover:text-accent">
-        ← Calculators
+      <Link
+        href="/admin/calculators"
+        className="rounded-sm text-sm text-accent-deep hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        <span aria-hidden="true">←</span> Calculators
       </Link>
       <h1 className="mt-3 font-display text-2xl font-medium text-ink-strong">{score.name}</h1>
       <p className="mt-1 max-w-[60ch] text-[15px] text-ink-muted">
