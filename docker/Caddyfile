@@ -1,0 +1,36 @@
+# TowardPCC reverse proxy (PRD §11). Caddy terminates TLS (automatic HTTPS via
+# Let's Encrypt) and proxies to the internal services. The APPLICATION sets the
+# security headers (CSP, HSTS, etc. — proxy.ts + next.config), so Caddy only
+# handles transport, compression, and canonical-host redirects.
+#
+# Requires DNS A/AAAA records for the apex + subdomains pointing at this host
+# BEFORE first start (that is the deploy step, gated on the founder's go-ahead).
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+# Canonical host: www → apex (301).
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+# Self-hosted analytics (Umami) and uptime status, on their own subdomains.
+analytics.{$SITE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy umami:3000
+}
+
+status.{$SITE_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy uptime-kuma:3001
+}
+
+# Defensive sibling / typo domains (TM-008): register them and 301 to the apex
+# so a lookalike can never be stood up against the brand. Add one block per
+# owned domain once registered, e.g.:
+#
+# towardpicu.com, toward-pcc.com {
+# 	redir https://{$SITE_DOMAIN}{uri} permanent
+# }
