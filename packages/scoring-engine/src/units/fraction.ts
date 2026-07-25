@@ -12,3 +12,11 @@ export const fractionWithPercent: UnitSpec = {
   canonical: "fraction",
   alternates: [percentForFraction],
 };
+
+/**
+ * A quantity measured directly in percent, canonical "%" (e.g. SpO₂, which is
+ * reported as a whole-number percentage and is used as the numerator of the
+ * S/F ratio in %, not as a 0–1 fraction). Canonical-only, no conversion —
+ * analogous to cmH2O in pressure.ts.
+ */
+export const percent: UnitSpec = { canonical: "%" };

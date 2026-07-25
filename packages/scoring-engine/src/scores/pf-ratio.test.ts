@@ -51,7 +51,12 @@ describeScore(pfRatio, (ctx) => {
     { inputId: "fio2", code: "out-of-range" },
   );
 
-  ctx.interpretationBoundary("pf_ratio", 100, "severe", "moderate");
-  ctx.interpretationBoundary("pf_ratio", 200, "moderate", "mild");
-  ctx.interpretationBoundary("pf_ratio", 300, "mild", "above-range");
+  // Descending "≤" cutpoints: the boundary value belongs to the worse band.
+  ctx.expectBand("pf_ratio", 100, "severe"); // ≤ 100 is severe
+  ctx.expectBand("pf_ratio", 101, "moderate");
+  ctx.expectBand("pf_ratio", 200, "moderate"); // ≤ 200 is moderate
+  ctx.expectBand("pf_ratio", 201, "mild");
+  ctx.expectBand("pf_ratio", 300, "mild"); // ≤ 300 is mild
+  ctx.expectBand("pf_ratio", 301, "above-range");
+  ctx.expectBand("pf_ratio", 50, "severe");
 });

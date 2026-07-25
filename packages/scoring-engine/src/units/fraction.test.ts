@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fractionWithPercent, percentForFraction } from "./fraction";
+import { fractionWithPercent, percent, percentForFraction } from "./fraction";
 import { toCanonical } from "./types";
 
 describe("fraction units", () => {
@@ -21,5 +21,10 @@ describe("fraction units", () => {
     expect(toCanonical(fractionWithPercent, 0.6, "fraction")).toBe(0.6);
     expect(toCanonical(fractionWithPercent, 60, "%")).toBeCloseTo(0.6, 12);
     expect(toCanonical(fractionWithPercent, 60, "ratio")).toBeNull();
+  });
+
+  it("percent is a canonical-only %, keeping the number as-entered (e.g. SpO₂ 90)", () => {
+    expect(toCanonical(percent, 90, "%")).toBe(90);
+    expect(toCanonical(percent, 90, "fraction")).toBeNull();
   });
 });

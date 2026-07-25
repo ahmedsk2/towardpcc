@@ -95,13 +95,23 @@ export interface ScoreTestContext<TInputs extends readonly ScoreInput[]> {
     inputs: InputValues<TInputs>,
     expected: { inputId: string; code: InputRejection["code"] },
   ): void;
-  /** Asserts the band switch happens exactly at the shared boundary value. */
+  /**
+   * Asserts the band switch happens at the shared boundary value, for
+   * ascending [min, max) bands where `boundaryValue` is the upper band's
+   * inclusive min (below it → bandBelow, at it → bandAt).
+   */
   interpretationBoundary(
     outputId: string,
     boundaryValue: number,
     bandBelowId: string,
     bandAtId: string,
   ): void;
+  /**
+   * Direction-agnostic: asserts the band at exactly `value` is `bandId`.
+   * Use for descending "≤" scores and to pin classification at real
+   * achievable values on both sides of a cutpoint.
+   */
+  expectBand(outputId: string, value: number, bandId: string): void;
 }
 
 const EPSILON_FACTOR = 1e-9;
@@ -184,6 +194,12 @@ export function describeScore<TInputs extends readonly ScoreInput[]>(
             boundaryValue - Math.max(Math.abs(boundaryValue) * EPSILON_FACTOR, 1e-9);
           expect(matchInterpretationBand(definition, outputId, justBelow)?.id).toBe(bandBelowId);
           expect(matchInterpretationBand(definition, outputId, boundaryValue)?.id).toBe(bandAtId);
+        });
+      },
+
+      expectBand(outputId, value, bandId) {
+        it(`${outputId}=${value} is band "${bandId}"`, () => {
+          expect(matchInterpretationBand(definition, outputId, value)?.id).toBe(bandId);
         });
       },
     };

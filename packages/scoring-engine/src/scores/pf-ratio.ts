@@ -39,12 +39,14 @@ export const pfRatio = defineScore({
       helpText: defineText("pf.fio2.help", "Room air is 0.21. Accepts a fraction or a percentage."),
     },
   ] as const,
+  // Descending score: lower P/F is worse, cutpoints are "≤" → (min, max].
   interpretation: [
     {
       id: "severe",
       appliesTo: "pf_ratio",
       min: null,
       max: 100,
+      maxInclusive: true,
       label: defineText("pf.band.severe", "≤ 100"),
       description: defineText(
         "pf.band.severe.desc",
@@ -55,7 +57,9 @@ export const pfRatio = defineScore({
       id: "moderate",
       appliesTo: "pf_ratio",
       min: 100,
+      minInclusive: false,
       max: 200,
+      maxInclusive: true,
       label: defineText("pf.band.moderate", "> 100 to ≤ 200"),
       description: defineText(
         "pf.band.moderate.desc",
@@ -66,7 +70,9 @@ export const pfRatio = defineScore({
       id: "mild",
       appliesTo: "pf_ratio",
       min: 200,
+      minInclusive: false,
       max: 300,
+      maxInclusive: true,
       label: defineText("pf.band.mild", "> 200 to ≤ 300"),
       description: defineText(
         "pf.band.mild.desc",
@@ -77,6 +83,7 @@ export const pfRatio = defineScore({
       id: "above-range",
       appliesTo: "pf_ratio",
       min: 300,
+      minInclusive: false,
       max: null,
       label: defineText("pf.band.above", "> 300"),
       description: defineText(

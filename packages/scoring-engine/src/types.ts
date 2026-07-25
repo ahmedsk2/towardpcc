@@ -104,9 +104,18 @@ export interface InterpretationBand {
   readonly id: string;
   /** The ScoreValue.id this band evaluates. */
   readonly appliesTo: string;
-  /** Interval is [min, max); null means unbounded on that side. */
+  /** null means unbounded on that side. */
   readonly min: number | null;
   readonly max: number | null;
+  /**
+   * Boundary inclusivity. Defaults model an ascending "≥ threshold" score
+   * (min inclusive, max exclusive → [min, max)) — correct for point/index
+   * scores where higher is worse. Descending "≤ threshold" scores (P/F, S/F,
+   * where lower is worse and the cutpoint belongs to the worse band) set
+   * `minInclusive: false, maxInclusive: true` → (min, max].
+   */
+  readonly minInclusive?: boolean;
+  readonly maxInclusive?: boolean;
   readonly label: LocalizedText;
   /** Non-directive wording (PRD §6.3): supports judgment, never directs care. */
   readonly description: LocalizedText;
