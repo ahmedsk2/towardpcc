@@ -1,15 +1,32 @@
 name: towardpcc-prod
 
 # Single-VM KSA production stack (PRD §11). Only Caddy is published (80/443);
-# every other service is on the internal network with NO host port. Secrets come
+# every other service is on an internal network with NO host port. Secrets come
 # from the host environment / secret store — never a committed .env. Bring up
 # with:  docker compose -f docker-compose.prod.yml up -d
 # See docs/runbooks/deploy.md for the full procedure.
+#
+# Hardening (2026-07-26 security audit): third-party images digest-pinned; the
+# app connects with a least-privilege DB role (towardpcc_app) while DDL/migrations
+# use the owner; two networks isolate postgres (data, internal) from the edge; all
+# services drop Linux capabilities + no-new-privileges and carry resource limits.
+# Follow-ups tracked in LAUNCH-BLOCKERS.md: secrets via Docker `secrets:`/`_FILE`
+# (needs an app entrypoint), read-only rootfs, and app→pg TLS.
+
+x-hardening: &hardening
+  security_opt:
+    - no-new-privileges:true
+  restart: unless-stopped
 
 services:
   caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
+    <<: *hardening
+    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 256
     ports:
       - "80:80"
       - "443:443"
@@ -20,18 +37,25 @@ services:
       - caddy_config:/config
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN:?e.g. towardpcc.com}
+    networks: [edge]
     depends_on:
       - web
 
   web:
+    <<: *hardening
     image: ${WEB_IMAGE:?built + pushed image ref, e.g. registry/towardpcc-web:sha}
-    restart: unless-stopped
+    cap_drop: [ALL]
+    cpus: 1.5
+    mem_limit: 2g
+    pids_limit: 512
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:?}
+      # Least-privilege runtime role (CRUD only; no DDL, append-only AuditLog).
+      DATABASE_URL: postgresql://towardpcc_app:${POSTGRES_APP_PASSWORD:?openssl rand -hex 24}@postgres:5432/${POSTGRES_DB:?}
       AUTH_SECRET: ${AUTH_SECRET:?openssl rand -base64 32}
       TOTP_ENC_KEY: ${TOTP_ENC_KEY:?openssl rand -base64 32 (decodes to 32 bytes)}
       SUBMISSION_IP_SALT: ${SUBMISSION_IP_SALT:?openssl rand -hex 16}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       NEXT_PUBLIC_SITE_URL: https://${SITE_DOMAIN:?}
       SMTP_HOST: ${SMTP_HOST:?}
       SMTP_PORT: ${SMTP_PORT:?}
@@ -40,20 +64,31 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:?}
       MAIL_FROM: ${MAIL_FROM:?}
       ADMIN_EMAIL: ${ADMIN_EMAIL:?}
+    networks: [edge, data]
     depends_on:
       postgres:
         condition: service_healthy
 
   postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
+    <<: *hardening
+    image: postgres:16-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+    # Postgres' entrypoint chowns pgdata + drops to the postgres user, so it needs
+    # this minimal cap set even though the DB itself runs unprivileged.
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    cpus: 1.5
+    mem_limit: 4g
+    pids_limit: 512
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: ${POSTGRES_DB:?}
+      # Consumed only by the init script to create the scoped roles.
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?}
       UMAMI_DB_PASSWORD: ${UMAMI_DB_PASSWORD:?}
     volumes:
-      # Mount this on an ENCRYPTED block volume in OCI (encryption at rest, §8.1).
+      # The OCI boot/block volume is encrypted at rest (§8.1); mount pgdata on an
+      # encrypted volume in prod.
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
@@ -61,11 +96,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks: [data]
 
   # Runs migrations once on deploy, then exits (docs/runbooks/deploy.md step 4).
+  # Uses the OWNER role (DDL); the app runtime never holds DDL rights.
   migrate:
     image: ${WEB_IMAGE:?}
     profiles: ["migrate"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:?}
     entrypoint:
@@ -76,26 +116,36 @@ services:
         "deploy",
         "--schema=packages/db/prisma/schema.prisma",
       ]
+    networks: [data]
     depends_on:
       postgres:
         condition: service_healthy
 
   umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    restart: unless-stopped
+    <<: *hardening
+    image: ghcr.io/umami-software/umami:postgresql-latest@sha256:8edfe4beaef13f9d1300619fa264ef250a3688df9cc54d24ca830ca31cb475ec
+    cap_drop: [ALL]
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 256
     environment:
       DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:?}@postgres:5432/umami
       DATABASE_TYPE: postgresql
       APP_SECRET: ${UMAMI_APP_SECRET:?}
+    networks: [edge, data]
     depends_on:
       postgres:
         condition: service_healthy
 
   # Nightly encrypted logical backups (offsite copy to OCI Object Storage is a
-  # host-side step — docs/runbooks/backup-restore.md).
+  # host-side step — docs/runbooks/backup-restore.md). Uses the owner role.
   backup:
-    image: prodrigestivill/postgres-backup-local:16-alpine
-    restart: unless-stopped
+    <<: *hardening
+    image: prodrigestivill/postgres-backup-local:16-alpine@sha256:08e7b70879af45a89305b91f4600cfbc88da2419a65948df870cddb082b8cf83
+    cap_drop: [ALL]
+    cpus: 0.25
+    mem_limit: 256m
+    pids_limit: 256
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_DB: ${POSTGRES_DB:?}
@@ -107,16 +157,28 @@ services:
       BACKUP_KEEP_MONTHS: "12"
     volumes:
       - ./backups:/backups
+    networks: [data]
     depends_on:
       postgres:
         condition: service_healthy
 
   # Uptime monitoring — proxied by Caddy at status.${SITE_DOMAIN}.
   uptime-kuma:
-    image: louislam/uptime-kuma:1
-    restart: unless-stopped
+    <<: *hardening
+    image: louislam/uptime-kuma:1@sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9
+    cap_drop: [ALL]
+    cpus: 0.25
+    mem_limit: 256m
+    pids_limit: 256
     volumes:
       - uptime_data:/app/data
+    networks: [edge]
+
+networks:
+  edge:
+  # No route to the internet or host; isolates postgres + backups from the edge.
+  data:
+    internal: true
 
 volumes:
   pgdata:

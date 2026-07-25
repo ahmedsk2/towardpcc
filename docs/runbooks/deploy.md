@@ -23,7 +23,11 @@ backup + uptime-kuma). The residency claim on the site depends on the region —
 5. Put the production secrets in the host environment / OCI secret store — never
    a committed file. Generate: `AUTH_SECRET`, `TOTP_ENC_KEY` (both
    `openssl rand -base64 32`), `SUBMISSION_IP_SALT` (`openssl rand -hex 16`),
-   DB + Umami passwords. Set `SITE_DOMAIN`, `WEB_IMAGE`, and the SMTP_* vars.
+   `POSTGRES_PASSWORD` (DB owner), `POSTGRES_APP_PASSWORD` (least-privilege app
+   role, `openssl rand -hex 24`), and `UMAMI_DB_PASSWORD` / `UMAMI_APP_SECRET`.
+   Set `SITE_DOMAIN`, `WEB_IMAGE`, and the SMTP_* vars. The app connects as the
+   scoped `towardpcc_app` role (CRUD only); only the `migrate` profile and the
+   retention purge use the owner (`POSTGRES_USER` / `POSTGRES_PASSWORD`).
 
 ## 1. Build & push the image
 
@@ -45,6 +49,33 @@ docker compose -f docker-compose.prod.yml ps   # wait for postgres healthy
 ```bash
 docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate
 ```
+
+## 3b. Lock the audit trail to append-only (once, after the first migrate)
+
+The init script already scoped `towardpcc_app` to CRUD via default privileges;
+now narrow `AuditLog` so the runtime role can INSERT/SELECT but never UPDATE or
+DELETE (SPC-DB-003):
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+  < docker/sql/10-audit-append-only.sql
+```
+
+Verify least-privilege took hold: `towardpcc_app` should be non-superuser with no
+DELETE on `AuditLog`.
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
+  "SELECT has_table_privilege('towardpcc_app','\"AuditLog\"','DELETE') AS can_delete_audit, \
+          has_table_privilege('towardpcc_app','\"Submission\"','UPDATE') AS can_update_submissions;"
+# expect: can_delete_audit = f, can_update_submissions = t
+```
+
+> The scheduled retention purge (`packages/db/scripts/purge-retention.mjs`) DELETEs
+> old `AuditLog`/`Submission` rows, so it must run under the OWNER role — give the
+> purge job the owner `DATABASE_URL`, not the app role's.
 
 ## 4. Create the first admin
 

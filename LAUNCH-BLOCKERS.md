@@ -109,22 +109,27 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
 - [x] **SPC-CODE-001** — account lockout now re-arms after each window
       (apps/web/lib/auth/lockout.ts + regression test). Fixed.
 - [x] **SPC-SUP-001** — gitleaks CI job no longer persists GITHUB_TOKEN. Fixed.
-- [ ] **SPC-DB-001 (high)** — the app connects to Postgres as the superuser.
-      Provision a least-privilege `towardpcc_app` role (CRUD only; keep DDL under
-      a separate owner used only by the migrate profile) and point the app's
-      DATABASE_URL at it. Verify against the live DB during OCI bring-up.
-- [ ] **SPC-DB-003** — enforce AuditLog append-only at the DB (GRANT INSERT/SELECT
-      only; run the retention purge under a separate maintenance role). Depends
-      on the role split above.
+- [~] **SPC-DB-001 (high)** — **prepared:** least-privilege `towardpcc_app` role
+  (CRUD-only via default privileges) created in `docker/postgres-init`, and
+  the prod web service now connects as it while `migrate` keeps the owner
+  (docker-compose.prod.yml). **Remaining:** verify the grants against the live
+  DB during bring-up (deploy.md §3b has the check).
+- [~] **SPC-DB-003** — **prepared:** `docker/sql/10-audit-append-only.sql` revokes
+  UPDATE/DELETE on `AuditLog` from the app role; deploy.md §3b applies it and
+  notes the retention purge must run under the owner. **Remaining:** apply +
+  verify live.
 - [ ] **SPC-DB-002** — enforce TLS on the app→Postgres link (`sslmode=verify-full`).
+      Deferred: single-host internal `data` network (now `internal: true`), medium
+      severity; needs a postgres server cert. Follow-up during/after bring-up.
 - [ ] **SPC-WEB-001** — remove public-tier CSP `script-src 'unsafe-inline'` (hash
       the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG
       tradeoff; fix needs hydration testing.
-- [ ] **SPC-CON-001..008** — container hardening: secrets via Docker `secrets:`/
-      `_FILE`; `cap_drop: [ALL]` (+ minimal add); `no-new-privileges`; read-only
-      rootfs + tmpfs; per-service resource limits; digest-pin the third-party
-      images; and a CI image build + Trivy/hadolint scan gate. Verify against a
-      full-stack bring-up.
+- [~] **SPC-CON-001..008** — container hardening. **Done in-repo:** `cap_drop:
+    [ALL]` (+ minimal `cap_add` per service), `no-new-privileges`, per-service
+  CPU/memory/PID limits, edge/data network split (`data` internal), and all
+  third-party images digest-pinned (docker-compose.prod.yml). **Remaining:**
+  secrets via Docker `secrets:`/`_FILE` (needs an app entrypoint), read-only
+  rootfs + tmpfs (verify live), and a CI image build + Trivy/hadolint gate.
 - [ ] **SPC-API-001** — add a per-IP throttle in front of the admin credentials
       flow (reuse `apps/web/lib/rate-limit.ts`), scope lockout to account+IP or
       add a challenge, to blunt targeted auth-DoS + credential stuffing.
