@@ -8,12 +8,14 @@ const nextConfig: NextConfig = {
 };
 
 // PWA (PRD §6.5): the calculator catalog is precached and works fully offline.
-// Disabled in dev so HMR is unaffected.
+// Serwist requires webpack (`next build --webpack`). In dev we run Turbopack,
+// which errors on a stray webpack config — so the wrapper is applied only for
+// the production build and dev stays a pure Turbopack config (no SW needed
+// there; HMR is unaffected).
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
-  disable: process.env.NODE_ENV === "development",
   reloadOnOnline: true,
 });
 
-export default withSerwist(nextConfig);
+export default process.env.NODE_ENV === "development" ? nextConfig : withSerwist(nextConfig);

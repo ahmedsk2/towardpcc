@@ -152,6 +152,11 @@ export const site = {
     resultHeading: "Result",
     resultPlaceholder: "Enter values to compute.",
     interpretationLabel: "Interpretation",
+    // Shown for additive composites (pSOFA, Phoenix, VIS) where a blank
+    // component is scored as normal, so a partial entry is never mistaken
+    // for a genuinely low score (PRD §6.4 honest partial-result cue).
+    partialResultNote:
+      "Components left blank are scored as normal. Enter every component that applies for a complete score.",
     copyResult: "Copy result summary",
     copied: "Copied",
     printLabel: "Print",
