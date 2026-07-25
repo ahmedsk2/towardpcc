@@ -113,17 +113,89 @@ export const site = {
   contactPage: {
     title: "Contact",
     heading: "Contact",
-    status: "in development",
-    description:
-      "A contact form lands here soon. Until then, you can reach the team directly by email.",
-    emailLabel: "Email us at",
+    lede: "Questions, feedback, or a correction on a calculator? Send a message and we'll reply by email. You can also reach us directly.",
+    emailLabel: "Or email us at",
     email: "info@towardpcc.com",
-    metaDescription: "How to reach the TowardPCC team.",
+    metaDescription: "Reach the TowardPCC team — a message form and direct email.",
   },
 
   stub: {
     notice:
       "This section is being built right now. What you read above is the real scope; nothing here is final marketing.",
+  },
+
+  forms: {
+    sending: "Sending…",
+    noPatientData: "Please do not include any patient-identifiable information.",
+    policyLinkText: "how we handle data",
+    contact: {
+      submitLabel: "Send message",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "message", label: "Message", type: "textarea" },
+      ],
+      privacyLine:
+        "We collect your name, email, and message only to reply. Stored on our servers in Saudi Arabia, kept up to 24 months, never used for tracking.",
+      successTitle: "Message sent",
+      successBody: "Thank you — we've received your message and will reply by email.",
+    },
+    service: {
+      submitLabel: "Request research support",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "affiliation", label: "Affiliation or unit", autoComplete: "organization" },
+        {
+          name: "message",
+          label: "What would you like help with?",
+          type: "textarea",
+        },
+      ],
+      privacyLine:
+        "We collect your name, email, affiliation, and request to scope the work. No patient-identifiable data — describe the question, not the patient. Stored in Saudi Arabia, kept up to 24 months.",
+      successTitle: "Request received",
+      successBody:
+        "Thank you — your request is queued. We'll reply by email as capacity allows. Requests are answered in order of arrival and complexity.",
+    },
+    knowledge: {
+      submitLabel: "Request a pilot",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "unit", label: "PICU / unit name", autoComplete: "organization" },
+        { name: "country", label: "Country", autoComplete: "country-name" },
+        {
+          name: "message",
+          label: "Tell us about your unit and what you're hoping for",
+          type: "textarea",
+        },
+      ],
+      privacyLine:
+        "We collect your name, email, unit, and country to arrange the pilot. Your unit's documents always remain yours. Stored in Saudi Arabia, kept up to 24 months.",
+      successTitle: "Pilot request received",
+      successBody:
+        "Thank you — we've received your interest in the PedsCC Library pilot and will follow up by email to discuss next steps.",
+    },
+    data: {
+      submitLabel: "Register interest",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "institution", label: "Institution", autoComplete: "organization" },
+        { name: "country", label: "Country", autoComplete: "country-name" },
+        {
+          name: "message",
+          label: "What interests you about the registry?",
+          type: "textarea",
+        },
+      ],
+      privacyLine:
+        "We collect your name, email, institution, and country to gauge registry interest. No patient data is collected in this version. Stored in Saudi Arabia, kept up to 24 months.",
+      successTitle: "Interest registered",
+      successBody:
+        "Thank you — we've noted your interest in the future PICU registry and will keep you posted as it takes shape.",
+    },
   },
 
   dataProtection: {

@@ -4,6 +4,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Driver adapters + WASM query compiler (GA in Prisma 6.19) run queries via the
+  // pure-JS `pg` driver with no native Rust engine — required because Prisma ships
+  // no Windows-ARM64 engine (dev box), and fine on the Linux prod host. Enabled by
+  // passing an adapter to PrismaClient (see src/index.ts); `engineType` pins it.
+  engineType = "client"
 }
 
 datasource db {
