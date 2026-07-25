@@ -26,9 +26,15 @@ export const site = {
   footer: {
     pillarsHeading: "Platform",
     siteHeading: "Site",
+    legalHeading: "Legal",
     navAriaLabel: "Footer",
     residency: "Servers located in Saudi Arabia",
     orgName: "Toward Pediatric Critical Care",
+    legalLinks: [
+      { href: "/legal/data-protection", label: "How we handle data" },
+      { href: "/legal/terms", label: "Terms of use" },
+      { href: "/legal/disclaimer", label: "Medical disclaimer" },
+    ],
   },
 
   home: {
@@ -266,8 +272,117 @@ export const site = {
         body: "We keep data collection to what is genuinely needed to operate the site securely and reliably. Any analytics we use are privacy-respecting and do not build advertising profiles. When forms arrive, they will collect only what a request requires, and we will say so at the point of collection.",
       },
     ],
+    collection: {
+      heading: "What we collect, per feature, and why",
+      intro:
+        "This table is the honest, complete picture of what each part of the site collects today. Where a feature collects nothing, we say so.",
+      columns: ["Feature", "What we collect", "Why", "Kept for"],
+      rows: [
+        ["Calculators", "Nothing", "They compute in your browser", "—"],
+        [
+          "Contact / pilot / interest / research forms",
+          "Your name, email, and what you wrote; a salted, truncated hash of your IP",
+          "To reply, and to limit abuse of the forms",
+          "24 months, then deleted",
+        ],
+        [
+          "Analytics",
+          "Privacy-respecting, cookie-less page counts (no personal profiles)",
+          "To understand which tools are used",
+          "Aggregated",
+        ],
+        [
+          "Admin access logs",
+          "Actions taken by our operators (an audit trail)",
+          "Security and accountability",
+          "12 months",
+        ],
+      ],
+    },
+    security: {
+      heading: "How we protect it",
+      points: [
+        "Encryption in transit (TLS) and at rest for the database.",
+        "Administrator access requires a password and a second factor (TOTP), with lockout on repeated failures.",
+        "An append-only audit log records administrative actions.",
+        "Automated, encrypted backups with a tested restore procedure.",
+      ],
+    },
+    residencyHeading: "Where your data lives",
+    // §8.3 approved wording — used in spirit; overclaiming is prohibited.
+    residencyBody:
+      "TowardPCC is hosted on servers located in Saudi Arabia and operates in alignment with the Saudi Personal Data Protection Law (PDPL). For the upcoming PICU registry, deployments will be configured to comply with the data-protection requirements of each participating Gulf country — including data-residency, consent, and governance requirements — in coordination with each institution.",
+    subProcessorsHeading: "Who else touches the data",
+    subProcessorsBody:
+      "We keep third parties to the minimum. Today the only sub-processors are our hosting provider (in Saudi Arabia) and our email delivery for form replies. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
+    deletionHeading: "Access, correction, and deletion",
+    deletionBody:
+      "You can ask us what we hold about you, correct it, or have it deleted, at any time — email us and we will act on it. Calculator use leaves nothing to delete.",
+    contactLabel: "Email",
+    contactEmail: "info@towardpcc.com",
     pendingNote:
-      "This is a plain-language summary, not the final legal privacy policy. The full policy — reviewed by counsel — is published before launch.",
+      "This is a plain-language summary written for clinicians and IT departments — not the final legal privacy policy. The full policy receives a counsel review before public launch. <!-- TODO:counsel-review -->",
+  },
+
+  terms: {
+    title: "Terms of use",
+    heading: "Terms of use",
+    metaDescription: "The terms for using TowardPCC's clinical calculators and services.",
+    lede: "Plain-English terms for using TowardPCC. This is a summary pending a counsel review before launch.",
+    sections: [
+      {
+        heading: "For qualified health professionals",
+        body: "TowardPCC's calculators and content are provided as an informational and educational aid for qualified health professionals. They support clinical judgment and do not replace it. Verify every result independently before making any clinical decision. Nothing here is a medical device.",
+      },
+      {
+        heading: "No warranty",
+        body: "The service is provided “as is”, without warranties of any kind. While we work hard to cite sources and validate our scores, we cannot guarantee the site is error-free or continuously available, and we are not liable for decisions made using it.",
+      },
+      {
+        heading: "Acceptable use",
+        body: "Use the service lawfully and do not attempt to disrupt it, submit others' personal data without a basis, or enter patient-identifiable information into any field. Do not misrepresent the service or scrape it in ways that degrade it for others.",
+      },
+      {
+        heading: "Free to use",
+        body: "The public calculators are free. Knowledge, data, and research services are offered subject to availability and capacity, and may change as the platform develops. We will be clear about what is live, piloting, or planned.",
+      },
+      {
+        heading: "Changes",
+        body: "We may update these terms as the platform grows. Material changes will be reflected here with a revised date.",
+      },
+    ],
+    pendingNote:
+      "Summary terms pending a counsel review before public launch. <!-- TODO:counsel-review -->",
+  },
+
+  disclaimer: {
+    title: "Medical disclaimer",
+    heading: "Medical disclaimer",
+    metaDescription:
+      "TowardPCC is an informational and educational aid for qualified health professionals — not a medical device, and not a substitute for clinical judgment.",
+    lede: "The same disclaimer summarized on every calculator, in full.",
+    sections: [
+      {
+        heading: "An aid to judgment, not a replacement for it",
+        body: "TowardPCC's calculators and content are for use by qualified health professionals as an informational and educational aid. They support clinical judgment; they do not replace it. The responsibility for any clinical decision remains entirely with the treating clinician.",
+      },
+      {
+        heading: "Verify every result",
+        body: "Always verify a computed result independently before acting on it. Scores and formulas can be misapplied, inputs mistyped, and published cut-offs debated; treat every number as a prompt to think, not an instruction.",
+      },
+      {
+        heading: "Not a medical device",
+        body: "TowardPCC is not a medical device and has not been cleared or certified as one by any regulator. It does not diagnose, treat, or prescribe.",
+      },
+      {
+        heading: "Validation is shown honestly",
+        body: "Each calculator shows its validation status plainly. Where independent clinical validators have not yet been named, the badge says so — “Independent clinical validation: pending” — rather than implying an endorsement that does not exist.",
+      },
+      {
+        heading: "No patient-identifiable data",
+        body: "Do not enter patient names, medical record numbers, or other identifiers. The calculators compute in your browser and send nothing; the forms are for administrative contact only.",
+      },
+    ],
   },
 
   pwa: {

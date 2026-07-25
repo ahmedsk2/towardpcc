@@ -13,8 +13,6 @@ const siteLinks = [
   { href: "/contact", label: site.nav.contact },
   { href: "/install", label: site.pwa.installTitle },
 ];
-// Legal links join this footer in P6, when those pages actually exist —
-// working links only (PRD §2.2).
 
 function FooterLink({ href, label }: { href: string; label: string }) {
   return (
@@ -53,6 +51,14 @@ export function SiteFooter() {
               <h2 className="text-sm font-semibold">{site.footer.siteHeading}</h2>
               <ul className="mt-3 space-y-2">
                 {siteLinks.map((l) => (
+                  <FooterLink key={l.href} {...l} />
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold">{site.footer.legalHeading}</h2>
+              <ul className="mt-3 space-y-2">
+                {site.footer.legalLinks.map((l) => (
                   <FooterLink key={l.href} {...l} />
                 ))}
               </ul>
