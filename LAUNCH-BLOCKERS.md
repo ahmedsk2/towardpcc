@@ -99,3 +99,54 @@ AND listed here.
       from the SVGs via Playwright/Chromium (sharp has no ARM64 dev binary),
       committed to public/, and wired into manifest.ts. Regenerate with
       `node apps/web/scripts/generate-icons.mjs`.
+
+## Security audit findings (2026-07-25)
+
+Full report: `docs/security/security-audit-2026-07-25.md` (static pass — 0
+critical, 1 high, 14 medium, 14 low, 5 info). Two findings fixed in-repo; the
+rest are deploy-entangled or consequential and tracked here for pre-launch.
+
+- [x] **SPC-CODE-001** — account lockout now re-arms after each window
+      (apps/web/lib/auth/lockout.ts + regression test). Fixed.
+- [x] **SPC-SUP-001** — gitleaks CI job no longer persists GITHUB_TOKEN. Fixed.
+- [ ] **SPC-DB-001 (high)** — the app connects to Postgres as the superuser.
+      Provision a least-privilege `towardpcc_app` role (CRUD only; keep DDL under
+      a separate owner used only by the migrate profile) and point the app's
+      DATABASE_URL at it. Verify against the live DB during OCI bring-up.
+- [ ] **SPC-DB-003** — enforce AuditLog append-only at the DB (GRANT INSERT/SELECT
+      only; run the retention purge under a separate maintenance role). Depends
+      on the role split above.
+- [ ] **SPC-DB-002** — enforce TLS on the app→Postgres link (`sslmode=verify-full`).
+- [ ] **SPC-WEB-001** — remove public-tier CSP `script-src 'unsafe-inline'` (hash
+      the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG
+      tradeoff; fix needs hydration testing.
+- [ ] **SPC-CON-001..008** — container hardening: secrets via Docker `secrets:`/
+      `_FILE`; `cap_drop: [ALL]` (+ minimal add); `no-new-privileges`; read-only
+      rootfs + tmpfs; per-service resource limits; digest-pin the third-party
+      images; and a CI image build + Trivy/hadolint scan gate. Verify against a
+      full-stack bring-up.
+- [ ] **SPC-API-001** — add a per-IP throttle in front of the admin credentials
+      flow (reuse `apps/web/lib/rate-limit.ts`), scope lockout to account+IP or
+      add a challenge, to blunt targeted auth-DoS + credential stuffing.
+- [ ] Lower-severity items (SPC-WEB-002/003/004, SPC-API-002/004/005,
+      SPC-DB-004/005, SPC-TM-001/002/003, SPC-CON-009/010, SPC-SUP-002) — see the
+      report's remediation tiers.
+
+## Production readiness (2026-07-25)
+
+Full report: `docs/ops/production-readiness-review-2026-07-25.md` (78/100 —
+NEEDS FIXES; one real blocker, now cleared). The remainder is the acknowledged
+P8 deploy-gated go-live checklist.
+
+- [x] **TST-02 (high, the one real blocker)** — auth crypto + submission rate
+      limiter now unit-tested with an apps/web coverage gate (100%
+      lines/stmts/funcs on the gated modules).
+- [x] Resilience/hygiene: DB + SMTP timeouts (RES-01), `/api/v1/ready` probe
+      (OBS-07), clipboard catch (TST-10), incident SEV tiers (OPS-04), LOG_LEVEL
+      (CFG-06), CHANGELOG (DOC-05), README runbooks line (DOC-09), legal TODO
+      marker (UX-02).
+- [ ] **OPS-02** — name a secondary on-call / escalation contact + route alerts
+      to a pager before launch (bus-factor-1). Requires a real person → founder.
+- [ ] P8 deploy-gated (verify at go-live, not codebase defects): backup restore
+      drill; CI image build + SBOM + signed provenance + scan; error tracker DSN + Uptime Kuma monitors + SLOs; branch protection + required review on main + a SAST job; OCI Vault for secrets + at-rest volume encryption; DPAs +
+      PDPL breach clock + counsel privacy-policy review.
