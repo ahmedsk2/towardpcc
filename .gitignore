@@ -29,6 +29,7 @@ Thumbs.db
 # test artifacts
 playwright-report/
 test-results/
+.lighthouseci/
 
 # taskmanager volatile state (db itself is committed; WAL/logs are not)
 .taskmanager/logs/
