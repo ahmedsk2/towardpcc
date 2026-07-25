@@ -91,6 +91,35 @@ export const site = {
       "This section is being built right now. What you read above is the real scope; nothing here is final marketing.",
   },
 
+  pwa: {
+    offline: "You're offline — the calculators still work.",
+    updateReady: "A new version is available.",
+    updateAction: "Update",
+    installTitle: "Install",
+    installHeading: "Install TowardPCC on your device",
+    installLede:
+      "Install the calculators as an app for one-tap access and full offline use at the bedside. Nothing you enter is ever transmitted or stored.",
+    installIosHeading: "iPhone and iPad (Safari)",
+    installIosSteps: [
+      "Open towardpcc.com in Safari.",
+      "Tap the Share button (the square with an upward arrow).",
+      "Choose “Add to Home Screen”, then tap Add.",
+    ],
+    installAndroidHeading: "Android (Chrome)",
+    installAndroidSteps: [
+      "Open towardpcc.com in Chrome.",
+      "Tap the menu (three dots) in the top right.",
+      "Choose “Install app” or “Add to Home screen”.",
+    ],
+    installDesktopHeading: "Desktop (Chrome or Edge)",
+    installDesktopSteps: [
+      "Open towardpcc.com.",
+      "Click the install icon in the address bar, or use the browser menu’s “Install” option.",
+    ],
+    offlineNote:
+      "Once installed and opened online at least once, the entire calculator catalogue works with no connection.",
+  },
+
   calculators: {
     indexTitle: "Calculators",
     indexHeading: "PICU calculators",
@@ -99,6 +128,14 @@ export const site = {
     searchPlaceholder: "Search calculators",
     searchLabel: "Search calculators by name",
     noResults: "No calculators match your search.",
+    noFavorites: "You have not starred any calculators yet.",
+    filterGroupLabel: "Filter calculators by category",
+    filterAll: "All",
+    filterFavorites: "Favorites",
+    addFavorite: "Add to favorites:",
+    removeFavorite: "Remove from favorites:",
+    favoritesNote:
+      "Favorites are saved in this browser only — never transmitted or stored on a server.",
     categoryLabels: {
       "mortality-severity": "Mortality and severity",
       "organ-dysfunction": "Organ dysfunction",

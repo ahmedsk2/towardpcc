@@ -10,6 +10,10 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
+# Serwist-generated service worker
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+
 # env — only .env.example is committed
 .env
 .env.*
