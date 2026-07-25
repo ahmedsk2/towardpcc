@@ -18,7 +18,9 @@ AND listed here.
       the deployed region, not the config default.
 - [x] `[ORG_LEGAL_NAME]` = Toward Pediatric Critical Care (footer updated).
       Legal pages (P6) still get `TODO:counsel-review`.
-- [ ] Path to the PedsCC Library repo on this machine (needed by P5 feature audit)
+- [x] PedsCC Library repo — founder provided github.com/ahmedsk2/pedscc-library
+      (2026-07-25); read-only feature audit done
+      (docs/research/pedscc-library-audit.md), informs /knowledge.
 
 ## Environment
 
@@ -48,8 +50,14 @@ AND listed here.
       that exact fate must be impossible for towardpcc.com. (P8, before DNS)
 - [ ] **Email authentication before first send (TM-008)** — SPF, DKIM,
       DMARC `p=reject`, MTA-STS. (P8, before any form notification)
-- [ ] **CSP + security headers ship WITH P5**, not P7 (TM-005) — forms and
-      admin never run without them.
+- [~] **CSP + security headers ship WITH P5** (TM-005). DONE: strict static
+  security headers (HSTS, nosniff, Referrer-Policy, X-Frame-Options, a
+  restrictive Permissions-Policy, COOP) + a two-tier CSP in
+  apps/web/proxy.ts — verified the app hydrates under it
+  (docs/decisions/ADR-security-headers.md). **Remaining:** the `/admin`
+  strict nonce+strict-dynamic CSP tier (wired with the admin build), then
+  re-run `sec-web` and record the grade. Public pages use scoped
+  `script-src 'unsafe-inline'` (SSG constraint; no injection surface there).
 - [~] **Privacy-invariant test suite (TM-001)** — DONE in P3: Playwright
   zero-network/airplane-mode calculator compute test (apps/web/e2e/
   calculator-privacy.spec.ts, CI `e2e` job) + static grep-guards (no

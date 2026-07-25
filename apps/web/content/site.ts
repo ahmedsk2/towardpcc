@@ -107,23 +107,139 @@ export const site = {
     description:
       "TowardPCC builds the digital backbone of pediatric critical care: free clinical calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world.",
     metaDescription:
-      "The mission, story, and honest roadmap of TowardPCC — built from Saudi Arabia for the pediatric critical care community worldwide.",
+      "The mission, principles, and honest roadmap of TowardPCC — built from Saudi Arabia for the pediatric critical care community worldwide.",
+    principlesHeading: "How we build",
+    principles: [
+      {
+        title: "Free and referenced",
+        body: "The calculators are free to use, and every score cites its published source with its validation status shown honestly — never a number without a reason.",
+      },
+      {
+        title: "Privacy by design",
+        body: "The calculators compute entirely in your browser; nothing you enter is transmitted or stored. We collect the minimum needed to run the service, and never patient data.",
+      },
+      {
+        title: "Honest about where we are",
+        body: "We say plainly what is live, what is piloting, and what is still to come. No fake logos, counters, or testimonials — ever.",
+      },
+      {
+        title: "Built from Saudi Arabia, for everyone",
+        body: "Servers are located in Saudi Arabia and the work starts in the Gulf, but the tools are for every child and every PICU, anywhere.",
+      },
+    ],
+    roadmapHeading: "Where we are, honestly",
   },
 
   contactPage: {
     title: "Contact",
     heading: "Contact",
-    status: "in development",
-    description:
-      "A contact form lands here soon. Until then, you can reach the team directly by email.",
-    emailLabel: "Email us at",
+    lede: "Questions, feedback, or a correction on a calculator? Send a message and we'll reply by email. You can also reach us directly.",
+    emailLabel: "Or email us at",
     email: "info@towardpcc.com",
-    metaDescription: "How to reach the TowardPCC team.",
+    metaDescription: "Reach the TowardPCC team — a message form and direct email.",
   },
 
   stub: {
     notice:
       "This section is being built right now. What you read above is the real scope; nothing here is final marketing.",
+  },
+
+  pillarPages: {
+    services: {
+      formHeading: "Request research support",
+      body: [
+        "We help with study design, analysis planning, biostatistics, and interpretation — not with individual patient care. Work is provided free of charge, subject to availability, and requests are answered in order of arrival and complexity.",
+        "Describe the question, not the patient: please do not include any patient-identifiable information in your request.",
+      ],
+    },
+    knowledge: {
+      formHeading: "Request a pilot",
+      body: [
+        "The PedsCC Library is a self-hosted, invitation-only library that makes a unit's own protocols, guidelines, and slide decks fully searchable — down to the exact page — with a governed contribute-and-review workflow and locally-authored “our unit's approach” notes.",
+        "We pilot the software; each unit brings, owns, and can export its own content at any time. It has been validated on a real, multi-thousand-document collection and is offered as a pilot to interested PICU teams.",
+      ],
+    },
+    data: {
+      formHeading: "Register your interest",
+      body: [
+        "The future Gulf and MENA PICU registry and unit dashboards will be built on the same validated scoring engine as the public calculators. This version collects no patient data — we are gauging interest and shaping governance with prospective participating units.",
+        "Servers are located in Saudi Arabia. For the registry itself, deployments will be configured to meet the data-protection requirements of each participating Gulf country — data residency, consent, and governance — in coordination with each institution.",
+      ],
+    },
+  },
+
+  forms: {
+    sending: "Sending…",
+    noPatientData: "Please do not include any patient-identifiable information.",
+    policyLinkText: "how we handle data",
+    contact: {
+      submitLabel: "Send message",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "message", label: "Message", type: "textarea" },
+      ],
+      privacyLine:
+        "We collect your name, email, and message only to reply. Stored on our servers in Saudi Arabia, kept up to 24 months, never used for tracking.",
+      successTitle: "Message sent",
+      successBody: "Thank you — we've received your message and will reply by email.",
+    },
+    service: {
+      submitLabel: "Request research support",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "affiliation", label: "Affiliation or unit", autoComplete: "organization" },
+        {
+          name: "message",
+          label: "What would you like help with?",
+          type: "textarea",
+        },
+      ],
+      privacyLine:
+        "We collect your name, email, affiliation, and request to scope the work. No patient-identifiable data — describe the question, not the patient. Stored in Saudi Arabia, kept up to 24 months.",
+      successTitle: "Request received",
+      successBody:
+        "Thank you — your request is queued. We'll reply by email as capacity allows. Requests are answered in order of arrival and complexity.",
+    },
+    knowledge: {
+      submitLabel: "Request a pilot",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "unit", label: "PICU / unit name", autoComplete: "organization" },
+        { name: "country", label: "Country", autoComplete: "country-name" },
+        {
+          name: "message",
+          label: "Tell us about your unit and what you're hoping for",
+          type: "textarea",
+        },
+      ],
+      privacyLine:
+        "We collect your name, email, unit, and country to arrange the pilot. Your unit's documents always remain yours. Stored in Saudi Arabia, kept up to 24 months.",
+      successTitle: "Pilot request received",
+      successBody:
+        "Thank you — we've received your interest in the PedsCC Library pilot and will follow up by email to discuss next steps.",
+    },
+    data: {
+      submitLabel: "Register interest",
+      fields: [
+        { name: "name", label: "Your name", autoComplete: "name" },
+        { name: "email", label: "Email", type: "email", autoComplete: "email" },
+        { name: "institution", label: "Institution", autoComplete: "organization" },
+        { name: "country", label: "Country", autoComplete: "country-name" },
+        {
+          name: "message",
+          label: "What interests you about the registry?",
+          type: "textarea",
+        },
+      ],
+      privacyLine:
+        "We collect your name, email, institution, and country to gauge registry interest. No patient data is collected in this version. Stored in Saudi Arabia, kept up to 24 months.",
+      successTitle: "Interest registered",
+      successBody:
+        "Thank you — we've noted your interest in the future PICU registry and will keep you posted as it takes shape.",
+    },
   },
 
   dataProtection: {

@@ -1,0 +1,122 @@
+// TowardPCC persistence model (v1). Design rationale + retention periods:
+// docs/decisions/ADR-data-model.md. The calculators persist NOTHING (client-
+// side only, PRD §6.4); this schema serves only the submission/admin surfaces.
+
+generator client {
+  provider = "prisma-client-js"
+  // Driver adapters + WASM query compiler (GA in Prisma 6.19) run queries via the
+  // pure-JS `pg` driver with no native Rust engine — required because Prisma ships
+  // no Windows-ARM64 engine (dev box), and fine on the Linux prod host. Enabled by
+  // passing an adapter to PrismaClient (see src/index.ts); `engineType` pins it.
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  OWNER
+  EDITOR
+}
+
+enum SubmissionType {
+  SERVICE
+  KNOWLEDGE_PILOT
+  DATA_INTEREST
+  CONTACT
+}
+
+enum SubmissionStatus {
+  NEW
+  TRIAGED
+  IN_PROGRESS
+  CLOSED
+  SPAM
+}
+
+/// Operator accounts for /admin. TOTP is mandatory (PRD §9); passwords are
+/// Argon2id; totpSecret is application-encrypted on top of at-rest encryption.
+model AdminUser {
+  id                String           @id @default(cuid())
+  email             String           @unique
+  passwordHash      String
+  totpSecret        String // application-encrypted
+  totpRecoveryCodes String[] // hashed, single-use
+  lastTotpStep      BigInt? // last consumed TOTP period — blocks code replay (RFC 6238 §5.2)
+  role              AdminRole        @default(EDITOR)
+  failedLoginCount  Int              @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime         @default(now())
+  lastLoginAt       DateTime?
+  triaged           Submission[]     @relation("TriagedBy")
+  auditLogs         AuditLog[]
+  calcMetaEdits     CalculatorMeta[]
+}
+
+/// Everything the public sends us. Free-form fields live in `payload` (JSONB),
+/// validated server-side by a per-type Zod schema before write. Retention:
+/// 24 months from createdAt, then purged (PRD §8.4).
+model Submission {
+  id            String           @id @default(cuid())
+  type          SubmissionType
+  payload       Json
+  status        SubmissionStatus @default(NEW)
+  internalNotes String? // admin-only; never shown to the submitter
+  ipHash        String? // salted + truncated hash; abuse forensics only, not identity
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  triagedBy     AdminUser?       @relation("TriagedBy", fields: [triagedById], references: [id])
+  triagedById   String?
+
+  @@index([type, status])
+  @@index([createdAt])
+}
+
+/// Editable presentation layer over the immutable scoring-engine. Governs
+/// presentation + publish state only — never formulas or bands (engine-owned).
+model CalculatorMeta {
+  id               String     @id @default(cuid())
+  slug             String     @unique // must match a registered engine score id
+  published        Boolean    @default(false)
+  displayOverrides Json? // presentation only
+  validatorSlots   Json? // the two independent-validator slots (§6.4)
+  updatedAt        DateTime   @updatedAt
+  updatedBy        AdminUser? @relation(fields: [updatedById], references: [id])
+  updatedById      String?
+}
+
+/// Append-only audit trail of every admin mutation (PRD §9). Code never updates
+/// or deletes rows. Retention: 12 months from ts, then purged (§8.4).
+model AuditLog {
+  id      String    @id @default(cuid())
+  actor   AdminUser @relation(fields: [actorId], references: [id])
+  actorId String
+  action  String
+  entity  String // "table:id"
+  diff    Json // before/after of changed fields, PII redacted
+  ts      DateTime  @default(now())
+
+  @@index([ts])
+  @@index([entity])
+}
+
+/// Registry spine — designed now, dormant in v1 (no feature reads/writes these).
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  country   String
+  contact   String?
+  createdAt DateTime @default(now())
+  units     Unit[]
+}
+
+model Unit {
+  id             String       @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  name           String
+  picuBeds       Int?
+  createdAt      DateTime     @default(now())
+}

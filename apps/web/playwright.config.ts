@@ -23,7 +23,14 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: "pnpm build && pnpm start",
-    env: { PORT: String(PORT) },
+    // Dummy secrets so the auth-dependent pages (e.g. /admin/login) render — no
+    // real login is exercised here; the header assertions are what matter.
+    env: {
+      PORT: String(PORT),
+      AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-dummy-auth-secret-not-for-production-use-only",
+      TOTP_ENC_KEY: process.env.TOTP_ENC_KEY ?? Buffer.alloc(32, 7).toString("base64"),
+      SUBMISSION_IP_SALT: process.env.SUBMISSION_IP_SALT ?? "e2e-dummy-ip-salt-value",
+    },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
