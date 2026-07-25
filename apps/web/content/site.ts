@@ -107,7 +107,27 @@ export const site = {
     description:
       "TowardPCC builds the digital backbone of pediatric critical care: free clinical calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world.",
     metaDescription:
-      "The mission, story, and honest roadmap of TowardPCC — built from Saudi Arabia for the pediatric critical care community worldwide.",
+      "The mission, principles, and honest roadmap of TowardPCC — built from Saudi Arabia for the pediatric critical care community worldwide.",
+    principlesHeading: "How we build",
+    principles: [
+      {
+        title: "Free and referenced",
+        body: "The calculators are free to use, and every score cites its published source with its validation status shown honestly — never a number without a reason.",
+      },
+      {
+        title: "Privacy by design",
+        body: "The calculators compute entirely in your browser; nothing you enter is transmitted or stored. We collect the minimum needed to run the service, and never patient data.",
+      },
+      {
+        title: "Honest about where we are",
+        body: "We say plainly what is live, what is piloting, and what is still to come. No fake logos, counters, or testimonials — ever.",
+      },
+      {
+        title: "Built from Saudi Arabia, for everyone",
+        body: "Servers are located in Saudi Arabia and the work starts in the Gulf, but the tools are for every child and every PICU, anywhere.",
+      },
+    ],
+    roadmapHeading: "Where we are, honestly",
   },
 
   contactPage: {
