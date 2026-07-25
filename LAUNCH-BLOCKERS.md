@@ -22,12 +22,13 @@ AND listed here.
 
 ## Environment
 
-- [ ] Docker Desktop not installed on the dev machine — compose stack authored
-      but unverified; when it lands: `cp .env.example .env`, fill secrets, then
-      `docker compose config` and `docker compose up -d --build`, and verify
-      the unverified-by-design healthcheck endpoints (umami `/api/heartbeat`,
-      mailpit `/livez`, minio `mc ready local`). WAMP does not cover this
-      (no containers, no PostgreSQL).
+- [x] Docker Desktop installed and the compose stack **verified 2026-07-25**
+      (Docker 29.6.2, linux/aarch64): `docker compose config` valid; postgres
+      healthy with both the app DB and the auto-created `umami` DB (init
+      script's safe `:'pw'` quoting works); mailpit UI 200; minio health 200.
+      The `web` service image build (multi-stage Dockerfile) was not built in
+      this pass — do that before staging deploy (P8). Note: dev machine is
+      ARM64, so prod image builds must target the KSA host's architecture.
 - [ ] Pre-commit secret scanning deferred: `gitleaks protect --staged` needs a
       local gitleaks binary this machine doesn't have. Secrets are caught in CI
       (pinned, checksum-verified CLI). Install gitleaks locally by P5 (forms =
