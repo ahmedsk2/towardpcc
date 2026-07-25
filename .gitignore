@@ -30,3 +30,6 @@ test-results/
 .taskmanager/logs/
 .taskmanager/*.db-wal
 .taskmanager/*.db-shm
+
+# personal project-scoped Claude Code settings
+.claude/settings.local.json
