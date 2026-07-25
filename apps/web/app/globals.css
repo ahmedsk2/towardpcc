@@ -47,6 +47,28 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Entry reveal (components/reveal.tsx): 12px rise + fade, once, on scroll-in.
+   Hidden until the component adds data-shown; CSS-only so no animation library
+   ships in the first-load bundle. Reduced motion shows content immediately. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity var(--motion-duration-slow) var(--motion-ease),
+    transform var(--motion-duration-slow) var(--motion-ease);
+}
+[data-reveal][data-shown] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* Print stylesheet (PRD §6.4): a calculator result should print as a clean,
    self-contained clinical record — chrome and interactive controls removed,
    the computed result and its interpretation preserved. Opt elements out with
