@@ -3,10 +3,12 @@ import { fixtureScore } from "../testing/fixture-score";
 import { getScore, listScores, registry } from "./registry";
 
 describe("registry", () => {
-  it("starts empty until the first score ships", () => {
-    expect(registry).toEqual([]);
-    expect(listScores()).toEqual([]);
-    expect(getScore("anything")).toBeUndefined();
+  it("exposes shipped scores with unique slugs and published status", () => {
+    expect(registry.length).toBeGreaterThan(0);
+    const slugs = registry.map((s) => s.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    expect(getScore("pf-ratio")?.name).toBe("PaO₂/FiO₂ ratio (P/F)");
+    expect(getScore("does-not-exist")).toBeUndefined();
   });
 
   it("summarizes and filters definitions", () => {

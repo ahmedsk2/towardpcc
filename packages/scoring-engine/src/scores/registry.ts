@@ -1,10 +1,11 @@
 import type { ScoreCategory, ScoreDefinition, ScoreStatus, ScoreSummary } from "../types";
+import { pfRatio } from "./pf-ratio";
 
 /**
  * The only file that statically imports every score (ADR-0002 decision 1).
  * Scores are added here exactly when they ship, alphabetically.
  */
-export const registry: readonly ScoreDefinition[] = [];
+export const registry: readonly ScoreDefinition[] = [pfRatio];
 
 export interface ListScoresFilter {
   readonly category?: ScoreCategory;
