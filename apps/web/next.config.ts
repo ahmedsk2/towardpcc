@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone output is only for the Docker production image (it copies
+  // .next/standalone and runs server.js). Everywhere else — CI build checks,
+  // Playwright e2e, local `next start` — a normal build is used so `next start`
+  // works without the standalone warning. The Docker build opts in via the env.
+  ...(process.env.NEXT_OUTPUT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   poweredByHeader: false,
   transpilePackages: ["@towardpcc/ui", "@towardpcc/scoring-engine"],
 };

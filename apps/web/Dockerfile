@@ -13,6 +13,8 @@ RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY . .
+# The container serves the standalone server (server.js) — opt into it here.
+ENV NEXT_OUTPUT_STANDALONE=1
 RUN pnpm --filter @towardpcc/web build
 
 FROM node:24-alpine AS runner
