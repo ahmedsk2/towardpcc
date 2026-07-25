@@ -17,6 +17,12 @@ function transporter(): Transporter {
       host: process.env.SMTP_HOST ?? "localhost",
       port: Number(process.env.SMTP_PORT ?? 1025),
       secure: process.env.SMTP_SECURE === "true",
+      // Finite timeouts so a slow/hung SMTP relay can't stall the request path
+      // for the library's multi-minute defaults (prod-readiness RES-01). Mail is
+      // best-effort here and never fails a stored submission.
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
       ...(process.env.SMTP_USER
         ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD } }
         : {}),

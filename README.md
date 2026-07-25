@@ -40,6 +40,6 @@ pnpm dev               # Next.js dev server on http://localhost:3000
 ## Documentation
 
 - `docs/decisions/` — architecture decision records
-- `docs/runbooks/` — operational runbooks (authored in P8; empty until then)
+- `docs/runbooks/` — operational runbooks (deploy, incident, backup-restore)
 - `SECURITY.md` — security policy and responsible disclosure
 - `PRIVACY-ENGINEERING.md` — privacy-by-design commitments

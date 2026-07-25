@@ -20,7 +20,18 @@ function createClient(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set — the database client cannot start.");
   }
-  const adapter = new PrismaPg({ connectionString });
+  // Bound hung dependencies so one stuck query can't hold a pooled connection
+  // indefinitely and stall submissions/admin (prod-readiness RES-01). Migrations
+  // run via `prisma migrate deploy` on their own connection, so a statement
+  // timeout here does not interrupt them.
+  const adapter = new PrismaPg({
+    connectionString,
+    connectionTimeoutMillis: 5_000,
+    statement_timeout: 10_000,
+    query_timeout: 10_000,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+  });
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],

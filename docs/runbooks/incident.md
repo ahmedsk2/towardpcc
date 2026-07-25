@@ -4,6 +4,18 @@ Fast paths for the common failures of the single-VM prod stack
 (`docker-compose.prod.yml`). Escalation contact: the founder
 (ahmedsk2@gmail.com). Security disclosures: info@towardpcc.com (SECURITY.md).
 
+## Severity classification
+
+Declare a severity first — it drives how fast to escalate and whether to pull in
+help. The calculators are client-side, so a backend outage is at most **SEV2**
+for already-loaded/PWA users; weigh that when classifying.
+
+| Sev      | Criteria                                                                                       | Response                                                                                    |
+| -------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **SEV1** | Data loss, suspected breach / PII exposure, or full outage of forms + admin                    | Drop everything, escalate immediately, preserve logs + `AuditLog`, start a written timeline |
+| **SEV2** | Degraded service (elevated errors, slow/unhealthy DB, mail delivery failing) with a workaround | Same-day: mitigate, then fix; note it in the timeline                                       |
+| **SEV3** | Minor / cosmetic, single-user, or self-recovering                                              | Next business day; batch with routine work                                                  |
+
 ## First 5 minutes (any incident)
 
 ```bash
@@ -52,7 +64,11 @@ or run a targeted deletion; the scheduled purge handles time-based retention.
 
 ## Escalation
 
-- Data loss or suspected breach → founder immediately; preserve logs + the
-  AuditLog; do not destroy evidence.
+- Data loss or suspected breach (SEV1) → founder immediately; preserve logs +
+  the AuditLog; do not destroy evidence.
 - Prolonged outage (> 30 min) with no clear cause → roll back to last-known-good
   image and restore the latest verified backup.
+- **Secondary contact (pre-launch requirement):** name a second person who can
+  respond when the founder is unavailable, record them here and in CODEOWNERS,
+  and route Uptime Kuma alerts to a pager (email/SMS). The current bus-factor of
+  one is a tracked launch item (LAUNCH-BLOCKERS.md).

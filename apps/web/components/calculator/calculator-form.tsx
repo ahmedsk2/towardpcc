@@ -165,10 +165,15 @@ function CalculatorFormInner({ definition }: { definition: ScoreDefinition }) {
       }),
       `${definition.name} v${definition.version} · towardpcc.com`,
     ];
-    void navigator.clipboard.writeText(lines.join("\n")).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    // Clipboard can reject (denied permission / insecure context); swallow it so
+    // there's no unhandled rejection and the button simply doesn't flip to "copied".
+    void navigator.clipboard
+      .writeText(lines.join("\n"))
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
   }, [definition, outcome]);
 
   return (
