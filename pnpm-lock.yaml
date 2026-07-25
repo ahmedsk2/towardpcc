@@ -127,6 +127,9 @@ importers:
       '@types/three':
         specifier: ^0.185.1
         version: 0.185.1
+      '@vitest/coverage-v8':
+        specifier: ^4.1.10
+        version: 4.1.10(vitest@4.1.10)
       postcss:
         specifier: ^8.5.23
         version: 8.5.23

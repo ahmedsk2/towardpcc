@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db, type SubmissionType } from "@towardpcc/db";
 import { notifyAdminOfSubmission } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { createRateLimiter } from "@/lib/rate-limit";
 
 /**
  * The one server-side path every public form goes through (PRD §9): Zod
@@ -61,37 +62,10 @@ const GLOBAL = { max: 300, windowMs: 10 * 60_000 };
 const MAX_TRACKED_IPS = 20_000;
 const MIN_FILL_MS = 2_500; // faster than this = almost certainly a bot
 
-const ipHits = new Map<string, number[]>();
-let globalHits: number[] = [];
-
-// Records a hit ONLY when the request is accepted, so rejected attempts cannot
-// keep the sliding window pinned at saturation.
-function tryConsume(store: number[], now: number, cfg: { max: number; windowMs: number }) {
-  const fresh = store.filter((t) => now - t < cfg.windowMs);
-  const ok = fresh.length < cfg.max;
-  if (ok) fresh.push(now);
-  return { ok, fresh };
-}
-
-function rateLimit(ipKey: string, now: number): boolean {
-  const perIp = tryConsume(ipHits.get(ipKey) ?? [], now, PER_IP);
-  if (perIp.fresh.length === 0) ipHits.delete(ipKey);
-  else ipHits.set(ipKey, perIp.fresh);
-  if (!perIp.ok) return false; // rejected per-IP requests never touch the global bucket
-
-  // Bounded map: evict oldest keys rather than clear() (which wiped everyone).
-  if (ipHits.size > MAX_TRACKED_IPS) {
-    let excess = ipHits.size - MAX_TRACKED_IPS;
-    for (const k of ipHits.keys()) {
-      if (excess-- <= 0) break;
-      ipHits.delete(k);
-    }
-  }
-
-  const g = tryConsume(globalHits, now, GLOBAL);
-  globalHits = g.fresh;
-  return g.ok;
-}
+// Fail-closed sliding-window limiter (see lib/rate-limit.ts for the invariants +
+// its unit tests). Per-instance state; single-replica only until a shared store
+// lands (P8).
+const limiter = createRateLimiter(PER_IP, GLOBAL, MAX_TRACKED_IPS);
 
 // ── IP hashing (abuse forensics only, never identity) ───────────────────────
 function ipSalt(): string {
@@ -145,7 +119,7 @@ export async function handleSubmission(
   if (!renderedAt || Date.now() - renderedAt < MIN_FILL_MS) return { ok: true };
 
   const ipHash = await hashClientIp();
-  if (!rateLimit(ipHash, Date.now())) {
+  if (!limiter.check(ipHash, Date.now())) {
     logger.warn({ ipHash, type }, "submission rate-limited");
     return { ok: false, error: "Too many messages from here. Please try again in a few minutes." };
   }
