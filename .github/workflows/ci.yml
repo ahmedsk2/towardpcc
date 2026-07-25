@@ -24,6 +24,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      - name: Route JS budget (PRD §10, gzipped)
+        run: pnpm --filter @towardpcc/web budget:check
 
   e2e:
     # TM-001 runtime privacy invariant: the calculators must compute with the

@@ -3,17 +3,19 @@
  * CI-checked"). Runs against the production build under Lighthouse's default
  * mid-tier-mobile + throttled profile.
  *
- * The route-JS budget is deterministic (independent of runner CPU or network
- * emulation) and has been verified against the production build (calculator
- * detail page: 139.6 KB gzipped, excluding the nomodule polyfills chunk that
- * modern browsers never fetch), so it is a hard `error` gate:
- *   - route JS ≤ 170 KB gzipped (PRD §10; calculator pages carry no hero chunk)
- * The runtime metrics (CLS, LCP, interactive, aggregate score) can only be
- * measured by a real Lighthouse run, which this ARM64 dev box can't do — CLS in
- * particular is unknown here because the fonts are @fontsource (not next/font's
- * size-adjusted fallbacks). They start as `warn` so the first CI runs report
- * real numbers on consistent hardware, then flip to `error` once calibrated.
- * The authority for these budgets stays PRD §10 (CLS ≤ 0.1, LCP ≤ 2.5 s,
+ * This is a WARN-ONLY reporter. It cannot own the route-JS budget: Lighthouse's
+ * resource-summary reports the over-the-wire transfer size, which depends on
+ * server compression (`next start` serves uncompressed → ~245 KB; a CDN would
+ * gzip → ~140 KB), so it can't enforce a budget stated in *gzipped* bytes. The
+ * hard JS-size gate is instead the deterministic scripts/check-bundle-budget.mjs
+ * (run in CI's quality job), which gzips exactly what a modern browser fetches.
+ *
+ * Everything here `warn`s: the first CI runs surface real runtime numbers on
+ * consistent hardware (they're meaningless on this emulated ARM64 dev box), and
+ * they can flip to `error` once calibrated. First observed CI values: CLS 0.128
+ * (>0.1 — font-swap from @fontsource, not next/font's size-adjusted fallbacks;
+ * a known follow-up), LCP/TTI ~3.5 s under simulated-4G (harsher than the PRD's
+ * "4G"). Authority for these budgets stays PRD §10 (CLS ≤ 0.1, LCP ≤ 2.5 s,
  * interactive ≤ 2 s on 4G).
  */
 module.exports = {
@@ -27,9 +29,9 @@ module.exports = {
     },
     assert: {
       assertions: {
-        // Verified deterministic hard gate (measured 139.6 KB on this build).
-        "resource-summary:script:size": ["error", { maxNumericValue: 174080 }], // 170 KB gzipped
-        // Runtime metrics — warn until measured on CI, then promote to error.
+        // All warn — see the header. The hard gzipped JS-size gate lives in
+        // scripts/check-bundle-budget.mjs; this only reports transfer size.
+        "resource-summary:script:size": ["warn", { maxNumericValue: 174080 }],
         "cumulative-layout-shift": ["warn", { maxNumericValue: 0.1 }],
         "largest-contentful-paint": ["warn", { maxNumericValue: 2500 }],
         interactive: ["warn", { maxNumericValue: 2000 }],
