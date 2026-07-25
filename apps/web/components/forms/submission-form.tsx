@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef } from "react";
 import { cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import type { SubmitResult } from "@/lib/submissions";

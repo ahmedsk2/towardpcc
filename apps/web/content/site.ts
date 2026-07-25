@@ -124,6 +124,30 @@ export const site = {
       "This section is being built right now. What you read above is the real scope; nothing here is final marketing.",
   },
 
+  pillarPages: {
+    services: {
+      formHeading: "Request research support",
+      body: [
+        "We help with study design, analysis planning, biostatistics, and interpretation — not with individual patient care. Work is provided free of charge, subject to availability, and requests are answered in order of arrival and complexity.",
+        "Describe the question, not the patient: please do not include any patient-identifiable information in your request.",
+      ],
+    },
+    knowledge: {
+      formHeading: "Request a pilot",
+      body: [
+        "The PedsCC Library is a self-hosted, invitation-only library that makes a unit's own protocols, guidelines, and slide decks fully searchable — down to the exact page — with a governed contribute-and-review workflow and locally-authored “our unit's approach” notes.",
+        "We pilot the software; each unit brings, owns, and can export its own content at any time. It has been validated on a real, multi-thousand-document collection and is offered as a pilot to interested PICU teams.",
+      ],
+    },
+    data: {
+      formHeading: "Register your interest",
+      body: [
+        "The future Gulf and MENA PICU registry and unit dashboards will be built on the same validated scoring engine as the public calculators. This version collects no patient data — we are gauging interest and shaping governance with prospective participating units.",
+        "Servers are located in Saudi Arabia. For the registry itself, deployments will be configured to meet the data-protection requirements of each participating Gulf country — data residency, consent, and governance — in coordination with each institution.",
+      ],
+    },
+  },
+
   forms: {
     sending: "Sending…",
     noPatientData: "Please do not include any patient-identifiable information.",
