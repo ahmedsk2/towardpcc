@@ -25,6 +25,9 @@ const BUDGET_BYTES = 170 * 1024;
  * P4 R3F hero, which is next/dynamic-imported and has its own ≤300 KB budget).
  */
 const ROUTES = [
+  // Home first-load excludes the R3F hero, which is next/dynamic-imported and
+  // so never appears in these <script> tags (it has its own ≤300 KB budget).
+  { label: "/ (home)", html: "server/app/index.html" },
   { label: "/calculators", html: "server/app/calculators.html" },
   { label: "/calculators/[slug]", html: "server/app/calculators/anion-gap.html" },
 ];

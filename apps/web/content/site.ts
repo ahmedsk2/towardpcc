@@ -34,8 +34,43 @@ export const site = {
   home: {
     heading: "Every child. Every PICU. The same tools.",
     lede: "Free, referenced clinical calculators for pediatric critical care, with knowledge and data systems for every unit and research support for every investigator. Built from Saudi Arabia for the world.",
+    promise:
+      "Free, referenced clinical calculators that run entirely in your browser — the start of a shared digital home for pediatric critical care.",
+    ctaPrimary: "Explore the calculators",
+    ctaSecondary: "Request a Knowledge pilot",
+    heroSceneLabel: "A calm, breathing respiratory waveform — the signature of TowardPCC.",
     status: "In development. Launching soon.",
     pillarsHeading: "What we are building",
+    trust: {
+      heading: "How we handle data",
+      points: [
+        "The calculators run entirely in your browser. Nothing you enter is transmitted or stored.",
+        "Our servers are located in Saudi Arabia.",
+        "We collect the minimum needed to run the service — and never patient data.",
+      ],
+      link: "Read how we handle data",
+      href: "/legal/data-protection",
+    },
+    missionHeading: "Why we are building this",
+    mission:
+      "TowardPCC builds the digital backbone of pediatric critical care: free calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world.",
+    roadmap: {
+      heading: "Where we are, honestly",
+      columns: [
+        {
+          state: "Live now",
+          items: ["22 referenced PICU calculators", "Offline-capable, installable as an app"],
+        },
+        {
+          state: "Piloting",
+          items: ["The PedsCC Library for PICU teams", "Document management, not content"],
+        },
+        {
+          state: "Next",
+          items: ["The Gulf and MENA PICU registry", "Free research and biostatistics support"],
+        },
+      ],
+    },
   },
 
   pillars: {
@@ -89,6 +124,34 @@ export const site = {
   stub: {
     notice:
       "This section is being built right now. What you read above is the real scope; nothing here is final marketing.",
+  },
+
+  dataProtection: {
+    title: "How we handle data",
+    heading: "How we handle data",
+    metaDescription:
+      "TowardPCC's data-handling approach: client-side calculators, servers in Saudi Arabia, and minimal collection — never patient data.",
+    lede: "Privacy is designed into TowardPCC, not bolted on. This page states plainly what happens to data today; the full legal privacy policy lands before public launch.",
+    sections: [
+      {
+        heading: "The calculators never send your inputs anywhere",
+        body: "Every calculation runs entirely in your browser. The values you type — a weight, a blood gas, a score — are computed on your own device and are never transmitted to us or stored on any server. You can confirm this: the calculators keep working with the network switched off.",
+      },
+      {
+        heading: "No patient data is collected",
+        body: "TowardPCC is not a medical record and does not ask for, receive, or store patient-identifiable information. Please do not enter names, medical record numbers, or other identifiers into any field.",
+      },
+      {
+        heading: "Our servers are in Saudi Arabia",
+        body: "The site is hosted on infrastructure located in Saudi Arabia. Where the platform needs to store anything at all — for example, a pilot request you choose to send us — it stays within that hosting.",
+      },
+      {
+        heading: "We collect the minimum to run the service",
+        body: "We keep data collection to what is genuinely needed to operate the site securely and reliably. Any analytics we use are privacy-respecting and do not build advertising profiles. When forms arrive, they will collect only what a request requires, and we will say so at the point of collection.",
+      },
+    ],
+    pendingNote:
+      "This is a plain-language summary, not the final legal privacy policy. The full policy — reviewed by counsel — is published before launch.",
   },
 
   pwa: {
