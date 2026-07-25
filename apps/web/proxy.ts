@@ -1,31 +1,27 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Security headers (PRD §9 / threat-model TM-005: CSP ships WITH P5).
+ * Security headers (PRD §9 / threat-model TM-005). Two-tier CSP, documented in
+ * docs/decisions/ADR-security-headers.md:
  *
- * CSP script policy — the honest constraint: the public pages are statically
- * prerendered (SSG) for the perf budget, and every static Next page ships ~17
- * inline `__next_f` RSC-payload scripts whose content differs per page. A
- * per-request nonce can't be baked into prerendered HTML, and hashing per-page
- * inline payloads isn't maintainable — so static pages use `'unsafe-inline'`
- * for scripts. This is an acceptable, bounded trade-off because these pages
- * render NO user-controlled content (calculators compute client-side; the rest
- * is fixed marketing copy), so there is no injection surface here. Every OTHER
- * directive stays strict (object-src/base-uri/frame-ancestors locked down, no
- * eval in prod), and the high-risk surface — `/admin`, which renders submitted
- * content — will move to a strict nonce+`strict-dynamic` policy when it is built
- * (it is dynamically rendered, so the nonce works there). See
- * docs/decisions/ADR-security-headers.md.
+ *  - Public pages are statically prerendered (SSG) for the perf budget and ship
+ *    per-page inline __next_f scripts that can't carry a per-request nonce, so
+ *    they use `script-src 'self' 'unsafe-inline'` — acceptable because they
+ *    render no user-controlled content (no injection surface).
+ *  - `/admin` is dynamically rendered and renders submitted content, so it gets
+ *    the strict `script-src 'self' 'nonce-…' 'strict-dynamic'` policy (no
+ *    unsafe-inline) — Next injects the nonce into its scripts on dynamic pages.
  *
- * Documented carve-outs, minimal:
- *  - style-src 'unsafe-inline': React sets a few inline style attributes.
- *  - The R3F hero needs no extra CSP (three.js compiles GLSL on the GPU, not via
- *    eval; adds no host connections) — it runs under default-src 'self'.
- *  - dev only: 'unsafe-eval' + ws: keep Turbopack/React-Refresh HMR working.
+ * All other directives are locked down in both tiers. dev only adds
+ * 'unsafe-eval' + ws: for HMR; production gets neither.
  */
-function buildCsp(): string {
+function buildCsp(nonce?: string): string {
   const dev = process.env.NODE_ENV !== "production";
-  const scriptSrc = ["'self'", "'unsafe-inline'", dev ? "'unsafe-eval'" : ""]
+  const scriptSrc = (
+    nonce
+      ? ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", dev ? "'unsafe-eval'" : ""]
+      : ["'self'", "'unsafe-inline'", dev ? "'unsafe-eval'" : ""]
+  )
     .filter(Boolean)
     .join(" ");
   const connectSrc = ["'self'", dev ? "ws:" : ""].filter(Boolean).join(" ");
@@ -49,13 +45,27 @@ function buildCsp(): string {
 }
 
 export function proxy(request: NextRequest) {
+  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
+
+  if (isAdmin) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const nonce = btoa(String.fromCharCode(...bytes));
+    const csp = buildCsp(nonce);
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-nonce", nonce);
+    requestHeaders.set("Content-Security-Policy", csp); // Next reads the nonce from here
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  }
+
   const response = NextResponse.next({ request });
   response.headers.set("Content-Security-Policy", buildCsp());
   return response;
 }
 
 export const config = {
-  // Documents only — not static assets or the image optimizer.
   matcher: [
     {
       source:

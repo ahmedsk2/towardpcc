@@ -15,11 +15,14 @@
     "validate": "prisma validate",
     "format": "prisma format",
     "studio": "prisma studio",
-    "typecheck": "prisma generate && tsc --noEmit"
+    "typecheck": "prisma generate && tsc --noEmit",
+    "create-admin": "node create-admin-runner.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.3.1",
+    "hash-wasm": "^4.12.0",
+    "otpauth": "^9.5.1",
     "pg": "^8.22.0"
   },
   "devDependencies": {

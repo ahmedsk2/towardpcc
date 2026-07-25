@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { db, type SubmissionType } from "@towardpcc/db";
+import { notifyAdminOfSubmission } from "@/lib/email";
 
 /**
  * The one server-side path every public form goes through (PRD §9): Zod
@@ -117,8 +118,14 @@ export async function handleSubmission(
     return { ok: false, error: "Please check the highlighted fields.", fieldErrors };
   }
 
-  await db.submission.create({
+  const created = await db.submission.create({
     data: { type, payload: parsed.data, ipHash },
   });
+  // Best-effort admin ping — a mail failure must never fail the submission.
+  try {
+    await notifyAdminOfSubmission(type, created.id);
+  } catch {
+    // swallow — the submission is stored; the operator will see it in the inbox
+  }
   return { ok: true };
 }
