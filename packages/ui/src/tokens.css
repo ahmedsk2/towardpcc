@@ -1,34 +1,46 @@
 /*
- * TowardPCC design tokens — Pulse Crimson, founder-chosen 2026-07-24.
- * Source of truth for every color/type/radius/motion decision.
+ * TowardPCC design tokens — Pulse Crimson, founder-chosen 2026-07-24,
+ * warmed 2026-07-27 (ADR-design-direction Part 4 / revision 2).
+ * Source of truth for every color/type/radius/motion/gradient decision.
  * Rationale + contrast math: docs/decisions/ADR-design-direction.md.
- * Discipline: crimson is the single accent (one full-strength use per
- * screen); alerts/errors are amber + icon, never brand crimson; no blue,
- * no teal, anywhere.
+ * Every pairing below is asserted automatically by tokens.test.ts.
+ * Discipline: crimson is the single accent; alerts/errors are amber + icon,
+ * never brand crimson; no blue, no teal, no gold, anywhere.
  */
 :root {
-  /* Surfaces — oxblood night band into blush porcelain light */
-  --color-surface-hero: #231018;
-  --color-surface-hero-raised: #311a24;
-  --color-surface-page: #f7f4f3;
+  /* Surfaces — plum/night dark bands into warm cream light. Warmed from the
+     original cool-grey porcelain, which read "slate" against the brand. */
+  --color-surface-hero: #260e1a;
+  --color-surface-hero-raised: #3d1526;
+  --color-surface-page: #fffaf7;
   --color-surface-raised: #ffffff;
-  --color-surface-sunken: #ebe4e3;
+  --color-surface-sunken: #fff2ee;
 
   /* Ink */
-  --color-ink-strong: #231a1c;
+  --color-ink-strong: #2b1b20;
   --color-ink-body: #4a3d40;
-  --color-ink-muted: #75646a;
-  --color-ink-on-dark: #f4e9ec;
+  --color-ink-muted: #6f5d63;
+  --color-ink-on-dark: #ffeef0;
 
-  /* Accent — crimson, the one and only */
-  --color-accent: #b01e32;
-  --color-accent-deep: #8f1728;
-  --color-accent-bright: #ff7d8e; /* crimson's voice on the night canvas */
-  --color-accent-tint: #f6e3e6; /* chip/selection backgrounds on light */
-  --color-ink-on-accent: #ffffff; /* text on accent fills (6.8:1 on crimson-600) */
+  /* Accent — crimson, the one and only, brightened for energy.
+     5.36:1 on white, 5.18:1 on page, 4.90:1 on sunken. */
+  --color-accent: #cf1f3d;
+  --color-accent-bright: #ea3a57; /* gradient partner + hover */
+  --color-accent-deep: #8f1728; /* 9.05:1 on white */
+  --color-accent-tint: #fff2ee; /* chip/selection backgrounds on light */
+  --color-ink-on-accent: #ffffff; /* 5.36:1 on accent fills */
 
-  /* Control edges — inputs/toggles need >=3:1 non-text contrast (WCAG 1.4.11):
-     3.83:1 on white, 3.49:1 on porcelain */
+  /* Coral — the warm secondary. DARK SURFACES AND GRADIENTS ONLY.
+     7.11:1 on the night band, but only 2.55:1 on white: it fails the 3:1
+     non-text threshold (WCAG 1.4.11) on light grounds, so it must never be a
+     border, icon, or control boundary there, and it never carries meaning.
+     Pinned as an invariant by tokens.test.ts. */
+  --color-coral: #ff7a6b;
+  --color-coral-soft: #ffb3a3;
+  --color-peach: #ffd9cc;
+
+  /* Control edges — >=3:1 non-text contrast on every light surface
+     (3.84 raised / 3.71 page / 3.51 sunken) */
   --color-edge: #8e7e84;
 
   /* Semantic signals — deliberately NOT crimson */
@@ -37,19 +49,41 @@
   --color-success-text: #2e6b4f;
   --color-success-bg: #e2f0e8;
 
+  /* Gradients — permitted from 2026-07-27. Decorative only: never the sole
+     carrier of meaning, and always painted over a solid fallback colour so a
+     failed gradient still yields a legible surface. */
+  --gradient-hero: linear-gradient(135deg, #3d1526 0%, #6b1930 45%, #a81f3c 100%);
+  --gradient-accent: linear-gradient(135deg, #cf1f3d 0%, #ff7a6b 100%);
+  --gradient-soft: linear-gradient(180deg, #fff2ee 0%, #fffaf7 100%);
+
   /* Type roles — all self-hosted, SIL OFL (see ADR-design-direction) */
   --font-display: "Space Grotesk Variable", system-ui, sans-serif;
   --font-body: "Inter Variable", system-ui, sans-serif;
   --font-numeric: "IBM Plex Mono", ui-monospace, monospace;
 
+  /* Type scale — headings use --font-display, figures --font-numeric */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --text-5xl: 4rem;
+
   /* Radius */
   --radius-sm: 0.375rem;
-  --radius-md: 0.75rem;
+  --radius-md: 0.875rem;
   --radius-lg: 1.25rem;
+  --radius-pill: 999px;
 
-  /* Motion — single easing voice; all animation honors reduced-motion */
+  /* Motion — single easing voice; all animation honors reduced-motion.
+     Interactions stay at 150ms: half a second on a control reads as lag. */
   --motion-duration-fast: 150ms;
   --motion-duration-slow: 400ms;
+  --motion-duration-reveal: 700ms;
+  --motion-duration-count: 1500ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   /* Focus — visible everywhere, keyboard-first. The canonical idiom is the
