@@ -23,6 +23,34 @@ a passed restore drill** (nightly, offsite to OCI Object Storage in-region).
 notifications (submissions are stored but send no email), a secondary on-call
 contact, and counsel review of the legal pages.
 
+## 🎨 REDESIGN — built, awaiting review (2026-07-27)
+
+The full site redesign (R1–R4) is built and deployed to a **preview** at
+<https://next.towardpcc.com> (noindexed, production untouched). Spec:
+`docs/superpowers/specs/2026-07-27-site-redesign-design.md`.
+
+- [x] **R1 foundation** — warmed palette (crimson `#CF1F3D`, coral secondary,
+      cream grounds), type scale, gradients, motion tokens. Contrast is now
+      asserted automatically by `packages/ui/src/tokens.test.ts`, and
+      ADR-design-direction carries the Part 4 revision.
+- [x] **R2 chrome** — utility bar, sticky shrinking header, registry-driven
+      mega-menu (22 scores, 8 categories), mobile drawer, breadcrumbs,
+      back-to-top, fat footer.
+- [x] **R3 home** — gradient hero, feature strip, mission split, animated
+      counters (marketing figures only), pillar cards, evidence carousel,
+      founder section, CTA band.
+- [x] **R4 pillars + about** — the three stub pages are now full pages;
+      `/about` carries the vision, the founder, and the brand story; all
+      stale "in development / launching soon" copy corrected.
+- [ ] **Merge to main to go live.** `main` auto-deploys, so merging
+      `redesign/site-v2` publishes the redesign to towardpcc.com. Left for
+      the founder to trigger after reviewing the preview.
+
+**Still needed from the founder:** the four counter figures (PICU physicians in
+the pilot, countries, research requests supported, publications), a portrait
+photograph, and the mission/library/registry images. Placeholders ship until
+then — no figure is invented.
+
 ## Variables (founder-provided 2026-07-25)
 
 - [x] `[CONTACT_EMAIL]` = info@towardpcc.com (SECURITY.md, /contact updated).
