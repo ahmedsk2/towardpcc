@@ -13,6 +13,17 @@ const baseURL = `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  /**
+   * Single worker, deliberately.
+   *
+   * The privacy specs assert on *network timing* — that typing into a
+   * calculator provokes no request. Running several Chromium instances against
+   * one Next server starves the CPU and reorders those requests, so the suite
+   * fails intermittently for reasons that have nothing to do with the invariant
+   * it guards. A flaky privacy test is worse than a slow one: it trains people
+   * to re-run until green. The whole suite is ~35s serially.
+   */
+  workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],

@@ -174,6 +174,10 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                                 <Link
                                   key={it.slug}
                                   href={`/calculators/${it.slug}`}
+                                  // Opening the menu must not prefetch 22 routes
+                                  // at once — that is real bandwidth on hospital
+                                  // wifi for pages the user probably won't open.
+                                  prefetch={false}
                                   className="block rounded-md px-2 py-1.5 text-sm font-medium text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                                 >
                                   {it.name}

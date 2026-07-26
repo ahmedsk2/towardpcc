@@ -76,6 +76,106 @@ export const site = {
       link: "Read how we handle data",
       href: "/legal/data-protection",
     },
+    // Hero eyebrow — reflects the live registry count, not a marketing claim.
+    badge: "Live now · 22 referenced calculators",
+    heroTrust: [
+      { value: "22", label: "Calculators live" },
+      { value: "89", label: "Cited references" },
+      { value: "0", label: "Bytes transmitted" },
+    ],
+    // Four-up strip beneath the hero.
+    features: [
+      {
+        title: "Referenced",
+        body: "89 citations with PMID and DOI. Never a number without a reason.",
+        tone: "crimson" as const,
+      },
+      {
+        title: "Private by design",
+        body: "Computed in your browser. Nothing you type is ever transmitted.",
+        tone: "coral" as const,
+      },
+      {
+        title: "Bedside-ready",
+        body: "Installable, works offline, one-handed on a phone at 3am.",
+        tone: "plum" as const,
+      },
+      {
+        title: "Honest status",
+        body: "Live, piloting or planned — we say which, always.",
+        tone: "moss" as const,
+      },
+    ],
+    /**
+     * Counters. Every figure is verified against the repo:
+     * 22 registered scores, 89 citation entries across their definitions,
+     * 64,388 pages indexed in the PedsCC Library corpus, 100% engine coverage
+     * enforced in CI. Nothing here is estimated — if a number cannot be
+     * sourced it is removed, not guessed.
+     */
+    countersHeading: "What is actually built",
+    counters: [
+      { value: 22, label: "Referenced calculators" },
+      { value: 89, label: "Literature citations" },
+      { value: 64388, label: "Library pages indexed" },
+      { value: 100, suffix: "%", label: "Engine test coverage" },
+    ] as { value: number; label: string; suffix?: string }[],
+    /**
+     * Replaces the testimonial slot the reference sites use. These are real,
+     * checkable citations — the honest form of social proof for a clinical
+     * audience, and the one the authenticity rule permits.
+     */
+    evidence: {
+      eyebrow: "Why this exists",
+      heading: "We don't have testimonials. We have the literature.",
+      lede: "Every claim we make about the problem is something published that you can check.",
+      items: [
+        {
+          quote:
+            "Clinicians budget roughly two to three minutes to answer a clinical question — and abandon the search beyond it.",
+          source: "Del Fiol et al. JAMA Intern Med, 2014 — systematic review of 72 studies",
+        },
+        {
+          quote:
+            "Clinicians raise about one question for every two patients, but pursue only around half of them.",
+          source: "Del Fiol et al. 2014 · Kell et al. JAMIA, 2024",
+        },
+        {
+          quote:
+            "59% of 292 surveyed clinicians had received no formal training in searching the literature.",
+          source: "Brassil et al. J Med Libr Assoc, 2017",
+        },
+        {
+          quote:
+            "Clinicians value a local “our practice” stance that breaks the tie between conflicting guidelines.",
+          source: "Baxter et al. Appl Clin Inform, 2022",
+        },
+        {
+          quote:
+            "A locally-curated guideline app reached 91 of 152 NHS acute trusts — trust followed local curation.",
+          source: "MicroGuide, reported deployment figures",
+        },
+      ],
+    },
+    founder: {
+      eyebrow: "Who builds this",
+      name: "Dr. Ahmed Alkhalifah",
+      role: "Pediatric intensivist",
+      body: "TowardPCC grew out of the everyday problem of needing a referenced number, a unit protocol, or a statistical answer faster than the ward gives you time for.",
+      credentials: [
+        "MBBS / MD",
+        "Saudi Board — Pediatric Medicine",
+        "Fellowship — Pediatric Critical Care",
+        "Fellowship — Pediatric Neurocritical Care",
+      ],
+      publications:
+        "Published in PLOS ONE on personalising mechanical power to reduce ICU mortality, and in Open Access Emergency Medicine on machine learning for pediatric triage.",
+    },
+    ctaBand: {
+      heading: "Start with a calculator. Stay for the rest.",
+      body: "Free, referenced and offline-ready. No account, no tracking, nothing to install unless you want to.",
+      cta: "Open the calculators",
+    },
     missionHeading: "Why we are building this",
     mission:
       "TowardPCC builds the digital backbone of pediatric critical care: free calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world.",

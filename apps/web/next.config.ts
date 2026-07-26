@@ -43,7 +43,11 @@ const nextConfig: NextConfig = {
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
-  reloadOnOnline: true,
+  // Deliberately OFF. Serwist would reload the page on every `online` event,
+  // and hospital wifi bounces constantly — that reload can land mid-entry and
+  // throw away a clinician's half-typed values. This app is built to work
+  // offline, so regaining connectivity should change nothing on screen.
+  reloadOnOnline: false,
 });
 
 export default process.env.NODE_ENV === "development" ? nextConfig : withSerwist(nextConfig);
