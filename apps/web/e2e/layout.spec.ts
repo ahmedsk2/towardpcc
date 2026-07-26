@@ -15,7 +15,15 @@ const WIDTHS = [
   { name: "desktop", width: 1440, height: 900 },
 ];
 
-const PAGES = ["/", "/calculators", "/calculators/pf-ratio"];
+const PAGES = [
+  "/",
+  "/calculators",
+  "/calculators/pf-ratio",
+  "/knowledge",
+  "/data",
+  "/services",
+  "/about",
+];
 
 for (const vp of WIDTHS) {
   test.describe(`layout at ${vp.name} (${vp.width}px)`, () => {

@@ -64,7 +64,7 @@ export const site = {
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
     heroSceneLabel: "A calm, breathing respiratory waveform — the signature of TowardPCC.",
-    status: "In development. Launching soon.",
+    status: "Live. 22 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
       heading: "How we handle data",
@@ -184,15 +184,22 @@ export const site = {
       columns: [
         {
           state: "Live now",
-          items: ["22 referenced PICU calculators", "Offline-capable, installable as an app"],
+          items: [
+            "22 referenced PICU calculators",
+            "Offline-capable, installable as an app",
+            "Free research and biostatistics support",
+          ],
         },
         {
           state: "Piloting",
-          items: ["The PedsCC Library for PICU teams", "Document management, not content"],
+          items: [
+            "The PedsCC Library, with PICU physicians across the Gulf",
+            "A registry pilot in one Gulf unit",
+          ],
         },
         {
           state: "Next",
-          items: ["The Gulf and MENA PICU registry", "Free research and biostatistics support"],
+          items: ["Wider Gulf and MENA registry participation", "Unit dashboards"],
         },
       ],
     },
@@ -201,19 +208,19 @@ export const site = {
   pillars: {
     calculators: {
       title: "Calculators",
-      status: "in development",
+      status: "live",
       description:
         "Free, clinically referenced PICU scoring calculators. Every computation runs in your browser; every score cites its published source; validation status is always shown honestly.",
     },
     knowledge: {
       title: "Knowledge",
-      status: "in pilot",
+      status: "in production · piloting",
       description:
         "The PedsCC Library: a purpose-built library and document management platform for PICU teams. Your unit's documents remain your unit's documents; we pilot the software, not the content.",
     },
     data: {
       title: "Data",
-      status: "in design",
+      status: "pilot underway",
       description:
         "The future Gulf and MENA PICU registry and unit dashboards, built on the same validated scoring engine as the public calculators. No patient data is collected in this version.",
     },
@@ -228,7 +235,7 @@ export const site = {
   about: {
     title: "About",
     heading: "About TowardPCC",
-    status: "in development",
+    status: "live",
     description:
       "TowardPCC builds the digital backbone of pediatric critical care: free clinical calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world.",
     metaDescription:
@@ -253,6 +260,29 @@ export const site = {
       },
     ],
     roadmapHeading: "Where we are, honestly",
+    visionHeading: "The vision",
+    /**
+     * The brand story. Both claims are sourced: the colour audit in
+     * docs/research/2026-07-24-picu-brand-colors.md found every audited
+     * critical-care and paediatric institution anchored on blue and no
+     * awareness colour claimed for PICU; the waveform rationale is recorded in
+     * ADR-design-direction.
+     */
+    storyHeading: "Why it looks like this",
+    story: [
+      {
+        title: "A colour nobody had claimed",
+        body: "We audited the critical-care and paediatric institutions we could reach. Every one of them anchored on blue, and paediatric intensive care had no awareness colour of its own. So TowardPCC is crimson — close kin to the Saudi Critical Care Society's red, and unmistakably not another hospital blue.",
+      },
+      {
+        title: "A breath, not a heartbeat",
+        body: "The signature waveform is respiratory, never cardiac. An ECG trace that flattens reads as death, and this is a paediatric intensive care unit. The line here breathes, continuously and calmly, which is the thing you actually want to see beside a child's bed.",
+      },
+      {
+        title: "Red never means wrong",
+        body: "Brand crimson is reserved for actions. Warnings and errors are amber with an icon, never bare colour — so a red button on this site always means “do this”, and never “you got that wrong”.",
+      },
+    ],
   },
 
   contactPage: {
@@ -289,6 +319,172 @@ export const site = {
       body: [
         "The future Gulf and MENA PICU registry and unit dashboards will be built on the same validated scoring engine as the public calculators. This version collects no patient data — we are gauging interest and shaping governance with prospective participating units.",
         "Servers are located in Saudi Arabia. For the registry itself, deployments will be configured to meet the data-protection requirements of each participating Gulf country — data residency, consent, and governance — in coordination with each institution.",
+      ],
+    },
+  },
+
+  /**
+   * Rich pillar-page content (redesign R4). Every figure here is verified
+   * against the repo or the library's own PROJECT-STATUS; nothing is
+   * estimated. Where a real number does not exist yet, the field is absent
+   * rather than filled with a guess.
+   */
+  pillarDetail: {
+    knowledge: {
+      badge: "In production · piloting across the Gulf",
+      heading: "The PedsCC Library",
+      lede: "Your unit's own protocols, guidelines and teaching material — searchable down to the exact page. We pilot the software; your unit owns the content.",
+      stats: [
+        { value: 2425, label: "Documents imported" },
+        { value: 64388, label: "Pages indexed & searchable" },
+        { value: 69, label: "Curated tags, 11 topics" },
+        { value: 2272, label: "Full-text searchable" },
+      ],
+      capabilitiesHeading: "Search that ends at the paragraph, not the PDF.",
+      capabilities: [
+        {
+          title: "Open at page 8, slide 4",
+          body: "Full-text search across 64,388 indexed pages returns a deep link to the exact page, not a file to scroll through.",
+        },
+        {
+          title: "Curated vocabulary",
+          body: "69 librarian-maintained tags across 11 topic groups, with synonym and abbreviation expansion, so “PICU” and “paediatric ICU” find the same shelf.",
+        },
+        {
+          title: "Governed contribution",
+          body: "Contributors submit, librarians file. Every upload is hash-checked against the catalogue before it is accepted, so duplicates never pile up.",
+        },
+        {
+          title: "“Our unit's approach”",
+          body: "Locally-authored consensus stances sit beside the external guideline — because the thing clinicians actually need is the tie-breaker.",
+        },
+      ],
+      topicsHeading: "Organised the way a PICU thinks.",
+      topics: [
+        "Neuro",
+        "Respiratory",
+        "Cardiac",
+        "Sepsis & ID",
+        "Renal & Fluids",
+        "GI & Nutrition",
+        "Heme-Onc",
+        "Endo & Metabolic",
+        "Trauma, Tox & Env",
+        "Resus & Procedures",
+        "General Systems",
+      ],
+      faq: [
+        {
+          question: "Who owns the content?",
+          answer:
+            "Your unit does, entirely. We pilot the software, not the content. A nightly export runs so the database indexes your library but never imprisons it — you can leave with everything at any time.",
+        },
+        {
+          question: "Is it an AI chatbot over medical knowledge?",
+          answer:
+            "No. The core is retrieval over your unit's own corpus. An optional summary feature is off by default, locked to citations from your documents, and always degrades to plain retrieval. We will not put an unsourced generator between a clinician and a guideline.",
+        },
+        {
+          question: "How is access controlled?",
+          answer:
+            "Invitation only, with a password and mandatory two-factor authentication. Each unit runs its own instance; content is never pooled between units.",
+        },
+        {
+          question: "What happens to documents that can't be read?",
+          answer:
+            "They stay findable by metadata. Of 2,425 imported documents, 2,272 became full-text searchable — 2,197 by native extraction and 75 through OCR. The remaining 152 are legacy formats, images and video, catalogued and findable but not searchable inside.",
+        },
+      ],
+    },
+    data: {
+      badge: "Pilot underway · one Gulf unit",
+      heading: "A registry built on the same engine",
+      lede: "A PICU registry is currently being piloted in one unit in the Gulf region, built on the same validated scoring engine as the public calculators.",
+      stats: [
+        { value: 1, label: "Pilot unit" },
+        { value: 22, label: "Scores available to the registry" },
+        { value: 0, label: "Patient records on this site" },
+      ],
+      capabilitiesHeading: "Governance before scale.",
+      capabilities: [
+        {
+          title: "No patient data here",
+          body: "This public site collects none. The registry runs as a separate, governed deployment inside the participating unit — it is not connected to this website.",
+        },
+        {
+          title: "One validated engine",
+          body: "Registry severity scores come from the same engine as the public calculators, at 100% test coverage, so a number means the same thing in both places.",
+        },
+        {
+          title: "Residency per jurisdiction",
+          body: "Deployments are configured to meet the data-protection requirements of each participating country — residency, consent and governance — with each institution.",
+        },
+        {
+          title: "Numbers we can stand behind",
+          body: "Analytics withhold figures the data cannot support and suppress unstable small-N results, rather than publishing something that looks precise and is not.",
+        },
+      ],
+      faq: [
+        {
+          question: "Is any patient data collected on this website?",
+          answer:
+            "No. The public site collects no patient data of any kind, and the calculators compute entirely in your browser. The registry is a separate deployment that runs inside a participating unit.",
+        },
+        {
+          question: "Can our unit join?",
+          answer:
+            "The registry is at single-unit pilot stage. Register your interest and we will talk about governance, residency and timing — we would rather onboard slowly and correctly than broadly and badly.",
+        },
+        {
+          question: "Where would our data live?",
+          answer:
+            "Inside your institution's own governed deployment, configured to your country's data-protection requirements. Nothing is pooled into a shared database by default.",
+        },
+      ],
+    },
+    services: {
+      badge: "Free · capacity-based",
+      heading: "Research support for fellows and investigators",
+      lede: "Research aid, biostatistics analysis, and AI-assisted research guidance — provided free of charge by the TowardPCC team, subject to availability.",
+      stats: [
+        { value: 3, label: "Areas of support" },
+        { value: 0, label: "Cost, in any currency" },
+      ],
+      capabilitiesHeading: "Three kinds of help.",
+      capabilities: [
+        {
+          title: "Research aid",
+          body: "Refining the question, protocol and IRB guidance, and a literature strategy that will not collapse at review.",
+        },
+        {
+          title: "Biostatistics analysis",
+          body: "Study design and analysis support — chosen before data collection where possible, which is when it actually helps.",
+        },
+        {
+          title: "AI-assisted guidance",
+          body: "For fellows, always human-reviewed. We will not hand back a generated answer nobody checked.",
+        },
+        {
+          title: "Honest queueing",
+          body: "Requests are answered in order of arrival and complexity. We promise no turnaround time we cannot keep.",
+        },
+      ],
+      faq: [
+        {
+          question: "What does it cost?",
+          answer:
+            "Nothing. It is offered free of charge as capacity allows, which is also why there is no service-level promise attached to it.",
+        },
+        {
+          question: "What should I not send?",
+          answer:
+            "Any patient-identifiable information. Describe the question, not the patient — we do not want, and will not store, identifiable clinical data.",
+        },
+        {
+          question: "Will you help with individual patient care?",
+          answer:
+            "No. This is research support only. Nothing here is clinical advice for a specific patient, and the calculators are an aid to clinical judgement, never a replacement for it.",
+        },
       ],
     },
   },

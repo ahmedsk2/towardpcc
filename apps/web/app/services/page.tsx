@@ -1,4 +1,5 @@
-import { PillarFormPage } from "@/components/forms/pillar-form-page";
+import { PillarPage } from "@/components/pillar/pillar-page";
+import { PillarRequestForm } from "@/components/pillar/pillar-request-form";
 import { site } from "@/content/site";
 import { submitService } from "./actions";
 
@@ -7,23 +8,27 @@ export const metadata = {
   description: site.pillars.services.description,
 };
 
+const d = site.pillarDetail.services;
+
 export default function ServicesPage() {
-  const page = site.pillarPages.services;
   return (
-    <PillarFormPage
-      status={site.pillars.services.status}
-      title={site.pillars.services.title}
-      lede={site.pillars.services.description}
-      body={
-        <div className="flex flex-col gap-4 text-[15px] leading-relaxed text-ink-body">
-          {page.body.map((p) => (
-            <p key={p}>{p}</p>
-          ))}
-        </div>
-      }
-      formHeading={page.formHeading}
-      action={submitService}
-      form={site.forms.service}
-    />
+    <PillarPage
+      crumb={site.nav.services}
+      badge={d.badge}
+      heading={d.heading}
+      lede={d.lede}
+      stats={d.stats}
+      capabilitiesHeading={d.capabilitiesHeading}
+      capabilities={d.capabilities}
+      faq={d.faq}
+      imageLabel="Research support"
+      imageHint="abstract data / analysis visual"
+    >
+      <PillarRequestForm
+        heading={site.pillarPages.services.formHeading}
+        action={submitService}
+        form={site.forms.service}
+      />
+    </PillarPage>
   );
 }
