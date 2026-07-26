@@ -38,7 +38,7 @@ export function WaveformEdge({ className }: { className?: string }) {
       <path
         d={d}
         fill="none"
-        stroke="var(--color-accent-bright)"
+        stroke="var(--color-coral)"
         strokeOpacity="0.4"
         strokeWidth="2"
         strokeLinecap="round"

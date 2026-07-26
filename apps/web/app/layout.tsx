@@ -19,8 +19,10 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: site.name, statusBarStyle: "default" },
 };
 
+// Mirrors --color-surface-hero (packages/ui/src/tokens.css). A CSS variable
+// cannot be used here — the browser reads this before any stylesheet loads.
 export const viewport = {
-  themeColor: "#231018",
+  themeColor: "#260e1a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

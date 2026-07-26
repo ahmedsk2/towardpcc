@@ -9,8 +9,8 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
     <html lang="en">
       <body style={{ fontFamily: "system-ui, sans-serif" }}>
         {/* No Tailwind is available in this bare boundary, so restore the app's
-            crimson focus-visible idiom (accent #b01e32) inline. */}
-        <style>{`button:focus-visible{outline:2px solid #b01e32;outline-offset:2px}`}</style>
+            crimson focus-visible idiom (accent #cf1f3d) inline. */}
+        <style>{`button:focus-visible{outline:2px solid #cf1f3d;outline-offset:2px}`}</style>
         <main style={{ padding: "4rem 1.5rem" }}>
           <h1>{site.errors.serverError.heading}</h1>
           <p>{site.errors.serverError.body}</p>

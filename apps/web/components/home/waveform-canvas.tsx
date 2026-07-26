@@ -17,7 +17,9 @@ import * as THREE from "three";
  * paused off-screen, and never shown under reduced motion.
  */
 
-const ROSE = new THREE.Color("#ff7d8e");
+// Mirrors --color-coral (packages/ui/src/tokens.css); a WebGL material needs a
+// literal, not a CSS variable. 7.11:1 on the night band.
+const ROSE = new THREE.Color("#ff7a6b");
 const SAMPLES = 128;
 const SPAN = 11; // world width
 const LINES = 5;

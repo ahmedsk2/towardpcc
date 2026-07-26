@@ -19,7 +19,7 @@ function FooterLink({ href, label }: { href: string; label: string }) {
     <li>
       <Link
         href={href}
-        className="rounded-sm text-sm text-ink-on-dark/75 transition-colors duration-150 hover:text-ink-on-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright"
+        className="rounded-sm text-sm text-ink-on-dark/75 transition-colors duration-150 hover:text-ink-on-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
       >
         {label}
       </Link>
@@ -34,7 +34,7 @@ export function SiteFooter() {
         <div className="flex flex-col justify-between gap-10 md:flex-row">
           <div className="max-w-xs">
             <p className="font-display text-lg font-bold tracking-tight">
-              Toward<span className="text-accent-bright">PCC</span>
+              Toward<span className="text-coral">PCC</span>
             </p>
             <p className="mt-2 text-sm text-ink-on-dark/75">{site.tagline}</p>
           </div>

@@ -12,8 +12,10 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#F7F4F3",
-    theme_color: "#231018",
+    // Mirror --color-surface-page / --color-surface-hero (tokens.css); the
+    // manifest is static JSON, so CSS variables cannot be used here.
+    background_color: "#FFFAF7",
+    theme_color: "#260E1A",
     categories: ["medical", "health", "productivity"],
     // SVG for crisp scaling in modern browsers, plus raster PNGs (192/512 +
     // maskable) for maximum Android / Lighthouse compatibility. PNGs are

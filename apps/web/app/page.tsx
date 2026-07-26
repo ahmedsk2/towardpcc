@@ -48,7 +48,7 @@ const bento = [
 
 const ctaBase =
   "inline-flex min-h-11 items-center justify-center rounded-md px-5 text-[15px] font-semibold transition-colors duration-150 " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-bright active:translate-y-px";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral active:translate-y-px";
 
 export default function HomePage() {
   return (

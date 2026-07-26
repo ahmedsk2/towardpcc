@@ -59,11 +59,18 @@ describe("palette — non-text UI contrast (WCAG 1.4.11)", () => {
 });
 
 describe("palette — coral is dark-surface only", () => {
-  it("reads clearly on the dark bands", () => {
-    expect(contrastRatio(token("color-coral"), token("color-surface-hero"))).toBeGreaterThanOrEqual(
-      AA_TEXT,
-    );
-  });
+  /**
+   * Coral is the accent's voice on the dark bands (the role the old
+   * accent-bright played). It must clear AA text on BOTH dark surfaces —
+   * accent-bright is only 3.93:1 on hero-raised, which is why the dark-surface
+   * components use coral instead.
+   */
+  it.each(["color-surface-hero", "color-surface-hero-raised"])(
+    "reads clearly as text on %s",
+    (bg) => {
+      expect(contrastRatio(token("color-coral"), token(bg))).toBeGreaterThanOrEqual(AA_TEXT);
+    },
+  );
 
   /**
    * Coral is 2.55:1 on white. This documents that limitation as an invariant:

@@ -68,8 +68,8 @@ export function HeroWaveform({ className }: { className?: string }) {
     >
       <defs>
         <radialGradient id="hw-glow" cx="50%" cy="50%" r="60%">
-          <stop offset="0%" stopColor="var(--color-accent-bright)" stopOpacity="0.18" />
-          <stop offset="70%" stopColor="var(--color-accent-bright)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--color-coral)" stopOpacity="0.18" />
+          <stop offset="70%" stopColor="var(--color-coral)" stopOpacity="0" />
         </radialGradient>
         <filter id="hw-soft" x="-20%" y="-40%" width="140%" height="180%">
           <feGaussianBlur stdDeviation="3" />
@@ -85,7 +85,7 @@ export function HeroWaveform({ className }: { className?: string }) {
           key={i}
           d={sinePath(e)}
           fill="none"
-          stroke="var(--color-accent-bright)"
+          stroke="var(--color-coral)"
           strokeWidth={i < 2 ? 1.5 : 1}
           strokeOpacity={e.opacity}
           strokeLinecap="round"
@@ -97,7 +97,7 @@ export function HeroWaveform({ className }: { className?: string }) {
       <path
         d={sinePath(LEAD)}
         fill="none"
-        stroke="var(--color-accent-bright)"
+        stroke="var(--color-coral)"
         strokeWidth="6"
         strokeOpacity="0.35"
         strokeLinecap="round"
@@ -107,7 +107,7 @@ export function HeroWaveform({ className }: { className?: string }) {
       <path
         d={sinePath(LEAD)}
         fill="none"
-        stroke="var(--color-accent-bright)"
+        stroke="var(--color-coral)"
         strokeWidth="2.25"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -115,13 +115,7 @@ export function HeroWaveform({ className }: { className?: string }) {
 
       {/* Particle nodes on the crest */}
       {nodes.map((n, i) => (
-        <circle
-          key={i}
-          cx={n.x}
-          cy={n.y}
-          r={i === 3 ? 3.5 : 2.25}
-          fill="var(--color-accent-bright)"
-        >
+        <circle key={i} cx={n.x} cy={n.y} r={i === 3 ? 3.5 : 2.25} fill="var(--color-coral)">
           {/* static poster: no animation here; the R3F scene animates */}
         </circle>
       ))}
