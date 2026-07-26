@@ -50,10 +50,13 @@ secondary on-call contact.
       local gitleaks binary this machine doesn't have. Secrets are caught in CI
       (pinned, checksum-verified CLI). Install gitleaks locally by P5 (forms =
       first real secrets risk) and add it to `.husky/pre-commit`.
-- [ ] **Database backup + tested restore drill (P8, prod-readiness HIGH)** —
-      procedure written (docs/runbooks/backup-restore.md); the scheduled
-      encrypted, in-region backup and a _tested_ restore must be stood up on the
-      deployed OCI infra before launch. A backup never restored is not a backup.
+- [x] **Database backup + tested restore drill (P8, prod-readiness HIGH)** —
+      **DONE 2026-07-26.** `towardpcc` added to the Coolify nightly shared-postgres
+      job (`0 3 * * *`), offsite copy verified in OCI Object Storage bucket
+      `coolify-backups` (me-riyadh-1, in-region). **Restore drill passed**: the
+      dump restored into a scratch database with all 7 tables, row counts matching
+      source, admin row intact; scratch dropped. Procedure in
+      docs/runbooks/deploy-production.md. Re-run the drill after schema changes.
 - [ ] **Container image build + scan in CI (P8)** — the Dockerfile is hardened
       (non-root, healthcheck, digest-pinned base, dumb-init) and now copies
       packages/db, but the image is not built/scanned in CI. Add a
@@ -140,7 +143,7 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
       the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG
       tradeoff; fix needs hydration testing.
 - [~] **SPC-CON-001..008** — container hardening. **Done in-repo:** `cap_drop:
-  [ALL]` (+ minimal `cap_add` per service), `no-new-privileges`, per-service
+[ALL]` (+ minimal `cap_add` per service), `no-new-privileges`, per-service
   CPU/memory/PID limits, edge/data network split (`data` internal), and all
   third-party images digest-pinned (docker-compose.prod.yml). **Remaining:**
   secrets via Docker `secrets:`/`_FILE` (needs an app entrypoint), read-only

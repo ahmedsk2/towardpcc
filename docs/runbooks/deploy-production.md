@@ -105,11 +105,34 @@ Coolify keeps previous deployments: the app → Deployments → pick the last go
 one → Redeploy. Because the rolling update gates on the healthcheck, a bad build
 never replaces a healthy container.
 
+## Backups (configured + drill passed 2026-07-26)
+
+`towardpcc` is in the shared-postgres nightly job (Coolify scheduled backup id 1,
+`0 3 * * *`, `databases_to_backup = postgres,towardpcc`), with the offsite copy
+going to OCI Object Storage bucket `coolify-backups` (me-riyadh-1 — in-region, so
+the residency claim holds). Local dumps land in
+`/data/coolify/backups/databases/root-team-0/shared-postgres-<uuid>/` (root-only).
+
+**Restore drill (2026-07-26): PASSED.** All 7 tables restored into a scratch
+database with row counts matching source and the admin row intact. Repeat it
+after any schema change:
+
+```bash
+PGC=tjuvmq29ogsdoocz59qigcoc
+DUMP=$(sudo sh -c "ls -t /data/coolify/backups/databases/root-team-0/shared-postgres-$PGC/pg-dump-towardpcc-*.dmp | head -1")
+sudo docker exec $PGC psql -U postgres -tAc "CREATE DATABASE towardpcc_restore_test"
+sudo cat "$DUMP" | sudo docker exec -i $PGC pg_restore -U postgres -d towardpcc_restore_test --no-owner --no-privileges
+sudo docker exec $PGC psql -U postgres -d towardpcc_restore_test -tAc "\dt"      # expect 7 tables
+sudo docker exec $PGC psql -U postgres -tAc "DROP DATABASE towardpcc_restore_test"
+```
+
+Note the glob must run **inside** `sudo` — the backup directory is not readable
+by `ubuntu`, so `sudo ls $DIR/*.dmp` expands to nothing before sudo is applied.
+
 ## Still outstanding
 
 - **SMTP relay not configured** — `SMTP_*` are empty, so form submissions are
   stored but no admin notification is sent. The zone's SPF is currently
   `v=spf1 -all`; update it when a relay is added (LAUNCH-BLOCKERS, TM-008).
-- **Backups** — the `towardpcc` database must be added to the Coolify backup
-  schedule, and a restore drill run (LAUNCH-BLOCKERS, DATA-03).
 - **Cloudflare proxying** is off; see the DNS note above before enabling.
+- **Secondary on-call contact** still unnamed (bus-factor-1).
