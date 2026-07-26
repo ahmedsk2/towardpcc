@@ -18,6 +18,13 @@ COPY . .
 # The web build's prebuild runs `prisma generate` for the driver-adapter client.
 ENV NEXT_OUTPUT_STANDALONE=1
 RUN pnpm --filter @towardpcc/web build
+# Next's standalone tracer misses Prisma's WASM query compiler (driver adapter,
+# engineType=client). Copy the generated client's query_compiler_bg.wasm into the
+# standalone tree at its resolved path so the runner has it (hash-independent).
+RUN set -eu; SA=apps/web/.next/standalone; \
+  WASM="$(find node_modules -type f -name 'query_compiler_bg.wasm' -path '*.prisma/client*' | head -1)"; \
+  test -n "$WASM"; mkdir -p "$SA/$(dirname "$WASM")"; cp "$WASM" "$SA/$WASM"; \
+  echo "bundled prisma wasm: $WASM"
 
 FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS runner
 ENV NODE_ENV=production
