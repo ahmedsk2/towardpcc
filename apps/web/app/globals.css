@@ -22,6 +22,9 @@
   --color-accent-bright: var(--color-accent-bright);
   --color-accent-tint: var(--color-accent-tint);
   --color-ink-on-accent: var(--color-ink-on-accent);
+  --color-coral: var(--color-coral);
+  --color-coral-soft: var(--color-coral-soft);
+  --color-peach: var(--color-peach);
   --color-edge: var(--color-edge);
   --color-alert-text: var(--color-alert-text);
   --color-alert-bg: var(--color-alert-bg);
@@ -33,6 +36,33 @@
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-4xl: var(--text-4xl);
+  --text-5xl: var(--text-5xl);
+}
+
+/* Gradient surfaces (ADR revision 2, 2026-07-27). Each sets a solid
+   background-color first, so a failed gradient paint still yields a legible
+   surface — the on-dark text colours are contrast-checked against those
+   solids, not against the gradient midpoint. */
+.bg-gradient-hero {
+  background-color: var(--color-surface-hero-raised);
+  background-image: var(--gradient-hero);
+}
+.bg-gradient-accent {
+  background-color: var(--color-accent);
+  background-image: var(--gradient-accent);
+}
+.bg-gradient-soft {
+  background-color: var(--color-surface-page);
+  background-image: var(--gradient-soft);
 }
 
 body {
