@@ -1,0 +1,112 @@
+# Runbook: production deployment (as actually deployed)
+
+**This is the live production setup.** `deploy.md` describes the standalone
+Caddy + compose stack that was designed first; it is **not** what production
+runs. The OCI host is a shared multi-site server operated by **Coolify**, so
+TowardPCC is deployed as a Coolify application behind Coolify's Traefik proxy.
+
+- **Live:** https://towardpcc.com (+ `www`), first deployed 2026-07-26
+- **Host:** OCI `hosting-1`, `145.241.105.239`, me-riyadh-1 (KSA — residency claim holds)
+- **Platform:** Coolify v4.1.2, Traefik v3.6 (TLS via Let's Encrypt, HTTP-01)
+- **DNS:** Cloudflare zone `towardpcc.com`, apex + `www` → the host, **DNS-only
+  (grey cloud)**. Proxying is off deliberately: the ACME HTTP-01 challenge needs
+  to reach the origin, and the app's per-IP rate limiting reads the real client
+  IP. If proxying is ever enabled, restore real-client-IP forwarding first.
+
+> ⚠️ The host also runs other live applications, **including one with real
+> patient data**. Every TowardPCC change must be additive and scoped to its own
+> app/database. Never touch another project's containers, databases, or the
+> shared proxy config.
+
+## Coolify application
+
+| Field                 | Value                                                   |
+| --------------------- | ------------------------------------------------------- |
+| Project / environment | `clinical` / `production`                               |
+| Application           | `towardpcc` — uuid `gpsokvxzncr7ks1vzqz7wkr4`           |
+| Repository            | `git@github.com:ahmedsk2/towardpcc.git`, branch `main`  |
+| Auth                  | read-only GitHub **deploy key** (`towardpcc-deploy`)    |
+| Build pack            | Dockerfile — `/apps/web/Dockerfile`, base directory `/` |
+| Port                  | 3000 (Traefik routes 80/443 → 3000)                     |
+| Health                | Dockerfile `HEALTHCHECK` → `/api/v1/health`             |
+
+## Database (shared Postgres 16, isolated per app)
+
+Database `towardpcc` lives in the shared `shared-services` Postgres container
+(`tjuvmq29ogsdoocz59qigcoc`) on the `coolify` Docker network. Two roles:
+
+- `towardpcc_owner` — owns the schema; used **only** for `prisma migrate deploy`.
+- `towardpcc_app` — the runtime role: CONNECT/USAGE + CRUD on tables, USAGE on
+  sequences. **Not a superuser.** `UPDATE`/`DELETE` on `"AuditLog"` are revoked,
+  so the audit trail is append-only at the database level (SPC-DB-001/003).
+
+The owner connection string is deliberately **not** in the app's environment —
+only `DATABASE_URL` (app role) is. Keep it that way.
+
+### Verify the hardening
+
+```bash
+sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -d towardpcc -tAc \
+  "SELECT has_table_privilege('towardpcc_app','\"AuditLog\"','DELETE')"   # → false
+sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -tAc \
+  "SELECT rolsuper FROM pg_roles WHERE rolname='towardpcc_app'"           # → false
+```
+
+## Deploying a change
+
+Coolify builds from `main` on the host. Trigger a deploy with the API token at
+`~/.coolify-token` on the server:
+
+```bash
+TOKEN=$(cat ~/.coolify-token)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/api/v1/deploy?uuid=gpsokvxzncr7ks1vzqz7wkr4&force=false"
+```
+
+Poll `GET /api/v1/deployments/<deployment_uuid>` until `status` is `finished`.
+Coolify does a rolling update: the new container must pass its healthcheck
+before the old one is removed, so a failed build leaves the current site up.
+
+**Push-to-deploy is not wired** — no GitHub webhook is configured, so pushing to
+`main` does _not_ redeploy. Deploy explicitly with the call above (or add a
+webhook in Coolify → the app → Webhooks, and register it on the repo).
+
+## Database migrations
+
+Migrations run separately, as the **owner** role, from the build image:
+
+```bash
+sudo docker run --rm --network coolify --env-file /home/ubuntu/towardpcc-secrets.env \
+  <build-image> sh -c 'cd /repo && DATABASE_URL="$DATABASE_URL_OWNER" \
+  pnpm --filter @towardpcc/db exec prisma migrate deploy'
+```
+
+`/home/ubuntu/towardpcc-secrets.env` (mode 600) holds both connection strings and
+is the source of truth used to seed Coolify's env vars. It is **not** in git.
+
+## Gotcha: Prisma WASM in the standalone image
+
+Next's standalone output tracer omits Prisma's `query_compiler_bg.wasm` (driver
+adapter, `engineType = "client"`), which makes every DB query fail with `ENOENT`
+at runtime while `/api/v1/health` still returns 200. `apps/web/Dockerfile` copies
+the file into the standalone tree explicitly. **`/api/v1/health` does not prove
+the database works — always check `/api/v1/ready`**, which runs `SELECT 1`:
+
+```bash
+curl -s https://towardpcc.com/api/v1/ready   # {"status":"ready"} — 503 if the DB is unreachable
+```
+
+## Rollback
+
+Coolify keeps previous deployments: the app → Deployments → pick the last good
+one → Redeploy. Because the rolling update gates on the healthcheck, a bad build
+never replaces a healthy container.
+
+## Still outstanding
+
+- **SMTP relay not configured** — `SMTP_*` are empty, so form submissions are
+  stored but no admin notification is sent. The zone's SPF is currently
+  `v=spf1 -all`; update it when a relay is added (LAUNCH-BLOCKERS, TM-008).
+- **Backups** — the `towardpcc` database must be added to the Coolify backup
+  schedule, and a restore drill run (LAUNCH-BLOCKERS, DATA-03).
+- **Cloudflare proxying** is off; see the DNS note above before enabling.

@@ -1,4 +1,10 @@
-# Runbook: deploy
+# Runbook: deploy (design — NOT what production runs)
+
+> 🔴 **Superseded for production.** The live site is deployed as a **Coolify
+> application behind Traefik** on a shared multi-site OCI host, not with this
+> standalone stack. See **`deploy-production.md`** for the real procedure.
+> This document is kept as the self-contained design (and the reference if
+> TowardPCC ever moves to a dedicated VM).
 
 Target: a single VM in an OCI **Saudi Arabia** region (me-riyadh-1 or
 me-jeddah-1). Stack: `docker-compose.prod.yml` (Caddy + web + postgres + umami +

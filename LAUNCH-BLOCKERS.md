@@ -4,6 +4,21 @@ Running list of everything that must be resolved before public launch.
 Working agreement §16.1: every placeholder on the site is marked in code
 AND listed here.
 
+## 🚀 DEPLOYED — https://towardpcc.com (2026-07-26)
+
+Live on the founder's OCI host (me-riyadh-1, KSA) as a **Coolify application**
+behind Traefik — see `docs/runbooks/deploy-production.md`. Verified live: valid
+Let's Encrypt cert, all pages 200, `/api/v1/ready` green (DB reachable), full
+security-header set, HTTP→HTTPS redirect, `www` served.
+
+Resolved by the deploy: DB least-privilege role (**SPC-DB-001**) and DB-enforced
+append-only audit log (**SPC-DB-003**) are live and verified in production; the
+apex previously returned HTTP 525 (broken origin) and now serves the site.
+
+**Immediately outstanding (see the per-item entries below):** SMTP relay for form
+notifications, `towardpcc` added to the backup schedule + a restore drill, and a
+secondary on-call contact.
+
 ## Variables (founder-provided 2026-07-25)
 
 - [x] `[CONTACT_EMAIL]` = info@towardpcc.com (SECURITY.md, /contact updated).
@@ -125,7 +140,7 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
       the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG
       tradeoff; fix needs hydration testing.
 - [~] **SPC-CON-001..008** — container hardening. **Done in-repo:** `cap_drop:
-    [ALL]` (+ minimal `cap_add` per service), `no-new-privileges`, per-service
+  [ALL]` (+ minimal `cap_add` per service), `no-new-privileges`, per-service
   CPU/memory/PID limits, edge/data network split (`data` internal), and all
   third-party images digest-pinned (docker-compose.prod.yml). **Remaining:**
   secrets via Docker `secrets:`/`_FILE` (needs an app entrypoint), read-only
