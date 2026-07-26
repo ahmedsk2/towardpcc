@@ -15,9 +15,13 @@ Resolved by the deploy: DB least-privilege role (**SPC-DB-001**) and DB-enforced
 append-only audit log (**SPC-DB-003**) are live and verified in production; the
 apex previously returned HTTP 525 (broken origin) and now serves the site.
 
+Also done post-deploy: **push-to-deploy** (GitHub webhook → Coolify; merging to
+`main` builds and deploys, gated on the container healthcheck) and **backups with
+a passed restore drill** (nightly, offsite to OCI Object Storage in-region).
+
 **Immediately outstanding (see the per-item entries below):** SMTP relay for form
-notifications, `towardpcc` added to the backup schedule + a restore drill, and a
-secondary on-call contact.
+notifications (submissions are stored but send no email), a secondary on-call
+contact, and counsel review of the legal pages.
 
 ## Variables (founder-provided 2026-07-25)
 
