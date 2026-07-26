@@ -67,9 +67,12 @@ Poll `GET /api/v1/deployments/<deployment_uuid>` until `status` is `finished`.
 Coolify does a rolling update: the new container must pass its healthcheck
 before the old one is removed, so a failed build leaves the current site up.
 
-**Push-to-deploy is not wired** — no GitHub webhook is configured, so pushing to
-`main` does _not_ redeploy. Deploy explicitly with the call above (or add a
-webhook in Coolify → the app → Webhooks, and register it on the repo).
+**Push-to-deploy is wired.** A GitHub webhook (repo → Settings → Webhooks, id
+`657319469`) posts `push` events to
+`https://deploy.towardpcc.com/webhooks/source/github/events/manual`, so merging
+to `main` builds and deploys automatically. The rolling update gates on the
+container healthcheck, so a failed build leaves the running site untouched.
+Use the API call above when you need to force a redeploy without a push.
 
 ## Database migrations
 
