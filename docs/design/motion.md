@@ -11,17 +11,34 @@ same guards.
    use `useReducedMotion()`; in CSS, the `motion-reduce:` variant. No
    exceptions, including the P4 hero (poster only).
 2. **One easing voice.** `cubic-bezier(0.22, 1, 0.36, 1)` (token
-   `--motion-ease`); durations only from tokens: 150ms interactions,
-   400ms reveals.
+   `--motion-ease`); durations only from tokens: 150ms interactions
+   (never longer — half a second on a control reads as lag), 400ms state
+   changes, 700ms scroll reveals, 1500ms counters. Always name the
+   properties being transitioned; `transition: all` is banned, because it
+   forces the browser to watch every animatable property and makes the
+   intent unreadable.
 3. **Entry reveals** use the `Reveal` component (`components/reveal.tsx`):
    one-time, `whileInView`, 12px rise + fade, viewport 30%, never looping.
 4. **Hover/focus states** may transition color/border only (150ms).
    `active:` presses translate 1px. Nothing else moves.
-5. **Banned:** marquees, parallax, scroll-hijack, infinite loops,
-   attention pulses, animated backgrounds outside the P4 hero scene.
-   One carve-out: `Skeleton`'s loading pulse — motivated state feedback
-   that stops the moment content arrives, and disabled under reduced
-   motion (`motion-reduce:animate-none`).
+5. **Banned:** preloaders (never block a loaded interface behind a splash —
+   a clinician opening a calculator mid-resuscitation must see input
+   fields); marquees; parallax on content; **scroll-hijack** — no
+   smooth-scroll libraries, they break anchor precision, assistive tech,
+   and scroll muscle memory; infinite loops on anything interactive;
+   attention pulses; and any reveal that replays (an `IntersectionObserver`
+   must `unobserve` after firing — content dissolving while it is being
+   re-read is a usability defect, not polish).
+
+   **Permitted from 2026-07-27 (ADR revision 2):** slow ambient drift on
+   purely decorative hero elements, and count-up animation on **marketing
+   figures only** — never on a computed clinical value, because rolling
+   digits teach the eye that a number is decorative, and that is the exact
+   opposite of what a score must communicate. Carve-out retained:
+   `Skeleton`'s loading pulse — motivated state feedback that stops the
+   moment content arrives, disabled under reduced motion
+   (`motion-reduce:animate-none`).
+
 6. **Performance:** animate `transform`/`opacity` only; no
    `window.addEventListener("scroll")` — Motion's `useScroll`/observers
    only (relevant from P4).

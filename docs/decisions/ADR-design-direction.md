@@ -245,3 +245,52 @@ Checked against "the generic default you'd produce for any medical SaaS":
    from collapsing into a generic two-accent SaaS look. _(Originally
    written as "coral once per screen"; the rule carried over unchanged to
    the crimson accent.)_
+
+## Part 4 — Revision 2 (2026-07-27): warmed palette, gradients, photography
+
+- Status: **accepted** — founder decision after reviewing an interactive mockup
+  of the original direction and judging it "very minimalist … boring … no
+  visuals or animations".
+- Spec: `docs/superpowers/specs/2026-07-27-site-redesign-design.md`
+
+Three parts of this ADR are superseded:
+
+1. **The Envato/medical-template register is no longer a blanket
+   anti-target.** Its _structure_ — utility bar, shrinking sticky header,
+   mega-menu, overlapping feature cards, counter bands, carousels, fat
+   footer — is adopted. Its _defects_ are still refused: no preloader, no
+   perpetual motion, no scroll hijack, and no invented figures.
+2. **Gradients are permitted** (previously banned outside the night band's own
+   depth). Three are defined in tokens.css. They are decorative only: never
+   the sole carrier of meaning, and always painted over a solid fallback
+   colour so a failed gradient still yields a legible surface.
+3. **Photography including people is permitted** (previously "real product
+   screenshots only"), provided images are genuinely free-licensed and are
+   never captioned or positioned to imply they depict TowardPCC's own unit,
+   staff, or patients.
+
+The palette is **warmed, not replaced**: crimson brightens `#B01E32` →
+`#CF1F3D`, a coral secondary `#FF7A6B` is added, and the cool-grey porcelain
+ground becomes warm cream `#FFFAF7` / blush `#FFF2EE`. Contrast was recomputed
+for every shipped pairing and is now asserted automatically by
+`packages/ui/src/tokens.test.ts`, which parses `tokens.css` — so a future
+palette edit that breaks contrast fails CI rather than reaching a bedside
+screen.
+
+**Two constraints this revision creates:**
+
+- **Coral is dark-surface and gradient only.** It is 7.11:1 on the night band
+  but 2.55:1 on white, failing the WCAG 1.4.11 non-text threshold on light
+  grounds. It must never be a border, icon, or control boundary on light, and
+  it never carries meaning. Pinned by the guard test.
+- **`--color-accent-bright` changed meaning.** It was "crimson's voice on the
+  night canvas" (a light rose) and is now the gradient partner and hover
+  value (`#EA3A57`). At 3.93:1 on `surface-hero-raised` it no longer clears AA
+  for text, so every dark-surface component now uses `--color-coral` instead.
+
+Unchanged and still binding: crimson never doubles as the error colour (alerts
+are amber + icon, so a red button always means "act", never "wrong"); no blue,
+no teal; no gold (the international childhood-cancer colour); the signature
+waveform is respiratory, never cardiac; the Space Grotesk / Inter / IBM Plex
+Mono stack; and the authenticity rule — no fabricated numbers, logos, counters,
+or testimonials.

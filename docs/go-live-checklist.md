@@ -21,7 +21,7 @@ docs/security/readiness-scorecard.md.
 - [ ] Production secrets generated + placed in the secret store (AUTH_SECRET,
       TOTP_ENC_KEY, SUBMISSION_IP_SALT, DB/Umami/SMTP)
 - [ ] Image built for the VM architecture, pushed; `docker compose -f
-    docker-compose.prod.yml up -d` per docs/runbooks/deploy.md
+docker-compose.prod.yml up -d` per docs/runbooks/deploy.md
 - [ ] Migrations applied; first admin created (TOTP URI + recovery codes saved)
 - [ ] **Backup running + a restore drill actually rehearsed** (backup-restore.md)
 - [ ] Monitoring live (Uptime Kuma) + error tracking configured (PII kept out)
