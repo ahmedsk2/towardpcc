@@ -4,7 +4,8 @@ import "@fontsource-variable/space-grotesk";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./globals.css";
-import { SiteHeader } from "@/components/site-header";
+import { SiteHeader } from "@/components/nav/site-header";
+import { BackToTop } from "@/components/nav/back-to-top";
 import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorker } from "@/components/pwa/service-worker";
 import { site } from "@/content/site";
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <SiteFooter />
+        <BackToTop />
       </body>
     </html>
   );

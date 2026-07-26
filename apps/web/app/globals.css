@@ -71,6 +71,15 @@ body {
   font-family: var(--font-body);
 }
 
+/* Mega-menu entry. Motion-safe only; under reduced motion the panel simply
+   appears, which is the correct behaviour for a navigation surface. */
+@keyframes megaIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
 /* Numbers are the product: any element carrying scores/results opts in. */
 .numeric {
   font-family: var(--font-numeric);

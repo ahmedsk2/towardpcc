@@ -18,9 +18,25 @@ export const site = {
     about: "About",
     contact: "Contact",
     menuLabel: "Menu",
+    closeMenuLabel: "Close menu",
     mainAriaLabel: "Main",
     homeAriaLabel: "TowardPCC home",
     skipToContent: "Skip to content",
+    headerCta: "Open the calculators",
+    calculatorsMenuIntro: "Every score cites its published source and computes in your browser.",
+    browseAll: "Browse all",
+    backToTop: "Back to top",
+    breadcrumbAriaLabel: "Breadcrumb",
+    breadcrumbHome: "Home",
+  },
+
+  utility: {
+    email: "info@towardpcc.com",
+    emailLabel: "Email TowardPCC",
+    residency: "Servers in Saudi Arabia",
+    followLabel: "Follow",
+    linkedin: "https://www.linkedin.com/in/ahmed-s-alkhalifah/",
+    linkedinLabel: "TowardPCC on LinkedIn",
   },
 
   footer: {
@@ -30,6 +46,9 @@ export const site = {
     navAriaLabel: "Footer",
     residency: "Servers located in Saudi Arabia",
     orgName: "Toward Pediatric Critical Care",
+    // The founder-approved vision sentence (PRD §6.2), previously unused.
+    vision:
+      "Every child in critical care benefits from the same knowledge and tools, no matter where their PICU is.",
     legalLinks: [
       { href: "/legal/data-protection", label: "How we handle data" },
       { href: "/legal/terms", label: "Terms of use" },

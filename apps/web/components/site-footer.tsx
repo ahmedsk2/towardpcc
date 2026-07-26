@@ -31,14 +31,41 @@ export function SiteFooter() {
   return (
     <footer className="bg-surface-hero text-ink-on-dark">
       <div className="mx-auto max-w-[1400px] px-6 py-14">
-        <div className="flex flex-col justify-between gap-10 md:flex-row">
-          <div className="max-w-xs">
-            <p className="font-display text-lg font-bold tracking-tight">
-              Toward<span className="text-coral">PCC</span>
-            </p>
-            <p className="mt-2 text-sm text-ink-on-dark/75">{site.tagline}</p>
+        <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(3,1fr)]">
+          <div className="max-w-sm">
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-9 place-items-center rounded-[11px] bg-gradient-accent">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  className="size-5 text-white"
+                >
+                  <path
+                    d="M2 13h4l2-6 4 12 3-9 2 3h5"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <p className="font-display text-xl font-bold tracking-tight">
+                Toward<span className="text-coral">PCC</span>
+              </p>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-ink-on-dark/70">{site.footer.vision}</p>
+            <a
+              href={`mailto:${site.utility.email}`}
+              className="mt-4 inline-flex rounded-sm font-numeric text-xs tracking-[0.06em] text-coral transition-colors duration-150 hover:text-coral-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+            >
+              {site.utility.email}
+            </a>
           </div>
-          <nav aria-label={site.footer.navAriaLabel} className="flex gap-16">
+          <nav
+            aria-label={site.footer.navAriaLabel}
+            className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-3"
+          >
             <div>
               <h2 className="text-sm font-semibold">{site.footer.pillarsHeading}</h2>
               <ul className="mt-3 space-y-2">

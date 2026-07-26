@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getScore, listScores } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import { CalculatorForm } from "@/components/calculator/calculator-form";
 import { ValidationBadge } from "@/components/calculator/validation-badge";
+import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 
 const c = site.calculators;
 
@@ -35,13 +35,9 @@ export default async function CalculatorDetailPage({
 
   return (
     <div className="mx-auto max-w-[1100px] px-6 py-12">
-      <Link
-        href="/calculators"
-        data-print="hide"
-        className="font-numeric text-xs tracking-[0.06em] text-ink-muted uppercase hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-      >
-        <span aria-hidden="true">←</span> {c.backToIndex}
-      </Link>
+      <Breadcrumbs
+        trail={[{ href: "/calculators", label: site.nav.calculators }, { label: score.name }]}
+      />
 
       <header className="mt-4">
         <h1 className="font-display text-3xl font-bold tracking-tight text-ink-strong md:text-4xl">
