@@ -5,41 +5,44 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@towardpcc/ui";
 import { HeroWaveform } from "./hero-waveform";
 
-// The R3F scene is its own chunk, loaded only when it will actually run — never
-// in the home page's first-load JS (PRD §5.4 / §10). The poster fills the frame
-// while it loads and remains the fallback everywhere the scene is suppressed.
+// Its own chunk, so it never lands in the home page's first-load JS
+// (PRD §5.4 / §10). The poster is already on screen while it arrives.
 const WaveformCanvas = dynamic(() => import("./waveform-canvas").then((m) => m.WaveformCanvas), {
   ssr: false,
-  loading: () => <HeroWaveform className="h-full w-full" />,
 });
 
 /**
- * Decides between the animated R3F scene and the static poster (ADR §5.4):
- * reduced motion, small/touch screens, or no WebGL ⇒ poster only, no scene
- * chunk fetched. On capable pointer devices the scene loads behind the poster
- * and pauses whenever it scrolls out of view.
+ * The hero scene: an animated respiratory waveform over a static poster.
+ *
+ * There is exactly ONE condition on the animation — `prefers-reduced-motion`.
+ * The previous version also required a fine pointer, a viewport wider than
+ * 768px, and WebGL; on a touchscreen laptop `pointer: coarse` is true, so the
+ * scene never mounted and the hero was simply static. Measured in production:
+ * zero canvas elements, and one running animation on the whole page (an 8px
+ * dot). Canvas 2D needs no WebGL and costs a few KB, so there is nothing left
+ * to gate on — it runs on phones and touchscreens too.
+ *
+ * Under reduced motion the canvas is never mounted and the poster stands
+ * alone, which is motion.md rule 1 verbatim ("the P4 hero — poster only").
+ *
+ * The poster stays in the DOM either way: it is the server-rendered and no-JS
+ * layer, so the hero is never blank, and it carries the accessible name for
+ * the whole scene. The canvas is decorative and aria-hidden, so it adds
+ * nothing to the reading order.
  */
 export function HeroScene({ className }: { className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [enable3d, setEnable3d] = useState(false);
+  const [animate, setAnimate] = useState(false);
   const [inView, setInView] = useState(true);
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const small = window.matchMedia("(max-width: 768px)").matches;
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const webgl = (() => {
-      try {
-        const c = document.createElement("canvas");
-        return !!(c.getContext("webgl2") || c.getContext("webgl"));
-      } catch {
-        return false;
-      }
-    })();
-    if (!reduce && !small && !coarse && webgl) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setEnable3d(true);
-    }
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Tracked live rather than read once: a reader who turns reduced motion on
+    // should see it stop, without reloading.
+    const apply = () => setAnimate(!mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   useEffect(() => {
@@ -57,7 +60,15 @@ export function HeroScene({ className }: { className?: string }) {
 
   return (
     <div ref={ref} className={cn("relative aspect-[640/460]", className)}>
-      {enable3d ? <WaveformCanvas active={inView} /> : <HeroWaveform className="h-full w-full" />}
+      <HeroWaveform
+        className={cn(
+          "h-full w-full transition-opacity duration-700",
+          // Faded rather than unmounted, so there is no swap flicker when the
+          // canvas chunk lands and the accessible label never leaves the tree.
+          animate ? "opacity-0" : "opacity-100",
+        )}
+      />
+      {animate ? <WaveformCanvas active={inView} /> : null}
     </div>
   );
 }

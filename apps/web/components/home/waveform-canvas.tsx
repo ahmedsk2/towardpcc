@@ -1,134 +1,275 @@
 "use client";
 
-/* eslint-disable react-hooks/immutability -- R3F scene code is imperative by
-   design: useFrame mutates buffer geometry every frame. The React Compiler
-   purity model does not describe WebGL render loops, so the rule is off for
-   this one scene file. */
-
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
-import * as THREE from "three";
+import { useEffect, useRef } from "react";
 
 /**
- * The signature hero scene (ADR-design-direction §5.3): the poster's respiratory
- * waveform brought to life in 3D — layered rose lines that slowly *breathe*
- * (a respiratory-rhythm amplitude envelope, never a cardiac trace) and lean
- * toward the pointer. Lazy-loaded behind the static poster (see hero-scene.tsx),
- * paused off-screen, and never shown under reduced motion.
+ * The animated hero: the poster's RESPIRATORY waveform brought to life.
+ *
+ * Canvas 2D rather than WebGL. The previous R3F scene was gated behind
+ * `pointer: coarse`, so it never ran on a touchscreen laptop — the whole hero
+ * was static for anyone on one — and it pulled ~874 KB of three.js for a
+ * decorative background. This costs a few KB, needs no WebGL context, and
+ * therefore runs everywhere instead of being switched off on the devices it
+ * failed on.
+ *
+ * It stays respiratory. A cardiac trace on a PICU site reads as a monitor and
+ * implies a diagnostic instrument, so the eye-catching moment is a luminous
+ * crest travelling ALONG the wave — a moving highlight — never a QRS complex
+ * and never anything that could flatline (ADR-design-direction §5.3).
+ *
+ * Decorative, so `aria-hidden`; the labelled poster underneath carries the
+ * accessible name. Reduced motion never mounts this at all (see hero-scene).
  */
 
-// Mirrors --color-coral (packages/ui/src/tokens.css); a WebGL material needs a
-// literal, not a CSS variable. 7.11:1 on the night band.
-const ROSE = new THREE.Color("#ff7a6b");
-const SAMPLES = 128;
-const SPAN = 11; // world width
-const LINES = 5;
-const PERIODS = 2.15; // matches the static poster
+/** Matches the poster's geometry so the still and the motion are one design. */
+const PERIODS = 2.15;
+const ECHOES = [
+  { ampScale: 0.87, phase: 0.55, offset: 0.057, alpha: 0.28, width: 1.5 },
+  { ampScale: 1.13, phase: -0.5, offset: -0.048, alpha: 0.2, width: 1.5 },
+  { ampScale: 0.74, phase: 1.1, offset: 0.117, alpha: 0.12, width: 1 },
+  { ampScale: 1.26, phase: -1.05, offset: -0.104, alpha: 0.1, width: 1 },
+];
+const MOTES = 16;
 
-type WaveLine = {
-  line: THREE.Line;
-  geom: THREE.BufferGeometry;
-  positions: Float32Array;
-  i: number;
-};
+type Mote = { x: number; y: number; r: number; speed: number; alpha: number };
 
-function buildLines(samples: number): WaveLine[] {
-  return Array.from({ length: LINES }, (_, i) => {
-    const positions = new Float32Array((samples + 1) * 3);
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    const material = new THREE.LineBasicMaterial({
-      color: ROSE,
-      transparent: true,
-      opacity: i === 0 ? 0.95 : Math.max(0.08, 0.34 - i * 0.06),
-    });
-    return { line: new THREE.Line(geom, material), geom, positions, i };
+function makeMotes(count: number): Mote[] {
+  // Deterministic scatter — no Math.random, so the field is identical on every
+  // mount and a server/client difference can never show up as a flicker.
+  return Array.from({ length: count }, (_, i) => {
+    const golden = (i * 0.6180339887) % 1;
+    const secondary = (i * 0.7548776662) % 1;
+    return {
+      x: golden,
+      y: secondary,
+      r: 0.9 + ((i * 7) % 5) * 0.35,
+      speed: 0.004 + ((i * 3) % 4) * 0.0022,
+      alpha: 0.18 + ((i * 5) % 4) * 0.1,
+    };
   });
 }
 
-// THREE.Line objects rendered via <primitive> — the <line> JSX intrinsic
-// collides with SVG's line in React 19's typings. Lines are memoized (quality
-// is fixed at mount, so they build once); useFrame then mutates their geometry
-// each frame, which is why react-hooks/immutability is disabled for this file.
-function WaveLines({ quality }: { quality: number }) {
-  const group = useRef<THREE.Group>(null);
-  const samples = Math.round(SAMPLES * quality);
-  const lines = useMemo(() => buildLines(samples), [samples]);
-
-  useEffect(
-    () => () => {
-      for (const { line } of lines) {
-        line.geometry.dispose();
-        (line.material as THREE.Material).dispose();
-      }
-    },
-    [lines],
-  );
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    // Respiratory envelope: a calm ~0.5 Hz breath modulating amplitude.
-    const breath = 0.72 + 0.28 * Math.sin(t * 0.5);
-    for (const { geom, positions, i } of lines) {
-      const phase = i * 0.55;
-      const amp = (1 - i * 0.12) * 1.5;
-      const z = -i * 0.7;
-      for (let s = 0; s <= samples; s++) {
-        const u = s / samples;
-        const x = (u - 0.5) * SPAN;
-        const y = Math.sin(u * Math.PI * 2 * PERIODS + phase + t * 0.6) * amp * breath;
-        positions[s * 3] = x;
-        positions[s * 3 + 1] = y;
-        positions[s * 3 + 2] = z;
-      }
-      geom.attributes.position!.needsUpdate = true;
-    }
-    if (group.current) {
-      // Gentle lean toward the pointer (screen-space, [-1,1]).
-      group.current.rotation.y = THREE.MathUtils.lerp(
-        group.current.rotation.y,
-        state.pointer.x * 0.28,
-        0.05,
-      );
-      group.current.rotation.x = THREE.MathUtils.lerp(
-        group.current.rotation.x,
-        -state.pointer.y * 0.16,
-        0.05,
-      );
-    }
-  });
-
-  return (
-    <group ref={group}>
-      {lines.map(({ line, i }) => (
-        <primitive key={i} object={line} />
-      ))}
-    </group>
-  );
+/** Reads a token so the scene cannot drift from the palette. */
+function tokenColor(el: HTMLElement, name: string, fallback: string): string {
+  const v = getComputedStyle(el).getPropertyValue(name).trim();
+  return v || fallback;
 }
 
 export function WaveformCanvas({ active }: { active: boolean }) {
-  // Step down sampling on weak GPUs (integrated / low pixel-ratio devices).
-  const quality = useMemo(() => {
-    if (typeof window === "undefined") return 1;
-    const dpr = window.devicePixelRatio || 1;
-    const cores = navigator.hardwareConcurrency || 4;
-    return cores <= 4 || dpr < 1.5 ? 0.6 : 1;
-  }, []);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pointer = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
-  return (
-    // Decorative: this animation duplicates the labelled poster (HeroWaveform,
-    // role="img"), so it is hidden from assistive tech (WCAG 1.1.1). R3F spreads
-    // unknown props onto its container <div>, so aria-hidden lands on the wrapper.
-    <Canvas
-      aria-hidden="true"
-      camera={{ position: [0, 0, 8.5], fov: 48 }}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      dpr={[1, 2]}
-      frameloop={active ? "always" : "never"}
-      style={{ background: "transparent" }}
-    >
-      <WaveLines quality={quality} />
-    </Canvas>
-  );
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const coral = tokenColor(canvas, "--color-coral", "#ff7a6b");
+    const peach = tokenColor(canvas, "--color-peach", "#ffd9cc");
+    const motes = makeMotes(MOTES);
+
+    let w = 0;
+    let h = 0;
+    let raf = 0;
+    let start = 0;
+
+    // Cap at 2: beyond it the cost climbs with no visible gain on a soft glow.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      w = rect.width;
+      h = rect.height;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+
+    const onPointer = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.current.tx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+      pointer.current.ty = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    };
+    // Listening on window rather than the canvas: the canvas sits behind the
+    // hero's glass card, so it would receive almost no pointer events itself.
+    window.addEventListener("pointermove", onPointer, { passive: true });
+
+    /** y of the wave at normalised x, for a given layer. */
+    const waveY = (t: number, amp: number, phase: number, yBase: number, breath: number) =>
+      yBase + Math.sin(t * PERIODS * Math.PI * 2 + phase) * amp * breath;
+
+    const strokeWave = (
+      amp: number,
+      phase: number,
+      yBase: number,
+      breath: number,
+      alpha: number,
+      width: number,
+      glow: number,
+    ) => {
+      ctx.beginPath();
+      const steps = 110;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const y = waveY(t, amp, phase, yBase, breath);
+        if (i === 0) ctx.moveTo(t * w, y);
+        else ctx.lineTo(t * w, y);
+      }
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = coral;
+      ctx.lineWidth = width;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.shadowBlur = glow;
+      ctx.shadowColor = glow > 0 ? coral : "transparent";
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    };
+
+    const frame = (now: number) => {
+      if (!start) start = now;
+      const time = (now - start) / 1000;
+
+      // Ease the parallax toward the pointer so it glides rather than snaps.
+      pointer.current.x += (pointer.current.tx - pointer.current.x) * 0.045;
+      pointer.current.y += (pointer.current.ty - pointer.current.y) * 0.045;
+      const px = pointer.current.x;
+      const py = pointer.current.y;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Respiratory envelope — one calm breath roughly every 8 s, modulating
+      // every layer together. This is the "breathing", and it is deliberately
+      // slower than a heartbeat so it never reads as a pulse.
+      const breath = 0.78 + 0.22 * Math.sin(time * 0.78);
+      const drift = time * 0.42;
+      const amp = h * 0.1;
+      const yBase = h * 0.5 + py * h * 0.03;
+
+      // Ambient wash behind the traces.
+      const wash = ctx.createRadialGradient(
+        w * (0.5 + px * 0.06),
+        h * 0.5,
+        0,
+        w * 0.5,
+        h * 0.5,
+        Math.max(w, h) * 0.55,
+      );
+      wash.addColorStop(0, `${coral}2e`);
+      wash.addColorStop(1, `${coral}00`);
+      ctx.fillStyle = wash;
+      ctx.fillRect(0, 0, w, h);
+
+      // Motes: sparse data points drifting upward, wrapping at the top.
+      for (const m of motes) {
+        const my = (m.y - time * m.speed) % 1;
+        const y = (my < 0 ? my + 1 : my) * h;
+        const x = m.x * w + px * 14 * (0.4 + m.r * 0.3);
+        ctx.globalAlpha = m.alpha * breath;
+        ctx.fillStyle = peach;
+        ctx.beginPath();
+        ctx.arc(x, y, m.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // Echo layers behind the lead line.
+      for (const e of ECHOES) {
+        strokeWave(
+          amp * e.ampScale,
+          e.phase - drift,
+          yBase + h * e.offset + py * h * 0.012,
+          breath,
+          e.alpha,
+          e.width,
+          0,
+        );
+      }
+
+      // Lead line: a wide soft pass under a crisp one, matching the poster's
+      // blurred-glow-then-sharp construction.
+      strokeWave(amp, -drift, yBase, breath, 0.32, 6, 18);
+      strokeWave(amp, -drift, yBase, breath, 1, 2.25, 8);
+
+      // The travelling crest. A highlight riding the lead line left to right
+      // every ~5.5 s, with a short trail behind it. This is the eye-catching
+      // moment — a moving point of light, NOT an added waveform feature, so
+      // the trace stays a respiratory sine throughout.
+      const cycle = 5.5;
+      const progress = (time % cycle) / cycle;
+      // Fade in and out at the edges so it never pops into or out of existence.
+      const presence = Math.sin(Math.min(1, Math.max(0, progress)) * Math.PI);
+
+      if (presence > 0.01) {
+        const trail = 0.16;
+        ctx.beginPath();
+        const steps = 34;
+        for (let i = 0; i <= steps; i++) {
+          const t = Math.max(0, progress - trail * (1 - i / steps));
+          const y = waveY(t, amp, -drift, yBase, breath);
+          if (i === 0) ctx.moveTo(t * w, y);
+          else ctx.lineTo(t * w, y);
+        }
+        const grad = ctx.createLinearGradient(
+          Math.max(0, progress - trail) * w,
+          0,
+          progress * w,
+          0,
+        );
+        grad.addColorStop(0, `${coral}00`);
+        grad.addColorStop(1, peach);
+        ctx.globalAlpha = presence;
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = peach;
+        ctx.stroke();
+
+        const cx = progress * w;
+        const cy = waveY(progress, amp, -drift, yBase, breath);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fillStyle = peach;
+        ctx.shadowBlur = 22;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      }
+
+      raf = requestAnimationFrame(frame);
+    };
+
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    const run = () => {
+      // Never queue a second loop; `active` and visibility can both fire.
+      if (!raf && active && document.visibilityState === "visible") {
+        // Reset the clock so a paused scene resumes rather than jumping ahead.
+        start = 0;
+        raf = requestAnimationFrame(frame);
+      }
+    };
+
+    const onVisibility = () => (document.visibilityState === "visible" ? run() : stop());
+    document.addEventListener("visibilitychange", onVisibility);
+    run();
+
+    return () => {
+      stop();
+      ro.disconnect();
+      window.removeEventListener("pointermove", onPointer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [active]);
+
+  return <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 size-full" />;
 }
