@@ -59,22 +59,53 @@ automated here.
 4. **SMTP Credentials** (under your OCI _user_, not the domain) → generate.
    The password is shown **once**. It is not the console password.
 
-5. **DNS in Cloudflare** — add the records below. Take SPF and DKIM values
-   verbatim from the console; they are tenancy- and region-specific, so do not
-   copy them from documentation, including this file.
+5. **DNS in Cloudflare — these records already exist and must be CHANGED, not
+   added.** Verified 2026-07-27:
 
-   | Type  | Name                    | Value                                             |
-   | ----- | ----------------------- | ------------------------------------------------- |
-   | TXT   | `@`                     | SPF — exactly as shown in the OCI console         |
-   | CNAME | `<selector>._domainkey` | DKIM — exactly as shown in the OCI console        |
-   | TXT   | `_dmarc`                | `v=DMARC1; p=none; rua=mailto:ahmedsk2@gmail.com` |
+   ```
+   towardpcc.com         TXT  "v=spf1 -all"
+   _dmarc.towardpcc.com  TXT  "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;"
+   ```
 
-   Set these records to **DNS-only (grey cloud)**. Proxying a TXT record is not
-   possible, but a proxied CNAME would break DKIM verification.
+   Read together, that says: _nothing on earth is authorised to send mail as
+   this domain, and receivers should reject anything that claims to be._ For a
+   domain that sends no mail this is exactly right — it is the strongest
+   possible anti-spoofing posture, and it should stay in place until the moment
+   the relay goes live.
 
-   Start DMARC at `p=none` — monitor only. Move to `p=quarantine` once the
-   reports show legitimate mail passing. Publishing `p=reject` before the first
-   send is how a domain silently blackholes its own mail.
+   **It also means the first message you send will be rejected by every
+   receiver** unless SPF is widened first. There will be no bounce you notice
+   and no error in the app; the mail will simply not arrive. Change the DNS
+   before the first send, not after.
+
+   Do it in this order. Each step is safe on its own, and none of them weakens
+   the domain at any point:
+
+   1. **Add `rua=` to the existing DMARC record**, keeping `p=reject`:
+      `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; rua=mailto:ahmedsk2@gmail.com`
+      Today there is no `rua=`, so DMARC is enforcing silently and no one is
+      collecting the reports that would show what is passing or failing. Add
+      this first so the later steps are observable.
+   2. **Add the DKIM record** OCI generates for your selector.
+   3. **Widen SPF** from `v=spf1 -all` to include OCI's sending hosts, keeping
+      the `-all` hard fail:
+      `v=spf1 include:<value from the OCI console> -all`
+   4. **Send a test and read the headers** for `dkim=pass` and `spf=pass`
+      before trusting it.
+
+   Take the SPF include and DKIM values verbatim from the OCI console — they
+   are tenancy- and region-specific, so do not copy them from documentation,
+   including this file.
+
+   Set every one of these to **DNS-only (grey cloud)**. A proxied CNAME breaks
+   DKIM verification.
+
+   **Do not drop DMARC to `p=none`.** Generic advice says to start permissive
+   and tighten later, and an earlier version of this runbook repeated it — but
+   that advice assumes you are starting from nothing. Here it would be a
+   downgrade from an already-correct policy, opening a spoofing window for the
+   sake of a transition that `rua=` reporting handles without weakening
+   anything.
 
 6. **Coolify env** — set on the application (production environment), then
    redeploy:
@@ -100,10 +131,16 @@ automated here.
 
 ## Send authentication before first send (TM-008)
 
-SPF, DKIM and DMARC must all exist **before** the first message goes out. Early
-unauthenticated mail trains receivers against the domain, and that reputation
-is slow to rebuild — the reason this is a launch blocker rather than a
-follow-up.
+SPF, DKIM and DMARC must all be **correct** before the first message goes out —
+which for this domain means widened, not created. They already exist in their
+most restrictive form.
+
+The usual reason to get this right first is reputation: early unauthenticated
+mail trains receivers against the domain and that is slow to rebuild. Here the
+failure is more immediate than that. With `v=spf1 -all` and `p=reject`, mail
+does not land in spam — it is rejected outright, silently, with nothing in the
+application logs to explain it, because from the app's point of view the relay
+accepted the message.
 
 ## If mail breaks later
 

@@ -130,36 +130,64 @@ then — no figure is invented.
 
 ## Security (from docs/security/threat-model.md, 2026-07-24)
 
-- [ ] **Domain trust program (TM-008, high/firm)** — registrar + registry lock,
-      org-owned auto-renew payment method and contact email, renewal calendar
-      with two owners, DNSSEC, CAA records, CT-log + lookalike monitoring,
-      defensive typo/sibling registrations, dangling-DNS hygiene. The Saudi
-      Critical Care Society's lapsed domain is squatted by a gambling site —
-      that exact fate must be impossible for towardpcc.com. (P8, before DNS)
+- [~] **Domain trust program (TM-008, high/firm)** — **verified against the
+  registry 2026-07-27, and more of it is already done than this item
+  credited.** RDAP reports registrar GoDaddy with the full client-side lock
+  set — `clientDelete`, `clientRenew`, `clientTransfer` and `clientUpdate`
+  prohibited — and expiry 2028-07-20, so the lapsed-domain-gets-squatted
+  scenario has roughly two years of runway.
+
+      **Genuinely missing, confirmed by live DNS:** DNSSEC is off
+      (`delegationSigned: false`, no DS at `com`); there are **zero CAA
+      records**, so any CA in the world may issue for this domain. Also still
+      open and not verifiable from the repo: registry lock proper (no `server*`
+      status codes), org-owned auto-renew payment, a two-owner renewal
+      calendar, CT-log and lookalike monitoring, defensive registrations.
+
 - [ ] **SMTP relay + email authentication (TM-008)** — the app side is done:
       `lib/mail-config.ts` reports what is missing, the admin inbox banners it,
       and the relay is specified in `docs/runbooks/email-delivery.md` (OCI
       Email Delivery, `me-riyadh-1` — chosen to keep mail bodies in-region
       rather than widening ADR-0003 further). **Outstanding, and owner-only
-      because it mints a credential:** create the email domain + DKIM selector + approved sender in the OCI console, generate SMTP credentials, add
-      SPF/DKIM/DMARC as grey-cloud DNS records, set the four `SMTP_*` values in
-      Coolify. Start DMARC at `p=none` and move to `p=quarantine` once reports
-      show legitimate mail passing — publishing `p=reject` before the first
-      send is how a domain blackholes its own mail. (Before any form
-      notification.)
-- [ ] **HSTS preload-list submission (P8)** — the `Strict-Transport-Security`
-      header already sets `preload`, but do NOT submit the domain to the browser
-      preload list until HTTPS is confirmed working on the apex AND every
-      subdomain — preload is hard to reverse and would break any plain-HTTP
-      subdomain.
+      because it mints a credential:** create the email domain + DKIM selector +
+      approved sender in the OCI console, generate SMTP credentials, set the
+      four `SMTP_*` values in Coolify.
+
+      **⚠️ The DNS half is not "add records" — it is "widen existing ones", and
+          getting this wrong means silent total failure.** Verified live
+          2026-07-27: the apex publishes `v=spf1 -all` and `_dmarc` publishes
+          `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;`. Together those say
+          nothing may send as this domain and receivers should reject anything that
+          tries — correct today, and fatal the moment a relay goes live. The first
+          message will be **rejected outright**, not spam-filed, with nothing in the
+          app logs, because from the app's side the relay accepted it.
+
+          There is also no `rua=` tag, so DMARC is enforcing silently and nobody is
+          collecting the reports that would reveal this. An earlier version of this
+          item said to start at `p=none`; that is wrong here — it would be a
+          downgrade from an already-correct policy. Order and reasoning in
+          `docs/runbooks/email-delivery.md`. (Before any form notification.)
+
+- [ ] **HSTS preload-list submission (P8)** — **the precondition is now met.**
+      Checked 2026-07-27: hstspreload.org reports the domain **preloadable with
+      zero errors and zero warnings**, and has never been submitted
+      (`status: unknown`). The item's own gate — HTTPS confirmed on the apex and
+      every subdomain — holds: the apex 308s to www over HTTPS, and the only
+      other live subdomain, `next.towardpcc.com`, serves 200 over HTTPS.
+      Remains deliberately un-submitted because it is genuinely hard to reverse:
+      once preloaded, any future subdomain that cannot do HTTPS is unreachable
+      in browsers for months. A founder decision, not an engineering one.
 - [~] **CSP + security headers ship WITH P5** (TM-005). DONE: strict static
   security headers (HSTS, nosniff, Referrer-Policy, X-Frame-Options, a
   restrictive Permissions-Policy, COOP) + a two-tier CSP in
   apps/web/proxy.ts — verified the app hydrates under it
-  (docs/decisions/ADR-security-headers.md). **Remaining:** the `/admin`
-  strict nonce+strict-dynamic CSP tier (wired with the admin build), then
-  re-run `sec-web` and record the grade. Public pages use scoped
-  `script-src 'unsafe-inline'` (SSG constraint; no injection surface there).
+  (docs/decisions/ADR-security-headers.md). **The `/admin` nonce tier is also
+  DONE** — verified live 2026-07-27: `/admin/login` returns
+  `script-src 'self' 'nonce-…' 'strict-dynamic'` with no `unsafe-inline`, and
+  it is regression-guarded by `e2e/security-headers.spec.ts`. **Remaining:**
+  only re-run `sec-web` against the live URL and record the grade. Public pages
+  keep scoped `script-src 'unsafe-inline'` (SSG constraint; no injection
+  surface there) — tracked separately as SPC-WEB-001.
 - [~] **Privacy-invariant test suite (TM-001)** — DONE in P3: Playwright
   zero-network/airplane-mode calculator compute test (apps/web/e2e/
   calculator-privacy.spec.ts, CI `e2e` job) + static grep-guards (no
