@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { SubmissionStatus } from "@towardpcc/db";
 import { db } from "@towardpcc/db";
 import { requireAdmin } from "@/lib/auth/guard";
+import { mailConfigurationStatus } from "@/lib/mail-config";
 import {
   STATUS_LABELS,
   STATUS_ORDER,
@@ -35,10 +36,30 @@ export default async function InboxPage({
   ]);
   const countFor = (s: SubmissionStatus) => counts.find((c) => c.status === s)?._count ?? 0;
   const total = counts.reduce((n, c) => n + (c._count as number), 0);
+  const mailStatus = mailConfigurationStatus();
 
   return (
     <div>
       <h1 className="font-display text-2xl font-medium text-ink-strong">Inbox</h1>
+
+      {/* Outbound mail failing is invisible by design: a submission is stored
+          first and the notification is best-effort, so a broken relay looks
+          exactly like "nobody has written to us". This page is the one place
+          the problem would actually be noticed, so it says so here. */}
+      {mailStatus.configured ? null : (
+        <div
+          role="status"
+          className="mt-5 rounded-lg border border-alert-text/40 bg-alert-bg p-4 text-sm text-alert-text"
+        >
+          <p className="m-0 font-semibold">Email notifications are not being sent.</p>
+          <p className="m-0 mt-1.5 leading-relaxed">
+            Submissions below are still being stored safely — but nothing is emailing you when one
+            arrives, so this page is the only way to see them. Missing configuration:{" "}
+            <span className="numeric">{mailStatus.missing.join(", ")}</span>. See{" "}
+            <span className="numeric">docs/runbooks/email-delivery.md</span>.
+          </p>
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap gap-2">
         <FilterTab href="/admin" active={!filter} label={`All (${total})`} />

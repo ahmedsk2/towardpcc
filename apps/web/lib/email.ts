@@ -2,6 +2,8 @@ import "server-only";
 import nodemailer, { type Transporter } from "nodemailer";
 import type { SubmissionType } from "@towardpcc/db";
 import { TYPE_LABELS } from "@/lib/admin/submission-view";
+import { logger } from "@/lib/logger";
+import { env, mailConfigurationStatus } from "@/lib/mail-config";
 import { SITE_URL } from "@/lib/site-url";
 
 /**
@@ -11,12 +13,29 @@ import { SITE_URL } from "@/lib/site-url";
  * ever emailed AFTER a human triages — never an auto-reply that confirms a live
  * address to a spammer.
  */
+let warned = false;
+/** Logs once per process rather than per submission, so it is visible without
+ *  drowning the log during a spam flood. */
+function warnIfUnconfigured(): boolean {
+  const status = mailConfigurationStatus();
+  if (status.configured) return true;
+  if (!warned) {
+    warned = true;
+    logger.error(
+      { missing: status.missing },
+      "outbound email is NOT configured — submissions will be stored but nobody will be notified",
+    );
+  }
+  return false;
+}
+
 let cached: Transporter | undefined;
 function transporter(): Transporter {
   if (!cached) {
     cached = nodemailer.createTransport({
-      host: process.env.SMTP_HOST ?? "localhost",
-      port: Number(process.env.SMTP_PORT ?? 1025),
+      // Explicit fallback rather than `??`, which does not catch "".
+      host: env("SMTP_HOST") ?? "localhost",
+      port: Number(env("SMTP_PORT") ?? 1025),
       secure: process.env.SMTP_SECURE === "true",
       // Finite timeouts so a slow/hung SMTP relay can't stall the request path
       // for the library's multi-minute defaults (prod-readiness RES-01). Mail is
@@ -24,22 +43,23 @@ function transporter(): Transporter {
       connectionTimeout: 10_000,
       greetingTimeout: 10_000,
       socketTimeout: 20_000,
-      ...(process.env.SMTP_USER
-        ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD } }
-        : {}),
+      ...(env("SMTP_USER") ? { auth: { user: env("SMTP_USER"), pass: env("SMTP_PASSWORD") } } : {}),
     });
   }
   return cached;
 }
 
-const from = () => process.env.MAIL_FROM ?? "TowardPCC <info@towardpcc.com>";
+const from = () => env("MAIL_FROM") ?? "TowardPCC <info@towardpcc.com>";
 
 async function send(opts: { to: string; subject: string; text: string }): Promise<void> {
   await transporter().sendMail({ from: from(), ...opts });
 }
 
 export async function notifyAdminOfSubmission(type: SubmissionType, id: string): Promise<void> {
-  const to = process.env.ADMIN_EMAIL;
+  // Fail loudly-in-logs rather than returning silently, which is what the old
+  // `if (!to) return;` did — indistinguishable from a successful send.
+  if (!warnIfUnconfigured()) return;
+  const to = env("ADMIN_EMAIL");
   if (!to) return;
   // Falls back to the canonical origin rather than "": an empty base produced a
   // relative path, which is not clickable in an email client.
