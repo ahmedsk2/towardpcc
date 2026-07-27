@@ -12,8 +12,8 @@ happened:
 
 > Note the tension: fronting with a global CDN/WAF would terminate TLS and see
 > form PII **outside KSA** — contradicts §8.3. Prefer origin-side rate limiting
->
-> - KSA-provider DDoS protection; write the tradeoff into an ADR (**TM-006**).
+> (Caddy) and KSA-provider DDoS protection; write the tradeoff into an ADR
+> (**TM-006**).
 
 That ADR was never written. The infrastructure went the other way anyway:
 Cloudflare proxies both hostnames, and the OCI security list for `hosting-vcn`
