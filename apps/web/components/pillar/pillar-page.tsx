@@ -26,6 +26,8 @@ export function PillarPage({
   faq,
   imageLabel,
   imageHint,
+  imageSrc,
+  imageAlt,
   children,
 }: {
   crumb: string;
@@ -41,6 +43,8 @@ export function PillarPage({
   faq: readonly AccordionItem[];
   imageLabel: string;
   imageHint: string;
+  imageSrc?: string | undefined;
+  imageAlt?: string | undefined;
   children: React.ReactNode;
 }) {
   return (
@@ -137,7 +141,13 @@ export function PillarPage({
             </div>
           </Reveal>
           <Reveal>
-            <ImageSlot label={imageLabel} hint={imageHint} className="aspect-4/3.4" />
+            <ImageSlot
+              label={imageLabel}
+              hint={imageHint}
+              src={imageSrc}
+              alt={imageAlt}
+              className="aspect-4/3.4"
+            />
           </Reveal>
         </div>
       </section>

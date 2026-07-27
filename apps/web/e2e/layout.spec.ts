@@ -23,6 +23,10 @@ const PAGES = [
   "/data",
   "/services",
   "/about",
+  "/contact",
+  "/legal/terms",
+  "/legal/disclaimer",
+  "/legal/data-protection",
 ];
 
 for (const vp of WIDTHS) {

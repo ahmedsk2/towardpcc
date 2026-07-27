@@ -53,7 +53,9 @@ export default function AboutPage() {
           <Reveal>
             <ImageSlot
               label="Portrait"
-              hint="your photograph"
+              hint="save as public/images/founder-portrait.jpg"
+              src="/images/founder-portrait.jpg"
+              alt="Dr. Ahmed Alkhalifah"
               className="aspect-square max-w-[280px]"
             />
           </Reveal>

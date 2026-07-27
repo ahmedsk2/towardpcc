@@ -1,30 +1,35 @@
+import Image from "next/image";
 import { cn } from "@towardpcc/ui";
 
 /**
- * A designed placeholder for artwork that has not been produced yet.
+ * An image frame that degrades to a designed placeholder.
  *
- * It is deliberately a real gradient surface rather than a grey box, so layout
- * and rhythm can be judged before the photography exists. Swap it for
- * `next/image` once a file is in place; the `label` names what belongs here so
- * nobody has to guess.
+ * When `src` is supplied the photograph renders on top of the brand gradient;
+ * if the file is missing the gradient and its label remain visible, so a
+ * missing asset never leaves a broken-image icon on a clinical site. Without
+ * `src` it is purely a placeholder naming the artwork that belongs here.
  *
- * Decorative by definition — `aria-hidden`, so a screen reader is never told
- * about a picture that does not exist.
+ * A photograph carries an `alt`; the empty-slot state is `aria-hidden`, because
+ * a screen reader should never be told about a picture that does not exist.
  */
 export function ImageSlot({
   label,
   hint,
+  src,
+  alt,
   className,
   gradient = "from-surface-hero-raised via-accent to-coral",
 }: {
   label: string;
-  hint?: string;
-  className?: string;
-  gradient?: string;
+  hint?: string | undefined;
+  src?: string | undefined;
+  alt?: string | undefined;
+  className?: string | undefined;
+  gradient?: string | undefined;
 }) {
   return (
     <div
-      aria-hidden="true"
+      {...(src ? {} : { "aria-hidden": "true" as const })}
       className={cn(
         "relative grid place-items-center overflow-hidden rounded-[26px] bg-linear-140 shadow-[0_34px_70px_-30px_rgba(61,21,38,0.55)]",
         gradient,
@@ -32,6 +37,8 @@ export function ImageSlot({
       )}
     >
       <div className="absolute inset-0 bg-[radial-gradient(400px_300px_at_30%_25%,rgba(255,255,255,0.22),transparent_70%)]" />
+
+      {/* Placeholder text sits underneath, so it shows through if src 404s. */}
       <div className="relative z-10 px-6 text-center text-white">
         <svg
           viewBox="0 0 24 24"
@@ -56,6 +63,16 @@ export function ImageSlot({
           </p>
         ) : null}
       </div>
+
+      {src ? (
+        <Image
+          src={src}
+          alt={alt ?? ""}
+          fill
+          sizes="(max-width: 1024px) 100vw, 640px"
+          className="z-20 object-cover"
+        />
+      ) : null}
     </div>
   );
 }

@@ -22,7 +22,9 @@ export default function ServicesPage() {
       capabilities={d.capabilities}
       faq={d.faq}
       imageLabel="Research support"
-      imageHint="abstract data / analysis visual"
+      imageHint="save as public/images/care-thermometer.jpg"
+      imageSrc="/images/care-thermometer.jpg"
+      imageAlt="A clinician taking a child's temperature while the child holds a teddy bear."
     >
       <PillarRequestForm
         heading={site.pillarPages.services.formHeading}

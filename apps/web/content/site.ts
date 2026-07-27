@@ -119,7 +119,21 @@ export const site = {
       { value: 89, label: "Literature citations" },
       { value: 64388, label: "Library pages indexed" },
       { value: 100, suffix: "%", label: "Engine test coverage" },
-    ] as { value: number; label: string; suffix?: string }[],
+    ] as { value: number; label: string; suffix?: string; prefix?: string }[],
+    /**
+     * Second counter row — founder-supplied figures about the team and its
+     * work, rather than about the codebase.
+     *
+     * Note on the last one: the PRD is explicit that Research Services makes
+     * no SLA promise. It is therefore worded as a typical observed turnaround,
+     * not a guarantee — "typically" is doing load-bearing work in that label.
+     */
+    teamCounters: [
+      { value: 5, suffix: "+", label: "Online solutions, and growing" },
+      { value: 10, suffix: "+", label: "Years in pediatric critical care" },
+      { value: 7, suffix: "+", label: "Studies supported, with ongoing help" },
+      { value: 5, prefix: "<", label: "Working days to a first reply, typically" },
+    ] as { value: number; label: string; suffix?: string; prefix?: string }[],
     /**
      * Replaces the testimonial slot the reference sites use. These are real,
      * checkable citations — the honest form of social proof for a clinical

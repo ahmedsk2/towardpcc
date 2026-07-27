@@ -188,7 +188,9 @@ export default function HomePage() {
             <div className="relative">
               <ImageSlot
                 label="Mission photograph"
-                hint="wide PICU environment, no people"
+                hint="save as public/images/care-nurse-smiling.jpg"
+                src="/images/care-nurse-smiling.jpg"
+                alt="A nurse laughing with a child in a hospital bed, who is holding a teddy bear."
                 className="aspect-4/3.4"
               />
               <p className="absolute -bottom-6 -left-6 z-20 rounded-[20px] bg-surface-raised px-6 py-5 shadow-[0_26px_54px_-22px_rgba(0,0,0,0.4)]">
@@ -249,7 +251,19 @@ export default function HomePage() {
             {h.counters.map((c) => (
               <div key={c.label} className="text-center">
                 <dd className="m-0 font-numeric text-4xl font-semibold text-white tabular-nums md:text-5xl">
-                  <Counter value={c.value} suffix={c.suffix} />
+                  <Counter value={c.value} suffix={c.suffix} prefix={c.prefix} />
+                </dd>
+                <dt className="mt-3 text-sm text-ink-on-dark/80">{c.label}</dt>
+              </div>
+            ))}
+          </dl>
+
+          {/* Second row: the team behind it, rather than the codebase. */}
+          <dl className="mt-14 grid gap-8 border-t border-white/20 pt-14 sm:grid-cols-2 lg:grid-cols-4">
+            {h.teamCounters.map((c) => (
+              <div key={c.label} className="text-center">
+                <dd className="m-0 font-numeric text-3xl font-semibold text-coral tabular-nums md:text-4xl">
+                  <Counter value={c.value} suffix={c.suffix} prefix={c.prefix} />
                 </dd>
                 <dt className="mt-3 text-sm text-ink-on-dark/80">{c.label}</dt>
               </div>
@@ -366,7 +380,9 @@ export default function HomePage() {
           <Reveal>
             <ImageSlot
               label="Portrait"
-              hint="your photograph"
+              hint="save as public/images/founder-portrait.jpg"
+              src="/images/founder-portrait.jpg"
+              alt="Dr. Ahmed Alkhalifah"
               className="aspect-square max-w-[280px]"
             />
           </Reveal>

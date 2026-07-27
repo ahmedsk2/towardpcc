@@ -9,6 +9,7 @@ export const metadata = {
 export default function DisclaimerPage() {
   return (
     <LegalPage
+      crumb={site.disclaimer.title}
       heading={site.disclaimer.heading}
       lede={site.disclaimer.lede}
       sections={site.disclaimer.sections}

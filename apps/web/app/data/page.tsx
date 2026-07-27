@@ -21,8 +21,10 @@ export default function DataPage() {
       capabilitiesHeading={d.capabilitiesHeading}
       capabilities={d.capabilities}
       faq={d.faq}
-      imageLabel="Registry dashboard"
-      imageHint="unit dashboard concept"
+      imageLabel="Registry"
+      imageHint="save as public/images/care-teddy-oxygen.jpg"
+      imageSrc="/images/care-teddy-oxygen.jpg"
+      imageAlt="A teddy bear tucked into a hospital bed wearing an oxygen mask."
     >
       <PillarRequestForm
         heading={site.pillarPages.data.formHeading}

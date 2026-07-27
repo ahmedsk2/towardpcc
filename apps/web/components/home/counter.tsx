@@ -14,11 +14,13 @@ import { useEffect, useRef, useState } from "react";
 export function Counter({
   value,
   suffix = "",
+  prefix = "",
   className,
 }: {
   value: number;
   // `| undefined` because the repo runs exactOptionalPropertyTypes.
   suffix?: string | undefined;
+  prefix?: string | undefined;
   className?: string | undefined;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -74,6 +76,7 @@ export function Counter({
 
   return (
     <span ref={ref} className={className}>
+      {prefix}
       {display.toLocaleString("en-US")}
       {suffix}
     </span>

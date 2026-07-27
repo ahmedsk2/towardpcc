@@ -22,7 +22,14 @@ const CATEGORY_ORDER: ScoreCategory[] = [
   "general",
 ];
 
-export function CalculatorsIndex({ scores }: { scores: readonly ScoreSummary[] }) {
+export function CalculatorsIndex({
+  scores,
+  inputCounts = {},
+}: {
+  scores: readonly ScoreSummary[];
+  /** slug → number of inputs, read from each definition on the server. */
+  inputCounts?: Record<string, number>;
+}) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<ScoreCategory | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -116,12 +123,24 @@ export function CalculatorsIndex({ scores }: { scores: readonly ScoreSummary[] }
                   <li key={s.slug} className="flex items-stretch gap-2">
                     <Link
                       href={`/calculators/${s.slug}`}
-                      className="group flex flex-1 items-center justify-between gap-3 rounded-lg border border-surface-sunken bg-surface-raised px-5 py-4 transition-colors duration-150 hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="group flex flex-1 flex-col justify-between gap-3 rounded-lg border border-surface-sunken bg-surface-raised px-5 py-4 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_18px_36px_-24px_rgba(207,31,61,0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       <span className="font-display text-[15px] font-medium text-ink-strong">
                         {s.name}
                       </span>
-                      <span className="font-numeric text-xs text-ink-muted">v{s.version}</span>
+                      {/* Data pairs: what the score needs, before you open it. */}
+                      <span className="flex flex-wrap items-center gap-x-4 gap-y-1 font-numeric text-[11px] text-ink-muted">
+                        <span>v{s.version}</span>
+                        {inputCounts[s.slug] ? (
+                          <span>
+                            {inputCounts[s.slug]} input
+                            {inputCounts[s.slug] === 1 ? "" : "s"}
+                          </span>
+                        ) : null}
+                        <span className="text-accent opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                          Open →
+                        </span>
+                      </span>
                     </Link>
                     <button
                       type="button"
