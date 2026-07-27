@@ -24,8 +24,8 @@ export default function KnowledgePage() {
       topics={d.topics}
       faq={d.faq}
       imageLabel="Library screenshot"
-      imageHint="save as public/images/library-screenshot.png"
-      imageSrc="/images/library-screenshot.png"
+      imageHint="save as public/images/library-screenshot.jpg"
+      imageSrc="/images/library-screenshot.jpg"
       imageAlt="A PedsCC Library search result linking to an exact page inside a document."
     >
       <PillarRequestForm

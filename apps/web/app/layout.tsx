@@ -18,6 +18,28 @@ export const metadata: Metadata = {
   },
   description: site.description,
   appleWebApp: { capable: true, title: site.name, statusBarStyle: "default" },
+  // Social share card: the signature respiratory waveform — rolling and
+  // continuous, never the flat line that reads as death in a PICU.
+  openGraph: {
+    type: "website",
+    siteName: site.name,
+    title: site.metaTitle,
+    description: site.description,
+    images: [
+      {
+        url: "/images/og-waveform.jpg",
+        width: 1200,
+        height: 630,
+        alt: "TowardPCC — a glowing respiratory waveform on a deep oxblood field.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: site.metaTitle,
+    description: site.description,
+    images: ["/images/og-waveform.jpg"],
+  },
 };
 
 // Mirrors --color-surface-hero (packages/ui/src/tokens.css). A CSS variable

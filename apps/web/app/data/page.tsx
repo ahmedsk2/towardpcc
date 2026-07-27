@@ -22,8 +22,8 @@ export default function DataPage() {
       capabilities={d.capabilities}
       faq={d.faq}
       imageLabel="Registry dashboard"
-      imageHint="save as public/images/registry-dashboard.png"
-      imageSrc="/images/registry-dashboard.png"
+      imageHint="save as public/images/registry-dashboard.jpg"
+      imageSrc="/images/registry-dashboard.jpg"
       imageAlt="A PICU registry dashboard showing admissions, bed occupancy and length-of-stay charts."
     >
       <PillarRequestForm
