@@ -17,10 +17,12 @@ missing file degrades to a labelled placeholder rather than a broken image.
 
 - **No founder portrait.** The founder chose not to publish one; the brand
   waveform carries that section instead.
-- **No registry dashboard screenshot.** The supplied one names the health
-  cluster and shows real operational figures (admissions, discharges, bed
-  occupancy above 100%). Publishing those needs institutional permission, not
-  just the founder's. Use only a redacted version with illustrative numbers.
+- **Registry dashboard: use the redacted version only.** The first screenshot
+  named the health cluster in its sidebar; that branding must stay removed. The
+  operational figures it still shows (admissions, discharges, bed occupancy
+  above 100%, admission dates) are real. They carry no patient identifiers and
+  no institution is named, but they remain that unit's numbers — confirm they
+  are yours to publish, or replace them with illustrative values.
 - **No flat glowing horizontal line.** A flat line on a dark ground reads as a
   flatline, which ADR-design-direction explicitly rejects for a paediatric
   intensive care product. The signature waveform is respiratory and continuous.
