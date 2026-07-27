@@ -188,11 +188,22 @@ export default function HomePage() {
             <div className="relative">
               <ImageSlot
                 label="Mission photograph"
-                hint="save as public/images/care-nurse-smiling.jpg"
+                hint="care-nurse-smiling.jpg"
                 src="/images/care-nurse-smiling.jpg"
                 alt="A nurse laughing with a child in a hospital bed, who is holding a teddy bear."
                 className="aspect-4/3.4"
               />
+              {/* Overlapping second frame — the quieter half of the same story.
+                  Hidden on small screens, where it would only crowd the stat. */}
+              <div className="absolute -right-6 -bottom-10 hidden w-40 sm:block lg:w-48">
+                <ImageSlot
+                  label="Rest"
+                  hint="care-resting.jpg"
+                  src="/images/care-resting.jpg"
+                  alt="A child asleep in a hospital bed, holding a soft toy."
+                  className="aspect-9/16 rounded-[20px] ring-4 ring-surface-page"
+                />
+              </div>
               <p className="absolute -bottom-6 -left-6 z-20 rounded-[20px] bg-surface-raised px-6 py-5 shadow-[0_26px_54px_-22px_rgba(0,0,0,0.4)]">
                 <span className="block font-numeric text-3xl leading-none font-semibold text-accent tabular-nums">
                   <Counter value={22} />

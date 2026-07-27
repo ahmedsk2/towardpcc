@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getScore, listScores } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
@@ -32,6 +33,13 @@ export default async function CalculatorDetailPage({
   const { slug } = await params;
   const score = getScore(slug);
   if (!score || score.status !== "published") notFound();
+
+  // Same-category siblings, so a clinician who opened the wrong score can step
+  // sideways instead of going back to the index.
+  const related = listScores({ status: "published" })
+    .filter((s) => s.category === score.category && s.slug !== score.slug)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, 6);
 
   return (
     <div className="mx-auto max-w-[1100px] px-6 py-12">
@@ -133,6 +141,34 @@ export default async function CalculatorDetailPage({
           ))}
         </ul>
       </section>
+
+      {related.length > 0 ? (
+        <section className="mt-12 border-t border-surface-sunken pt-8" data-print="hide">
+          <h2 className="font-display text-xl font-medium text-ink-strong">
+            Other {c.categoryLabels[score.category].toLowerCase()} scores
+          </h2>
+          <ul className="mt-4 grid list-none gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {related.map((r) => (
+              <li key={r.slug}>
+                <Link
+                  href={`/calculators/${r.slug}`}
+                  className="group flex h-full flex-col justify-between gap-2 rounded-lg border border-surface-sunken bg-surface-raised px-5 py-4 transition-[border-color,transform] duration-200 hover:-translate-y-1 hover:border-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                >
+                  <span className="font-display text-[15px] font-medium text-ink-strong">
+                    {r.name}
+                  </span>
+                  <span className="font-numeric text-[11px] text-ink-muted">
+                    v{r.version}
+                    <span className="ml-3 text-accent opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                      Open →
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="mt-12 border-t border-surface-sunken pt-8">
         <h2 className="font-display text-lg font-medium text-ink-strong">{c.disclaimerHeading}</h2>

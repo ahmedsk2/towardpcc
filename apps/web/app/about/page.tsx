@@ -124,10 +124,21 @@ export default function AboutPage() {
         <div className="mx-auto max-w-[1280px] px-6 py-24">
           <h2
             id="story"
-            className="mb-10 text-center font-display text-3xl font-bold tracking-tight text-ink-strong"
+            className="mb-8 text-center font-display text-3xl font-bold tracking-tight text-ink-strong"
           >
             {a.storyHeading}
           </h2>
+          {/* The motif the section explains, shown once: paediatric critical
+              care without a real patient in frame. */}
+          <Reveal>
+            <ImageSlot
+              label="Pediatric critical care"
+              hint="care-teddy-oxygen.jpg"
+              src="/images/care-teddy-oxygen.jpg"
+              alt="A teddy bear tucked into a hospital bed wearing an oxygen mask."
+              className="mx-auto mb-12 aspect-21/9 max-w-[900px]"
+            />
+          </Reveal>
           <ul className="grid list-none gap-6 md:grid-cols-3">
             {a.story.map((s) => (
               <li key={s.title}>

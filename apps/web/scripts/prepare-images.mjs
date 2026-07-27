@@ -31,7 +31,21 @@ const JOBS = [
     width: 900,
   },
   { src: "image-1785163481760.png", out: "library-screenshot.jpg", width: 1400 },
-  { src: "Screenshot 2026-07-27 170852.png", out: "registry-dashboard.jpg", width: 1400 },
+  /**
+   * Registry dashboard. The source shows that unit's real operating figures —
+   * year-to-date admissions, bed occupancy above 100%, live census and dated
+   * admissions. Those are not ours to publish, and labelling real numbers
+   * "illustrative" would be a lie. So the sensitive regions are cropped away
+   * instead: this window keeps the sidebar and the admissions/discharges chart,
+   * which shows what the product looks like without asserting anything about a
+   * real unit's performance.
+   */
+  {
+    src: "Screenshot 2026-07-27 170852.png",
+    out: "registry-dashboard.jpg",
+    width: 1200,
+    sourceCrop: { x: 0, y: 180, w: 1000, h: 850 },
+  },
 ];
 
 mkdirSync(OUT, { recursive: true });
@@ -63,20 +77,36 @@ for (const job of JOBS) {
     return { w: el.naturalWidth, h: el.naturalHeight };
   });
 
-  const outW = Math.min(job.width, nat.w);
+  // A sourceCrop selects a window of the ORIGINAL before scaling, so regions
+  // can be excluded outright rather than merely shrunk.
+  const src = job.sourceCrop ?? { x: 0, y: 0, w: nat.w, h: nat.h };
+  const outW = Math.min(job.width, src.w);
   const outH = job.cropTo
     ? Math.round((outW * job.cropTo[1]) / job.cropTo[0])
-    : Math.round((outW * nat.h) / nat.w);
+    : Math.round((outW * src.h) / src.w);
 
   await page.setViewportSize({ width: outW, height: outH });
   await page.evaluate(
-    ({ w, h }) => {
+    ({ w, h, c }) => {
       const el = document.getElementById("i");
-      el.style.width = `${w}px`;
-      el.style.height = `${h}px`;
-      el.style.objectFit = "cover";
+      const scale = w / c.w;
+      Object.assign(document.body.style, {
+        margin: "0",
+        width: `${w}px`,
+        height: `${h}px`,
+        overflow: "hidden",
+        position: "relative",
+      });
+      Object.assign(el.style, {
+        position: "absolute",
+        width: `${el.naturalWidth * scale}px`,
+        height: `${el.naturalHeight * scale}px`,
+        left: `${-c.x * scale}px`,
+        top: `${-c.y * scale}px`,
+        maxWidth: "none",
+      });
     },
-    { w: outW, h: outH },
+    { w: outW, h: outH, c: src },
   );
 
   const buf = await page.screenshot({
