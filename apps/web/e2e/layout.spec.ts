@@ -82,6 +82,32 @@ for (const vp of WIDTHS) {
   });
 }
 
+/**
+ * Static assets must actually be served.
+ *
+ * `public/` is not part of Next's standalone output, so it has to be copied
+ * into the Docker image explicitly. When that COPY was missing, the service
+ * worker and every PWA icon 404'd in production — offline support was silently
+ * dead while the site otherwise looked perfectly healthy. Nothing in the build
+ * or the health check catches that, so it is asserted here.
+ */
+test("public assets are served (service worker, icons, images)", async ({ request }) => {
+  const assets = [
+    "/sw.js",
+    "/icon.svg",
+    "/icon-192.png",
+    "/icon-512.png",
+    "/.well-known/security.txt",
+    "/images/og-waveform.jpg",
+    "/images/brand-waveform.jpg",
+    "/images/care-nurse-smiling.jpg",
+  ];
+  for (const path of assets) {
+    const res = await request.get(path);
+    expect(res.status(), `${path} must be served, got ${res.status()}`).toBe(200);
+  }
+});
+
 test("home counters animate to their real values", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");

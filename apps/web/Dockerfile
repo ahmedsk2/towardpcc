@@ -33,6 +33,10 @@ RUN apk add --no-cache dumb-init && addgroup -S app && adduser -S app -G app
 WORKDIR /app
 COPY --from=build --chown=app:app /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=app:app /repo/apps/web/.next/static ./apps/web/.next/static
+# public/ is NOT part of the standalone output — Next expects it to be copied
+# alongside. Without this the service worker (sw.js), every PWA icon and
+# security.txt 404 in production, which silently breaks offline support.
+COPY --from=build --chown=app:app /repo/apps/web/public ./apps/web/public
 USER app
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
