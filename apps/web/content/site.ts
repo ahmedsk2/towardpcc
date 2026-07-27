@@ -594,7 +594,7 @@ export const site = {
       },
       {
         heading: "Our servers are in Saudi Arabia",
-        body: "The site is hosted on infrastructure located in Saudi Arabia. Where the platform needs to store anything at all — for example, a pilot request you choose to send us — it stays within that hosting.",
+        body: "The site is hosted on infrastructure located in Saudi Arabia, and anything the platform stores — for example a pilot request you choose to send us — stays within that hosting.\n\nRequests to the site travel through a global content-delivery and security network before they reach those servers. That network protects the site and keeps it fast, and it means that while your data is stored in Saudi Arabia, the request carrying it may be processed outside the Kingdom while in transit. We would rather say so than imply otherwise.\n\nThe calculators are unaffected: what you type into them never leaves your browser at all, so there is nothing to route anywhere.",
       },
       {
         heading: "We collect the minimum to run the service",
@@ -643,7 +643,7 @@ export const site = {
       "TowardPCC is hosted on servers located in Saudi Arabia and operates in alignment with the Saudi Personal Data Protection Law (PDPL). For the upcoming PICU registry, deployments will be configured to comply with the data-protection requirements of each participating Gulf country — including data-residency, consent, and governance requirements — in coordination with each institution.",
     subProcessorsHeading: "Who else touches the data",
     subProcessorsBody:
-      "We keep third parties to the minimum. Today the only sub-processors are our hosting provider (in Saudi Arabia) and our email delivery for form replies. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
+      "We keep third parties to the minimum. Today they are our hosting provider, Oracle Cloud Infrastructure, in Saudi Arabia; Cloudflare, which routes and protects traffic to the site and therefore handles requests in transit; and our email delivery for replies to messages you send us. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
     deletionHeading: "Access, correction, and deletion",
     deletionBody:
       "You can ask us what we hold about you, correct it, or have it deleted, at any time — email us and we will act on it. Calculator use leaves nothing to delete.",

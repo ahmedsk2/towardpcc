@@ -112,10 +112,19 @@ export default function DataProtectionPage() {
 }
 
 function Section({ heading, body }: { heading: string; body: string }) {
+  // Blank lines separate paragraphs. HTML collapses whitespace, so a multi-part
+  // explanation rendered into a single <p> becomes an unreadable wall — which
+  // matters most on exactly the sections that need more than one point, like
+  // where data is stored versus where it is processed in transit.
+  const paragraphs = body.split(/\n{2,}/).filter((p) => p.trim());
   return (
     <section className="mt-12">
       <h2 className="font-display text-xl font-medium text-ink-strong">{heading}</h2>
-      <p className="mt-3 max-w-[62ch] leading-relaxed text-ink-body">{body}</p>
+      {paragraphs.map((p, i) => (
+        <p key={i} className="mt-3 max-w-[62ch] leading-relaxed text-ink-body">
+          {p}
+        </p>
+      ))}
     </section>
   );
 }
