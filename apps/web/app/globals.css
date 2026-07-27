@@ -25,7 +25,12 @@
   --color-coral: var(--color-coral);
   --color-coral-soft: var(--color-coral-soft);
   --color-peach: var(--color-peach);
-  --color-edge: var(--color-edge);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
   --color-alert-text: var(--color-alert-text);
   --color-alert-bg: var(--color-alert-bg);
   --color-success-text: var(--color-success-text);

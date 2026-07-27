@@ -78,7 +78,7 @@ export function ServiceWorker() {
       {waiting && (
         <div
           role="status"
-          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-4 rounded-lg border border-surface-sunken bg-surface-raised p-4 shadow-md"
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-4 rounded-lg border border-border bg-surface-raised p-4 shadow-md"
         >
           <p className="text-sm text-ink-body">{site.pwa.updateReady}</p>
           <button

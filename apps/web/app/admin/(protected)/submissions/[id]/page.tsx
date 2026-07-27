@@ -47,7 +47,7 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
       </p>
 
       {/* Submitted content — plain text, React-escaped (no dangerouslySetInnerHTML). */}
-      <dl className="mt-6 divide-y divide-surface-sunken rounded-lg border border-surface-sunken">
+      <dl className="mt-6 divide-y divide-border-subtle rounded-lg border border-border">
         {payloadEntries(s.payload).map((e) => (
           <div key={e.key} className="grid grid-cols-[130px_1fr] gap-3 px-4 py-3">
             <dt className="font-numeric text-xs text-ink-muted uppercase">{e.key}</dt>
@@ -81,7 +81,7 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
               <button
                 type="submit"
                 disabled={st === s.status}
-                className="rounded-md border border-edge px-3 py-1.5 text-sm text-ink-strong hover:bg-surface-sunken/60 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm text-ink-strong hover:bg-surface-sunken/60 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 {STATUS_LABELS[st]}
               </button>
@@ -105,11 +105,11 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
           name="notes"
           rows={4}
           defaultValue={s.internalNotes ?? ""}
-          className="mt-2 w-full rounded-md border border-edge bg-surface-raised px-3.5 py-2.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          className="mt-2 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 py-2.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         />
         <button
           type="submit"
-          className="mt-2 rounded-md border border-edge px-4 py-2 text-sm font-medium text-ink-strong hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="mt-2 rounded-md border border-border-strong px-4 py-2 text-sm font-medium text-ink-strong hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Save notes
         </button>

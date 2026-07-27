@@ -34,7 +34,7 @@ export function Accordion({
             key={item.question}
             className={cn(
               "overflow-hidden rounded-md border bg-surface-raised transition-colors duration-150",
-              isOpen ? "border-accent" : "border-surface-sunken",
+              isOpen ? "border-accent" : "border-border-strong",
             )}
           >
             <h3 className="m-0">

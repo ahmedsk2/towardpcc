@@ -233,14 +233,14 @@ function InputField({
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             onChange={(e) => onChange({ raw: e.target.value })}
-            className="numeric h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong tabular-nums placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
+            className="numeric h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong tabular-nums placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
           />
           {units.length > 1 && (
             <select
               aria-label={`${input.label.en} ${site.calculators.unitLabel}`}
               value={field.unit ?? units[0]}
               onChange={(e) => onChange({ unit: e.target.value })}
-              className="h-11 shrink-0 rounded-md border border-edge bg-surface-raised px-3 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+              className="h-11 shrink-0 rounded-md border border-border-strong bg-surface-raised px-3 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
             >
               {units.map((u) => (
                 <option key={u} value={u}>
@@ -259,7 +259,7 @@ function InputField({
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           onChange={(e) => onChange({ raw: e.target.value })}
-          className="h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
+          className="h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
         >
           <option value="">—</option>
           {input.options.map((o) => (
@@ -277,7 +277,7 @@ function InputField({
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           onChange={(e) => onChange({ raw: e.target.value })}
-          className="h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
+          className="h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
         >
           <option value="">—</option>
           <option value="true">Yes</option>
@@ -330,7 +330,7 @@ function ResultPanel({
     <aside
       aria-live="polite"
       data-print="result"
-      className="h-max rounded-lg border border-surface-sunken bg-surface-raised p-6 lg:sticky lg:top-6"
+      className="h-max rounded-lg border border-border bg-surface-raised p-6 shadow-md lg:sticky lg:top-6"
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
       {!ok ? (
@@ -349,7 +349,7 @@ function ResultPanel({
                   key={v.id}
                   className={
                     multi
-                      ? "border-t border-surface-sunken pt-3 first:border-t-0 first:pt-0"
+                      ? "border-t border-border-subtle pt-3 first:border-t-0 first:pt-0"
                       : undefined
                   }
                 >
@@ -389,7 +389,7 @@ function ResultPanel({
             onClick={onCopy}
             data-print="hide"
             className={cn(
-              "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-ink-muted/40 px-4 text-sm font-medium text-ink-strong",
+              "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
               "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
             )}
           >

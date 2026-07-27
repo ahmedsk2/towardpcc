@@ -162,7 +162,7 @@ export default function HomePage() {
           {h.features.map((f) => (
             <li key={f.title}>
               <Reveal>
-                <div className="h-full rounded-lg border border-surface-sunken bg-surface-raised p-7 shadow-[0_20px_46px_-26px_rgba(61,21,38,0.4)] transition-transform duration-200 hover:-translate-y-2">
+                <div className="h-full rounded-lg border border-border bg-surface-raised p-7 shadow-[0_20px_46px_-26px_rgba(61,21,38,0.4)] transition-transform duration-200 hover:-translate-y-2">
                   <span
                     aria-hidden="true"
                     className={cn(
@@ -307,7 +307,7 @@ export default function HomePage() {
                 <Reveal className="h-full">
                   <Link
                     href={p.href}
-                    className="group flex h-full flex-col overflow-hidden rounded-lg border border-surface-sunken bg-surface-raised shadow-[0_18px_44px_-28px_rgba(61,21,38,0.4)] transition-[transform,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[0_34px_66px_-28px_rgba(207,31,61,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-[0_18px_44px_-28px_rgba(61,21,38,0.4)] transition-[transform,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[0_34px_66px_-28px_rgba(207,31,61,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     <span
                       aria-hidden="true"
@@ -330,7 +330,7 @@ export default function HomePage() {
                       <span className="mt-3 text-[15px] leading-relaxed text-ink-muted">
                         {p.body}
                       </span>
-                      <span className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-dashed border-edge pt-4">
+                      <span className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-dashed border-border-subtle pt-4">
                         {p.stats.map((s) => (
                           <span key={s.label} className="font-numeric text-[11px] text-ink-muted">
                             {s.label}

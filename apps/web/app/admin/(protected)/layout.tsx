@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await requireAdmin();
   return (
     <div className="min-h-dvh bg-surface-page">
-      <header className="border-b border-surface-sunken bg-surface-raised">
+      <header className="border-b border-border bg-surface-raised">
         <div className="mx-auto flex max-w-[1100px] items-center justify-between gap-4 px-6 py-3">
           <nav className="flex items-center gap-5" aria-label="Admin">
             <Link
@@ -36,7 +36,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="rounded-md border border-edge px-3 py-1.5 text-sm font-medium text-ink-strong hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium text-ink-strong hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Sign out
               </button>

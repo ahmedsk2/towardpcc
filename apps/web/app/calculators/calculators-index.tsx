@@ -66,7 +66,7 @@ export function CalculatorsIndex({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={c.searchPlaceholder}
-          className="h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          className="h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         />
       </div>
 
@@ -123,7 +123,7 @@ export function CalculatorsIndex({
                   <li key={s.slug} className="flex items-stretch gap-2">
                     <Link
                       href={`/calculators/${s.slug}`}
-                      className="group flex flex-1 flex-col justify-between gap-3 rounded-lg border border-surface-sunken bg-surface-raised px-5 py-4 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_18px_36px_-24px_rgba(207,31,61,0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="group flex flex-1 flex-col justify-between gap-3 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_18px_36px_-24px_rgba(207,31,61,0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       <span className="font-display text-[15px] font-medium text-ink-strong">
                         {s.name}
@@ -156,7 +156,7 @@ export function CalculatorsIndex({
                         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
                         favorites.includes(s.slug)
                           ? "border-accent/40 bg-accent-tint text-accent-deep"
-                          : "border-surface-sunken bg-surface-raised text-ink-muted hover:text-ink-strong",
+                          : "border-border-strong bg-surface-raised text-ink-muted hover:text-ink-strong",
                       )}
                     >
                       <span aria-hidden="true">{favorites.includes(s.slug) ? "★" : "☆"}</span>
@@ -199,7 +199,7 @@ function FilterChip({
         // underline.
         active
           ? "border-accent/40 bg-accent-tint font-semibold text-accent-deep"
-          : "border-surface-sunken bg-surface-raised font-medium text-ink-body hover:border-ink-muted/40 hover:text-ink-strong",
+          : "border-border-strong bg-surface-raised font-medium text-ink-body hover:border-ink-muted/40 hover:text-ink-strong",
       )}
     >
       {active && <span aria-hidden="true">✓ </span>}

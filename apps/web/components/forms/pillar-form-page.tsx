@@ -47,7 +47,7 @@ export function PillarFormPage({
 
       {body && <div className="mt-8 max-w-[62ch]">{body}</div>}
 
-      <section className="mt-12 border-t border-surface-sunken pt-10">
+      <section className="mt-12 border-t border-border pt-10">
         <h2 className="font-display text-2xl font-medium text-ink-strong">{formHeading}</h2>
         <div className="mt-6">
           <SubmissionForm

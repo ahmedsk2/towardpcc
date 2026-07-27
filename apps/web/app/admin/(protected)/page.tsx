@@ -55,9 +55,9 @@ export default async function InboxPage({
       {submissions.length === 0 ? (
         <p className="mt-10 text-ink-muted">No submissions{filter ? " with this status" : ""}.</p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-lg border border-surface-sunken">
+        <div className="mt-6 overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-surface-sunken bg-surface-sunken/40 text-ink-muted">
+            <thead className="border-b border-border-subtle bg-surface-sunken/40 text-ink-muted">
               <tr>
                 <th scope="col" className="px-4 py-2 font-medium">
                   Type
@@ -75,7 +75,7 @@ export default async function InboxPage({
             </thead>
             <tbody>
               {submissions.map((s) => (
-                <tr key={s.id} className="border-b border-surface-sunken/60 last:border-0">
+                <tr key={s.id} className="border-b border-border-subtle/60 last:border-0">
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/submissions/${s.id}`}
@@ -116,7 +116,7 @@ function FilterTab({ href, active, label }: { href: string; active: boolean; lab
       className={
         active
           ? "rounded-full bg-accent-tint px-3 py-1 text-sm font-semibold text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          : "rounded-full border border-surface-sunken px-3 py-1 text-sm text-ink-body hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          : "rounded-full border border-border-strong px-3 py-1 text-sm text-ink-body hover:border-ink-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       }
     >
       {active && <span aria-hidden="true">✓ </span>}

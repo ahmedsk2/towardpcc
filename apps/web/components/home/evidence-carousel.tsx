@@ -34,7 +34,7 @@ export function EvidenceCarousel() {
         {e.items.map((item) => (
           <li
             key={item.source}
-            className="flex w-[min(26rem,82vw)] shrink-0 snap-start flex-col gap-4 rounded-lg border border-surface-sunken bg-surface-page p-8"
+            className="flex w-[min(26rem,82vw)] shrink-0 snap-start flex-col gap-4 rounded-lg border border-border bg-surface-page p-8"
           >
             <span aria-hidden="true" className="font-display text-5xl leading-[0.4] text-peach">
               &ldquo;
@@ -42,7 +42,7 @@ export function EvidenceCarousel() {
             <blockquote className="font-display text-lg leading-snug font-medium text-ink-strong">
               {item.quote}
             </blockquote>
-            <cite className="mt-auto border-t border-surface-sunken pt-3 font-numeric text-[11px] not-italic text-ink-muted">
+            <cite className="mt-auto border-t border-border-subtle pt-3 font-numeric text-[11px] not-italic text-ink-muted">
               {item.source}
             </cite>
           </li>
@@ -90,4 +90,4 @@ export function EvidenceCarousel() {
 }
 
 const arrow =
-  "grid size-11 place-items-center rounded-full border-2 border-edge bg-surface-raised text-ink-strong transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-ink-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "grid size-11 place-items-center rounded-full border-2 border-border-strong bg-surface-raised text-ink-strong transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-ink-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";

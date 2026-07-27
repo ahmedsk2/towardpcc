@@ -144,9 +144,9 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                 {mega && (
                   <div
                     id="mega-calculators"
-                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-surface-sunken bg-surface-raised p-6 shadow-[0_30px_70px_-25px_rgba(61,21,38,0.4)] motion-safe:animate-[megaIn_180ms_var(--motion-ease)_both]"
+                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-[0_30px_70px_-25px_rgba(61,21,38,0.4)] motion-safe:animate-[megaIn_180ms_var(--motion-ease)_both]"
                   >
-                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-surface-sunken pb-3">
+                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3">
                       <p className="m-0 text-sm text-ink-muted">
                         <strong className="font-semibold text-ink-strong">
                           {groups.reduce((n, g) => n + g.items.length, 0)} calculators
@@ -211,7 +211,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
         aria-expanded={drawer}
         aria-controls="nav-drawer"
         onClick={() => setDrawer(true)}
-        className="ms-auto rounded-md border border-edge p-2.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
+        className="ms-auto rounded-md border border-border-strong p-2.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
       >
         <span className="sr-only">{site.nav.menuLabel}</span>
         <svg viewBox="0 0 18 14" fill="none" aria-hidden="true" className="size-4">
@@ -230,7 +230,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
           />
           <div
             id="nav-drawer"
-            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-2xl"
+            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-lg"
           >
             <div className="mb-6 flex items-center justify-between">
               <span className="font-display text-lg font-bold text-ink-strong">
@@ -239,7 +239,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
               <button
                 type="button"
                 onClick={() => setDrawer(false)}
-                className="rounded-md border border-edge p-2 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="rounded-md border border-border-strong p-2 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <span className="sr-only">{site.nav.closeMenuLabel}</span>
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-4">

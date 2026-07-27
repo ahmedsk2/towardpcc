@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 type Slot = { name?: string; credentials?: string; date?: string } | null;
 
 const fieldClass =
-  "h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+  "h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 export default async function ValidatorEditor({ params }: { params: Promise<{ slug: string }> }) {
   await requireAdmin();
@@ -43,7 +43,7 @@ export default async function ValidatorEditor({ params }: { params: Promise<{ sl
         {[0, 1].map((i) => {
           const s = slots[i] ?? {};
           return (
-            <fieldset key={i} className="rounded-lg border border-surface-sunken p-5">
+            <fieldset key={i} className="rounded-lg border border-border p-5">
               <legend className="px-1 font-numeric text-xs tracking-wide text-ink-muted uppercase">
                 Validator {i + 1}
               </legend>

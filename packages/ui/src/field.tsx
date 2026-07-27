@@ -18,8 +18,8 @@ export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElem
   return (
     <input
       className={cn(
-        // border-edge: >=3:1 non-text contrast on both white and porcelain (WCAG 1.4.11)
-        "h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5",
+        // border-border-strong: >=3:1 non-text contrast on both white and porcelain (WCAG 1.4.11)
+        "h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5",
         "text-ink-strong placeholder:text-ink-body/80",
         "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent",
         "aria-invalid:border-alert-text",

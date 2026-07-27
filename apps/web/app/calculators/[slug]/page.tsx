@@ -62,7 +62,7 @@ export default async function CalculatorDetailPage({
       </div>
 
       {/* Formula transparency (PRD §6.4). */}
-      <section className="mt-12 border-t border-surface-sunken pt-8">
+      <section className="mt-12 border-t border-border pt-8">
         <h2 className="font-display text-xl font-medium text-ink-strong">{c.formulaHeading}</h2>
         <p className="mt-3 max-w-[65ch] leading-relaxed text-ink-body">
           {(score.formula ?? score.notes).en}
@@ -143,7 +143,7 @@ export default async function CalculatorDetailPage({
       </section>
 
       {related.length > 0 ? (
-        <section className="mt-12 border-t border-surface-sunken pt-8" data-print="hide">
+        <section className="mt-12 border-t border-border pt-8" data-print="hide">
           <h2 className="font-display text-xl font-medium text-ink-strong">
             Other {c.categoryLabels[score.category].toLowerCase()} scores
           </h2>
@@ -152,7 +152,7 @@ export default async function CalculatorDetailPage({
               <li key={r.slug}>
                 <Link
                   href={`/calculators/${r.slug}`}
-                  className="group flex h-full flex-col justify-between gap-2 rounded-lg border border-surface-sunken bg-surface-raised px-5 py-4 transition-[border-color,transform] duration-200 hover:-translate-y-1 hover:border-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="group flex h-full flex-col justify-between gap-2 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,transform] duration-200 hover:-translate-y-1 hover:border-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <span className="font-display text-[15px] font-medium text-ink-strong">
                     {r.name}
@@ -170,7 +170,7 @@ export default async function CalculatorDetailPage({
         </section>
       ) : null}
 
-      <section className="mt-12 border-t border-surface-sunken pt-8">
+      <section className="mt-12 border-t border-border pt-8">
         <h2 className="font-display text-lg font-medium text-ink-strong">{c.disclaimerHeading}</h2>
         <Callout tone="note" className="mt-3 max-w-[65ch]">
           {c.disclaimer}

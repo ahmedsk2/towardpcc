@@ -31,9 +31,9 @@ export default function DataProtectionPage() {
             {dp.collection.heading}
           </h2>
           <p className="mt-3 max-w-[62ch] leading-relaxed text-ink-body">{dp.collection.intro}</p>
-          <div className="mt-5 overflow-x-auto rounded-lg border border-surface-sunken">
+          <div className="mt-5 overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-surface-sunken bg-surface-sunken/40 text-ink-muted">
+              <thead className="border-b border-border-subtle bg-surface-sunken/40 text-ink-muted">
                 <tr>
                   {dp.collection.columns.map((c) => (
                     <th key={c} scope="col" className="px-4 py-2 font-medium">
@@ -46,7 +46,7 @@ export default function DataProtectionPage() {
                 {dp.collection.rows.map((row) => (
                   <tr
                     key={row[0]}
-                    className="border-b border-surface-sunken/60 align-top last:border-0"
+                    className="border-b border-border-subtle/60 align-top last:border-0"
                   >
                     {row.map((cell, i) => (
                       <td

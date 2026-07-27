@@ -21,9 +21,9 @@ export default async function AdminCalculatorsPage() {
         scoring engine and cannot be edited here.
       </p>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border border-surface-sunken">
+      <div className="mt-6 overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-surface-sunken bg-surface-sunken/40 text-ink-muted">
+          <thead className="border-b border-border-subtle bg-surface-sunken/40 text-ink-muted">
             <tr>
               <th scope="col" className="px-4 py-2 font-medium">
                 Calculator
@@ -45,7 +45,7 @@ export default async function AdminCalculatorsPage() {
                 ? (m.validatorSlots as unknown[]).filter(Boolean).length
                 : 0;
               return (
-                <tr key={s.slug} className="border-b border-surface-sunken/60 last:border-0">
+                <tr key={s.slug} className="border-b border-border-subtle/60 last:border-0">
                   <td className="px-4 py-3">
                     <span className="font-medium text-ink-strong">{s.name}</span>
                     <span className="ml-2 font-numeric text-xs text-ink-muted">{s.slug}</span>

@@ -87,7 +87,7 @@ export function PillarPage({
           {stats.map((s) => (
             <div
               key={s.label}
-              className="rounded-lg border border-surface-sunken bg-surface-raised p-7 shadow-[0_20px_46px_-26px_rgba(61,21,38,0.4)]"
+              className="rounded-lg border border-border bg-surface-raised p-7 shadow-[0_20px_46px_-26px_rgba(61,21,38,0.4)]"
             >
               <dd className="m-0 font-numeric text-3xl font-semibold text-accent tabular-nums">
                 <Counter value={s.value} suffix={s.suffix} />
@@ -166,7 +166,7 @@ export function PillarPage({
               {topics.map((t) => (
                 <li
                   key={t}
-                  className="rounded-full border border-surface-sunken bg-surface-raised px-5 py-2.5 font-numeric text-[13px] text-ink-body"
+                  className="rounded-full border border-border-strong bg-surface-raised px-5 py-2.5 font-numeric text-[13px] text-ink-body"
                 >
                   {t}
                 </li>

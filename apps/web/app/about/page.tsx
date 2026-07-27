@@ -106,7 +106,7 @@ export default function AboutPage() {
             {a.principles.map((p) => (
               <li key={p.title}>
                 <Reveal>
-                  <div className="h-full rounded-lg border border-surface-sunken bg-surface-page p-7">
+                  <div className="h-full rounded-lg border border-border bg-surface-page p-7">
                     <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {p.title}
                     </h3>
@@ -143,7 +143,7 @@ export default function AboutPage() {
             {a.story.map((s) => (
               <li key={s.title}>
                 <Reveal>
-                  <div className="h-full rounded-lg border border-surface-sunken bg-surface-raised p-7">
+                  <div className="h-full rounded-lg border border-border bg-surface-raised p-7">
                     <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {s.title}
                     </h3>
@@ -167,10 +167,7 @@ export default function AboutPage() {
           </h2>
           <ul className="grid list-none gap-6 md:grid-cols-3">
             {site.home.roadmap.columns.map((col) => (
-              <li
-                key={col.state}
-                className="rounded-lg border border-surface-sunken bg-surface-page p-7"
-              >
+              <li key={col.state} className="rounded-lg border border-border bg-surface-page p-7">
                 <p className="font-numeric text-[11px] tracking-[0.1em] text-accent uppercase">
                   {col.state}
                 </p>

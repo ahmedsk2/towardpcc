@@ -5,7 +5,7 @@ import { cn } from "@towardpcc/ui";
 import { loginAction, type LoginResult } from "./actions";
 
 const field =
-  "h-11 w-full rounded-md border border-edge bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+  "h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 export function LoginForm() {
   const [state, action, pending] = useActionState<LoginResult, FormData>(loginAction, null);

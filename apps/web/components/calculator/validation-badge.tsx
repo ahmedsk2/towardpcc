@@ -32,7 +32,7 @@ export function ValidationBadge({ validators }: { validators: ValidatorSlots }) 
         {validators.map((v, i) => (
           <div
             key={i}
-            className="rounded-sm border border-surface-sunken bg-surface-sunken/40 px-3 py-2 text-sm text-ink-muted"
+            className="rounded-sm border border-border-subtle bg-surface-sunken/40 px-3 py-2 text-sm text-ink-muted"
           >
             {v.status === "assigned"
               ? `${v.name}, ${v.credentials}`

@@ -29,7 +29,9 @@ export function StickyShell({ children }: { children: React.ReactNode }) {
         "sticky top-0 z-50 bg-surface-raised transition-shadow duration-150",
         stuck
           ? "shadow-[0_6px_28px_-14px_rgba(61,21,38,0.35)]"
-          : "shadow-[0_1px_0_var(--color-surface-sunken)]",
+          : // A hairline drawn as a shadow so it costs no layout height. It was
+            // painted in a fill colour (1.06:1) and so was never visible.
+            "shadow-[0_1px_0_var(--color-border)]",
       )}
     >
       <div
