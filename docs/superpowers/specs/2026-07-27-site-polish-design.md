@@ -147,9 +147,12 @@ costs a few KB, and is directly tunable.
 (`waveform-canvas.tsx`) and are removed from `apps/web/package.json`.
 
 **Gating collapses to one condition: `prefers-reduced-motion`.** No device
-class is excluded. Under reduced motion the same renderer paints a **single
-static frame**, so there is one drawing code path and the still and moving
-states cannot drift apart.
+class is excluded — not screen width, not pointer type, not WebGL support.
+
+Under reduced motion the canvas is **never mounted** and the existing
+server-rendered `HeroWaveform` poster remains, which is `motion.md` rule 1
+verbatim ("including the P4 hero (poster only)"). The poster is already the
+pre-hydration and no-JS layer, so this adds no new code path.
 
 **What it draws.** The brand mark is a _respiratory_ waveform. The existing
 scene comments make this explicit — "a respiratory-rhythm amplitude envelope,
@@ -177,12 +180,18 @@ is hidden.
 existing server-rendered `HeroWaveform` SVG stays as the pre-hydration and
 no-JS layer beneath it, so the hero is never empty.
 
-**Motion doctrine.** `docs/design/motion.md` bans infinite loops on interactive
-controls and reserves ambient drift for decoration. A continuously animating
-hero is consistent with that only if it stays decorative, pauses off-screen,
-and collapses under reduced motion — all of which hold. The ADR gains an
-explicit clause permitting continuous ambient motion on **decorative hero
-elements only**, so the intent is recorded rather than inferred.
+**Motion doctrine.** `motion.md` rule 5 already permits, from revision 2,
+"slow ambient drift on purely decorative hero elements". A travelling luminous
+crest is more than _slow drift_, so the rule is amended rather than stretched:
+the permitted case becomes **continuous ambient motion on purely decorative
+hero elements**, subject to four named guards — it must carry no meaning, pause
+off-screen, pause on tab hide, and collapse to the poster under reduced motion.
+
+The remaining bans are unaffected and the design respects them: no infinite
+loops on anything interactive (the canvas is not interactive), no attention
+pulses (nothing is asking to be clicked), no parallax on content (the pointer
+parallax moves only the decorative field, never text), no scroll listeners
+(`IntersectionObserver` and `visibilitychange` only, per rule 6).
 
 ### 2.3 Images — match the container to the source, frame the screenshots
 
