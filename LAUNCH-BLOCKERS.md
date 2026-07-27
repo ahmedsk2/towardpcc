@@ -202,29 +202,30 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
   UPDATE/DELETE on `AuditLog` from the app role; deploy.md §3b applies it and
   notes the retention purge must run under the owner. **Remaining:** apply +
   verify live.
-- [ ] **SPC-DB-002 — reframed 2026-07-27 after checking production.** The
-      original item (enforce `sslmode=verify-full`) assumed the risk was
-      eavesdropping on the app→Postgres link. Two things found on the host
-      change that:
+- [ ] **SPC-DB-002 — reframed 2026-07-27, see below.** The original item
+      (enforce `sslmode=verify-full`) assumed the risk was eavesdropping on the
+      app→Postgres link. Checking production changed that in both directions.
 
-      _Good news:_ the Postgres container holds **only** `towardpcc`. The other
-          tenants on the box — including the patient-data application — run MySQL
-          and MariaDB in separate containers, so changing this Postgres has no
-          blast radius beyond this app. The runbook's "shared-services Postgres"
-          wording overstates the coupling.
+#### SPC-DB-002 in detail
 
-          _Less good:_ `ssl = off`, and the container sits on Coolify's shared
-          `coolify` Docker network alongside other tenants' application containers.
-          Sniffing a bridge needs host-level privilege so eavesdropping is not the
-          live threat — but **reachability** is: a compromised neighbour container
-          can open a connection to the database port. Password auth and the
-          least-privilege `towardpcc_app` role are what stand in front of it.
+_Good news:_ the Postgres container holds **only** `towardpcc`. The other
+tenants on the box — including the patient-data application — run MySQL and
+MariaDB in separate containers, so changing this Postgres has no blast radius
+beyond this app. The runbook's "shared-services Postgres" wording overstates
+the coupling.
 
-          So the higher-value fix is **network segmentation** (a dedicated network
-          for web↔postgres, which the threat model already asked for at §2.5),
-          with TLS second. Both touch Coolify-managed infrastructure and can be
-          reverted by a Coolify redeploy, so neither is a drive-by change; do them
-          deliberately, with the restore drill re-run afterwards.
+_Less good:_ `ssl = off`, and the container sits on Coolify's shared `coolify`
+Docker network alongside other tenants' application containers. Sniffing a
+bridge needs host-level privilege, so eavesdropping is not the live threat —
+but **reachability** is: a compromised neighbour container can open a
+connection to the database port. Password auth and the least-privilege
+`towardpcc_app` role are what stand in front of it.
+
+So the higher-value fix is **network segmentation** (a dedicated network for
+web↔postgres, which the threat model already asked for at §2.5), with TLS
+second. Both touch Coolify-managed infrastructure and can be reverted by a
+Coolify redeploy, so neither is a drive-by change; do them deliberately, with
+the restore drill re-run afterwards.
 
 - [ ] **SPC-WEB-001** — remove public-tier CSP `script-src 'unsafe-inline'` (hash
       the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG

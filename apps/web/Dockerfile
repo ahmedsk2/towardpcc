@@ -13,6 +13,11 @@ COPY packages/config/package.json packages/config/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
+# busybox sh does not fail a pipeline when an earlier command fails — only the
+# last one counts. The WASM copy below pipes `find` into `head`, so without
+# pipefail a failing `find` would be masked by a succeeding `head` and the
+# build would carry on with an empty result. Caught by hadolint DL4006.
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 COPY . .
 # The container serves the standalone server (server.js) — opt into it here.
 # The web build's prebuild runs `prisma generate` for the driver-adapter client.
