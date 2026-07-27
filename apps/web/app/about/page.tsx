@@ -59,7 +59,8 @@ export default function AboutPage() {
               hint="the breathing waveform"
               src="/images/brand-waveform.jpg"
               alt=""
-              className="aspect-square max-w-[280px]"
+              aspect="aspect-[3/2]"
+              className="max-w-[300px]"
             />
           </Reveal>
           <Reveal>
@@ -136,7 +137,8 @@ export default function AboutPage() {
               hint="care-teddy-oxygen.jpg"
               src="/images/care-teddy-oxygen.jpg"
               alt="A teddy bear tucked into a hospital bed wearing an oxygen mask."
-              className="mx-auto mb-12 aspect-21/9 max-w-[900px]"
+              aspect="aspect-[3/2]"
+              className="mx-auto mb-12 max-w-[760px]"
             />
           </Reveal>
           <ul className="grid list-none gap-6 md:grid-cols-3">

@@ -27,6 +27,11 @@ export default function KnowledgePage() {
       imageHint="save as public/images/library-screenshot.jpg"
       imageSrc="/images/library-screenshot.jpg"
       imageAlt="A PedsCC Library search result linking to an exact page inside a document."
+      // 1400x1014. A screenshot is product evidence — cropping it destroys the
+      // thing it exists to show, so it renders whole inside window chrome.
+      imageAspect="aspect-[1400/1014]"
+      imageFit="contain"
+      imageFrame
     >
       <PillarRequestForm
         heading={site.pillarPages.knowledge.formHeading}

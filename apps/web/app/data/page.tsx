@@ -25,6 +25,11 @@ export default function DataPage() {
       imageHint="save as public/images/registry-dashboard.jpg"
       imageSrc="/images/registry-dashboard.jpg"
       imageAlt="A PICU registry dashboard showing admissions, bed occupancy and length-of-stay charts."
+      // 1000x850. This was the worst of the four crops — 80% of a dashboard
+      // showing through a 99px slit, which made the charts unreadable.
+      imageAspect="aspect-[1000/850]"
+      imageFit="contain"
+      imageFrame
     >
       <PillarRequestForm
         heading={site.pillarPages.data.formHeading}

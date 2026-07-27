@@ -28,6 +28,9 @@ export function PillarPage({
   imageHint,
   imageSrc,
   imageAlt,
+  imageAspect = "aspect-[3/2]",
+  imageFit,
+  imageFrame,
   children,
 }: {
   crumb: string;
@@ -45,6 +48,15 @@ export function PillarPage({
   imageHint: string;
   imageSrc?: string | undefined;
   imageAlt?: string | undefined;
+  /**
+   * Each pillar shows a different asset at a different native ratio, so the
+   * ratio cannot live in this shared template. Passing one class for all three
+   * is what produced the earlier crop: a 1.176 dashboard and a 1.381 screenshot
+   * were both forced through a container sized for neither.
+   */
+  imageAspect?: string | undefined;
+  imageFit?: "cover" | "contain" | undefined;
+  imageFrame?: boolean | undefined;
   children: React.ReactNode;
 }) {
   return (
@@ -146,7 +158,9 @@ export function PillarPage({
               hint={imageHint}
               src={imageSrc}
               alt={imageAlt}
-              className="aspect-4/3.4"
+              aspect={imageAspect}
+              fit={imageFit}
+              frame={imageFrame}
             />
           </Reveal>
         </div>

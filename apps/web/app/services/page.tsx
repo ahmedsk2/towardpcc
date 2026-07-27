@@ -25,6 +25,8 @@ export default function ServicesPage() {
       imageHint="save as public/images/care-thermometer.jpg"
       imageSrc="/images/care-thermometer.jpg"
       imageAlt="A clinician taking a child's temperature while the child holds a teddy bear."
+      // 1242x826 — a photograph at its native 3:2, so nothing is cropped.
+      imageAspect="aspect-[3/2]"
     >
       <PillarRequestForm
         heading={site.pillarPages.services.formHeading}

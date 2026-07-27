@@ -191,7 +191,7 @@ export default function HomePage() {
                 hint="care-nurse-smiling.jpg"
                 src="/images/care-nurse-smiling.jpg"
                 alt="A nurse laughing with a child in a hospital bed, who is holding a teddy bear."
-                className="aspect-4/3.4"
+                aspect="aspect-[3/2]"
               />
               {/* Overlapping second frame — the quieter half of the same story.
                   Hidden on small screens, where it would only crowd the stat. */}
@@ -201,7 +201,8 @@ export default function HomePage() {
                   hint="care-resting.jpg"
                   src="/images/care-resting.jpg"
                   alt="A child asleep in a hospital bed, holding a soft toy."
-                  className="aspect-9/16 rounded-[20px] ring-4 ring-surface-page"
+                  aspect="aspect-[9/16]"
+                  className="rounded-[20px] ring-4 ring-surface-page"
                 />
               </div>
               <p className="absolute -bottom-6 -left-6 z-20 rounded-[20px] bg-surface-raised px-6 py-5 shadow-[0_26px_54px_-22px_rgba(0,0,0,0.4)]">
@@ -397,7 +398,8 @@ export default function HomePage() {
               hint="the breathing waveform"
               src="/images/brand-waveform.jpg"
               alt=""
-              className="aspect-square max-w-[280px]"
+              aspect="aspect-[3/2]"
+              className="max-w-[300px]"
             />
           </Reveal>
           <Reveal>
