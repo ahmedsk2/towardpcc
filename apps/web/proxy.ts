@@ -1,4 +1,34 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { APEX_HOST, CANONICAL_HOST } from "@/lib/site-url";
+
+/**
+ * Canonical host. The apex and www both answered 200 with no redirect and no
+ * canonical tag — the same content on two origins, with nothing telling a
+ * crawler which one counts.
+ *
+ * It happens here rather than at the edge for two reasons: Cloudflare is
+ * DNS-only for this zone, so a Cloudflare redirect rule never fires; and a
+ * Traefik middleware would have blast radius across a host shared with an
+ * unrelated production service, whereas this is isolated, version-controlled
+ * and covered by a test.
+ *
+ * The host is matched EXACTLY, never as a suffix. A suffix match would also
+ * catch `next.towardpcc.com` — the noindexed preview — and redirect the
+ * preview environment onto production, which is precisely the accident this
+ * kind of rule usually causes.
+ */
+function canonicalHostRedirect(request: NextRequest): NextResponse | null {
+  const host = request.headers.get("host");
+  if (host !== APEX_HOST) return null;
+
+  const url = request.nextUrl.clone();
+  url.host = CANONICAL_HOST;
+  url.protocol = "https";
+  url.port = "";
+  // 308 rather than 301: it forbids a client from rewriting the method, so a
+  // POST to the apex stays a POST instead of silently becoming a GET.
+  return NextResponse.redirect(url, 308);
+}
 
 /**
  * Security headers (PRD §9 / threat-model TM-005). Two-tier CSP, documented in
@@ -45,6 +75,11 @@ function buildCsp(nonce?: string): string {
 }
 
 export function proxy(request: NextRequest) {
+  // Before anything else: a request on the wrong host should not be served at
+  // all, only pointed at the right one.
+  const redirect = canonicalHostRedirect(request);
+  if (redirect) return redirect;
+
   const isAdmin = request.nextUrl.pathname.startsWith("/admin");
 
   if (isAdmin) {

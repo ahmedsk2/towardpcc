@@ -56,7 +56,11 @@ services:
       TOTP_ENC_KEY: ${TOTP_ENC_KEY:?openssl rand -base64 32 (decodes to 32 bytes)}
       SUBMISSION_IP_SALT: ${SUBMISSION_IP_SALT:?openssl rand -hex 16}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      NEXT_PUBLIC_SITE_URL: https://${SITE_DOMAIN:?}
+      # www, not the apex: proxy.ts 308s the apex here, so advertising the apex
+      # would emit canonical URLs that immediately redirect away. SITE_DOMAIN
+      # itself stays the apex — Caddy's certificate config and the
+      # status.${SITE_DOMAIN} subdomain are both built from it.
+      NEXT_PUBLIC_SITE_URL: https://www.${SITE_DOMAIN:?}
       SMTP_HOST: ${SMTP_HOST:?}
       SMTP_PORT: ${SMTP_PORT:?}
       SMTP_SECURE: ${SMTP_SECURE:-true}

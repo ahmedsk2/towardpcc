@@ -2,6 +2,7 @@ import "server-only";
 import nodemailer, { type Transporter } from "nodemailer";
 import type { SubmissionType } from "@towardpcc/db";
 import { TYPE_LABELS } from "@/lib/admin/submission-view";
+import { SITE_URL } from "@/lib/site-url";
 
 /**
  * Transactional email. Dev routes to Mailpit (localhost:1025); prod uses the
@@ -40,7 +41,9 @@ async function send(opts: { to: string; subject: string; text: string }): Promis
 export async function notifyAdminOfSubmission(type: SubmissionType, id: string): Promise<void> {
   const to = process.env.ADMIN_EMAIL;
   if (!to) return;
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  // Falls back to the canonical origin rather than "": an empty base produced a
+  // relative path, which is not clickable in an email client.
+  const base = SITE_URL;
   await send({
     to,
     subject: `New ${TYPE_LABELS[type]} submission`,

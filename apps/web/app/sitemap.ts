@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listScores } from "@towardpcc/scoring-engine";
-
-const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://towardpcc.com";
+import { SITE_URL as base } from "@/lib/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [

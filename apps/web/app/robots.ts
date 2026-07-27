@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://towardpcc.com";
+import { SITE_URL as base } from "@/lib/site-url";
 
 /**
  * Preview/staging deployments set NOINDEX=1. Without it a preview on a public

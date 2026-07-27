@@ -9,14 +9,20 @@ import { BackToTop } from "@/components/nav/back-to-top";
 import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorker } from "@/components/pwa/service-worker";
 import { site } from "@/content/site";
+import { SITE_URL } from "@/lib/site-url";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://towardpcc.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: site.metaTitle,
     template: `%s · ${site.name}`,
   },
   description: site.description,
+  // Self-referencing canonical on every page, resolved against metadataBase.
+  // The site previously emitted none at all while serving 200 on both the apex
+  // and www, which is the same content on two origins with nothing telling a
+  // crawler which one counts.
+  alternates: { canonical: "./" },
   appleWebApp: { capable: true, title: site.name, statusBarStyle: "default" },
   // Social share card: the signature respiratory waveform — rolling and
   // continuous, never the flat line that reads as death in a PICU.
