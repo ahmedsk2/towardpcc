@@ -34,7 +34,22 @@ RUN set -eu; SA=apps/web/.next/standalone; \
 FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS runner
 ENV NODE_ENV=production
 # dumb-init as PID 1 → correct SIGTERM forwarding + zombie reaping on redeploy.
-RUN apk add --no-cache dumb-init && addgroup -S app && adduser -S app -G app
+#
+# npm, npx and corepack are then deleted. This image runs exactly one command —
+# `node apps/web/server.js` — and never installs anything, so a package manager
+# here is pure attack surface: a foothold in the container would otherwise come
+# with the ability to fetch and execute arbitrary packages.
+#
+# It also removes a whole class of scanner noise. Every HIGH/CRITICAL finding in
+# the first Trivy run (brace-expansion, undici and friends) came from npm's own
+# bundled dependencies under /usr/local/lib/node_modules/npm — nothing this
+# application depends on, and unfixable by changing our lockfile. Deleting npm
+# fixes them properly rather than suppressing them.
+RUN apk add --no-cache dumb-init \
+  && addgroup -S app && adduser -S app -G app \
+  && rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm /usr/local/bin/npx \
+    /usr/local/lib/node_modules/corepack /usr/local/bin/corepack
 WORKDIR /app
 COPY --from=build --chown=app:app /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=app:app /repo/apps/web/.next/static ./apps/web/.next/static
