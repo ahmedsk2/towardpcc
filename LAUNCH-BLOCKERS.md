@@ -23,10 +23,10 @@ a passed restore drill** (nightly, offsite to OCI Object Storage in-region).
 notifications (submissions are stored but send no email), a secondary on-call
 contact, and counsel review of the legal pages.
 
-## 🎨 REDESIGN — built, awaiting review (2026-07-27)
+## 🎨 REDESIGN — live (2026-07-27)
 
-The full site redesign (R1–R4) is built and deployed to a **preview** at
-<https://next.towardpcc.com> (noindexed, production untouched). Spec:
+Merged to `main` and deployed. A follow-up polish pass then shipped on top of
+it — see "POLISH PASS" below. Spec:
 `docs/superpowers/specs/2026-07-27-site-redesign-design.md`.
 
 - [x] **R1 foundation** — warmed palette (crimson `#CF1F3D`, coral secondary,
@@ -42,9 +42,33 @@ The full site redesign (R1–R4) is built and deployed to a **preview** at
 - [x] **R4 pillars + about** — the three stub pages are now full pages;
       `/about` carries the vision, the founder, and the brand story; all
       stale "in development / launching soon" copy corrected.
-- [ ] **Merge to main to go live.** `main` auto-deploys, so merging
-      `redesign/site-v2` publishes the redesign to towardpcc.com. Left for
-      the founder to trigger after reviewing the preview.
+- [x] **Merged to main and live** on towardpcc.com.
+
+## ✨ POLISH PASS — live (2026-07-27)
+
+Five slices, deployed together. Spec:
+`docs/superpowers/specs/2026-07-27-site-polish-design.md`.
+
+- [x] **Depth system** — the redesign shipped a surface FILL token as a border
+      in 38 places, 1.056:1 against the page, so every card edge and section
+      rule was invisible. Three tiers by intent now, plus warm elevation. The
+      token guard enumerates instead of listing pairings by hand, which is how
+      it was missed, and a usage guard blocks the class of mistake.
+- [x] **Images** — `aspect-4/3.4` is not a valid Tailwind class, so it compiled
+      to nothing and four photographs lost 74–80%. Every image now sits at its
+      native ratio; screenshots render whole in window chrome. Guarded by an
+      e2e spec that measures each rendered image against its source.
+- [x] **Hero** — the animation was gated behind `pointer: coarse` being false
+      and never ran on a touchscreen. Rebuilt in Canvas 2D, gated only on
+      reduced motion, three.js removed.
+- [x] **Calculator pages** — the sticky result had 11px of travel on
+      two-input scores; reference prose collapsed into tabs; ranges moved into
+      the fields; the interpretation table and two previously-discarded fields
+      (`Reference.note`, `ChangelogEntry.reason`) now render.
+- [x] **Canonical host** — apex 308s to `www`; every page carries a canonical.
+
+Verification: 712 unit tests, 59 e2e assertions (was 40), all routes inside the
+170 KB budget.
 
 **Still needed from the founder:** the four counter figures (PICU physicians in
 the pilot, countries, research requests supported, publications), a portrait
@@ -183,6 +207,21 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
 - [ ] **SPC-API-001** — add a per-IP throttle in front of the admin credentials
       flow (reuse `apps/web/lib/rate-limit.ts`), scope lockout to account+IP or
       add a challenge, to blunt targeted auth-DoS + credential stuffing.
+      **Blocked by the client-IP fix below** — building an auth throttle on
+      `clientIp()` today would bucket every attacker and every legitimate admin
+      under the same handful of Cloudflare edge IPs, so the lockout would be
+      trivially reachable by an unrelated visitor and useless against a
+      targeted one. Fix the IP source first.
+- [ ] **Client IP is Cloudflare's, not the visitor's** (found 2026-07-27).
+      Traefik has no `forwardedHeaders.trustedIPs`, so it overwrites forwarded
+      headers with the connecting peer — a Cloudflare edge node. Submission
+      rate limiting is therefore per-edge rather than per-visitor, and the
+      salted hash kept for abuse investigation records Cloudflare. Fix is to
+      read `CF-Connecting-IP`; safe here because the OCI security list admits
+      80/443 only from Cloudflare's ranges, so the peer is guaranteed. **Do not
+      "fix" this by turning Cloudflare proxying off** — the origin is locked to
+      Cloudflare and grey-clouding takes the site fully offline. See
+      `docs/runbooks/deploy-production.md`.
 - [ ] Lower-severity items (SPC-WEB-002/003/004, SPC-API-002/004/005,
       SPC-DB-004/005, SPC-TM-001/002/003, SPC-CON-009/010, SPC-SUP-002) — see the
       report's remediation tiers.
