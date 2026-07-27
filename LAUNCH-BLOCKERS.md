@@ -135,8 +135,17 @@ then — no figure is invented.
       defensive typo/sibling registrations, dangling-DNS hygiene. The Saudi
       Critical Care Society's lapsed domain is squatted by a gambling site —
       that exact fate must be impossible for towardpcc.com. (P8, before DNS)
-- [ ] **Email authentication before first send (TM-008)** — SPF, DKIM,
-      DMARC `p=reject`, MTA-STS. (P8, before any form notification)
+- [ ] **SMTP relay + email authentication (TM-008)** — the app side is done:
+      `lib/mail-config.ts` reports what is missing, the admin inbox banners it,
+      and the relay is specified in `docs/runbooks/email-delivery.md` (OCI
+      Email Delivery, `me-riyadh-1` — chosen to keep mail bodies in-region
+      rather than widening ADR-0003 further). **Outstanding, and owner-only
+      because it mints a credential:** create the email domain + DKIM selector + approved sender in the OCI console, generate SMTP credentials, add
+      SPF/DKIM/DMARC as grey-cloud DNS records, set the four `SMTP_*` values in
+      Coolify. Start DMARC at `p=none` and move to `p=quarantine` once reports
+      show legitimate mail passing — publishing `p=reject` before the first
+      send is how a domain blackholes its own mail. (Before any form
+      notification.)
 - [ ] **HSTS preload-list submission (P8)** — the `Strict-Transport-Security`
       header already sets `preload`, but do NOT submit the domain to the browser
       preload list until HTTPS is confirmed working on the apex AND every
@@ -207,21 +216,21 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
 - [ ] **SPC-API-001** — add a per-IP throttle in front of the admin credentials
       flow (reuse `apps/web/lib/rate-limit.ts`), scope lockout to account+IP or
       add a challenge, to blunt targeted auth-DoS + credential stuffing.
-      **Blocked by the client-IP fix below** — building an auth throttle on
-      `clientIp()` today would bucket every attacker and every legitimate admin
-      under the same handful of Cloudflare edge IPs, so the lockout would be
-      trivially reachable by an unrelated visitor and useless against a
-      targeted one. Fix the IP source first.
-- [ ] **Client IP is Cloudflare's, not the visitor's** (found 2026-07-27).
-      Traefik has no `forwardedHeaders.trustedIPs`, so it overwrites forwarded
-      headers with the connecting peer — a Cloudflare edge node. Submission
-      rate limiting is therefore per-edge rather than per-visitor, and the
-      salted hash kept for abuse investigation records Cloudflare. Fix is to
-      read `CF-Connecting-IP`; safe here because the OCI security list admits
-      80/443 only from Cloudflare's ranges, so the peer is guaranteed. **Do not
-      "fix" this by turning Cloudflare proxying off** — the origin is locked to
-      Cloudflare and grey-clouding takes the site fully offline. See
-      `docs/runbooks/deploy-production.md`.
+      **Unblocked 2026-07-27** — build it on `resolveClientIp()` from
+      `apps/web/lib/client-ip.ts`, never on a raw header read. On the old
+      behaviour this throttle would have been worse than nothing: every
+      attacker and every legitimate admin shared a Cloudflare edge bucket, so
+      an unrelated visitor could trip the lockout while a targeted attacker
+      simply rotated edges.
+- [x] **Client IP is Cloudflare's, not the visitor's** (found and fixed
+      2026-07-27). Traefik has no `forwardedHeaders.trustedIPs`, so it
+      overwrote forwarded headers with the connecting peer — a Cloudflare edge
+      node. `apps/web/lib/client-ip.ts` now prefers `CF-Connecting-IP`, with 10
+      unit tests. Safe only because the OCI security list admits 80/443 from
+      Cloudflare alone; **widening those rules re-opens CWE-348 and means
+      revisiting that file**. Do not "fix" anything here by turning Cloudflare
+      proxying off — the origin is locked to Cloudflare and grey-clouding takes
+      the site fully offline (ADR-0003).
 - [ ] Lower-severity items (SPC-WEB-002/003/004, SPC-API-002/004/005,
       SPC-DB-004/005, SPC-TM-001/002/003, SPC-CON-009/010, SPC-SUP-002) — see the
       report's remediation tiers.
