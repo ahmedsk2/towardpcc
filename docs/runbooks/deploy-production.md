@@ -15,31 +15,44 @@ TowardPCC is deployed as a Coolify application behind Coolify's Traefik proxy.
   the preview advertises production's canonical.
 - **DNS:** Cloudflare zone `towardpcc.com`, apex + `www` → the host.
 
-  > ⚠️ **Proxying is currently ON (orange cloud), and was documented as off.**
-  > Verified 2026-07-27: both hostnames return `Server: cloudflare` and a
-  > `CF-RAY` header. This contradicts the original design, which turned it off
-  > deliberately for two reasons — the ACME HTTP-01 challenge reaching the
-  > origin, and per-IP rate limiting seeing the real client.
+  > ⚠️ **Proxying is ON (orange cloud) and the origin is LOCKED to Cloudflare.
+  > Do not turn it off — doing so takes the site fully offline.**
   >
-  > **Consequence, unresolved:** `clientIp()` in `apps/web/lib/submissions.ts`
-  > assumes a SINGLE reverse proxy that sets `x-real-ip` to the connecting
-  > client. With Cloudflare in front, the connecting client Traefik observes is
-  > a Cloudflare edge node, so every visitor now hashes to one of a handful of
-  > edge IPs. That degrades submission rate limiting from per-visitor to
-  > per-edge — one abuser can exhaust the bucket for everyone behind that node
-  > — and the hashed IP stored for abuse investigation is Cloudflare's, not the
-  > submitter's.
+  > Verified 2026-07-27 against the OCI security list
+  > (`Default Security List for hosting-vcn`): ports 80 and 443 accept traffic
+  > **only** from Cloudflare's fifteen published edge ranges, each rule labelled
+  > "Cloudflare edge". Port 22 is open to `0.0.0.0/0`; web traffic is not.
+  > Confirmed from outside: 22 connects, 80 and 443 time out, while the host's
+  > own iptables accepts all three and Traefik is listening.
   >
-  > Two valid fixes, and the choice is a judgement call: turn proxying back off
-  > to restore the documented and tested state, or keep it and trust
-  > `CF-Connecting-IP` — but only when the connecting peer is inside
-  > Cloudflare's published ranges, otherwise the header is attacker-supplied
-  > and the fix is worse than the bug (CWE-348).
+  > This supersedes the earlier note that proxying was "off deliberately".
+  > Grey-clouding would resolve every visitor to an origin whose cloud firewall
+  > drops them. ACME HTTP-01 also renews _through_ Cloudflare — port 80 is
+  > reachable only via the edge — so turning proxying off would break
+  > certificate renewal as well as serving.
   >
-  > Also note: Cloudflare injects its analytics beacon at the edge. It appears
-  > zero times in origin HTML and our CSP blocks it, so no third-party script
-  > executes and the privacy posture holds — but it logs a CSP violation on
-  > every page load.
+  > **Open issue:** `clientIp()` in `apps/web/lib/submissions.ts` assumes a
+  > single reverse proxy setting `x-real-ip` to the connecting client. Traefik
+  > has no `forwardedHeaders.trustedIPs` configured, so it overwrites incoming
+  > forwarded headers with its own view — which is a Cloudflare edge node.
+  > Submission rate limiting is therefore per-edge rather than per-visitor, and
+  > the salted IP hash kept for abuse investigation records Cloudflare.
+  >
+  > The fix is to read `CF-Connecting-IP`. Normally that would be unsafe
+  > (CWE-348, attacker-supplied header) — but the origin lock above means the
+  > connecting peer is _guaranteed_ to be Cloudflare, because nothing else can
+  > open a connection to 80/443 at all. The network layer already enforces the
+  > property the application would otherwise have to check.
+  >
+  > **That safety is a dependency, not an invariant.** If the security list is
+  > ever widened to `0.0.0.0/0` on 80/443, trusting the header silently becomes
+  > a rate-limit bypass. Keep the two in step, and treat opening those ports as
+  > a change that requires revisiting `clientIp()`.
+  >
+  > Cloudflare also injects its analytics beacon at the edge. It appears zero
+  > times in origin HTML and the CSP blocks it, so no third-party script
+  > executes and the privacy posture holds — but it logs a CSP violation per
+  > page load.
 
 > ⚠️ The host also runs other live applications, **including one with real
 > patient data**. Every TowardPCC change must be additive and scoped to its own
