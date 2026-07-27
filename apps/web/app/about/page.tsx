@@ -51,11 +51,14 @@ export default function AboutPage() {
       <section aria-labelledby="founder" className="mx-auto max-w-[1280px] px-6 py-24">
         <div className="grid items-center gap-12 md:grid-cols-[280px_1fr]">
           <Reveal>
+            {/* Deliberately not a portrait — the founder chose not to publish
+                one. The brand waveform carries the section instead, which is
+                also the motif the About page explains. */}
             <ImageSlot
-              label="Portrait"
-              hint="save as public/images/founder-portrait.jpg"
-              src="/images/founder-portrait.jpg"
-              alt="Dr. Ahmed Alkhalifah"
+              label="TowardPCC"
+              hint="the breathing waveform"
+              src="/images/brand-waveform.jpg"
+              alt=""
               className="aspect-square max-w-[280px]"
             />
           </Reveal>
