@@ -1,6 +1,6 @@
 # Site polish — hero motion, image framing, calculator IA, canonical host
 
-**Status:** design, pending approval
+**Status:** implemented on `polish/site-v3` (all five slices)
 **Date:** 2026-07-27
 **Supersedes nothing.** Amends `ADR-design-direction` (motion clause) and
 `docs/design/motion.md` (ambient motion clause).
@@ -389,3 +389,65 @@ would emit canonicals pointing at a URL that 308s away.
   gives headroom rather than consuming it.
 - Manual: hero animates on a touchscreen laptop, the device class where it
   previously failed.
+
+---
+
+## 6. What changed during implementation
+
+Recorded because each of these was discovered by building the thing, not by
+designing it.
+
+**`--color-edge` was declared twice.** Once in `tokens.css` and again in
+`globals.css`'s `@theme` block. Deleting only the `:root` value leaves
+`border-edge` emitting `border-color: var(--color-edge)` with nothing to
+resolve; CSS treats that as invalid-at-computed-value-time and falls back to
+`currentColor`, so every input on the site would have outlined in ink. Both
+deletions must land together, and a test now asserts it stays gone.
+
+**`divide-surface-sunken` had the identical defect** and would have survived a
+guard scanning only for `border-`. The usage guard covers `divide-` too.
+
+**`ring-<surface>` is deliberately permitted.** It is the knockout idiom — the
+overlapping image on the home page is ringed in the page colour so it reads as
+cut out of the layout. Being invisible there is the entire point, the exact
+inverse of the bug, so banning it would turn a correct technique into a false
+positive.
+
+**Tailwind's content scanner reads comments.** Naming the banned class while
+explaining the bug regenerated its dead rule in the stylesheet. The
+privacy-invariant guard does the same for source: writing the banned API name
+in a comment about the rule failed the build. Both comments now describe
+rather than name.
+
+**The usage scan lives in `apps/web`, not `packages/ui`** as the spec had it.
+`tokens.test.ts` reads only its sibling `tokens.css`, and a package asserting
+on a consuming app is the wrong direction. It follows the existing
+`privacy-invariant.test.ts` pattern instead — and covers `packages/ui` from
+that side, since `Card` and `Accordion` were among the 38 sites.
+
+**Border thresholds needed ceilings, not just floors.** Without an upper bound
+a later edit could make `border-subtle` heavier than `border` and both would
+still pass, silently inverting the hierarchy.
+
+**Reduced motion mounts no canvas at all**, rather than painting one static
+frame as the spec proposed. That is `motion.md` rule 1 verbatim
+("poster only") and removes a second drawing path for no loss.
+
+**The e2e suite had to tolerate the service worker**, which reloads the page
+mid-`evaluate` and destroys the execution context. Both new measurement specs
+retry the whole navigate-and-measure cycle rather than sampling once.
+
+**`next/image` rewrites `src`** to `/_next/image?url=%2Fimages%2F…`, so the
+asset path is percent-encoded inside a query parameter and a plain
+`img[src*="/images/"]` selector matches nothing at all.
+
+**The hero pause is correct and broke a test.** On a phone the hero scene
+stacks below the heading and CTAs, so it starts off-screen and the loop is
+properly paused; the touch-device spec had to scroll it into view or it
+measured the pause rather than the animation.
+
+**PELOD-2 turned out to be a documentation defect, not a missing safety cue.**
+It declares all 11 inputs required, so a blank is rejected before `calculate`
+runs and `missingAsNormal`'s predicate — "a blank NON-REQUIRED input" — is
+vacuous for it. Fixed on its own branch,
+`fix/pelod2-missing-as-normal-doc`.
