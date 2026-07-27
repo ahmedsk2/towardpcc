@@ -797,8 +797,11 @@ export const site = {
     validatedByPrefix: "Validated by",
     formulaHeading: "How it is calculated",
     referencesHeading: "References",
+    evidenceHeading: "Evidence",
     versionHeading: "Version and changelog",
     limitationsHeading: "Limitations and notes",
+    // Retained: the ranges themselves moved into the fields, but this heading
+    // is still the accessible description of what those hints are.
     acceptedRangesHeading: "Accepted input ranges",
     disclaimerHeading: "Important",
     // Medical disclaimer summary on every calculator (PRD §6.6)

@@ -99,13 +99,19 @@ function anyEntered(inputs: readonly ScoreInput[], state: FieldState): boolean {
  * server. This is what makes the "nothing you enter is transmitted" promise
  * architecturally true (PRD §6.4).
  */
-export function CalculatorForm({ slug }: { slug: string }) {
+export function CalculatorForm({ slug, children }: { slug: string; children?: React.ReactNode }) {
   const definition = useMemo(() => getScore(slug), [slug]);
   if (!definition) return null;
-  return <CalculatorFormInner definition={definition} />;
+  return <CalculatorFormInner definition={definition}>{children}</CalculatorFormInner>;
 }
 
-function CalculatorFormInner({ definition }: { definition: ScoreDefinition }) {
+function CalculatorFormInner({
+  definition,
+  children,
+}: {
+  definition: ScoreDefinition;
+  children?: React.ReactNode;
+}) {
   const { inputs } = definition;
   const [state, setState] = useState<FieldState>(() => initialState(inputs));
   const [copied, setCopied] = useState(false);
@@ -177,18 +183,29 @@ function CalculatorFormInner({ definition }: { definition: ScoreDefinition }) {
   }, [definition, outcome]);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-      <form className="flex flex-col gap-5" noValidate aria-label={definition.name}>
-        {inputs.map((input) => (
-          <InputField
-            key={input.id}
-            input={input}
-            field={state[input.id] ?? { raw: "" }}
-            error={errorsById.get(input.id)}
-            onChange={(patch) => setField(input.id, patch)}
-          />
-        ))}
-      </form>
+    // The page's reference content is passed in as children and rendered in
+    // this column rather than after the grid. A sticky element can only travel
+    // within its parent, so when the grid held nothing but the inputs, a
+    // two-input score gave the result rail 11px of travel on a 2443px page and
+    // the answer scrolled away almost immediately. With the whole page in the
+    // left column the rail stays on screen for every score, however few inputs
+    // it has. The children are server components; they render on the server and
+    // are slotted in here, so nothing extra crosses the RSC boundary.
+    <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+      <div className="flex min-w-0 flex-col">
+        <form className="flex flex-col gap-5" noValidate aria-label={definition.name}>
+          {inputs.map((input) => (
+            <InputField
+              key={input.id}
+              input={input}
+              field={state[input.id] ?? { raw: "" }}
+              error={errorsById.get(input.id)}
+              onChange={(patch) => setField(input.id, patch)}
+            />
+          ))}
+        </form>
+        {children}
+      </div>
 
       <ResultPanel
         definition={definition}
@@ -213,8 +230,20 @@ function InputField({
   onChange: (patch: { raw?: string; unit?: string }) => void;
 }) {
   const id = `field-${input.id}`;
-  const describedBy = error ? `${id}-error` : input.helpText ? `${id}-help` : undefined;
+  const hasHint = Boolean(input.helpText) || input.type === "numeric";
+  const describedBy = error ? `${id}-error` : hasHint ? `${id}-help` : undefined;
   const units = unitOptions(input);
+
+  // The accepted range sits in the field itself rather than in a separate list
+  // at the bottom of the page, where a clinician had to leave the form to find
+  // out why a value was rejected. Unlike MDCalc's advisory ranges these are
+  // plausibility bounds that REJECT rather than compute — for a pediatric tool
+  // a mistyped weight changes a dose — so the wording says accepted, not
+  // typical, and the value is never silently clamped.
+  const range =
+    input.type === "numeric"
+      ? `${input.min}–${input.max}${input.unit.canonical ? ` ${input.unit.canonical}` : ""}`
+      : null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -230,6 +259,7 @@ function InputField({
             inputMode="decimal"
             step={input.step ?? "any"}
             value={field.raw}
+            placeholder={range ?? undefined}
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             onChange={(e) => onChange({ raw: e.target.value })}
@@ -299,9 +329,13 @@ function InputField({
           </span>
           {error}
         </p>
-      ) : input.helpText ? (
+      ) : hasHint ? (
         <p id={`${id}-help`} className="text-sm text-ink-muted">
-          {input.helpText.en}
+          {input.helpText?.en}
+          {input.helpText && range ? " " : null}
+          {/* Persists after typing, unlike the placeholder, so the accepted
+              range is still on screen when a value is being corrected. */}
+          {range ? <span className="numeric text-ink-muted/85">Accepted {range}</span> : null}
         </p>
       ) : null}
     </div>
@@ -330,7 +364,9 @@ function ResultPanel({
     <aside
       aria-live="polite"
       data-print="result"
-      className="h-max rounded-lg border border-border bg-surface-raised p-6 shadow-md lg:sticky lg:top-6"
+      // top-24 clears the sticky header (84px, shrinking to 64px on scroll)
+      // rather than tucking underneath it.
+      className="h-max rounded-lg border border-border bg-surface-raised p-6 shadow-md lg:sticky lg:top-24"
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
       {!ok ? (
