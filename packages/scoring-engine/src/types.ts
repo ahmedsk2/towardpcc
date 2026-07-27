@@ -182,11 +182,27 @@ export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonl
   readonly formula?: LocalizedText;
   /**
    * True when a blank non-required input is scored as normal (0 points / not
-   * on that therapy) rather than omitted — the additive organ-dysfunction and
-   * vasoactive composites (PELOD-2, pSOFA, Phoenix, VIS). The calculator UI
-   * shows a partial-result cue for these so a clinician never mistakes a
-   * not-yet-complete entry for a genuinely low score. Absent/false means every
-   * input either is required or simply adds detail when supplied.
+   * on that therapy) rather than omitted — pSOFA, Phoenix and VIS. The
+   * calculator UI shows a partial-result cue for these so a clinician never
+   * mistakes a not-yet-complete entry for a genuinely low score. Absent/false
+   * means every input either is required or simply adds detail when supplied.
+   *
+   * PELOD-2 is deliberately NOT flagged, and the reason matters. Its published
+   * form (Leteurtre 2013, Table 6 footnote a) does score an unmeasured variable
+   * as normal — but this implementation declares all 11 inputs required and
+   * rejects a blank outright rather than scoring it 0, so the flag's predicate
+   * ("a blank NON-REQUIRED input") is vacuous for it and the cue could never
+   * fire. Setting it here would be inert and untrue.
+   *
+   * That does not make PELOD-2 hazard-free: its `notes` instruct the caller to
+   * supply a normal value for anything unmeasured, so the falsely-low score
+   * this flag guards against is still reachable — by the clinician's hand
+   * rather than the engine's. PELOD-2 states this in `notes`, which the detail
+   * page renders — so it is disclosed, but in prose below the result rather
+   * than beside it. Any score whose `notes` carry a result-invalidating caveat
+   * belongs in the page's Cautions treatment, not only in the prose section.
+   * PIM3 is likewise unflagged: it imputes model-specific defaults, not
+   * "normal" values.
    */
   readonly missingAsNormal?: boolean;
   /** Clinical limitations, caveats, and any [NEEDS SOURCE] gaps. */
