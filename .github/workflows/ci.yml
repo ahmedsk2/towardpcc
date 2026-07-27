@@ -102,3 +102,56 @@ jobs:
           tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
       - name: Scan git history for secrets
         run: /tmp/gitleaks git --no-banner --redact --log-level debug .
+
+  # Container build + scan (P8, threat-model TM-007 / prod-readiness).
+  # The Dockerfile is hardened — non-root, HEALTHCHECK, digest-pinned base,
+  # dumb-init — but until now nothing built or scanned it in CI, so a
+  # vulnerable base layer or a regression in that hardening would only have
+  # surfaced on the production host.
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Lint the Dockerfile
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          dockerfile: apps/web/Dockerfile
+          # DL3018 (pin apk versions) is not enforced: the base image is already
+          # pinned by digest, so the package set is reproducible without also
+          # pinning every apk, which would rot fast and block security updates.
+          ignore: DL3018
+          failure-threshold: warning
+
+      - name: Build the production image
+        run: docker build -f apps/web/Dockerfile -t towardpcc-web:ci .
+
+      - name: Scan the image for known vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: towardpcc-web:ci
+          format: table
+          # Fail the build on HIGH/CRITICAL only. MEDIUM and below in a base
+          # image are near-permanent noise; gating on them trains people to
+          # ignore the job, which is worse than not having it.
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Verify the image runs as a non-root user
+        run: |
+          UID_IN_IMAGE=$(docker run --rm --entrypoint sh towardpcc-web:ci -c 'id -u')
+          echo "image runs as uid ${UID_IN_IMAGE}"
+          test "${UID_IN_IMAGE}" != "0"
+
+      - name: Verify Prisma's WASM query compiler shipped
+        # Next's standalone tracer omits it, which makes every query fail with
+        # ENOENT at runtime while /api/v1/health still returns 200. It has been
+        # missed once already; asserting it here is cheaper than finding out in
+        # production via /api/v1/ready.
+        run: |
+          docker run --rm --entrypoint sh towardpcc-web:ci -c \
+            'find / -name "query_compiler_bg.wasm" -not -path "*/proc/*" 2>/dev/null | head -1 | grep -q . '

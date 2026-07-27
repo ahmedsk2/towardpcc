@@ -1,7 +1,10 @@
 import { randomBytes } from "node:crypto";
+import { headers } from "next/headers";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { db, type AdminRole, type AdminUser } from "@towardpcc/db";
+import { resolveClientIp } from "@/lib/client-ip";
+import { allowLoginAttempt } from "@/lib/auth/login-throttle";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import {
   decryptSecret,
@@ -56,6 +59,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = String(creds?.password ?? "");
         const token = String(creds?.token ?? "").trim();
         if (!email || !password || !token) return null;
+
+        // Per-IP throttle BEFORE any credential work (SPC-API-001). Argon2id is
+        // deliberately expensive and runs on every attempt — including when no
+        // user exists, to keep the timing flat — so an unthrottled endpoint is
+        // a cheap way to burn the box's CPU, and the per-account lockout never
+        // fires against a spray across many guessed addresses.
+        //
+        // Rejects exactly as a wrong password does: same `null`, no distinct
+        // message, nothing the caller can use to tell "throttled" from
+        // "incorrect" and therefore nothing that reveals which addresses exist.
+        if (!allowLoginAttempt(resolveClientIp(await headers()))) {
+          logger.warn({ throttled: true }, "admin login throttled");
+          return null;
+        }
 
         const user = await db.adminUser.findUnique({ where: { email } });
         const locked = !!(user?.lockedUntil && user.lockedUntil > new Date());
