@@ -8,10 +8,38 @@ TowardPCC is deployed as a Coolify application behind Coolify's Traefik proxy.
 - **Live:** https://towardpcc.com (+ `www`), first deployed 2026-07-26
 - **Host:** OCI `hosting-1`, `145.241.105.239`, me-riyadh-1 (KSA — residency claim holds)
 - **Platform:** Coolify v4.1.2, Traefik v3.6 (TLS via Let's Encrypt, HTTP-01)
-- **DNS:** Cloudflare zone `towardpcc.com`, apex + `www` → the host, **DNS-only
-  (grey cloud)**. Proxying is off deliberately: the ACME HTTP-01 challenge needs
-  to reach the origin, and the app's per-IP rate limiting reads the real client
-  IP. If proxying is ever enabled, restore real-client-IP forwarding first.
+- **Canonical host:** `www.towardpcc.com`. The apex 308s to it in `proxy.ts`
+  (exact host match, so `next.` and `localhost` are unaffected). Coolify's
+  `NEXT_PUBLIC_SITE_URL` is `https://www.towardpcc.com` for production and
+  `https://next.towardpcc.com` for preview — the two must not be the same, or
+  the preview advertises production's canonical.
+- **DNS:** Cloudflare zone `towardpcc.com`, apex + `www` → the host.
+
+  > ⚠️ **Proxying is currently ON (orange cloud), and was documented as off.**
+  > Verified 2026-07-27: both hostnames return `Server: cloudflare` and a
+  > `CF-RAY` header. This contradicts the original design, which turned it off
+  > deliberately for two reasons — the ACME HTTP-01 challenge reaching the
+  > origin, and per-IP rate limiting seeing the real client.
+  >
+  > **Consequence, unresolved:** `clientIp()` in `apps/web/lib/submissions.ts`
+  > assumes a SINGLE reverse proxy that sets `x-real-ip` to the connecting
+  > client. With Cloudflare in front, the connecting client Traefik observes is
+  > a Cloudflare edge node, so every visitor now hashes to one of a handful of
+  > edge IPs. That degrades submission rate limiting from per-visitor to
+  > per-edge — one abuser can exhaust the bucket for everyone behind that node
+  > — and the hashed IP stored for abuse investigation is Cloudflare's, not the
+  > submitter's.
+  >
+  > Two valid fixes, and the choice is a judgement call: turn proxying back off
+  > to restore the documented and tested state, or keep it and trust
+  > `CF-Connecting-IP` — but only when the connecting peer is inside
+  > Cloudflare's published ranges, otherwise the header is attacker-supplied
+  > and the fix is worse than the bug (CWE-348).
+  >
+  > Also note: Cloudflare injects its analytics beacon at the edge. It appears
+  > zero times in origin HTML and our CSP blocks it, so no third-party script
+  > executes and the privacy posture holds — but it logs a CSP violation on
+  > every page load.
 
 > ⚠️ The host also runs other live applications, **including one with real
 > patient data**. Every TowardPCC change must be additive and scoped to its own
