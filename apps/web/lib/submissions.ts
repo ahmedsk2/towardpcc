@@ -3,6 +3,7 @@ import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { db, type SubmissionType } from "@towardpcc/db";
+import { resolveClientIp } from "@/lib/client-ip";
 import { notifyAdminOfSubmission } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { createRateLimiter } from "@/lib/rate-limit";
@@ -77,24 +78,13 @@ function ipSalt(): string {
   return "dev-only-salt-not-for-production";
 }
 
-// Trusted-proxy client IP. Production runs behind a single reverse proxy that
-// SETS x-real-ip to the connecting client (overwrite, not append). We trust
-// that; if absent, fall back to the RIGHTMOST x-forwarded-for hop (the address
-// our own proxy observed) — never the spoofable leftmost, attacker-controlled
-// token (CWE-348).
+// Client IP for rate limiting and the salted abuse hash. The header precedence
+// and the reasoning about why cf-connecting-ip can be trusted here live in
+// lib/client-ip.ts — the previous comment on this function claimed production
+// ran behind "a single reverse proxy", which stopped being true when
+// Cloudflare went in front and is what kept the bug invisible.
 async function clientIp(): Promise<string> {
-  const h = await headers();
-  const real = h.get("x-real-ip")?.trim();
-  if (real) return real;
-  const xff = h.get("x-forwarded-for");
-  if (xff) {
-    const hops = xff
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (hops.length) return hops[hops.length - 1]!;
-  }
-  return "unknown";
+  return resolveClientIp(await headers());
 }
 
 async function hashClientIp(): Promise<string> {
