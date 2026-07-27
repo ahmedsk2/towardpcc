@@ -113,11 +113,12 @@ then — no figure is invented.
       dump restored into a scratch database with all 7 tables, row counts matching
       source, admin row intact; scratch dropped. Procedure in
       docs/runbooks/deploy-production.md. Re-run the drill after schema changes.
-- [ ] **Container image build + scan in CI (P8)** — the Dockerfile is hardened
-      (non-root, healthcheck, digest-pinned base, dumb-init) and now copies
-      packages/db, but the image is not built/scanned in CI. Add a
-      `docker build` + Trivy/hadolint job before staging. Verify the standalone
-      output ships Prisma's WASM query compiler (driver-adapter runtime).
+- [x] **Container image build + scan in CI (P8)** — **DONE 2026-07-27.** The
+      `container` job lints with hadolint, builds the image, scans with Trivy
+      (gating on HIGH/CRITICAL only — gating on MEDIUM base-image noise trains
+      people to ignore the job), and then asserts two things that have actually
+      bitten this project: the image does not run as root, and Prisma's WASM
+      query compiler shipped. All action pins are 40-char commit SHAs.
 - [x] **Structured request logging** — DONE (polish pass): pino JSON logger
       (apps/web/lib/logger.ts) with PII redaction; wired at submission-stored /
       rate-limited / admin-login outcomes. Error telemetry (Sentry/GlitchTip
@@ -201,9 +202,30 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
   UPDATE/DELETE on `AuditLog` from the app role; deploy.md §3b applies it and
   notes the retention purge must run under the owner. **Remaining:** apply +
   verify live.
-- [ ] **SPC-DB-002** — enforce TLS on the app→Postgres link (`sslmode=verify-full`).
-      Deferred: single-host internal `data` network (now `internal: true`), medium
-      severity; needs a postgres server cert. Follow-up during/after bring-up.
+- [ ] **SPC-DB-002 — reframed 2026-07-27 after checking production.** The
+      original item (enforce `sslmode=verify-full`) assumed the risk was
+      eavesdropping on the app→Postgres link. Two things found on the host
+      change that:
+
+      _Good news:_ the Postgres container holds **only** `towardpcc`. The other
+          tenants on the box — including the patient-data application — run MySQL
+          and MariaDB in separate containers, so changing this Postgres has no
+          blast radius beyond this app. The runbook's "shared-services Postgres"
+          wording overstates the coupling.
+
+          _Less good:_ `ssl = off`, and the container sits on Coolify's shared
+          `coolify` Docker network alongside other tenants' application containers.
+          Sniffing a bridge needs host-level privilege so eavesdropping is not the
+          live threat — but **reachability** is: a compromised neighbour container
+          can open a connection to the database port. Password auth and the
+          least-privilege `towardpcc_app` role are what stand in front of it.
+
+          So the higher-value fix is **network segmentation** (a dedicated network
+          for web↔postgres, which the threat model already asked for at §2.5),
+          with TLS second. Both touch Coolify-managed infrastructure and can be
+          reverted by a Coolify redeploy, so neither is a drive-by change; do them
+          deliberately, with the restore drill re-run afterwards.
+
 - [ ] **SPC-WEB-001** — remove public-tier CSP `script-src 'unsafe-inline'` (hash
       the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG
       tradeoff; fix needs hydration testing.
@@ -213,7 +235,7 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
   third-party images digest-pinned (docker-compose.prod.yml). **Remaining:**
   secrets via Docker `secrets:`/`_FILE` (needs an app entrypoint), read-only
   rootfs + tmpfs (verify live), and a CI image build + Trivy/hadolint gate.
-- [ ] **SPC-API-001** — add a per-IP throttle in front of the admin credentials
+- [x] **SPC-API-001** — DONE 2026-07-27: per-IP throttle in front of the admin credentials
       flow (reuse `apps/web/lib/rate-limit.ts`), scope lockout to account+IP or
       add a challenge, to blunt targeted auth-DoS + credential stuffing.
       **Unblocked 2026-07-27** — build it on `resolveClientIp()` from
