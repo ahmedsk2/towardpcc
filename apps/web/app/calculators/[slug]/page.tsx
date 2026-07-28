@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getScore, listScores, type ScoreDefinition } from "@towardpcc/scoring-engine";
+import { getScore, listScores } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { scoreDescription } from "@/content/score-description";
 import { CalculatorForm } from "@/components/calculator/calculator-form";
 import { ValidationBadge } from "@/components/calculator/validation-badge";
 import { ScoreTabs, type ScoreTab } from "@/components/calculator/score-tabs";
@@ -19,37 +20,6 @@ const REASON_LABELS: Record<string, string> = {
   "new-reference": "New reference",
   clarification: "Clarification",
 };
-
-/**
- * Strips parenthetical expansions from a score name for use in a meta
- * description. Applies anywhere in the string, not just at the end: one score
- * is "Serum osmolality (calculated) and osmolar gap", where the parenthetical
- * sits mid-name and a trailing-only rule silently does nothing.
- */
-const shortName = (name: string) =>
-  name
-    .replace(/\s*\([^)]*\)/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-/**
- * One description, used by both the meta tags and the JSON-LD. They must agree:
- * a structured-data description that differs from the meta description is a
- * signal to a crawler that one of them is boilerplate.
- */
-function scoreDescription(score: ScoreDefinition): string {
-  const refs = score.references.length;
-  const build = (name: string) =>
-    `${name}: ${c.categoryLabels[score.category].toLowerCase()} score for PICU, ` +
-    `computed in your browser from ${refs} referenced ${refs === 1 ? "source" : "sources"}. ` +
-    `Nothing you enter is sent.`;
-  // A few names carry a long parenthetical expansion — "Pediatric burn fluid
-  // resuscitation (Parkland / modified Brooke)" is 62 characters on its own.
-  // Drop it only where the full name would push the description past the
-  // ~160-char display limit. The <title> and heading always keep the full name.
-  const full = build(score.name);
-  return full.length > 160 ? build(shortName(score.name)) : full;
-}
 
 const linkClass =
   "text-accent-deep underline decoration-accent/40 underline-offset-2 hover:decoration-accent";
