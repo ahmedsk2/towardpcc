@@ -59,9 +59,18 @@ failure this project cares most about avoiding.
 **2. The edge.** Replace Cloudflare's data path with an **OCI Flexible Load
 Balancer + OCI regional WAF in me-riyadh-1**. Same tenancy, same region, and —
 the deciding property — confirmable by API rather than by a vendor's policy
-page. Roughly $18/month for the LB; the first WAF instance and 10M requests a
-month are free. Cloudflare may remain the authoritative DNS (it handles no
-personal data) or move; that is a separate, later question.
+page. Cloudflare may remain the authoritative DNS (it handles no personal data)
+or move; that is a separate, later question.
+
+**Cost, corrected 2026-07-28.** This ADR first said "roughly $18/month for the
+LB". That was wrong by about 2× and included a per-GB data-processing charge
+that does not exist in Oracle's model at all — an AWS-shaped line item imported
+by assumption. Flexible LB is $0.0113/hour per instance plus $0.0001 per Mbps
+per hour, so at 10 Mbps it is **about $9/month, or $0** if the first-load-balancer
+allowance applies to the account. The first WAF instance and 10M requests/month
+are free; beyond that, $5/month per instance and $0.60 per million requests.
+Recorded rather than silently edited because a wrong figure in an accepted ADR
+is the same defect class as a wrong figure on the site.
 
 **3. The submitter acknowledgement is removed.** It was the single path that
 made an unqualified claim impossible. The admin inbox becomes the only
@@ -81,6 +90,14 @@ question.
 1. **The public residency claim can become unqualified once the edge moves —
    and not one day before.** The wording changes in the same deploy as the DNS
    cutover, never ahead of it.
+
+   And even then, only if `next.towardpcc.com` and `deploy.towardpcc.com` move
+   too. Both are Cloudflare-proxied and were on nobody's list. `deploy.` is the
+   Coolify control panel, through which every production secret is
+   administered — a **higher**-privilege exposure than the site itself. Until
+   they move, an unqualified claim about "the platform" would be false, so
+   either migrate them or carve them out explicitly.
+
 2. **The origin lock stops being a security control, so `client-ip.ts` must
    change first.** It trusts `cf-connecting-ip` first and unconditionally, which
    is safe only because the OCI security list admits Cloudflare's ranges alone.
@@ -91,11 +108,28 @@ question.
    one subnet using one security list, and the host runs another live
    application holding real patient data. Any ingress change touches their
    exposure. Their owner agrees before anything moves.
-4. **DDoS and bot mitigation change hands.** OCI provides always-on L3/L4
-   protection and a regional WAF; Cloudflare's L7 protection and bot management
-   are lost. Static-asset edge caching is lost too — but less than feared, since
-   HTML is already `cf-cache-status: DYNAMIC` and served from origin on every
-   request.
+4. **Bot mitigation is not merely lost — it is unbuyable from Oracle without
+   leaving the Kingdom.** OCI provides always-on L3/L4 DDoS protection free, and
+   the regional WAF carries ModSecurity-CRS-derived OWASP rules, per-key rate
+   limiting and access control. But bot management — JS challenge, CAPTCHA,
+   human-interaction scoring — is an **edge**-policy feature, and OCI's edge WAF
+   is a global-POP DNS-CNAME product that fails the residency test for exactly
+   the reason Cloudflare Enterprise did. There is no in-Kingdom Oracle answer.
+   Accepted knowingly: the forms already carry a honeypot, a time trap and
+   per-IP rate limiting, and Turnstile remains available as a documented
+   break-glass if a flood arrives. Static-asset edge caching is lost too — less
+   than feared, since HTML is already `cf-cache-status: DYNAMIC` and served from
+   origin on every request, but every byte now comes off the single A1 VM that
+   is shared with the co-tenant.
+
+   Two Cloudflare features currently in use also disappear and are worth naming
+   rather than discovering: **Email Obfuscation** (which is why the site's
+   mailto addresses are currently rewritten) and the **HTTP→HTTPS redirect**,
+   which is done by Cloudflare today and not by the app or Traefik. The new
+   load balancer must carry a port-80 listener with a redirect rule, or a
+   visitor typing the bare domain gets nothing — and HSTS will not paper over
+   it, because the domain is not yet on the preload list.
+
 5. **Outbound mail moves to OCI Email Delivery in me-riyadh-1.** The brief
    towardpicu.com decision (2026-07-28, same day) is reversed before it ever
    sent a message — that relay is Google Cloud and dnssmarthost, outside KSA.

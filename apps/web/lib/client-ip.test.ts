@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resolveClientIp } from "./client-ip";
 
 const h = (init: Record<string, string>) => new Headers(init);
@@ -70,6 +70,107 @@ describe("resolveClientIp", () => {
 
     it("ignores an x-forwarded-for of only separators", () => {
       expect(resolveClientIp(h({ "x-forwarded-for": " , , " }))).toBe("unknown");
+    });
+  });
+
+  /**
+   * Chain B — behind the OCI load balancer, after the KSA migration (ADR-0004).
+   *
+   * The whole point of this branch is that `cf-connecting-ip` stops being
+   * trustworthy the moment the origin is reachable without passing Cloudflare.
+   * The load balancer does not strip it, so it must not merely be demoted — it
+   * must not be read.
+   */
+  describe("behind the OCI load balancer", () => {
+    const SECRET = "s3cr3t-edge-token";
+    const withSecret = (extra: Record<string, string>) => h({ "x-via-edge": SECRET, ...extra });
+
+    beforeEach(() => {
+      process.env.EDGE_SHARED_SECRET = SECRET;
+    });
+    afterEach(() => {
+      delete process.env.EDGE_SHARED_SECRET;
+    });
+
+    it("takes the rightmost hop, which is the one the load balancer appended", () => {
+      expect(resolveClientIp(withSecret({ "x-forwarded-for": "10.0.0.9, 203.0.113.7" }))).toBe(
+        "203.0.113.7",
+      );
+    });
+
+    it("IGNORES cf-connecting-ip, which is forgeable once Cloudflare is out of the path", () => {
+      // The regression that would silently reintroduce CWE-348: a client sets
+      // this header directly against the load balancer and is believed.
+      expect(
+        resolveClientIp(
+          withSecret({
+            "cf-connecting-ip": "1.2.3.4",
+            "x-forwarded-for": "1.2.3.4, 203.0.113.7",
+          }),
+        ),
+      ).toBe("203.0.113.7");
+    });
+
+    it("ignores x-real-ip on this path too", () => {
+      expect(
+        resolveClientIp(withSecret({ "x-real-ip": "1.2.3.4", "x-forwarded-for": "203.0.113.7" })),
+      ).toBe("203.0.113.7");
+    });
+
+    it("ignores a forged leftmost hop", () => {
+      expect(
+        resolveClientIp(withSecret({ "x-forwarded-for": "1.2.3.4, 5.6.7.8, 203.0.113.7" })),
+      ).toBe("203.0.113.7");
+    });
+
+    it("survives a client that also sends x-via-edge", () => {
+      // Fetch joins duplicate headers with ", ", so a naive equality check on
+      // the whole value would fail open OR closed depending on ordering.
+      expect(
+        resolveClientIp(
+          h({ "x-via-edge": `forged, ${SECRET}`, "x-forwarded-for": "10.0.0.9, 203.0.113.7" }),
+        ),
+      ).toBe("203.0.113.7");
+    });
+
+    it("rejects a rightmost hop that is not an IP literal", () => {
+      // If the rule set silently did not apply, the rightmost value is whatever
+      // the caller sent. Storing that as an address would poison the hash.
+      expect(resolveClientIp(withSecret({ "x-forwarded-for": "not-an-ip" }))).toBe("unknown");
+    });
+  });
+
+  describe("the edge branch cannot be reached by guessing", () => {
+    it("falls through to the Cloudflare path when the secret is wrong", () => {
+      process.env.EDGE_SHARED_SECRET = "the-real-secret";
+      try {
+        expect(
+          resolveClientIp(
+            h({
+              "x-via-edge": "guessed",
+              "cf-connecting-ip": "203.0.113.7",
+              "x-forwarded-for": "1.2.3.4, 172.68.42.1",
+            }),
+          ),
+        ).toBe("203.0.113.7");
+      } finally {
+        delete process.env.EDGE_SHARED_SECRET;
+      }
+    });
+
+    it("is unreachable entirely when EDGE_SHARED_SECRET is unset", () => {
+      // This ships before the load balancer exists. An unconfigured secret must
+      // never mean "trust whoever sets the header".
+      delete process.env.EDGE_SHARED_SECRET;
+      expect(
+        resolveClientIp(
+          h({
+            "x-via-edge": "anything",
+            "cf-connecting-ip": "203.0.113.7",
+            "x-forwarded-for": "1.2.3.4, 172.68.42.1",
+          }),
+        ),
+      ).toBe("203.0.113.7");
     });
   });
 });
