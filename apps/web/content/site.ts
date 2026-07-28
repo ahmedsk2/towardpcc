@@ -477,6 +477,33 @@ export const site = {
       ],
     },
     data: {
+      /**
+       * Shown in place of dashboard imagery, which cannot be published until
+       * the pilot unit approves it. Process transparency is the honest
+       * substitute: a unit deciding whether to join learns more from what the
+       * next stage requires than from a screenshot. The unit stays unnamed.
+       */
+      stagesHeading: "Where the registry actually is",
+      stagesLede:
+        "We would rather onboard one unit correctly than ten quickly. This is the sequence, and the stage we are at.",
+      stages: [
+        {
+          label: "Single-unit pilot",
+          detail:
+            "One PICU in the Gulf region, running on the same validated engine as the public calculators.",
+        },
+        {
+          label: "Governance review",
+          detail:
+            "Data-sharing agreements, ethics approval and residency arrangements settled with each participating institution before any second unit joins.",
+        },
+        {
+          label: "Multi-unit registry",
+          detail:
+            "Shared benchmarking across units, with every unit retaining control of its own data.",
+        },
+      ],
+      currentStage: 0,
       badge: "Pilot underway · one Gulf unit",
       heading: "A registry built on the same engine",
       lede: "A PICU registry is currently being piloted in one unit in the Gulf region, built on the same validated scoring engine as the public calculators.",

@@ -1,5 +1,6 @@
 import { PillarPage } from "@/components/pillar/pillar-page";
 import { PillarRequestForm } from "@/components/pillar/pillar-request-form";
+import { StageTimeline } from "@/components/stage-timeline";
 import { site } from "@/content/site";
 import { submitData } from "./actions";
 
@@ -31,6 +32,20 @@ export default function DataPage() {
       imageFit="contain"
       imageFrame
     >
+      {/* Sits before the interest form deliberately: someone about to register
+          should see what stage they would be joining, and what has to be
+          settled first, before they decide to. */}
+      <section aria-labelledby="registry-stages" className="mt-16">
+        <h2
+          id="registry-stages"
+          className="font-display text-2xl font-bold tracking-tight text-ink-strong md:text-3xl"
+        >
+          {d.stagesHeading}
+        </h2>
+        <p className="mt-3 max-w-[62ch] leading-relaxed text-ink-muted">{d.stagesLede}</p>
+        <StageTimeline stages={d.stages} currentIndex={d.currentStage} className="mt-10" />
+      </section>
+
       <PillarRequestForm
         heading={site.pillarPages.data.formHeading}
         action={submitData}
