@@ -88,7 +88,24 @@ export default function AboutPage() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-5 max-w-[62ch] text-sm text-ink-muted">{f.publications}</p>
+              <p className="mt-5 text-sm font-medium text-ink-strong">{f.publicationsLead}</p>
+              <ul className="mt-2 max-w-[62ch] list-none space-y-1.5 text-sm text-ink-muted">
+                {f.publications.map((p) => (
+                  <li key={p.title}>
+                    {p.href ? (
+                      <a
+                        href={p.href}
+                        className="text-accent-deep underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+                      >
+                        {p.title}
+                      </a>
+                    ) : (
+                      <span className="text-ink-body">{p.title}</span>
+                    )}
+                    <span className="text-ink-muted"> — {p.venue}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Reveal>
         </div>

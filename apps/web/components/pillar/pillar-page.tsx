@@ -3,7 +3,13 @@ import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { ImageSlot } from "@/components/image-slot";
 import { Reveal } from "@/components/reveal";
 
-export type PillarStat = { value: number; label: string; suffix?: string };
+/**
+ * `prefix` exists because "<5 working days" is a materially different claim
+ * from "5 working days" — one is a typical observed turnaround, the other reads
+ * as a commitment the PRD explicitly refuses to make. A figure that silently
+ * drops its qualifier is worse than no figure.
+ */
+export type PillarStat = { value: number; label: string; suffix?: string; prefix?: string };
 export type PillarCapability = { title: string; body: string };
 
 /**
@@ -109,6 +115,7 @@ export function PillarPage({
                   right; the animation was reading them out loud from zero.
                   Count-up is now home-band only (docs/design/motion.md). */}
               <dd className="m-0 font-numeric text-3xl font-semibold text-accent tabular-nums">
+                {s.prefix ?? ""}
                 {s.value}
                 {s.suffix ?? ""}
               </dd>

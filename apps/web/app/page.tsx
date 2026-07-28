@@ -255,26 +255,32 @@ export default function HomePage() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(700px_400px_at_20%_0%,rgba(255,122,107,0.28),transparent_70%),radial-gradient(600px_400px_at_80%_100%,rgba(234,58,87,0.3),transparent_70%)]"
         />
+        {/* One band, four figures.
+            This was two <dl>s stacked in a single section under an sr-only
+            heading — eight animated numbers reading as one unlabelled slab, on
+            a page that already showed fourteen figures before the pillar cards
+            expressing only nine distinct facts ("22" appeared five times, "89"
+            three). The three that carry the argument were drowning in the ones
+            that did not.
+            What stayed is what a reader can go and count: scores, citations,
+            indexed pages, coverage. The team figures were not dropped — they
+            moved to where they inform a decision rather than a scroll: years to
+            the founder section, studies supported and reply time to /services,
+            where someone is deciding whether to ask. */}
         <div className="relative z-10 mx-auto max-w-[1280px] px-6 py-20">
-          <h2 id="counters-heading" className="sr-only">
+          <h2
+            id="counters-heading"
+            className="text-center font-display text-2xl font-medium text-white md:text-3xl"
+          >
             {h.countersHeading}
           </h2>
-          <dl className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <p className="mx-auto mt-3 max-w-[52ch] text-center text-ink-on-dark/75">
+            {h.countersLede}
+          </p>
+          <dl className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {h.counters.map((c) => (
               <div key={c.label} className="text-center">
                 <dd className="m-0 font-numeric text-4xl font-semibold text-white tabular-nums md:text-5xl">
-                  <Counter value={c.value} suffix={c.suffix} prefix={c.prefix} />
-                </dd>
-                <dt className="mt-3 text-sm text-ink-on-dark/80">{c.label}</dt>
-              </div>
-            ))}
-          </dl>
-
-          {/* Second row: the team behind it, rather than the codebase. */}
-          <dl className="mt-14 grid gap-8 border-t border-white/20 pt-14 sm:grid-cols-2 lg:grid-cols-4">
-            {h.teamCounters.map((c) => (
-              <div key={c.label} className="text-center">
-                <dd className="m-0 font-numeric text-3xl font-semibold text-coral tabular-nums md:text-4xl">
                   <Counter value={c.value} suffix={c.suffix} prefix={c.prefix} />
                 </dd>
                 <dt className="mt-3 text-sm text-ink-on-dark/80">{c.label}</dt>
@@ -427,7 +433,40 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-5 max-w-[62ch] text-sm text-ink-muted">{h.founder.publications}</p>
+              {/* Migrated from the home counter band: it says more here, beside
+                  the person, than as the second of eight numbers on a dark
+                  slab. */}
+              <p className="mt-6 font-numeric text-sm text-ink-muted">
+                <span className="font-semibold text-accent-deep tabular-nums">
+                  {h.founderYears.value}
+                  {h.founderYears.suffix}
+                </span>{" "}
+                {h.founderYears.label.toLowerCase()}
+              </p>
+
+              <p className="mt-5 text-sm font-medium text-ink-strong">
+                {h.founder.publicationsLead}
+              </p>
+              <ul className="mt-2 max-w-[62ch] list-none space-y-1.5 text-sm text-ink-muted">
+                {h.founder.publications.map((p) => (
+                  <li key={p.title}>
+                    {/* Renders as a link once a DOI is supplied; plain text
+                        until then, rather than a guessed identifier that would
+                        resolve to somebody else's paper. */}
+                    {p.href ? (
+                      <a
+                        href={p.href}
+                        className="text-accent-deep underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
+                      >
+                        {p.title}
+                      </a>
+                    ) : (
+                      <span className="text-ink-body">{p.title}</span>
+                    )}
+                    <span className="text-ink-muted"> — {p.venue}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </Reveal>
         </div>

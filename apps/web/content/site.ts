@@ -114,26 +114,35 @@ export const site = {
      * sourced it is removed, not guessed.
      */
     countersHeading: "What is actually built",
+    countersLede:
+      "Every figure here is something you can go and count. Nothing on this page is an estimate.",
     counters: [
       { value: 22, label: "Referenced calculators" },
       { value: 89, label: "Literature citations" },
       { value: 64388, label: "Library pages indexed" },
       { value: 100, suffix: "%", label: "Engine test coverage" },
     ] as { value: number; label: string; suffix?: string; prefix?: string }[],
+    /** Migrated 2026-07-28. "10+ years" now sits in the founder section and
+        "7+ studies" / "<5 working days" on /services, beside the queue-honesty
+        note where someone is deciding whether to ask. They were a second row of
+        four animated figures directly under the first, which is how the home
+        page came to show fourteen numbers before the pillar cards. */
+    founderYears: { value: 10, suffix: "+", label: "Years in pediatric critical care" },
+
     /**
-     * Second counter row — founder-supplied figures about the team and its
-     * work, rather than about the codebase.
+     * NOT CURRENTLY RENDERED — kept here deliberately rather than deleted.
      *
-     * Note on the last one: the PRD is explicit that Research Services makes
-     * no SLA promise. It is therefore worded as a typical observed turnaround,
-     * not a guarantee — "typically" is doing load-bearing work in that label.
+     * Founder-supplied, and the only one of the four that does not survive the
+     * band's own test: every other figure names a thing you can go and count
+     * (scores, citations, indexed pages, coverage percentage), whereas "online
+     * solutions" has no definition on the site — the four pillars are four, and
+     * it is not clear what the fifth is or what would make it six.
+     *
+     * Deleting it would quietly lose a figure the founder asked for; rendering
+     * it beside four countable ones would weaken all five. So it waits here for
+     * either a definition that makes it countable, or a decision to drop it.
      */
-    teamCounters: [
-      { value: 5, suffix: "+", label: "Online solutions, and growing" },
-      { value: 10, suffix: "+", label: "Years in pediatric critical care" },
-      { value: 7, suffix: "+", label: "Studies supported, with ongoing help" },
-      { value: 5, prefix: "<", label: "Working days to a first reply, typically" },
-    ] as { value: number; label: string; suffix?: string; prefix?: string }[],
+    solutionsLive: { value: 5, suffix: "+", label: "Online solutions, and growing" },
     /**
      * Replaces the testimonial slot the reference sites use. These are real,
      * checkable citations — the honest form of social proof for a clinical
@@ -182,8 +191,26 @@ export const site = {
         "Fellowship — Pediatric Critical Care",
         "Fellowship — Pediatric Neurocritical Care",
       ],
-      publications:
-        "Published in PLOS ONE on personalising mechanical power to reduce ICU mortality, and in Open Access Emergency Medicine on machine learning for pediatric triage.",
+      publicationsLead: "Published work:",
+      /**
+       * Each entry renders as a link when `href` is present and as plain text
+       * otherwise. The section named two journals and carried no links at all,
+       * which on a page arguing for referenced evidence is the wrong signal.
+       *
+       * The DOIs are deliberately absent rather than guessed: a wrong DOI
+       * resolves to someone else’s paper, which is a worse failure than no
+       * link. Supply them and each becomes a link with no other change.
+       */
+      publications: [
+        {
+          title: "Personalising mechanical power to reduce ICU mortality",
+          venue: "PLOS ONE",
+        },
+        {
+          title: "Machine learning for pediatric triage",
+          venue: "Open Access Emergency Medicine",
+        },
+      ] as { title: string; venue: string; href?: string }[],
     },
     ctaBand: {
       heading: "Start with a calculator. Stay for the rest.",
@@ -463,6 +490,12 @@ export const site = {
       stats: [
         { value: 3, label: "Areas of support" },
         { value: 0, label: "Cost, in any currency" },
+        // Migrated from the home counter band 2026-07-28. Founder-supplied and
+        // unchanged in value — moved to where someone is deciding whether to
+        // ask, not scrolling past. "Typically" is load-bearing on the second:
+        // the PRD is explicit that Research Services promises no SLA.
+        { value: 7, suffix: "+", label: "Studies supported, with ongoing help" },
+        { value: 5, prefix: "<", label: "Working days to a first reply, typically" },
       ],
       capabilitiesHeading: "Three kinds of help.",
       capabilities: [
