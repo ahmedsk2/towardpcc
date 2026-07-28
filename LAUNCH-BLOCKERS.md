@@ -144,29 +144,25 @@ then — no figure is invented.
       status codes), org-owned auto-renew payment, a two-owner renewal
       calendar, CT-log and lookalike monitoring, defensive registrations.
 
-- [ ] **SMTP relay (TM-008)** — app side done; the path changed on 2026-07-28
-      (ADR-0004) from a towardpicu.com relay to **OCI Email Delivery in
-      me-riyadh-1**, because that relay is Google Cloud + dnssmarthost, outside
-      KSA. It never sent a message, so this is a plan corrected rather than a
-      breach. Full ordered setup in `docs/runbooks/email-delivery.md`.
-      **Outstanding, owner-only because it mints credentials:** create the email
-      domain, publish the verification TXT and DKIM CNAME, add the approved
-      sender, mint SMTP credentials, then set `SMTP_HOST`/`USER`/`PASSWORD` in
-      Coolify. `MAIL_FROM` and `ADMIN_EMAIL` are already correct.
+- [ ] **SMTP relay (TM-008)** — everything on the engineering side is done.
+      Settings are now editable at `/admin/settings`, stored encrypted, and
+      overriding the environment; the transport is keyed on a fingerprint of
+      them so a saved change takes effect without a redeploy; and a **Send a
+      test email** button proves the relay end to end.
 
-      **`SMTP_HOST` is the gate — set it LAST, after DKIM reports ACTIVE.**
-                  Nothing sends while it is blank, so every other value is safe to stage in
-                  advance. Set it early and, under `p=reject` with no valid signature, every
-                  message is rejected outright and silently.
+      **Outstanding, founder-only because it is a credential:** enter the
+              `mail.towardpicu.com` mailbox password in `/admin/settings` along with the
+              host, user and `MAIL_FROM`. Nothing sends while `SMTP_HOST` is blank, so
+              the other fields are safe to stage first.
 
-                  **Do NOT widen towardpcc.com's SPF.** Earlier guidance here and in the
-                  runbook said to; it was wrong. SPF is evaluated against the envelope MAIL
-                  FROM, which is Oracle's return-path domain, so the apex record is never
-                  consulted — DKIM alignment earns the DMARC pass under `adkim=s`. Keep
-                  `v=spf1 -all` exactly as it is.
+              **Do NOT widen towardpcc.com's SPF.** Earlier guidance here and in the
+              runbook said to; it was wrong under both candidate relays. From: is on
+              towardpicu.com, whose SPF already authorises this relay, and towardpcc.com
+              still sends nothing — so `v=spf1 -all` with `p=reject` stays exactly as it
+              is, which is the strongest posture available and free.
 
-                  Verification is now one click: once configured, `/admin` shows a **Send a
-                  test email** button in place of the warning banner.
+              Residual, non-blocking: towardpicu.com publishes no DKIM key (SPF alone
+              breaks on forwarding) and its DMARC is `p=none` with no `rua=`.
 
 - [ ] **KSA-only processing (ADR-0004)** — the founder decided on 2026-07-28
       that all processing must be inside Saudi Arabia and confirmable. Settled:
@@ -177,21 +173,21 @@ then — no figure is invented.
       `ADMIN_EMAIL` stays on Gmail as a recorded exception.
 
       **Cloudflare Enterprise was ruled out on the merits, not on cost** —
-                  Customer Metadata Boundary supports only EU or US, so visitor IPs would
-                  still leave the Kingdom at ~$3–5k/month.
+                          Customer Metadata Boundary supports only EU or US, so visitor IPs would
+                          still leave the Kingdom at ~$3–5k/month.
 
-                  Outstanding, in strict order:
+                          Outstanding, in strict order:
 
-                  1. `client-ip.ts` trust-boundary change — it trusts `cf-connecting-ip`
-                     unconditionally, safe **only** because the origin is firewalled to
-                     Cloudflare. This must land **before or with** any ingress widening or
-                     it is a rate-limit bypass (CWE-348).
-                  2. Co-tenant agreement. One subnet, one security list, and the host runs
-                     another live app **holding real patient data**. Not our decision alone.
-                  3. Stand up the OCI LB + WAF and prove it **while Cloudflare still
-                     proxies**. Never flip DNS first.
-                  4. Move DNS, wait out TTL, then narrow the old Cloudflare ingress **last**.
-                  5. Only then rewrite the public residency copy to drop its caveat.
+                          1. `client-ip.ts` trust-boundary change — it trusts `cf-connecting-ip`
+                             unconditionally, safe **only** because the origin is firewalled to
+                             Cloudflare. This must land **before or with** any ingress widening or
+                             it is a rate-limit bypass (CWE-348).
+                          2. Co-tenant agreement. One subnet, one security list, and the host runs
+                             another live app **holding real patient data**. Not our decision alone.
+                          3. Stand up the OCI LB + WAF and prove it **while Cloudflare still
+                             proxies**. Never flip DNS first.
+                          4. Move DNS, wait out TTL, then narrow the old Cloudflare ingress **last**.
+                          5. Only then rewrite the public residency copy to drop its caveat.
 
 - [ ] **Inbound mail is outside KSA and undocumented** — `towardpcc.com`'s MX
       points at SiteGround's SpamExperts on Google Cloud, which reads every
@@ -209,9 +205,9 @@ then — no figure is invented.
       found in the 2026-07-28 audit.
 
       Related: the tenancy's single-region subscription is **state, not a
-                  control** — an admin can add a region in one click and OCI never allows
-                  unsubscribing. Until an IAM policy or quota backs it, the honest phrasing
-                  is "nothing is deployed outside KSA", not "nothing can be".
+                          control** — an admin can add a region in one click and OCI never allows
+                          unsubscribing. Until an IAM policy or quota backs it, the honest phrasing
+                          is "nothing is deployed outside KSA", not "nothing can be".
 
 - [ ] **HSTS preload-list submission (P8)** — **the precondition is now met.**
       Checked 2026-07-27: hstspreload.org reports the domain **preloadable with

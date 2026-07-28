@@ -85,6 +85,44 @@ and a link into the admin inbox — so what reaches Google is the fact that a
 submission of some type arrived, and when. Revisit alongside the inbound-MX
 question.
 
+**5. The notification relay is `mail.towardpicu.com`, and it is outside the
+Kingdom.** Decided 2026-07-28, after decisions 1–4 and knowingly against the
+default this ADR sets. Verified: it resolves to `35.212.69.243`, Google Cloud
+in Washington DC, and answers on 587 with a `gvam1201.siteground.biz` banner —
+a SiteGround relay in the United States.
+
+This is a **written carve-out, not a reversal.** The reasoning that makes it
+defensible is narrow and depends entirely on decision 3, so it must be
+re-examined if that ever changes:
+
+- Since the submitter acknowledgement was removed, the _only_ message this
+  relay ever carries is the admin notification. Its body is a submission type
+  and a link into the inbox — no submitter name, address or message text.
+- Its sole recipient is `ADMIN_EMAIL`, which decision 4 already places outside
+  the Kingdom. A US relay in front of a US mailbox adds no processor that was
+  not already reading the same metadata.
+- What actually leaves KSA is therefore: _a submission of some type arrived, at
+  some time_. That is metadata about the platform, not data about a person.
+
+**What would break this carve-out**, in the order it is likely to happen:
+
+1. **Reinstating any submitter-facing mail.** The moment a message carries a
+   submitter's address or words, this relay becomes a processor of personal
+   data outside the Kingdom, and decision 5 has to be revisited before the
+   feature ships — not after.
+2. **Moving `ADMIN_EMAIL` to a KSA-hosted mailbox.** That would make the relay
+   the only remaining out-of-Kingdom hop, and it would be the weak link in a
+   chain that was otherwise complete. Do both together or neither.
+3. **Any use of this relay by a future app on this host.** The carve-out is
+   scoped to TowardPCC's notification, not to the relay as infrastructure.
+
+**Consequence for the public copy:** the residency wording cannot say "nothing
+leaves Saudi Arabia" without qualification. It must name this exception in
+plain terms — that notification email to the operator is relayed and delivered
+outside the Kingdom, and that it contains no information about the sender. The
+alternative, staying silent because the exposure is small, is exactly the habit
+that produced every false claim this project has had to correct.
+
 ## Consequences
 
 1. **The public residency claim can become unqualified once the edge moves —
@@ -130,14 +168,19 @@ question.
    visitor typing the bare domain gets nothing — and HSTS will not paper over
    it, because the domain is not yet on the preload list.
 
-5. **Outbound mail moves to OCI Email Delivery in me-riyadh-1.** The brief
-   towardpicu.com decision (2026-07-28, same day) is reversed before it ever
-   sent a message — that relay is Google Cloud and dnssmarthost, outside KSA.
-   **Do not widen towardpcc.com's SPF to accommodate it.** SPF is evaluated
-   against the envelope MAIL FROM, which for OCI's default return path is an
-   Oracle-owned domain, so the apex record is never consulted; DKIM alignment is
-   what earns the DMARC pass under `adkim=s`. `v=spf1 -all` stays exactly as it
-   is, which is strictly safer than widening it.
+5. **Outbound mail uses `mail.towardpicu.com`** under decision 5 above, not OCI
+   Email Delivery. An earlier draft of this ADR said the opposite; that draft is
+   superseded by the decision, and the reasoning for the carve-out is set out
+   there. OCI Email Delivery remains the researched in-region alternative and is
+   documented in the runbook, should the carve-out ever stop being acceptable.
+
+   **Either way, do not widen towardpcc.com's SPF.** Under the current relay it
+   is unnecessary, because From: is on towardpicu.com and towardpcc.com sends
+   nothing. Under OCI it would also be unnecessary, because SPF is evaluated
+   against the envelope MAIL FROM — an Oracle-owned return-path domain — so the
+   apex record is never consulted, and DKIM alignment is what earns the DMARC
+   pass under `adkim=s`. `v=spf1 -all` stays exactly as it is under both.
+
 6. **Inbound mail is now the sharpest open contradiction.** `towardpcc.com`'s MX
    points at SiteGround's SpamExperts filter on Google Cloud, which reads every
    message sent to `info@towardpcc.com` — the address the privacy page names for
