@@ -10,6 +10,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorker } from "@/components/pwa/service-worker";
 import { site } from "@/content/site";
 import { SITE_URL } from "@/lib/site-url";
+import { graph, organizationSchema, webSiteSchema } from "@/lib/structured-data";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -58,6 +59,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="flex min-h-dvh flex-col">
+        {/* Site-wide identity for search engines. Inline JSON-LD has no `src`,
+            so it costs nothing against the route JS budget — the gate counts
+            script tags that load a file. Per-page nodes (calculators) emit
+            their own graph. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: graph([organizationSchema(), webSiteSchema()]) }}
+        />
         {/* Without JS, Reveal's SSR opacity:0 must not hide content. */}
         <noscript>
           <style>{`[data-reveal]{opacity:1 !important;transform:none !important}`}</style>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getScore, listScores } from "@towardpcc/scoring-engine";
+import { getScore, listScores, type ScoreDefinition } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import { CalculatorForm } from "@/components/calculator/calculator-form";
@@ -9,6 +9,7 @@ import { ValidationBadge } from "@/components/calculator/validation-badge";
 import { ScoreTabs, type ScoreTab } from "@/components/calculator/score-tabs";
 import { InterpretationTable, TrustStrip } from "@/components/calculator/score-meta";
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
+import { breadcrumbSchema, calculatorSchema, graph } from "@/lib/structured-data";
 
 const c = site.calculators;
 
@@ -31,6 +32,25 @@ const shortName = (name: string) =>
     .replace(/\s{2,}/g, " ")
     .trim();
 
+/**
+ * One description, used by both the meta tags and the JSON-LD. They must agree:
+ * a structured-data description that differs from the meta description is a
+ * signal to a crawler that one of them is boilerplate.
+ */
+function scoreDescription(score: ScoreDefinition): string {
+  const refs = score.references.length;
+  const build = (name: string) =>
+    `${name}: ${c.categoryLabels[score.category].toLowerCase()} score for PICU, ` +
+    `computed in your browser from ${refs} referenced ${refs === 1 ? "source" : "sources"}. ` +
+    `Nothing you enter is sent.`;
+  // A few names carry a long parenthetical expansion — "Pediatric burn fluid
+  // resuscitation (Parkland / modified Brooke)" is 62 characters on its own.
+  // Drop it only where the full name would push the description past the
+  // ~160-char display limit. The <title> and heading always keep the full name.
+  const full = build(score.name);
+  return full.length > 160 ? build(shortName(score.name)) : full;
+}
+
 const linkClass =
   "text-accent-deep underline decoration-accent/40 underline-offset-2 hover:decoration-accent";
 
@@ -47,28 +67,10 @@ export async function generateMetadata({
   const score = getScore(slug);
   if (!score) return { title: "Calculator not found" };
 
-  /**
-   * Built from each score's own data rather than appending its name to the
-   * shared catalogue lede. That pattern produced 17 descriptions over Google's
-   * ~160-char display limit, and all 22 shared an identical 130-char tail — so
-   * they were distinct only by their first few words, which is the part a
-   * search result truncates last and a reader scans first.
-   *
-   * Kept deliberately short: a description that fits is one that gets shown.
-   */
-  const refs = score.references.length;
-  const build = (name: string) =>
-    `${name}: ${c.categoryLabels[score.category].toLowerCase()} score for PICU, ` +
-    `computed in your browser from ${refs} referenced ${refs === 1 ? "source" : "sources"}. ` +
-    `Nothing you enter is sent.`;
-
-  // A few names carry a long parenthetical expansion — "Pediatric burn fluid
-  // resuscitation (Parkland / modified Brooke)" is 62 characters on its own.
-  // Drop it only where the full name would push the description past the limit,
-  // so the short form appears exactly where it earns its place. The <title>
-  // and the page heading always keep the full name.
-  const description =
-    build(score.name).length > 160 ? build(shortName(score.name)) : build(score.name);
+  // Built from each score's own data rather than appending its name to the
+  // shared catalogue lede, which put 17 of 22 past the ~160 characters a search
+  // result displays and left all 22 sharing an identical tail.
+  const description = scoreDescription(score);
 
   return {
     title: score.name,
@@ -194,6 +196,22 @@ export default async function CalculatorDetailPage({
 
   return (
     <div className="mx-auto max-w-[1200px] px-6 py-12">
+      {/* Per-calculator graph: the page as a clinical reference, the calculator
+          as a free tool, and the trail back to the catalogue. Every value is
+          drawn from data this page already renders — citations, version, and
+          the review date shown in the trust strip. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: graph([
+            ...calculatorSchema(score, scoreDescription(score)),
+            breadcrumbSchema([
+              { name: site.nav.calculators, path: "/calculators" },
+              { name: score.name, path: `/calculators/${score.slug}` },
+            ]),
+          ]),
+        }}
+      />
       <Breadcrumbs
         trail={[{ href: "/calculators", label: site.nav.calculators }, { label: score.name }]}
       />
