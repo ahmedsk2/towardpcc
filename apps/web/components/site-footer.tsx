@@ -121,14 +121,44 @@ export function SiteFooter() {
             </div>
           </nav>
         </div>
-        <div className="mt-12 flex flex-col gap-3 border-t border-ink-on-dark/15 pt-6 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm text-ink-on-dark/60">
-            © {new Date().getFullYear()} {site.footer.orgName}
-          </p>
-          <p className="font-numeric text-xs tracking-[0.08em] text-ink-on-dark/60 uppercase">
-            {site.footer.residency}
-          </p>
-        </div>
+        {/* The two load-bearing claims, restated where every page ends. Both
+            are checkable rather than asserted — the first by a zero-network
+            test that runs on every release, the second by where the database
+            actually is — which is why they earn the last thing a reader sees. */}
+        <ul className="mt-12 flex list-none flex-wrap gap-2.5 border-t border-ink-on-dark/15 pt-6">
+          {[site.footer.privacyBadge, site.footer.residency].map((claim) => (
+            <li
+              key={claim}
+              className="inline-flex items-center gap-2 rounded-full border border-ink-on-dark/20 bg-white/5 px-3.5 py-1.5 font-numeric text-[11.5px] tracking-[0.03em] text-ink-on-dark/80"
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+                className="size-3.5 shrink-0 text-coral"
+              >
+                <path
+                  d="M8 1.5 3 3.5v4c0 3 2.1 5.6 5 6.9 2.9-1.3 5-3.9 5-6.9v-4L8 1.5Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="m5.9 7.9 1.5 1.5 3-3.2"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {claim}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-6 text-sm text-ink-on-dark/60">
+          © {new Date().getFullYear()} {site.footer.orgName}
+        </p>
       </div>
     </footer>
   );

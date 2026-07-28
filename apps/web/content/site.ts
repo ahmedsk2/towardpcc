@@ -48,6 +48,12 @@ export const site = {
     navAriaLabel: "Footer",
     residency: "Servers located in Saudi Arabia",
     orgName: "Toward Pediatric Critical Care",
+    /**
+     * The two claims the whole platform rests on, restated where every page
+     * ends. Both are checkable rather than asserted: the first is enforced by
+     * a zero-network Playwright test, the second by where the database runs.
+     */
+    privacyBadge: "0 bytes transmitted — calculators compute in your browser",
     // The founder-approved vision sentence (PRD §6.2), previously unused.
     vision:
       "Every child in critical care benefits from the same knowledge and tools, no matter where their PICU is.",
