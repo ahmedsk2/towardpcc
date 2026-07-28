@@ -1,17 +1,19 @@
-name: Residency
+name: Production checks
 
 # Deliberately NOT part of CI.
 #
-# This asserts facts about live infrastructure — DNS records, which edge answers
-# for the hostname — none of which a pull request changes. Running it on push
-# would mean a red build on someone's unrelated PR because a DNS record moved,
-# which is the fastest way to train a team to ignore a check.
+# These assert facts about the LIVE SITE and live DNS — none of which a pull
+# request changes. Running them on push would mean a red build on someone's
+# unrelated PR because a DNS record moved or an edge was slow, which is the
+# fastest way to train a team to ignore a check.
 #
-# It runs daily instead, and on demand. What it protects is the /trust page's
-# governing rule: every claim there is either enforced by something that runs on
-# each release, or derived from data in this repository. The residency claim was
-# the lone exception — hand-maintained prose about infrastructure that can change
-# without a line of this repo being touched.
+# They run daily instead, and on demand. Between them they close the one gap the
+# rest of the suite cannot reach: CI proves the artifact was correct when it left
+# the build, and nothing else proves it is still correct in production. That gap
+# is also where the /trust page's governing rule was being broken — every claim
+# there is meant to be enforced or derived, and the residency claim was
+# hand-maintained prose about infrastructure that can change without a line of
+# this repository being touched.
 on:
   schedule:
     # 06:00 UTC — 09:00 in Riyadh, so a failure is waiting at the start of the
@@ -23,7 +25,7 @@ permissions:
   contents: read
 
 jobs:
-  residency:
+  checks:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -33,7 +35,19 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-      # No install step: the check deliberately uses only fetch and DNS-over-HTTPS
-      # so it has no dependencies to resolve and nothing to go stale.
+
+      # No install step: both scripts deliberately use only fetch and
+      # DNS-over-HTTPS, so they have no dependencies to resolve, nothing to go
+      # stale, and no supply chain of their own.
+
+      # Is the infrastructure still where the public copy says it is?
       - name: Residency expectations still hold
         run: node scripts/check-residency.mjs
+
+      # Is the site serving right now the site we built?
+      #
+      # `always()` because the two answer different questions: a stale CAA
+      # record must not hide a defaced calculator page.
+      - name: The live site is still the site we built
+        if: always()
+        run: node scripts/check-integrity.mjs

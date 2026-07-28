@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
-    "check:residency": "node scripts/check-residency.mjs"
+    "check:residency": "node scripts/check-residency.mjs",
+    "check:integrity": "node scripts/check-integrity.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [
