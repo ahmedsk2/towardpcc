@@ -109,6 +109,28 @@
   --text-4xl: 3rem;
   --text-5xl: 4rem;
 
+  /* Display steps, added 2026-07-28. Fluid rather than a pair of breakpoint
+     jumps: the home headline is the page's thesis and was stepping 3rem → 4rem
+     at exactly one width, so every viewport between the two got whichever size
+     fit worst. clamp() lets it track the viewport and settle at both ends.
+
+     display-1 is the home hero alone. display-2 is for inner-page heros, where
+     the existing 3rem is right and only needed a name so the intent is legible
+     at the call site rather than inferred from a utility. */
+  /* The preferred term carries a rem offset rather than being pure vw. A bare
+     `5.5vw` does not reach the ceiling until ~1164px, so every viewport from
+     phone to small laptop sits pinned at the floor — flat exactly where most
+     visitors are, and a drop from what the fixed breakpoints used to give at
+     tablet. Offsetting lets it actually track:
+       375px 40px · 768px 55px · 1024px 65px · 1440px 72px  */
+  --text-display-1: clamp(2.5rem, 4vw + 1.5rem, 4.5rem);
+  --text-display-2: clamp(2rem, 2.5vw + 1rem, 3rem);
+
+  /* Eyebrow: the small caps label above a heading. It was being rebuilt inline
+     from four utilities every time it appeared, which is how the letter-spacing
+     drifted between sections. */
+  --text-eyebrow: 0.75rem;
+
   /* Radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.875rem;

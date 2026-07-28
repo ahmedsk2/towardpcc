@@ -69,7 +69,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {/* Without JS, Reveal's SSR opacity:0 must not hide content. */}
         <noscript>
-          <style>{`[data-reveal]{opacity:1 !important;transform:none !important}`}</style>
+          {/* Without JS neither data-shown nor the reveal transition ever
+              fires, so both the card and its top rule must resolve to their
+              final state rather than staying invisible. */}
+          {/* `scale`, not `transform`: Tailwind v4 compiles scale-x-* to the
+              modern `scale` property, so a transform override here would be
+              silently ignored and the rule would stay at zero width forever. */}
+          <style>{`[data-reveal]{opacity:1 !important;transform:none !important}[data-rule]{scale:1 1 !important}`}</style>
         </noscript>
         <a
           href="#content"

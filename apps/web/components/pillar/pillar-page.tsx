@@ -80,7 +80,9 @@ export function PillarPage({
             <span aria-hidden="true" className="size-2 rounded-full bg-coral" />
             {badge}
           </p>
-          <h1 className="max-w-[18ch] font-display text-4xl leading-[1.05] font-bold tracking-tight text-white md:text-6xl">
+          {/* display-2, deliberately a step below the home hero: an inner page
+              is a destination, not the argument. */}
+          <h1 className="max-w-[18ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-white">
             {heading}
           </h1>
           <p className="mt-6 max-w-[58ch] text-lg leading-relaxed text-ink-on-dark/90">{lede}</p>

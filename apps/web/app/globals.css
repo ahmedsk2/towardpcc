@@ -55,6 +55,9 @@
   --text-3xl: var(--text-3xl);
   --text-4xl: var(--text-4xl);
   --text-5xl: var(--text-5xl);
+  --text-display-1: var(--text-display-1);
+  --text-display-2: var(--text-display-2);
+  --text-eyebrow: var(--text-eyebrow);
 }
 
 /* Gradient surfaces (ADR revision 2, 2026-07-27). Each sets a solid

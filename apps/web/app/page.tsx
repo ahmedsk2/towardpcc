@@ -96,7 +96,10 @@ export default function HomePage() {
               />
               {h.badge}
             </p>
-            <h1 className="max-w-[15ch] font-display text-4xl leading-[1.03] font-bold tracking-tight text-white md:text-6xl">
+            {/* The page's thesis, so it gets the one display step nothing else
+                uses. Fluid rather than a 3rem→4rem jump at a single breakpoint,
+                which left every width in between with whichever size fit worst. */}
+            <h1 className="max-w-[15ch] font-display text-display-1 leading-[1.03] font-bold tracking-[-0.02em] text-white">
               {h.heading}
             </h1>
             <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-ink-on-dark/90">
@@ -161,8 +164,16 @@ export default function HomePage() {
         <ul className="grid list-none gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {h.features.map((f) => (
             <li key={f.title}>
-              <Reveal>
-                <div className="h-full rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-transform duration-200 hover:-translate-y-2">
+              {/* `group` on the Reveal wrapper, which is the element that gains
+                  data-shown — so the rule below draws itself from CSS when the
+                  card enters view, with no second observer and no extra JS. */}
+              <Reveal className="group h-full">
+                <div className="relative h-full overflow-hidden rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-transform duration-200 hover:-translate-y-2">
+                  <span
+                    aria-hidden="true"
+                    data-rule
+                    className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-accent transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[shown]:scale-x-100 motion-reduce:scale-x-100 motion-reduce:transition-none"
+                  />
                   <span
                     aria-hidden="true"
                     className={cn(
@@ -311,11 +322,20 @@ export default function HomePage() {
           <ul className="grid list-none gap-6 md:grid-cols-2">
             {pillars.map((p) => (
               <li key={p.href}>
-                <Reveal className="h-full">
+                <Reveal className="group/reveal h-full">
                   <Link
                     href={p.href}
-                    className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[transform,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[0_34px_66px_-28px_rgba(207,31,61,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[transform,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[0_34px_66px_-28px_rgba(207,31,61,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
+                    {/* Named group so the rule keys off the Reveal wrapper
+                        rather than the card's own hover group — the two are
+                        nested here and an unnamed `group` would bind to the
+                        nearer one. */}
+                    <span
+                      aria-hidden="true"
+                      data-rule
+                      className="absolute inset-x-0 top-0 z-10 h-0.5 origin-left scale-x-0 bg-gradient-accent transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[shown]/reveal:scale-x-100 motion-reduce:scale-x-100 motion-reduce:transition-none"
+                    />
                     <span
                       aria-hidden="true"
                       className={cn("relative grid h-44 place-items-center bg-linear-140", p.media)}
