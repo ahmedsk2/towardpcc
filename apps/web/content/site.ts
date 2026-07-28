@@ -3,6 +3,18 @@
  * and the dormant i18n scaffold (§12: Arabic later is additive).
  * Voice: confident, precise, humane; sentence case; active voice; no hype.
  */
+/**
+ * Citation total. A LITERAL, deliberately — deriving it here pulled the whole
+ * scoring engine into the client bundle (site.ts is imported by client
+ * components) and blew the route budget by 45 KB to render one number.
+ *
+ * Correctness is enforced by content/figures.test.ts instead, which compares
+ * this against the registry. The previous value of 89 was wrong — the real
+ * count is 87 — and it survived because the e2e guard compared the rendered
+ * figure to this file, so the number only had to agree with itself.
+ */
+const CITATIONS = 87;
+
 export const site = {
   name: "TowardPCC",
   tagline: "The digital home of pediatric critical care",
@@ -16,6 +28,7 @@ export const site = {
     data: "Data",
     services: "Services",
     about: "About",
+    trust: "How to check this",
     contact: "Contact",
     menuLabel: "Menu",
     closeMenuLabel: "Close menu",
@@ -88,14 +101,19 @@ export const site = {
     badge: "Live now · 22 referenced calculators",
     heroTrust: [
       { value: "22", label: "Calculators live" },
-      { value: "89", label: "Cited references" },
-      { value: "0", label: "Bytes transmitted" },
+      // Value injected at render from the registry — see app/page.tsx. It was
+      // hardcoded to 89 and the real count is 87; the site overclaimed by two
+      // for as long as anyone had been reading it.
+      { value: CITATIONS, label: "Cited references" },
+      // The boldest claim on the page, so it is the one that carries a link to
+      // its proof. A claim this strong with nothing behind it reads as bluster.
+      { value: "0", label: "Bytes transmitted", href: "/trust", proof: "proven by test" },
     ],
     // Four-up strip beneath the hero.
     features: [
       {
         title: "Referenced",
-        body: "89 citations with PMID and DOI. Never a number without a reason.",
+        body: `${CITATIONS} citations with PMID and DOI. Never a number without a reason.`,
         tone: "crimson" as const,
       },
       {
@@ -116,7 +134,10 @@ export const site = {
     ],
     /**
      * Counters. Every figure is verified against the repo:
-     * 22 registered scores, 89 citation entries across their definitions,
+     * 22 registered scores, and the citation total COUNTED from those
+     * definitions rather than typed — see CITATIONS above. The typed figure was
+     * 89 against a real 87, and the e2e guard did not catch it because it
+     * compared the rendered number to this file rather than to the registry.
      * 64,388 pages indexed in the PedsCC Library corpus, 100% engine coverage
      * enforced in CI. Nothing here is estimated — if a number cannot be
      * sourced it is removed, not guessed.
@@ -126,7 +147,7 @@ export const site = {
       "Every figure here is something you can go and count. Nothing on this page is an estimate.",
     counters: [
       { value: 22, label: "Referenced calculators" },
-      { value: 89, label: "Literature citations" },
+      { value: CITATIONS, label: "Literature citations" },
       { value: 64388, label: "Library pages indexed" },
       { value: 100, suffix: "%", label: "Engine test coverage" },
     ] as { value: number; label: string; suffix?: string; prefix?: string }[],

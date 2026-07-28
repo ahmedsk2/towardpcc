@@ -20,7 +20,9 @@ const pillars = [
     media: "from-accent-deep via-accent to-coral",
     stats: [
       { label: "Scores", value: "22" },
-      { label: "Citations", value: "89" },
+      // Pinned to the registry by content/figures.test.ts, not derived here —
+      // importing the engine for one number cost 45 KB of route JS.
+      { label: "Citations", value: "87" },
       { label: "Coverage", value: "100%" },
     ],
     cta: "Open the calculators",
@@ -132,6 +134,18 @@ export default function HomePage() {
                       {t.value}
                     </span>
                     <span className="text-[13px] text-ink-on-dark/70">{t.label}</span>
+                    {/* Only the strongest claim carries a proof link. Putting
+                        one on all three would make it decoration; putting one
+                        on "0 bytes transmitted" turns the boldest statement on
+                        the page into the most checkable. */}
+                    {"href" in t && t.href ? (
+                      <Link
+                        href={t.href}
+                        className="mt-0.5 block rounded-sm font-numeric text-[11.5px] text-coral underline decoration-coral/40 underline-offset-2 transition-colors duration-150 hover:decoration-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+                      >
+                        {t.proof} →
+                      </Link>
+                    ) : null}
                   </dd>
                 </div>
               ))}

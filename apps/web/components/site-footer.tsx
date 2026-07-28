@@ -10,6 +10,7 @@ const pillarLinks = [
 
 const siteLinks = [
   { href: "/about", label: site.nav.about },
+  { href: "/trust", label: site.nav.trust },
   { href: "/contact", label: site.nav.contact },
   { href: "/install", label: site.pwa.installTitle },
 ];
