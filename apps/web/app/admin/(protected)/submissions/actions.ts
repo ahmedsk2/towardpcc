@@ -3,9 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { db, type SubmissionStatus } from "@towardpcc/db";
 import { recordAudit } from "@/lib/admin/audit";
-import { payloadField, STATUS_ORDER } from "@/lib/admin/submission-view";
+import { STATUS_ORDER } from "@/lib/admin/submission-view";
 import { requireAdmin } from "@/lib/auth/guard";
-import { sendSubmitterAcknowledgement } from "@/lib/email";
 
 function isStatus(v: string): v is SubmissionStatus {
   return (STATUS_ORDER as string[]).includes(v);
@@ -13,9 +12,16 @@ function isStatus(v: string): v is SubmissionStatus {
 
 /**
  * All submission mutations run through here (re-guarded server-side — never
- * trust the layout alone). Intents: "triage" (→ TRIAGED + acknowledge the
- * submitter), "notes" (save internal notes), or a status value. Every change is
- * written to the append-only audit log.
+ * trust the layout alone). Intents: "triage" (→ TRIAGED), "notes" (save
+ * internal notes), or a status value. Every change is written to the
+ * append-only audit log.
+ *
+ * Triage no longer emails the submitter. See ADR-0004: mail delivered to a
+ * recipient-chosen mailbox leaves Saudi Arabia by construction, and no relay
+ * choice changes that — so the acknowledgement was the one path that made
+ * "nothing is processed outside KSA" impossible to state without a caveat.
+ * Dropping it also retires the whole TM-002 surface, since the app can no
+ * longer be induced to send anything to an address an untrusted party chose.
  */
 export async function submissionAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin();
@@ -41,24 +47,11 @@ export async function submissionAction(formData: FormData): Promise<void> {
       where: { id },
       data: { status: "TRIAGED", triagedById: admin.id },
     });
-    const email = payloadField(before.payload, "email");
-    let acknowledged = false;
-    if (email) {
-      try {
-        await sendSubmitterAcknowledgement(email, before.type);
-        acknowledged = true;
-      } catch {
-        // acknowledgement email is best-effort; triage still stands
-      }
-    }
     await recordAudit({
       actorId: admin.id,
       action: "SUBMISSION_TRIAGED",
       entity: `Submission:${id}`,
-      diff: {
-        status: { from: before.status, to: "TRIAGED" },
-        acknowledgementEmailed: acknowledged,
-      },
+      diff: { status: { from: before.status, to: "TRIAGED" } },
     });
   } else if (isStatus(intent)) {
     await db.submission.update({ where: { id }, data: { status: intent } });

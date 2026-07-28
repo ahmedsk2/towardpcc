@@ -56,7 +56,9 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
         ))}
       </dl>
 
-      {/* Triage: sends the submitter acknowledgement (only from NEW). */}
+      {/* Triage marks the submission as picked up (only from NEW). It sends
+          nothing: the submitter acknowledgement was removed under ADR-0004, so
+          replying is a deliberate human act from your own mailbox. */}
       {s.status === "NEW" && (
         <form action={submissionAction} className="mt-6">
           <input type="hidden" name="id" value={s.id} />

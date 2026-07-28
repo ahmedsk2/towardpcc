@@ -1,6 +1,15 @@
 # ADR-0003 — Cloudflare in front of the origin, and what that costs the residency claim
 
-**Status:** accepted, 2026-07-27
+**Status:** SUPERSEDED by ADR-0004 (2026-07-28) — the founder decided residency
+must be unqualified, which is the exact trigger this ADR's own "Revisit if"
+clause named. The analysis below stands and is worth reading; the decision is
+reversed. Two of its consequences were also found to be untrue when written:
+mail delivery was never actually in-region (the tenancy held zero email
+domains), and the inference that Cloudflare executes no third-party script is
+wrong — the analytics beacon is indeed absent, but a Bot Management script is
+injected and inherits our own CSP nonce.
+
+**Status when accepted:** accepted, 2026-07-27
 **Supersedes:** the preference recorded in the threat model (§2.5, D-row) for
 "origin-side rate limiting + KSA-provider DDoS protection"
 **Related:** threat-model TM-006 / TM-006a, `docs/runbooks/deploy-production.md`

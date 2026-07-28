@@ -2,13 +2,14 @@ import Link from "next/link";
 import type { SubmissionStatus } from "@towardpcc/db";
 import { db } from "@towardpcc/db";
 import { requireAdmin } from "@/lib/auth/guard";
-import { mailConfigurationStatus } from "@/lib/mail-config";
+import { env, mailConfigurationStatus } from "@/lib/mail-config";
 import {
   STATUS_LABELS,
   STATUS_ORDER,
   TYPE_LABELS,
   payloadField,
 } from "@/lib/admin/submission-view";
+import { TestMailButton } from "./test-mail-button";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export default async function InboxPage({
   const countFor = (s: SubmissionStatus) => counts.find((c) => c.status === s)?._count ?? 0;
   const total = counts.reduce((n, c) => n + (c._count as number), 0);
   const mailStatus = mailConfigurationStatus();
+  const adminEmail = env("ADMIN_EMAIL");
 
   return (
     <div>
@@ -60,6 +62,16 @@ export default async function InboxPage({
           </p>
         </div>
       )}
+
+      {/* Shown only once configuration is complete. The banner above already
+          covers the missing-config case, and a test button that can only fail
+          teaches you to ignore it.
+
+          It exists because the banner cannot detect the failures that actually
+          happen after setup: a wrong password, a sender the relay has not
+          approved, a host that accepts the message and drops it. All three look
+          identical from this page — like nobody has written to us. */}
+      {mailStatus.configured ? <TestMailButton recipient={adminEmail} /> : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
         <FilterTab href="/admin" active={!filter} label={`All (${total})`} />

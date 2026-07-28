@@ -49,21 +49,30 @@ function transporter(): Transporter {
   return cached;
 }
 
-const from = () => env("MAIL_FROM") ?? "TowardPCC <info@towardpicu.com>";
+/**
+ * No default sender.
+ *
+ * There was one — `"TowardPCC <info@towardpicu.com>"` — from the brief period
+ * when mail was going to be relayed through that domain. Under OCI Email
+ * Delivery in me-riyadh-1 (ADR-0004) that address is neither an approved sender
+ * nor a configured email domain, so a blank MAIL_FROM would make every send
+ * fail at the relay: quietly, per-message, and indistinguishably from "nobody
+ * has written to us". A missing sender is a configuration error and should
+ * read as one.
+ */
+function from(): string {
+  const value = env("MAIL_FROM");
+  if (!value) throw new Error("MAIL_FROM is not set — refusing to send with a guessed sender");
+  return value;
+}
 
 /**
  * Where replies go, when it differs from where mail is sent from.
  *
- * Outbound mail is relayed through towardpicu.com because that domain's SPF
- * authorises the relay. towardpcc.com publishes `v=spf1 -all` with
- * `p=reject; aspf=s`, so a From: header on the site's own domain would be
- * rejected outright by every receiver honouring DMARC — DMARC aligns against
- * the From: domain, not the relay.
- *
- * Reply-To closes the gap that creates: the envelope and From: stay on the
- * domain that can authenticate, while a clinician replying still reaches the
- * address printed on the site. Without it, someone who wrote to towardpcc.com
- * would be replying to a domain they have never seen.
+ * Unset under the OCI relay, since From: goes back to info@towardpcc.com and
+ * replies reach it directly. Kept because it costs nothing and the alternative
+ * — deleting it and rediscovering the need — is how the towardpicu detour
+ * started.
  */
 const replyTo = () => env("MAIL_REPLY_TO");
 
@@ -88,17 +97,35 @@ export async function notifyAdminOfSubmission(type: SubmissionType, id: string):
   });
 }
 
-export async function sendSubmitterAcknowledgement(
-  to: string,
-  type: SubmissionType,
-): Promise<void> {
+/**
+ * Proves the relay works, without giving anyone a way to make the platform
+ * send mail on their behalf.
+ *
+ * The recipient is read from ADMIN_EMAIL on the server and the body is a
+ * constant. Neither is a parameter, and that is the entire security design:
+ * TM-002 is about the app being induced to send attacker-chosen text to an
+ * attacker-chosen address, and a function that accepts neither cannot be.
+ * If you are tempted to add a "send to:" field, don't — that is the feature
+ * the threat model names.
+ *
+ * Note what this can and cannot tell you. The nodemailer transport is built
+ * once per process and caches SMTP_HOST/PORT/SECURE/USER/PASSWORD, so this
+ * exercises the configuration the container BOOTED with. Changing those in
+ * Coolify triggers a redeploy, so in practice they agree — but a hot-edited
+ * variable will not be reflected here.
+ */
+export async function sendAdminTestEmail(): Promise<void> {
+  if (!warnIfUnconfigured()) throw new Error("outbound email is not configured");
+  const to = env("ADMIN_EMAIL");
+  if (!to) throw new Error("ADMIN_EMAIL is not set");
   await send({
     to,
-    subject: "We received your message — TowardPCC",
-    text: `Thank you for reaching out to TowardPCC.
+    subject: "TowardPCC test message",
+    text: `This is a test message sent from the TowardPCC admin area.
 
-We have received your ${TYPE_LABELS[type].toLowerCase()} message and a member of our team is looking at it. We will follow up with you personally.
+If you are reading it, the relay is configured and reachable, and submission
+notifications will arrive the same way.
 
-— The TowardPCC team`,
+Nothing about any submission is included in this message.`,
   });
 }

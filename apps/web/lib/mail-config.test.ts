@@ -83,28 +83,45 @@ describe("mailConfigurationStatus", () => {
 
 /**
  * Read as source rather than imported: `email.ts` is "server-only" and resolves
- * through the `@/` alias, neither of which vitest can load. The invariant is
- * about a literal in the file, so reading the file tests it exactly.
+ * through the `@/` alias, neither of which vitest can load.
  *
- * DELETE THIS TEST if towardpcc.com ever publishes an SPF record that
- * authorises a relay. Until then it holds a live constraint, not a preference.
+ * This replaced a narrower guard that asserted the hardcoded sender fallback
+ * was not `@towardpcc.com`. That guard failed the moment the fallback was
+ * deleted — correctly: it was watching a literal, and the literal was gone. The
+ * property worth holding was never "which domain is hardcoded" but "no sender
+ * is hardcoded at all", which is what these assert.
  */
-describe("the fallback sender domain", () => {
+describe("outbound mail cannot be aimed by a caller", () => {
   const source = readFileSync(new URL("./email.ts", import.meta.url), "utf8");
-  const fallback = /const from = \(\) => env\("MAIL_FROM"\) \?\? "([^"]+)"/.exec(source)?.[1];
 
-  it("is a literal the test can actually find", () => {
-    // Guards the guard: a refactor that renames `from` or moves the default
-    // would otherwise leave the assertion below passing against `undefined`.
-    expect(fallback).toBeTruthy();
+  it("has no hardcoded sender fallback", () => {
+    // A guessed sender does not fail loudly — it fails at the relay, once per
+    // message, and looks exactly like nobody having written to us. Under OCI
+    // Email Delivery a sender that is not on the approved list is rejected, so
+    // any literal here is a silent outage waiting for a blank env var.
+    expect(
+      /env\("MAIL_FROM"\)\s*\?\?/.test(source),
+      "MAIL_FROM has a `??` fallback again — throw instead, so a missing sender reads as the configuration error it is",
+    ).toBe(false);
+    expect(source).toMatch(/MAIL_FROM is not set/);
   });
 
-  it("does not send as @towardpcc.com, which publishes v=spf1 -all + p=reject", () => {
-    // Not a style rule. DMARC aligns on the From: header domain, so mail sent
-    // through any relay but addressed from towardpcc.com is rejected outright
-    // by every conforming receiver — no bounce the app sees, nothing in the
-    // logs, because the relay accepted it. The failure is invisible, which is
-    // the only reason this is worth a test rather than a comment.
-    expect(fallback).not.toContain("@towardpcc.com");
+  it("exposes no sender that takes a recipient argument", () => {
+    // The TM-002 invariant, held structurally rather than by review.
+    //
+    // The submitter acknowledgement — the one function that ever took an
+    // address from stored data — was removed under ADR-0004. What remains must
+    // read every recipient from the server's own environment, so there is no
+    // parameter for an untrusted party to influence. If someone adds
+    // `sendX(to: string)`, the app becomes a way to make towardpcc.com send
+    // mail to an address of the sender's choosing, and this fails.
+    const exported = [...source.matchAll(/export async function (\w+)\(([^)]*)\)/g)];
+    expect(exported.length, "no exported senders found — has this file moved?").toBeGreaterThan(0);
+    for (const [, name, params] of exported) {
+      expect(
+        /\bto\b\s*:|email\s*:|recipient/i.test(params ?? ""),
+        `${name}() takes a recipient parameter. Every recipient must come from the server environment (ADMIN_EMAIL), never from a caller — see TM-002.`,
+      ).toBe(false);
+    }
   });
 });
