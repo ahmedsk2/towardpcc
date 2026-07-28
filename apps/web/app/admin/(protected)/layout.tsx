@@ -30,6 +30,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             >
               Calculators
             </Link>
+            <Link
+              href="/admin/settings"
+              className="rounded-sm text-sm text-ink-body hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Settings
+            </Link>
           </nav>
           <div className="flex items-center gap-3">
             <span className="font-numeric text-xs text-ink-muted">{user.email}</span>
