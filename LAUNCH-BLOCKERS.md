@@ -1,5 +1,18 @@
 # Launch Blockers
 
+<!--
+  A STRUCTURAL CONSTRAINT, learned the hard way twice.
+
+  Do not put multiple paragraphs inside a `- [ ]` item, especially after a bold
+  lead-in like `**Outstanding:** …`. Prettier's markdown printer is NOT
+  idempotent on that shape: each run indents the continuation further, so
+  `pnpm format` appears to succeed while `pnpm format:check` fails, and CI goes
+  red on a file nobody meaningfully changed.
+
+  When an item needs more than a sentence or two, promote it to a `###`
+  subsection with a one-line checkbox and the prose underneath, as below.
+-->
+
 Running list of everything that must be resolved before public launch.
 Working agreement §16.1: every placeholder on the site is marked in code
 AND listed here.
@@ -144,70 +157,89 @@ then — no figure is invented.
       status codes), org-owned auto-renew payment, a two-owner renewal
       calendar, CT-log and lookalike monitoring, defensive registrations.
 
-- [ ] **SMTP relay (TM-008)** — everything on the engineering side is done.
-      Settings are now editable at `/admin/settings`, stored encrypted, and
-      overriding the environment; the transport is keyed on a fingerprint of
-      them so a saved change takes effect without a redeploy; and a **Send a
-      test email** button proves the relay end to end.
+### SMTP relay (TM-008) — needs one credential
 
-      **Outstanding, founder-only because it is a credential:** enter the
-                                          `mail.towardpicu.com` mailbox password in `/admin/settings` along with the
-                                          host, user and `MAIL_FROM`. Nothing sends while `SMTP_HOST` is blank, so
-                                          the other fields are safe to stage first.
+- [ ] Enter the `mail.towardpicu.com` mailbox password at `/admin/settings`,
+      with the host, user and `MAIL_FROM`. Founder-only: it is a credential.
 
-                                          **Do NOT widen towardpcc.com's SPF.** Earlier guidance here and in the
-                                          runbook said to; it was wrong under both candidate relays. From: is on
-                                          towardpicu.com, whose SPF already authorises this relay, and towardpcc.com
-                                          still sends nothing — so `v=spf1 -all` with `p=reject` stays exactly as it
-                                          is, which is the strongest posture available and free.
+Everything on the engineering side is done. Settings are editable in the admin
+area, stored encrypted, and override the environment. The transport is keyed on
+a fingerprint of them, so a saved change takes effect without a redeploy, and a
+**Send a test email** button proves the relay end to end.
 
-                                          Residual, non-blocking: towardpicu.com publishes no DKIM key (SPF alone
-                                          breaks on forwarding) and its DMARC is `p=none` with no `rua=`.
+`SMTP_HOST` is the gate — nothing sends while it is blank, so every other field
+is safe to fill in first.
 
-- [ ] **KSA-only processing (ADR-0004)** — the founder decided on 2026-07-28
-      that all processing must be inside Saudi Arabia and confirmable. Settled:
-      scope is plaintext PII **and** metadata for everything the platform
-      controls, with written carve-outs for recipient-chosen mail delivery and
-      zero-PII infrastructure; the edge moves to an **OCI Flexible LB + regional
-      WAF in me-riyadh-1**; the submitter acknowledgement is **removed** (done);
-      `ADMIN_EMAIL` stays on Gmail as a recorded exception.
+**Do NOT widen towardpcc.com's SPF.** Earlier guidance here and in the runbook
+said to; it was wrong under both candidate relays. `From:` is on towardpicu.com,
+whose SPF already authorises this relay, and towardpcc.com still sends nothing —
+so `v=spf1 -all` with `p=reject` stays exactly as it is, which is the strongest
+posture available and costs nothing.
 
-      **Cloudflare Enterprise was ruled out on the merits, not on cost** —
-                                                      Customer Metadata Boundary supports only EU or US, so visitor IPs would
-                                                      still leave the Kingdom at ~$3–5k/month.
+Residual, non-blocking: towardpicu.com publishes no DKIM key, so SPF alone
+carries authentication and breaks on forwarding, and its DMARC is `p=none` with
+no `rua=`.
 
-                                                      Outstanding, in strict order:
+### KSA-only processing (ADR-0004)
 
-                                                      1. `client-ip.ts` trust-boundary change — it trusts `cf-connecting-ip`
-                                                         unconditionally, safe **only** because the origin is firewalled to
-                                                         Cloudflare. This must land **before or with** any ingress widening or
-                                                         it is a rate-limit bypass (CWE-348).
-                                                      2. Co-tenant agreement. One subnet, one security list, and the host runs
-                                                         another live app **holding real patient data**. Not our decision alone.
-                                                      3. Stand up the OCI LB + WAF and prove it **while Cloudflare still
-                                                         proxies**. Never flip DNS first.
-                                                      4. Move DNS, wait out TTL, then narrow the old Cloudflare ingress **last**.
-                                                      5. Only then rewrite the public residency copy to drop its caveat.
+- [ ] Move the edge from Cloudflare to an OCI Flexible LB + regional WAF in
+      me-riyadh-1. Runbook: `docs/runbooks/edge-migration-ksa.md`.
 
-- [ ] **Inbound mail is outside KSA and undocumented** — `towardpcc.com`'s MX
-      points at SiteGround's SpamExperts on Google Cloud, which reads every
-      message sent to `info@towardpcc.com`: the address printed on `/contact`,
-      named in `/legal/data-protection` as the deletion contact, and used in
-      `security.txt`. OCI Email Delivery is outbound-only and does nothing for
-      this. Needs a KSA mail host that is not yet in the stack.
+Settled 2026-07-28: scope is plaintext PII **and** metadata for everything the
+platform controls, with written carve-outs for recipient-chosen mail delivery
+and zero-PII infrastructure. The submitter acknowledgement is removed (done),
+and `ADMIN_EMAIL` stays on Gmail as a recorded exception.
 
-- [ ] **Residency has to be CHECKED, not asserted** — a recurring automated
-      check that fails loudly when any path drifts out of region: the TLS
-      terminator, the MX, the tenancy's region subscriptions, backup
-      replication. `/trust`'s own rule is that every claim is enforced or
-      derived; its residency claim is currently hand-maintained prose about
-      infrastructure, which is the category that produced every false claim
-      found in the 2026-07-28 audit.
+**Cloudflare Enterprise was ruled out on the merits, not on cost.** Customer
+Metadata Boundary supports only EU or US, so visitor IPs — personal data under
+PDPL — would still leave the Kingdom at roughly $3–5k/month.
 
-      Related: the tenancy's single-region subscription is **state, not a
-                                                      control** — an admin can add a region in one click and OCI never allows
-                                                      unsubscribing. Until an IAM policy or quota backs it, the honest phrasing
-                                                      is "nothing is deployed outside KSA", not "nothing can be".
+**The relay is a written carve-out** (ADR-0004 decision 5):
+`mail.towardpicu.com` is a SiteGround host in the US. Defensible only because
+the sole message it carries is the admin notification — a submission type and a
+link, no submitter data — to a mailbox already outside the Kingdom. Reinstating
+any submitter-facing mail breaks it.
+
+Order matters, and two of the four are done:
+
+1. `client-ip.ts` trust boundary — **DONE 2026-07-28.** Dual-path resolver; the
+   edge path takes the rightmost XFF hop, never reads `cf-connecting-ip`, and is
+   unreachable while `EDGE_SHARED_SECRET` is unset.
+2. Co-tenant agreement — **RESOLVED 2026-07-28: the founder owns every
+   application on this host.** Still needs care rather than speed: one subnet,
+   one security list, and `endorsement` holds real patient data with a registry
+   app to come.
+3. Stand the LB up and prove it **while Cloudflare still serves**. Never flip
+   DNS first.
+4. Move DNS, wait out the TTL, then narrow the old ingress **last**. Only then
+   rewrite the public residency copy.
+
+### Inbound mail is outside KSA
+
+- [ ] Move MX off SiteGround to a KSA-hosted mail provider.
+
+`towardpcc.com`'s MX points at SiteGround's SpamExperts filter on Google Cloud,
+which reads every message sent to `info@towardpcc.com` — the address printed on
+`/contact`, named in `/legal/data-protection` as the deletion contact, and used
+in `security.txt`. OCI Email Delivery is outbound-only and does nothing for it.
+
+Microsoft 365 and Google Workspace are both ruled out: neither offers a Saudi
+data region at any price. Zoho has a real Saudi datacentre; self-hosting inbound
+on the existing OCI instance is also viable, since receiving needs no sending
+reputation.
+
+### Residency has to be checked, not asserted
+
+- [x] **DONE 2026-07-28.** `scripts/check-residency.mjs`, run daily by
+      `.github/workflows/residency.yml`, asserts the TLS terminator, the MX, the
+      apex SPF and DMARC, and the presence of a CAA record — failing loudly on
+      drift in either direction.
+- [ ] Add CAA records and enable DNSSEC. **The check currently fails on this**:
+      there are zero CAA records, so any public CA may issue for towardpcc.com.
+      Founder action — it needs DNS dashboard access.
+- [ ] Back the single-region claim with an IAM policy or quota. The tenancy is
+      subscribed to one region today, but that is state, not a control: an
+      admin can add a region in one click and OCI never allows unsubscribing.
 
 - [ ] **HSTS preload-list submission (P8)** — **the precondition is now met.**
       Checked 2026-07-27: hstspreload.org reports the domain **preloadable with
