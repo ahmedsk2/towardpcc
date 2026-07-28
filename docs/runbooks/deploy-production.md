@@ -173,7 +173,17 @@ by `ubuntu`, so `sudo ls $DIR/*.dmp` expands to nothing before sudo is applied.
 ## Still outstanding
 
 - **SMTP relay not configured** — `SMTP_*` are empty, so form submissions are
-  stored but no admin notification is sent. The zone's SPF is currently
-  `v=spf1 -all`; update it when a relay is added (LAUNCH-BLOCKERS, TM-008).
-- **Cloudflare proxying** is off; see the DNS note above before enabling.
+  stored but no admin notification is sent. The zone's SPF is `v=spf1 -all`.
+  **Leave it that way.** Earlier guidance here said to widen it when a relay is
+  added; that is wrong for the relay being adopted. SPF is evaluated against
+  the envelope MAIL FROM, which for OCI Email Delivery's default return path is
+  an Oracle-owned domain, so the apex record is never consulted — DKIM
+  alignment is what earns the DMARC pass. See `email-delivery.md`.
+- **Cloudflare proxying is ON**, and the origin's OCI security list admits
+  80/443 only from Cloudflare's edge ranges. This line previously read
+  "proxying is off", contradicting the warning at the top of this same file and
+  very nearly causing an outage when someone acted on it. A direct HTTPS
+  request to the origin IP times out; turning the orange cloud off without
+  first widening the security list takes the site fully offline and breaks
+  ACME HTTP-01 renewal.
 - **Secondary on-call contact** still unnamed (bus-factor-1).

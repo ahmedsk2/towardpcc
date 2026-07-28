@@ -6,11 +6,17 @@ import { APEX_HOST, CANONICAL_HOST } from "@/lib/site-url";
  * canonical tag — the same content on two origins, with nothing telling a
  * crawler which one counts.
  *
- * It happens here rather than at the edge for two reasons: Cloudflare is
- * DNS-only for this zone, so a Cloudflare redirect rule never fires; and a
- * Traefik middleware would have blast radius across a host shared with an
- * unrelated production service, whereas this is isolated, version-controlled
- * and covered by a test.
+ * It happens here rather than at the edge because a Traefik middleware would
+ * have blast radius across a host shared with an unrelated production service,
+ * whereas this is isolated, version-controlled and covered by a test.
+ *
+ * An earlier version of this comment gave a second reason — "Cloudflare is
+ * DNS-only for this zone, so a Cloudflare redirect rule never fires". That is
+ * false: the zone is proxied and always has been. A Cloudflare redirect rule
+ * WOULD fire, so the choice to handle it here is a preference for blast radius
+ * and testability, not a constraint. Recorded rather than quietly deleted
+ * because the same wrong belief is what put "proxying is off" into the deploy
+ * runbook.
  *
  * The host is matched EXACTLY, never as a suffix. A suffix match would also
  * catch `next.towardpcc.com` — the noindexed preview — and redirect the

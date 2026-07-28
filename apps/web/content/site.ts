@@ -703,7 +703,14 @@ export const site = {
       },
       {
         heading: "We collect the minimum to run the service",
-        body: "We keep data collection to what is genuinely needed to operate the site securely and reliably. Any analytics we use are privacy-respecting and do not build advertising profiles. When forms arrive, they will collect only what a request requires, and we will say so at the point of collection.",
+        // Was: "Any analytics we use are privacy-respecting…" and "When forms
+        // arrive, they will collect only what a request requires". The first
+        // implied analytics that does not exist; the second was written before
+        // the forms shipped and stayed in the future tense after they went
+        // live. Hedged and future-tense wording is how a privacy page rots
+        // without anyone noticing — neither sentence was ever caught as false,
+        // because neither quite committed to anything.
+        body: "We keep data collection to what is genuinely needed to operate the site securely and reliably. We run no analytics: no page counts, no visitor profiles, and no advertising or tracking third parties. The forms collect only what a request requires, and each one says so where you fill it in.",
       },
     ],
     collection: {
@@ -719,12 +726,14 @@ export const site = {
           "To reply, and to limit abuse of the forms",
           "24 months, then deleted",
         ],
-        [
-          "Analytics",
-          "Privacy-respecting, cookie-less page counts (no personal profiles)",
-          "To understand which tools are used",
-          "Aggregated",
-        ],
+        // No analytics row. There was one until 2026-07-28, describing
+        // "privacy-respecting, cookie-less page counts" — and no analytics runs.
+        // Umami exists only in docker-compose files that production does not
+        // use; the live pages load nothing but their own chunks. Claiming to
+        // collect LESS than you do is the usual privacy lie; this page was
+        // claiming to collect something it does not collect, on the page that
+        // promises the complete picture. Restore this row only when analytics
+        // is actually wired, and guard it then.
         [
           "Admin access logs",
           "Actions taken by our operators (an audit trail)",
@@ -736,7 +745,14 @@ export const site = {
     security: {
       heading: "How we protect it",
       points: [
-        "Encryption in transit (TLS) and at rest for the database.",
+        // Verified 2026-07-28 rather than assumed: the host's boot volume in
+        // me-riyadh-1 reports encryption with Oracle-managed keys. The previous
+        // wording, "encryption in transit (TLS) and at rest for the database",
+        // bundled a claim about the database CONNECTION into a claim about
+        // storage — and that connection is host-local and unencrypted. It never
+        // crosses a network, so the honest thing is to say what is true of the
+        // storage and not imply something extra about the wire.
+        "Traffic to the site is encrypted with TLS, and the storage holding the database and its backups is encrypted at rest.",
         "Administrator access requires a password and a second factor (TOTP), with lockout on repeated failures.",
         "An append-only audit log records administrative actions.",
         "Automated, encrypted backups with a tested restore procedure.",
@@ -747,8 +763,14 @@ export const site = {
     residencyBody:
       "TowardPCC is hosted on servers located in Saudi Arabia and operates in alignment with the Saudi Personal Data Protection Law (PDPL). For the upcoming PICU registry, deployments will be configured to comply with the data-protection requirements of each participating Gulf country — including data-residency, consent, and governance requirements — in coordination with each institution.",
     subProcessorsHeading: "Who else touches the data",
+    // Two corrections on 2026-07-28. It named "our email delivery for replies"
+    // as a current sub-processor when no relay is configured and nothing has
+    // ever been sent — a processor that processes nothing. And it omitted the
+    // provider that receives mail sent to the address printed at the bottom of
+    // this very page, which is a live processor of every message a clinician
+    // writes to us, and the one this page names for deletion requests.
     subProcessorsBody:
-      "We keep third parties to the minimum. Today they are our hosting provider, Oracle Cloud Infrastructure, in Saudi Arabia; Cloudflare, which routes and protects traffic to the site and therefore handles requests in transit; and our email delivery for replies to messages you send us. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
+      "We keep third parties to the minimum. Today they are three: Oracle Cloud Infrastructure, our hosting provider, in Saudi Arabia; Cloudflare, which routes and protects traffic to the site and therefore handles requests in transit; and the mail provider that receives email sent to the address on this page. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
     deletionHeading: "Access, correction, and deletion",
     deletionBody:
       "You can ask us what we hold about you, correct it, or have it deleted, at any time — email us and we will act on it. Calculator use leaves nothing to delete.",
