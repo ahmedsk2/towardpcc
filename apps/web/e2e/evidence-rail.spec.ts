@@ -1,0 +1,80 @@
+import { expect, test } from "@playwright/test";
+
+/**
+ * The evidence rail is the site's testimonial-killer — the section that says
+ * "we don't have testimonials, we have the literature" — so it is worth it
+ * behaving like a finished control rather than a bare overflow container.
+ *
+ * Three things it lacked, each asserted here:
+ *   - no sense of position: the scrollbar is hidden, so nothing said how many
+ *     citations there were or which one you were on;
+ *   - arrows stayed enabled at both extremes, where clicking does nothing, and
+ *     a control that accepts a click and changes nothing reads as broken;
+ *   - `aria-controls` on both arrows pointed at an id that did not exist.
+ */
+test.describe("evidence rail", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/");
+    await page.waitForLoadState("load");
+    await page.locator("#evidence-track").scrollIntoViewIfNeeded();
+  });
+
+  test("the arrows point at a track that exists", async ({ page }) => {
+    const arrows = page.getByRole("button", { name: /previous|next/i });
+    await expect(arrows).toHaveCount(2);
+    for (const id of await arrows.evaluateAll((els) =>
+      els.map((e) => e.getAttribute("aria-controls")),
+    )) {
+      expect(id).toBeTruthy();
+      await expect(page.locator(`#${id}`)).toHaveCount(1);
+    }
+  });
+
+  test("shows one position indicator per citation", async ({ page }) => {
+    const cards = page.locator("#evidence-track > li");
+    const dots = page.locator('ol button[aria-controls="evidence-track"]');
+    const count = await cards.count();
+    expect(count).toBeGreaterThan(1);
+    await expect(dots).toHaveCount(count);
+  });
+
+  test("marks exactly one indicator current, and it moves when you scroll", async ({ page }) => {
+    const current = page.locator('ol button[aria-controls="evidence-track"][aria-current="true"]');
+    await expect(current).toHaveCount(1);
+    const before = await current.getAttribute("aria-label");
+
+    await page.getByRole("button", { name: /next/i }).click();
+    await page.waitForTimeout(600);
+
+    await expect(current).toHaveCount(1);
+    // The accessible name is the citation source, so a change proves the
+    // indicator tracks the actual scroll position rather than a counter.
+    expect(await current.getAttribute("aria-label")).not.toBe(before);
+  });
+
+  test("disables the arrow that would do nothing at each end", async ({ page }) => {
+    const prev = page.getByRole("button", { name: /previous/i });
+    const next = page.getByRole("button", { name: /next/i });
+
+    await expect(prev, "previous should be disabled at the start").toBeDisabled();
+    await expect(next).toBeEnabled();
+
+    // Jump to the far end rather than clicking N times, so the test does not
+    // depend on how many citations there happen to be. Assigning scrollLeft
+    // directly rather than scrollTo({behavior}) — the smooth path is still
+    // animating when the assertion runs.
+    await page.locator("#evidence-track").evaluate((el) => {
+      el.scrollLeft = el.scrollWidth;
+    });
+
+    await expect(next, "next should be disabled at the end").toBeDisabled();
+    await expect(prev).toBeEnabled();
+  });
+
+  test("the track is reachable by keyboard", async ({ page }) => {
+    // It is a scrollable region with no focusable children of its own, so it
+    // needs its own tab stop or a keyboard user cannot scroll it at all.
+    await expect(page.locator("#evidence-track")).toHaveAttribute("tabindex", "0");
+  });
+});

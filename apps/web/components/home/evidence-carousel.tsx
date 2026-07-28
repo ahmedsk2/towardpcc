@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { site } from "@/content/site";
 
 const e = site.home.evidence;
@@ -15,6 +15,45 @@ const e = site.home.evidence;
  */
 export function EvidenceCarousel() {
   const track = useRef<HTMLUListElement>(null);
+  /**
+   * A bare scroll-snap rail gives no sense of position: the scrollbar is
+   * hidden, so there is nothing to say how many cards there are, which one you
+   * are on, or that you have reached the end. The arrows also stayed enabled
+   * at both extremes, where pressing them does nothing — a control that
+   * accepts a click and produces no change reads as broken rather than as
+   * finished.
+   *
+   * Derived from scroll position rather than tracked as an index, so a swipe,
+   * a trackpad flick and an arrow press all agree without anything to keep in
+   * sync.
+   */
+  const [pos, setPos] = useState({ index: 0, atStart: true, atEnd: false });
+
+  useEffect(() => {
+    const el = track.current;
+    if (!el) return;
+    const read = () => {
+      const max = el.scrollWidth - el.clientWidth;
+      const card = el.firstElementChild as HTMLElement | null;
+      // Card width plus the flex gap; falls back to the viewport if the rail
+      // is somehow empty, so this can never divide by zero.
+      const step = card ? card.offsetWidth + 24 : el.clientWidth || 1;
+      setPos({
+        index: Math.min(e.items.length - 1, Math.round(el.scrollLeft / step)),
+        atStart: el.scrollLeft <= 4,
+        // 4px of slack: sub-pixel layout means scrollLeft rarely lands exactly
+        // on max, and an end state that never triggers is worse than none.
+        atEnd: el.scrollLeft >= max - 4,
+      });
+    };
+    read();
+    el.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
+    return () => {
+      el.removeEventListener("scroll", read);
+      window.removeEventListener("resize", read);
+    };
+  }, []);
 
   const nudge = (dir: 1 | -1) => {
     const el = track.current;
@@ -25,7 +64,25 @@ export function EvidenceCarousel() {
     });
   };
 
+  const goTo = (i: number) => {
+    const el = track.current;
+    if (!el) return;
+    const card = el.children[i] as HTMLElement | undefined;
+    if (!card) return;
+    el.scrollTo({
+      left: card.offsetLeft - el.offsetLeft,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
+  };
+
   return (
+    // No edge-fade mask here, deliberately. It was tried and removed: a mask on
+    // this wrapper also fades the arrows and dots below the track, and moving
+    // it to a track-only wrapper still clips descendant focus rings, which
+    // would break the keyboard affordance the dots exist to provide. Position
+    // is already carried by the indicators and the end-disabled arrows — the
+    // fade was the least informative of the three and the only one that fought
+    // accessibility to get there.
     <div>
       <ul
         ref={track}
@@ -54,10 +111,11 @@ export function EvidenceCarousel() {
         ))}
       </ul>
 
-      <div className="mt-6 flex justify-center gap-3">
+      <div className="mt-6 flex items-center justify-center gap-4">
         <button
           type="button"
           onClick={() => nudge(-1)}
+          disabled={pos.atStart}
           className={arrow}
           aria-controls="evidence-track"
         >
@@ -72,9 +130,41 @@ export function EvidenceCarousel() {
             />
           </svg>
         </button>
+        {/* Position, so the rail says how much there is and where you are.
+            Real buttons rather than dots-as-decoration: each jumps to its card
+            and carries the citation's source as its accessible name, so a
+            screen-reader user gets "Del Fiol et al…" rather than "3 of 5". */}
+        <ol className="flex list-none items-center gap-2">
+          {e.items.map((item, i) => (
+            <li key={item.source}>
+              <button
+                type="button"
+                onClick={() => goTo(i)}
+                aria-controls="evidence-track"
+                aria-current={pos.index === i ? "true" : undefined}
+                // aria-label rather than an sr-only child: the visible content
+                // is a decorative dot, so the label IS the accessible name and
+                // putting it in the attribute keeps the two from drifting.
+                aria-label={item.source}
+                className="grid size-6 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                <span
+                  aria-hidden="true"
+                  className={
+                    pos.index === i
+                      ? "block h-1.5 w-5 rounded-full bg-accent transition-all duration-200"
+                      : "block size-1.5 rounded-full bg-border-strong/50 transition-all duration-200"
+                  }
+                />
+              </button>
+            </li>
+          ))}
+        </ol>
+
         <button
           type="button"
           onClick={() => nudge(1)}
+          disabled={pos.atEnd}
           className={arrow}
           aria-controls="evidence-track"
         >
@@ -95,4 +185,12 @@ export function EvidenceCarousel() {
 }
 
 const arrow =
-  "grid size-11 place-items-center rounded-full border-2 border-border-strong bg-surface-raised text-ink-strong transition-colors duration-150 hover:border-accent hover:bg-accent hover:text-ink-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "grid size-11 place-items-center rounded-full border-2 border-border-strong bg-surface-raised text-ink-strong transition-colors duration-150 " +
+  "hover:border-accent hover:bg-accent hover:text-ink-on-accent " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
+  // At the ends the button is disabled, so it must stop offering hover
+  // feedback too — a control that lights up and then does nothing is the thing
+  // that reads as broken. Kept focusable-looking rather than hidden so the
+  // rail's shape does not shift as you scroll.
+  "disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ink-muted/40 " +
+  "disabled:hover:border-border disabled:hover:bg-transparent disabled:hover:text-ink-muted/40";
