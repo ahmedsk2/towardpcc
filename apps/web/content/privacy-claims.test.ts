@@ -89,6 +89,50 @@ describe("privacy copy matches what the site actually does", () => {
     ).toBeFalsy();
   });
 
+  /**
+   * The residency claim must stay qualified for as long as the qualifications
+   * are true.
+   *
+   * Two things currently leave Saudi Arabia and both are disclosed: requests
+   * transit a Cloudflare edge chosen by proximity, and the operator
+   * notification is relayed outside the Kingdom (ADR-0004 decision 5). Neither
+   * is large. That is exactly why the caveat is at risk — it reads as clutter
+   * to anyone tidying the copy who does not know why it is there.
+   *
+   * The claim becomes unqualified when the edge migration lands, and the
+   * wording changes in THAT deploy, not before. Until then an absolute here
+   * would be the most consequential false claim the site could make, because
+   * a hospital's governance office may rely on it.
+   */
+  it("makes no absolute residency claim while data still leaves the Kingdom", () => {
+    const sources = [
+      JSON.stringify(site.dataProtection),
+      readFileSync(join(__dirname, "..", "app", "trust", "page.tsx"), "utf8"),
+    ].join(" ");
+
+    const absolutes = [
+      /never leaves? (?:the Kingdom|Saudi)/i,
+      /(?:stays?|remains?) (?:entirely |wholly |only )?(?:in|within) (?:the Kingdom|Saudi Arabia)\b/i,
+      /all (?:data|processing) (?:is |happens |occurs )?(?:in|within|inside) (?:the Kingdom|Saudi Arabia)/i,
+      /nothing (?:ever )?leaves (?:the Kingdom|Saudi Arabia)/i,
+    ];
+    const offender = absolutes.find((re) => re.test(sources));
+    expect(
+      offender?.source,
+      "the residency copy makes an unqualified claim, but requests still transit a Cloudflare edge and the operator notification is relayed outside KSA — see ADR-0004. Change this in the same deploy as the edge migration, not before",
+    ).toBeUndefined();
+  });
+
+  it("discloses that the operator notification is relayed outside the Kingdom", () => {
+    // The disclosure ADR-0004 decision 5 requires. Asserted positively so that
+    // deleting it fails, rather than relying on nobody noticing it is gone.
+    const trust = readFileSync(join(__dirname, "..", "app", "trust", "page.tsx"), "utf8");
+    expect(
+      /relay outside the Kingdom|relayed outside the Kingdom/i.test(trust),
+      "/trust no longer discloses that the operator notification leaves KSA — required by ADR-0004 decision 5",
+    ).toBe(true);
+  });
+
   it("still names the sub-processors that do exist", () => {
     // The opposite failure, and the one actually worth worrying about: a list of
     // third parties that omits a live one. Oracle hosts it and Cloudflare sits in

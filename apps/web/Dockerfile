@@ -22,6 +22,11 @@ COPY . .
 # The container serves the standalone server (server.js) — opt into it here.
 # The web build's prebuild runs `prisma generate` for the driver-adapter client.
 ENV NEXT_OUTPUT_STANDALONE=1
+# Next.js reports anonymous build metrics to Vercel by default. It carries no
+# application data, but it is an outbound call from the build to a third party
+# for no benefit to us, and this project's residency posture is that every
+# external dependency is a deliberate choice (ADR-0004).
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @towardpcc/web build
 # Next's standalone tracer misses Prisma's WASM query compiler (driver adapter,
 # engineType=client). Copy the generated client's query_compiler_bg.wasm into the

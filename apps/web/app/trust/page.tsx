@@ -146,6 +146,18 @@ export default function TrustPage() {
               may be <em>processed</em> outside it in transit. Calculators are unaffected: they
               transmit nothing, so there is nothing to route.
             </p>
+            {/* Named rather than omitted. The exposure is small — the operator
+                notification carries a category and a link and nothing about the
+                person who wrote in — but "small enough not to mention" is the
+                reasoning that produced every claim this site has had to correct.
+                See ADR-0004 decision 5. */}
+            <p className="mt-3">
+              One thing leaves deliberately, and it is not about you: when something arrives, our
+              own team is emailed a notification through a relay outside the Kingdom. That message
+              says only which kind of enquiry arrived and links to it. It carries no name, no
+              address and none of what you wrote. We do not email you back automatically at all —
+              any reply comes from a person.
+            </p>
             <p className="mt-3">
               <Link
                 href="/legal/data-protection"

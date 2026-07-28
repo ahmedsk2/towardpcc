@@ -770,7 +770,7 @@ export const site = {
     // this very page, which is a live processor of every message a clinician
     // writes to us, and the one this page names for deletion requests.
     subProcessorsBody:
-      "We keep third parties to the minimum. Today they are three: Oracle Cloud Infrastructure, our hosting provider, in Saudi Arabia; Cloudflare, which routes and protects traffic to the site and therefore handles requests in transit; and the mail provider that receives email sent to the address on this page. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
+      "We keep third parties to the minimum. Today they are three: Oracle Cloud Infrastructure, our hosting provider, in Saudi Arabia; Cloudflare, which routes and protects traffic to the site and therefore handles requests in transit; and a mail provider outside the Kingdom, which carries email sent to the address on this page and the internal notification telling us that something arrived. That notification names the kind of enquiry and nothing about the person who sent it. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
     deletionHeading: "Access, correction, and deletion",
     deletionBody:
       "You can ask us what we hold about you, correct it, or have it deleted, at any time — email us and we will act on it. Calculator use leaves nothing to delete.",

@@ -6,7 +6,20 @@ import prettier from "eslint-config-prettier";
 // (Next-specific plugins) — ignored here to avoid double-linting.
 export default tseslint.config(
   {
-    ignores: ["**/.next/**", "**/node_modules/**", "**/coverage/**", "**/dist/**", "apps/web/**"],
+    ignores: [
+      "**/.next/**",
+      "**/node_modules/**",
+      "**/coverage/**",
+      "**/dist/**",
+      "apps/web/**",
+      // Agent worktrees are full copies of the repo. Without this, `pnpm lint`
+      // lints the project two or three times over and reports errors against
+      // paths that are not the working tree — including rules from whichever
+      // plugin version that copy happens to have. CI never saw it (a fresh
+      // checkout has no worktrees), so it failed only locally, which is the
+      // worst place for it: the noise trains you to stop reading lint output.
+      "**/.claude/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
