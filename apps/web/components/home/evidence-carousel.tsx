@@ -29,7 +29,12 @@ export function EvidenceCarousel() {
     <div>
       <ul
         ref={track}
-        className="flex list-none snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        // Both arrow buttons declare aria-controls="evidence-track"; without
+        // this id they pointed at nothing, so assistive tech could not follow
+        // the relationship they advertised.
+        id="evidence-track"
+        tabIndex={0}
+        className="flex list-none snap-x snap-mandatory gap-6 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent [&::-webkit-scrollbar]:hidden"
       >
         {e.items.map((item) => (
           <li

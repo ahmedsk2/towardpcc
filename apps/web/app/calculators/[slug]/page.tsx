@@ -19,6 +19,18 @@ const REASON_LABELS: Record<string, string> = {
   clarification: "Clarification",
 };
 
+/**
+ * Strips parenthetical expansions from a score name for use in a meta
+ * description. Applies anywhere in the string, not just at the end: one score
+ * is "Serum osmolality (calculated) and osmolar gap", where the parenthetical
+ * sits mid-name and a trailing-only rule silently does nothing.
+ */
+const shortName = (name: string) =>
+  name
+    .replace(/\s*\([^)]*\)/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
 const linkClass =
   "text-accent-deep underline decoration-accent/40 underline-offset-2 hover:decoration-accent";
 
@@ -34,7 +46,38 @@ export async function generateMetadata({
   const { slug } = await params;
   const score = getScore(slug);
   if (!score) return { title: "Calculator not found" };
-  return { title: score.name, description: `${score.name} — ${c.indexLede}` };
+
+  /**
+   * Built from each score's own data rather than appending its name to the
+   * shared catalogue lede. That pattern produced 17 descriptions over Google's
+   * ~160-char display limit, and all 22 shared an identical 130-char tail — so
+   * they were distinct only by their first few words, which is the part a
+   * search result truncates last and a reader scans first.
+   *
+   * Kept deliberately short: a description that fits is one that gets shown.
+   */
+  const refs = score.references.length;
+  const build = (name: string) =>
+    `${name}: ${c.categoryLabels[score.category].toLowerCase()} score for PICU, ` +
+    `computed in your browser from ${refs} referenced ${refs === 1 ? "source" : "sources"}. ` +
+    `Nothing you enter is sent.`;
+
+  // A few names carry a long parenthetical expansion — "Pediatric burn fluid
+  // resuscitation (Parkland / modified Brooke)" is 62 characters on its own.
+  // Drop it only where the full name would push the description past the limit,
+  // so the short form appears exactly where it earns its place. The <title>
+  // and the page heading always keep the full name.
+  const description =
+    build(score.name).length > 160 ? build(shortName(score.name)) : build(score.name);
+
+  return {
+    title: score.name,
+    description,
+    // Without these all 22 calculators shared one social preview inherited from
+    // the site defaults, so every shared link looked like the same page.
+    openGraph: { title: `${score.name} · TowardPCC`, description },
+    twitter: { title: `${score.name} · TowardPCC`, description },
+  };
 }
 
 export default async function CalculatorDetailPage({

@@ -101,9 +101,18 @@ export function SubmissionForm({
         );
       })}
 
-      {/* Honeypot — visually and programmatically hidden from real users. */}
+      {/* Honeypot — visually and programmatically hidden from real users:
+          aria-hidden on the wrapper, tabIndex -1 and autoComplete off on the
+          input, moved off-screen rather than display:none because display:none
+          is trivially detected by the bots this exists to catch.
+
+          The label is a plausible field name, not an instruction. It used to
+          read "Do not fill this in", which stays out of the a11y tree but does
+          surface in text extraction and reader mode — telling any scraper
+          reading the DOM exactly which field to skip, i.e. handing the trap its
+          own answer key. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-        <label htmlFor={`${baseId}-website`}>Do not fill this in</label>
+        <label htmlFor={`${baseId}-website`}>Website</label>
         <input
           id={`${baseId}-website`}
           name="website"

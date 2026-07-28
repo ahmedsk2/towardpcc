@@ -145,3 +145,98 @@ test.describe("hero motion", () => {
     expect(offender, `three.js found in ${scripts[offender] ?? ""}`).toBe(-1);
   });
 });
+
+/**
+ * The pause behaviours, asserted negatively.
+ *
+ * All three already exist in waveform-canvas.tsx — IntersectionObserver drives
+ * an `active` prop, a visibilitychange listener stops the loop, and devicePixelRatio
+ * is capped at 2. None of them was tested. The spec above proves the animation
+ * RUNS, and its helper deliberately scrolls the canvas into view to work around
+ * the off-screen pause rather than asserting it — so every one of these guards
+ * could have been deleted and the suite would have stayed green.
+ *
+ * The tab-hide listener in particular is a day old, added in the Canvas 2D
+ * rewrite and absent from the WebGL scene before it. A new invariant with no
+ * test is the one most likely to be refactored away by someone who cannot see
+ * why it is there.
+ */
+test.describe("hero motion pauses when it should", () => {
+  test("stops painting once scrolled out of view", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await page.waitForLoadState("load");
+    await expect(page.locator("canvas")).toHaveCount(1);
+
+    // Let it start, so a still frame later means "stopped", not "never began".
+    const first = await sampleFrames(page, 2, 200);
+    expect(new Set(first).size, "the canvas never started").toBe(2);
+
+    // Well past the hero, so the IntersectionObserver has fired.
+    await page.evaluate(() => window.scrollTo(0, Math.round(document.body.scrollHeight * 0.75)));
+    await page.waitForTimeout(500);
+
+    const a = (await page.evaluate(SAMPLE)) as Sample;
+    await page.waitForTimeout(700);
+    const b = (await page.evaluate(SAMPLE)) as Sample;
+
+    // The canvas keeps its last frame; what must stop is the repainting.
+    expect(
+      a?.sum,
+      "the hero canvas is still painting while off-screen — it should pause and stop burning CPU",
+    ).toBe(b?.sum);
+  });
+
+  test("stops painting when the tab is hidden", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+    await page.waitForLoadState("load");
+
+    const running = await sampleFrames(page, 2, 200);
+    expect(new Set(running).size, "the canvas never started").toBe(2);
+
+    // Emulate a backgrounded tab: override the getter and fire the event the
+    // component listens for. Playwright cannot truly background a page.
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "hidden",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.waitForTimeout(400);
+
+    const a = (await page.evaluate(SAMPLE)) as Sample;
+    await page.waitForTimeout(700);
+    const b = (await page.evaluate(SAMPLE)) as Sample;
+
+    expect(a?.sum, "the hero canvas keeps painting in a hidden tab").toBe(b?.sum);
+  });
+
+  test("caps the backing store at 2x so a 3x screen does not quadruple the fill cost", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      deviceScaleFactor: 3,
+      viewport: { width: 1440, height: 900 },
+    });
+    const page = await context.newPage();
+    try {
+      await page.goto("/");
+      await page.waitForLoadState("load");
+      await expect(page.locator("canvas")).toHaveCount(1);
+      await sampleFrames(page, 2, 200);
+
+      const scale = await page.evaluate(() => {
+        const c = document.querySelector("canvas")!;
+        return c.width / c.getBoundingClientRect().width;
+      });
+      expect(
+        Math.round(scale * 10) / 10,
+        `backing store is ${scale}x device pixels`,
+      ).toBeLessThanOrEqual(2.1);
+    } finally {
+      await context.close();
+    }
+  });
+});
