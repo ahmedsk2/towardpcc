@@ -29,6 +29,7 @@ export const site = {
     services: "Services",
     about: "About",
     trust: "How to check this",
+    validation: "Clinical validation",
     contact: "Contact",
     menuLabel: "Menu",
     closeMenuLabel: "Close menu",

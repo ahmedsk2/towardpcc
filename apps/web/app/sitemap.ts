@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/services",
     "/about",
     "/trust",
+    "/validation",
     "/contact",
     "/install",
     "/legal/data-protection",
