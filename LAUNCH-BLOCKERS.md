@@ -344,12 +344,8 @@ the restore drill re-run afterwards.
 - [ ] **SPC-WEB-001** — remove public-tier CSP `script-src 'unsafe-inline'` (hash
       the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG
       tradeoff; fix needs hydration testing.
-- [~] **SPC-CON-001..008** — container hardening. **Done in-repo:** `cap_drop:
-[ALL]` (+ minimal `cap_add` per service), `no-new-privileges`, per-service
-  CPU/memory/PID limits, edge/data network split (`data` internal), and all
-  third-party images digest-pinned (docker-compose.prod.yml). **Remaining:**
-  secrets via Docker `secrets:`/`_FILE` (needs an app entrypoint), read-only
-  rootfs + tmpfs (verify live), and a CI image build + Trivy/hadolint gate.
+- [~] **SPC-CON-001..008** — container hardening. See the subsection below;
+  most of what this item claimed as done has never taken effect in production.
 - [x] **SPC-API-001** — DONE 2026-07-27: per-IP throttle in front of the admin credentials
       flow (reuse `apps/web/lib/rate-limit.ts`), scope lockout to account+IP or
       add a challenge, to blunt targeted auth-DoS + credential stuffing.
@@ -371,6 +367,56 @@ the restore drill re-run afterwards.
 - [ ] Lower-severity items (SPC-WEB-002/003/004, SPC-API-002/004/005,
       SPC-DB-004/005, SPC-TM-001/002/003, SPC-CON-009/010, SPC-SUP-002) — see the
       report's remediation tiers.
+
+### Container hardening is written but NOT applied
+
+Checked against the running container on 2026-07-28, not against the file that
+was supposed to configure it:
+
+```
+ReadonlyRootfs : false        CapDrop     : (none)
+SecurityOpt    : (none)       Memory      : 0  (unlimited)
+NanoCpus       : 0            PidsLimit   : (none)
+User           : app          Networks    : coolify  (one flat shared network)
+```
+
+Everything `docker-compose.prod.yml` specifies — `cap_drop: [ALL]`,
+`no-new-privileges`, CPU/memory/PID limits, the edge/data network split — is
+**inert**, because production does not use that compose file. Coolify builds
+from `apps/web/Dockerfile` and runs the container with its own options. The
+hardening was real work; it was just written into a file nothing reads.
+
+Two things ARE real, and both come from the Dockerfile, which IS used: the
+container runs as the non-root `app` user, and the `HEALTHCHECK` is active and
+reporting healthy — Coolify observes it, so the rolling-update gate the deploy
+runbook describes does hold.
+
+**Applied 2026-07-28:** memory 1G, swap 1G, CPU 2 cores, set through Coolify so
+they survive redeploys. Sized against measurement rather than guesswork — the
+container's steady state is **48 MB**, so this is roughly 20× headroom. The
+reason to bother at such low usage is the neighbour: this host also runs
+`endorsement`, which holds real patient data, and nothing on the box had a
+memory limit at all. An unbounded leak here could have exhausted host memory and
+taken down a clinical application.
+
+**Still not applied**, in order of value:
+
+- `no-new-privileges` and `cap_drop: ALL`. Both are safe for this workload — a
+  Node process binding port 3000 needs no capabilities and no setuid — but they
+  need Coolify's custom-docker-options field rather than the API fields used
+  above, and a redeploy to verify.
+- Read-only rootfs with tmpfs mounts. Needs testing: Next.js writes to its cache
+  directory and `/tmp`, so this one genuinely can break the app and must not be
+  applied blind.
+- Network segmentation. Every container on this host shares one flat `coolify`
+  bridge, including other applications' databases. This is a Coolify-managed
+  concern and cannot be fixed from this repository alone.
+- Secrets via Docker `secrets:`/`_FILE`, which needs an app entrypoint.
+
+**The lesson worth keeping:** hardening asserted in a file that production does
+not read is indistinguishable from no hardening, and it is worse than nothing in
+one specific way — it makes a checklist look finished. Verify against the
+running container.
 
 ## Production readiness (2026-07-25)
 
