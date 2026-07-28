@@ -172,8 +172,11 @@ test.describe("hero motion pauses when it should", () => {
     const first = await sampleFrames(page, 2, 200);
     expect(new Set(first).size, "the canvas never started").toBe(2);
 
-    // Well past the hero, so the IntersectionObserver has fired.
+    // Well past the hero. Asserted rather than assumed: scrolling to 75% of
+    // scrollHeight only clears the observer's threshold on a page tall enough,
+    // and a shorter home page would silently make everything below vacuous.
     await page.evaluate(() => window.scrollTo(0, Math.round(document.body.scrollHeight * 0.75)));
+    await expect(page.locator("canvas")).not.toBeInViewport();
     await page.waitForTimeout(500);
 
     const a = (await page.evaluate(SAMPLE)) as Sample;
@@ -185,6 +188,21 @@ test.describe("hero motion pauses when it should", () => {
       a?.sum,
       "the hero canvas is still painting while off-screen — it should pause and stop burning CPU",
     ).toBe(b?.sum);
+
+    // The half that was missing, and the reason the assertion above could not
+    // be trusted on its own. The effect is keyed on `active`, so going
+    // off-screen tears it down and clears the canvas: `a.sum === b.sum` is
+    // satisfied by 0 === 0, which is also what a permanently broken canvas
+    // returns. Scrolling back proves the pause was a pause and not a death.
+    // sampleFrames scrolls the canvas back into view and will not return until
+    // more than 100 sampled pixels are lit, so "2 distinct sums" here means a
+    // canvas that is both painted and moving — the two things 0 === 0 above
+    // cannot distinguish.
+    const resumed = await sampleFrames(page, 2, 200);
+    expect(
+      new Set(resumed).size,
+      "the hero canvas never resumed after scrolling back — it stopped permanently rather than pausing",
+    ).toBe(2);
   });
 
   test("stops painting when the tab is hidden", async ({ page }) => {
