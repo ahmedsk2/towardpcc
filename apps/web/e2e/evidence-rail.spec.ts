@@ -45,12 +45,38 @@ test.describe("evidence rail", () => {
     const before = await current.getAttribute("aria-label");
 
     await page.getByRole("button", { name: /next/i }).click();
-    await page.waitForTimeout(600);
 
-    await expect(current).toHaveCount(1);
-    // The accessible name is the citation source, so a change proves the
-    // indicator tracks the actual scroll position rather than a counter.
-    expect(await current.getAttribute("aria-label")).not.toBe(before);
+    /**
+     * Polled, not waited.
+     *
+     * This was a fixed 600ms sleep followed by a single assertion. It passed on
+     * a developer machine for weeks and then failed on a CI runner — the rail
+     * scrolls smoothly and the indicator is driven by an IntersectionObserver,
+     * so settling time depends entirely on how busy the machine is. A test that
+     * fails once in twenty is worse than no test: the fix people reach for is
+     * "re-run CI", and a suite that gets re-run stops being believed.
+     *
+     * Both conditions are checked inside the poll rather than after it, because
+     * mid-scroll there is a moment with zero or two current indicators, and an
+     * assertion that lands in that window fails for the wrong reason.
+     */
+    await expect
+      .poll(
+        async () => {
+          const labels = await current.evaluateAll((els) =>
+            els.map((el) => el.getAttribute("aria-label")),
+          );
+          // The accessible name is the citation source, so a change proves the
+          // indicator tracks the real scroll position rather than a counter.
+          return labels.length === 1 && labels[0] !== before ? labels[0] : null;
+        },
+        {
+          timeout: 5000,
+          message:
+            "the current-position indicator never moved after pressing next — either the rail did not scroll or the indicator is not following it",
+        },
+      )
+      .not.toBeNull();
   });
 
   test("disables the arrow that would do nothing at each end", async ({ page }) => {

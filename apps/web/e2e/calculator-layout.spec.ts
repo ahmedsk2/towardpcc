@@ -39,7 +39,29 @@ async function resultVisibleAfterScrolling(
     window.scrollTo(0, y);
     return { y, h: document.body.scrollHeight };
   });
-  await page.waitForTimeout(250);
+  // Wait for the scroll to SETTLE rather than to reach a particular offset.
+  //
+  // Reaching the requested offset is the wrong condition and I got it wrong
+  // once already: the page cannot scroll past `scrollHeight - innerHeight`, so
+  // asking for 66% of scrollHeight lands at 901 when it was told 1202, and a
+  // poll waiting for 1202 times out forever on a perfectly healthy page.
+  //
+  // Settling is what the measurement below actually needs — it is taken once,
+  // so running it mid-scroll reports a position nobody asked about, and the
+  // failure reads as "the sticky panel is broken" rather than "the test
+  // measured too early".
+  let previous = -1;
+  await expect
+    .poll(
+      async () => {
+        const y = await page.evaluate(() => Math.round(window.scrollY));
+        const settled = y === previous;
+        previous = y;
+        return settled;
+      },
+      { timeout: 3000, message: "the page never stopped scrolling" },
+    )
+    .toBe(true);
 
   const visible = await panel.evaluate((el) => {
     const r = el.getBoundingClientRect();
