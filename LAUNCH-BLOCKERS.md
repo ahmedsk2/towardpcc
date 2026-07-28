@@ -144,29 +144,31 @@ then — no figure is invented.
       status codes), org-owned auto-renew payment, a two-owner renewal
       calendar, CT-log and lookalike monitoring, defensive registrations.
 
-- [ ] **SMTP relay + email authentication (TM-008)** — the app side is done:
-      `lib/mail-config.ts` reports what is missing, the admin inbox banners it,
-      and the relay is specified in `docs/runbooks/email-delivery.md` (OCI
-      Email Delivery, `me-riyadh-1` — chosen to keep mail bodies in-region
-      rather than widening ADR-0003 further). **Outstanding, and owner-only
-      because it mints a credential:** create the email domain + DKIM selector +
-      approved sender in the OCI console, generate SMTP credentials, set the
-      four `SMTP_*` values in Coolify.
+- [ ] **SMTP relay (TM-008)** — the app side is done and the authentication
+      half is now **resolved, not outstanding**. `lib/mail-config.ts` reports
+      what is missing, the admin inbox banners it, and
+      `docs/runbooks/email-delivery.md` has the full setup. **Outstanding, and
+      owner-only because it mints a credential:** the `SMTP_HOST`, `SMTP_USER`
+      and `SMTP_PASSWORD` for the existing towardpicu.com mailbox. Everything
+      else in Coolify is set.
 
-      **⚠️ The DNS half is not "add records" — it is "widen existing ones", and
-          getting this wrong means silent total failure.** Verified live
-          2026-07-27: the apex publishes `v=spf1 -all` and `_dmarc` publishes
-          `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;`. Together those say
-          nothing may send as this domain and receivers should reject anything that
-          tries — correct today, and fatal the moment a relay goes live. The first
-          message will be **rejected outright**, not spam-filed, with nothing in the
-          app logs, because from the app's side the relay accepted it.
+      **The DNS half turned out to need no DNS change at all** — which is the
+              opposite of what this item said until 2026-07-28, and worth recording
+              because the old plan would have weakened the domain for no reason.
+              Verified live: the apex publishes `v=spf1 -all` and `_dmarc` publishes
+              `v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;` — nothing may send as
+              towardpcc.com and receivers should reject anything that tries. The
+              earlier plan was to widen both to admit a relay. Instead `MAIL_FROM` now
+              sends as `@towardpicu.com`, a domain whose SPF already authorises the
+              relay, with `MAIL_REPLY_TO` pointing back at `info@towardpcc.com` so
+              replies still land in the right inbox. DMARC aligns on the From: header
+              domain, so this passes; towardpcc.com keeps its maximally restrictive
+              posture and sends nothing, which is what those records are for.
 
-          There is also no `rua=` tag, so DMARC is enforcing silently and nobody is
-          collecting the reports that would reveal this. An earlier version of this
-          item said to start at `p=none`; that is wrong here — it would be a
-          downgrade from an already-correct policy. Order and reasoning in
-          `docs/runbooks/email-delivery.md`. (Before any form notification.)
+              Residual, neither blocking: towardpicu.com has no DKIM key (SPF alone
+              breaks on forwarding) and its DMARC is `p=none` with no `rua=`, so
+              nothing is enforced or observed there. Both are cheap to add and neither
+              is worth holding launch for at this volume.
 
 - [ ] **HSTS preload-list submission (P8)** — **the precondition is now met.**
       Checked 2026-07-27: hstspreload.org reports the domain **preloadable with

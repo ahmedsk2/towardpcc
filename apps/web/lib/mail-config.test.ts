@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mailConfigurationStatus } from "./mail-config";
 
@@ -77,5 +78,33 @@ describe("mailConfigurationStatus", () => {
     process.env.SMTP_USER = "";
     process.env.SMTP_PASSWORD = "";
     expect(mailConfigurationStatus().configured).toBe(true);
+  });
+});
+
+/**
+ * Read as source rather than imported: `email.ts` is "server-only" and resolves
+ * through the `@/` alias, neither of which vitest can load. The invariant is
+ * about a literal in the file, so reading the file tests it exactly.
+ *
+ * DELETE THIS TEST if towardpcc.com ever publishes an SPF record that
+ * authorises a relay. Until then it holds a live constraint, not a preference.
+ */
+describe("the fallback sender domain", () => {
+  const source = readFileSync(new URL("./email.ts", import.meta.url), "utf8");
+  const fallback = /const from = \(\) => env\("MAIL_FROM"\) \?\? "([^"]+)"/.exec(source)?.[1];
+
+  it("is a literal the test can actually find", () => {
+    // Guards the guard: a refactor that renames `from` or moves the default
+    // would otherwise leave the assertion below passing against `undefined`.
+    expect(fallback).toBeTruthy();
+  });
+
+  it("does not send as @towardpcc.com, which publishes v=spf1 -all + p=reject", () => {
+    // Not a style rule. DMARC aligns on the From: header domain, so mail sent
+    // through any relay but addressed from towardpcc.com is rejected outright
+    // by every conforming receiver — no bounce the app sees, nothing in the
+    // logs, because the relay accepted it. The failure is invisible, which is
+    // the only reason this is worth a test rather than a comment.
+    expect(fallback).not.toContain("@towardpcc.com");
   });
 });

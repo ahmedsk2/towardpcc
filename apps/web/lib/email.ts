@@ -49,10 +49,27 @@ function transporter(): Transporter {
   return cached;
 }
 
-const from = () => env("MAIL_FROM") ?? "TowardPCC <info@towardpcc.com>";
+const from = () => env("MAIL_FROM") ?? "TowardPCC <info@towardpicu.com>";
+
+/**
+ * Where replies go, when it differs from where mail is sent from.
+ *
+ * Outbound mail is relayed through towardpicu.com because that domain's SPF
+ * authorises the relay. towardpcc.com publishes `v=spf1 -all` with
+ * `p=reject; aspf=s`, so a From: header on the site's own domain would be
+ * rejected outright by every receiver honouring DMARC — DMARC aligns against
+ * the From: domain, not the relay.
+ *
+ * Reply-To closes the gap that creates: the envelope and From: stay on the
+ * domain that can authenticate, while a clinician replying still reaches the
+ * address printed on the site. Without it, someone who wrote to towardpcc.com
+ * would be replying to a domain they have never seen.
+ */
+const replyTo = () => env("MAIL_REPLY_TO");
 
 async function send(opts: { to: string; subject: string; text: string }): Promise<void> {
-  await transporter().sendMail({ from: from(), ...opts });
+  const reply = replyTo();
+  await transporter().sendMail({ from: from(), ...(reply ? { replyTo: reply } : {}), ...opts });
 }
 
 export async function notifyAdminOfSubmission(type: SubmissionType, id: string): Promise<void> {
