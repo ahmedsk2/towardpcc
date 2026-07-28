@@ -151,18 +151,18 @@ then — no figure is invented.
       test email** button proves the relay end to end.
 
       **Outstanding, founder-only because it is a credential:** enter the
-                          `mail.towardpicu.com` mailbox password in `/admin/settings` along with the
-                          host, user and `MAIL_FROM`. Nothing sends while `SMTP_HOST` is blank, so
-                          the other fields are safe to stage first.
+                                  `mail.towardpicu.com` mailbox password in `/admin/settings` along with the
+                                  host, user and `MAIL_FROM`. Nothing sends while `SMTP_HOST` is blank, so
+                                  the other fields are safe to stage first.
 
-                          **Do NOT widen towardpcc.com's SPF.** Earlier guidance here and in the
-                          runbook said to; it was wrong under both candidate relays. From: is on
-                          towardpicu.com, whose SPF already authorises this relay, and towardpcc.com
-                          still sends nothing — so `v=spf1 -all` with `p=reject` stays exactly as it
-                          is, which is the strongest posture available and free.
+                                  **Do NOT widen towardpcc.com's SPF.** Earlier guidance here and in the
+                                  runbook said to; it was wrong under both candidate relays. From: is on
+                                  towardpicu.com, whose SPF already authorises this relay, and towardpcc.com
+                                  still sends nothing — so `v=spf1 -all` with `p=reject` stays exactly as it
+                                  is, which is the strongest posture available and free.
 
-                          Residual, non-blocking: towardpicu.com publishes no DKIM key (SPF alone
-                          breaks on forwarding) and its DMARC is `p=none` with no `rua=`.
+                                  Residual, non-blocking: towardpicu.com publishes no DKIM key (SPF alone
+                                  breaks on forwarding) and its DMARC is `p=none` with no `rua=`.
 
 - [ ] **KSA-only processing (ADR-0004)** — the founder decided on 2026-07-28
       that all processing must be inside Saudi Arabia and confirmable. Settled:
@@ -173,21 +173,21 @@ then — no figure is invented.
       `ADMIN_EMAIL` stays on Gmail as a recorded exception.
 
       **Cloudflare Enterprise was ruled out on the merits, not on cost** —
-                                      Customer Metadata Boundary supports only EU or US, so visitor IPs would
-                                      still leave the Kingdom at ~$3–5k/month.
+                                              Customer Metadata Boundary supports only EU or US, so visitor IPs would
+                                              still leave the Kingdom at ~$3–5k/month.
 
-                                      Outstanding, in strict order:
+                                              Outstanding, in strict order:
 
-                                      1. `client-ip.ts` trust-boundary change — it trusts `cf-connecting-ip`
-                                         unconditionally, safe **only** because the origin is firewalled to
-                                         Cloudflare. This must land **before or with** any ingress widening or
-                                         it is a rate-limit bypass (CWE-348).
-                                      2. Co-tenant agreement. One subnet, one security list, and the host runs
-                                         another live app **holding real patient data**. Not our decision alone.
-                                      3. Stand up the OCI LB + WAF and prove it **while Cloudflare still
-                                         proxies**. Never flip DNS first.
-                                      4. Move DNS, wait out TTL, then narrow the old Cloudflare ingress **last**.
-                                      5. Only then rewrite the public residency copy to drop its caveat.
+                                              1. `client-ip.ts` trust-boundary change — it trusts `cf-connecting-ip`
+                                                 unconditionally, safe **only** because the origin is firewalled to
+                                                 Cloudflare. This must land **before or with** any ingress widening or
+                                                 it is a rate-limit bypass (CWE-348).
+                                              2. Co-tenant agreement. One subnet, one security list, and the host runs
+                                                 another live app **holding real patient data**. Not our decision alone.
+                                              3. Stand up the OCI LB + WAF and prove it **while Cloudflare still
+                                                 proxies**. Never flip DNS first.
+                                              4. Move DNS, wait out TTL, then narrow the old Cloudflare ingress **last**.
+                                              5. Only then rewrite the public residency copy to drop its caveat.
 
 - [ ] **Inbound mail is outside KSA and undocumented** — `towardpcc.com`'s MX
       points at SiteGround's SpamExperts on Google Cloud, which reads every
@@ -205,9 +205,9 @@ then — no figure is invented.
       found in the 2026-07-28 audit.
 
       Related: the tenancy's single-region subscription is **state, not a
-                                      control** — an admin can add a region in one click and OCI never allows
-                                      unsubscribing. Until an IAM policy or quota backs it, the honest phrasing
-                                      is "nothing is deployed outside KSA", not "nothing can be".
+                                              control** — an admin can add a region in one click and OCI never allows
+                                              unsubscribing. Until an IAM policy or quota backs it, the honest phrasing
+                                              is "nothing is deployed outside KSA", not "nothing can be".
 
 - [ ] **HSTS preload-list submission (P8)** — **the precondition is now met.**
       Checked 2026-07-27: hstspreload.org reports the domain **preloadable with
@@ -262,15 +262,28 @@ rest are deploy-entangled or consequential and tracked here for pre-launch.
 - [x] **SPC-CODE-001** — account lockout now re-arms after each window
       (apps/web/lib/auth/lockout.ts + regression test). Fixed.
 - [x] **SPC-SUP-001** — gitleaks CI job no longer persists GITHUB_TOKEN. Fixed.
-- [~] **SPC-DB-001 (high)** — **prepared:** least-privilege `towardpcc_app` role
-  (CRUD-only via default privileges) created in `docker/postgres-init`, and
-  the prod web service now connects as it while `migrate` keeps the owner
-  (docker-compose.prod.yml). **Remaining:** verify the grants against the live
-  DB during bring-up (deploy.md §3b has the check).
-- [~] **SPC-DB-003** — **prepared:** `docker/sql/10-audit-append-only.sql` revokes
-  UPDATE/DELETE on `AuditLog` from the app role; deploy.md §3b applies it and
-  notes the retention purge must run under the owner. **Remaining:** apply +
-  verify live.
+- [x] **SPC-DB-001 (high)** — **VERIFIED LIVE 2026-07-28.** The least-privilege
+      `towardpcc_app` role is real, not merely prepared:
+      `has_schema_privilege('towardpcc_app','public','CREATE')` returns **false**,
+      and `public` is owned by `towardpcc_owner`. So the application cannot create,
+      alter or drop anything — migrations must run as the owner, which is why the
+      `AppSetting` migration had to grant DML on its new table explicitly.
+- [x] **SPC-DB-003** — **VERIFIED LIVE 2026-07-28.** `AuditLog` is append-only
+      at the database level: `towardpcc_app` holds **only INSERT and SELECT** on it,
+      against full INSERT/SELECT/UPDATE/DELETE on `Submission`. A compromised
+      application cannot erase its own trail.
+
+  This resolves a contradiction that stood in this file for three days — the
+  deploy header above declared both controls "live and verified in production"
+  while these two entries still carried "remaining: apply + verify live". Both
+  are now checked against the live database rather than against a SQL file that
+  was written to apply them.
+
+  **Consequence, and it is not cosmetic:** `packages/db/scripts/purge-retention.mjs`
+  deletes from `AuditLog`, so it CANNOT run as the app role. Do not grant the
+  app DELETE to make the purge work — append-only is the point. Point that job
+  at `towardpcc_owner`.
+
 - [ ] **SPC-DB-002 — reframed 2026-07-27, see below.** The original item
       (enforce `sslmode=verify-full`) assumed the risk was eavesdropping on the
       app→Postgres link. Checking production changed that in both directions.
