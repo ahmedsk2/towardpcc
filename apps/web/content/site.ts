@@ -37,6 +37,8 @@ export const site = {
     followLabel: "Follow",
     linkedin: "https://www.linkedin.com/in/ahmed-s-alkhalifah/",
     linkedinLabel: "TowardPCC on LinkedIn",
+    orcid: "https://orcid.org/0000-0001-9277-8511",
+    orcidLabel: "Founder ORCID profile",
   },
 
   footer: {
@@ -203,12 +205,22 @@ export const site = {
        */
       publications: [
         {
-          title: "Personalising mechanical power to reduce ICU mortality",
-          venue: "PLOS ONE",
+          title:
+            "Optimizing mechanical ventilation: personalizing mechanical power to reduce ICU mortality — a retrospective cohort study",
+          venue: "PLOS ONE, 2025",
+          href: "https://doi.org/10.1371/journal.pone.0318018",
         },
         {
-          title: "Machine learning for pediatric triage",
-          venue: "Open Access Emergency Medicine",
+          title:
+            "Examining the use of machine learning algorithms to enhance the pediatric triaging approach",
+          venue: "Open Access Emergency Medicine, 2025",
+          href: "https://doi.org/10.2147/OAEM.S494280",
+        },
+        {
+          title:
+            "Predicting length of stay in the pediatric intensive care unit at a tertiary center in Saudi Arabia using machine learning",
+          venue: "International Journal of Medical Informatics, 2026",
+          href: "https://doi.org/10.1016/j.ijmedinf.2026.106482",
         },
       ] as { title: string; venue: string; href?: string }[],
     },

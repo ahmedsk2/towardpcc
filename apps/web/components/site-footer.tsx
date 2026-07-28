@@ -61,6 +61,35 @@ export function SiteFooter() {
             >
               {site.utility.email}
             </a>
+            {/* Scholarly identity, not a social link. The footer deliberately
+                carries no social icons — none of those accounts exist — but an
+                ORCID is a verifiable public record, which is the kind of link
+                an institution checking whether this is real actually follows. */}
+            <a
+              href={site.utility.orcid}
+              rel="me noopener"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-sm font-numeric text-xs tracking-[0.06em] text-ink-on-dark/70 transition-colors duration-150 hover:text-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3.5 shrink-0">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M9 8.5v7M9 6.6v.1M12.6 8.5h2.1a3.5 3.5 0 0 1 0 7h-2.1v-7Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {site.utility.orcidLabel}
+            </a>
           </div>
           <nav
             aria-label={site.footer.navAriaLabel}
