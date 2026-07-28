@@ -399,12 +399,37 @@ reason to bother at such low usage is the neighbour: this host also runs
 memory limit at all. An unbounded leak here could have exhausted host memory and
 taken down a clinical application.
 
+**Also applied 2026-07-28:** `cap_drop: ALL`, via Coolify's custom docker run
+options. A Node process binding port 3000 needs no Linux capabilities at all —
+the port is above 1024 and nothing in the image is setuid — so this is free.
+Verified on the running container: `CapDrop: [ALL]`, health `healthy`, every
+route still 200.
+
+**`no-new-privileges` cannot be set through Coolify 4.1.2.** Not a
+configuration mistake — a parser limitation, found by reading its source at
+`bootstrap/helpers/docker.php:994`:
+
+```php
+preg_match_all('/(--\w+(?:-\w+)*)(?:\s|=)?([^\s-]+)?/', $custom_docker_run_options, ...)
+```
+
+The value group is `[^\s-]+`, which **excludes hyphens**. So `--cap-drop=ALL`
+parses fine, while `--security-opt no-new-privileges:true` captures the value as
+just `no`, emitting an invalid `security_opt` that Docker rejects. The container
+then fails to start and the healthcheck gate keeps the old one — which is
+exactly what happened on the first attempt, silently and with no downtime. The
+flag is on Coolify's own allowlist at line 998; it simply cannot be expressed.
+
+The residual risk is small and worth stating rather than leaving as an unclosed
+box. `no_new_privs` stops a process gaining privileges through a setuid binary.
+With `cap_drop: ALL` already applied, a setuid escalation would arrive at a root
+that holds no capabilities, and the image contains no setuid binaries. The
+options to close it properly are a host-wide `"no-new-privileges": true` in
+`/etc/docker/daemon.json` — which would apply to every container on this host,
+including other applications, so it is not ours to set — or a Coolify upgrade.
+
 **Still not applied**, in order of value:
 
-- `no-new-privileges` and `cap_drop: ALL`. Both are safe for this workload — a
-  Node process binding port 3000 needs no capabilities and no setuid — but they
-  need Coolify's custom-docker-options field rather than the API fields used
-  above, and a redeploy to verify.
 - Read-only rootfs with tmpfs mounts. Needs testing: Next.js writes to its cache
   directory and `/tmp`, so this one genuinely can break the app and must not be
   applied blind.
