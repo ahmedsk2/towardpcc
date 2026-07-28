@@ -155,3 +155,26 @@ jobs:
         run: |
           docker run --rm --entrypoint sh towardpcc-web:ci -c \
             'find / -name "query_compiler_bg.wasm" -not -path "*/proc/*" 2>/dev/null | head -1 | grep -q . '
+
+      # An inventory of what is actually inside the image, kept as a build
+      # artifact. Trivy above answers "are there known vulnerabilities today";
+      # this answers the question you get asked at 2am months later — "are we
+      # affected by the thing announced this morning" — which you cannot answer
+      # from a scan that ran against a different image than the one deployed.
+      #
+      # SPDX rather than CycloneDX for no strong reason beyond it being the
+      # format most downstream tooling reads without configuration.
+      - name: Generate an SBOM for the image
+        uses: anchore/sbom-action@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.17.9
+        with:
+          image: towardpcc-web:ci
+          format: spdx-json
+          artifact-name: towardpcc-web-sbom.spdx.json
+          output-file: towardpcc-web-sbom.spdx.json
+
+      - name: Keep the SBOM with the run
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sbom
+          path: towardpcc-web-sbom.spdx.json
+          retention-days: 90
