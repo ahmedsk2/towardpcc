@@ -50,10 +50,61 @@ describe("public figures match the registry", () => {
     expect(src).toContain(String(truth.citations));
   });
 
-  it("every published score actually has at least one citation", () => {
-    // The figure being right is not enough if a score contributes zero.
-    for (const s of registry) {
-      expect(s.references.length, `${s.slug} has no references`).toBeGreaterThan(0);
-    }
+  /**
+   * A count can be right while the sentence around it is false.
+   *
+   * The homepage said "87 citations with PMID and DOI" until 2026-07-28. The
+   * 87 was correct and every figure test above passed — but only 56 of the 87
+   * carry both identifiers, and 16 carry neither. The guards were all watching
+   * the numeral and none was watching the claim.
+   *
+   * Written as an implication rather than a fixed expectation, so that adding
+   * DOIs to the registry is never blocked by a test: improve the data and the
+   * stronger sentence simply becomes legal.
+   */
+  it("does not claim identifier coverage the registry does not have", () => {
+    // `in` rather than property access: Reference is a union whose third arm
+    // is url-only and declares neither key, which is how the type already
+    // guarantees the weaker "traceable to its source" claim by construction.
+    const withBoth = registry.reduce(
+      (n, s) => n + s.references.filter((r) => "pmid" in r && "doi" in r).length,
+      0,
+    );
+    const copy = site.home.features.map((f) => f.body).join(" ");
+    const claimsBoth = /citations?[^.]*\bwith PMID and DOI/i.test(copy);
+    expect(
+      claimsBoth && withBoth !== truth.citations,
+      `the copy claims every citation has a PMID and a DOI, but only ${withBoth} of ${truth.citations} do — say "traceable to its source", which registry-gate.test.ts actually enforces`,
+    ).toBe(false);
+  });
+
+  /**
+   * Arithmetic stated in prose is unowned by anything: no test computes it and
+   * no reader recomputes it. "The remaining 152" shipped against 2,425 − 2,272
+   * = 153 and survived every review.
+   *
+   * Parsing the sentence rather than duplicating its numbers is deliberate —
+   * a copy of the figures here would just be a second place to get it wrong.
+   */
+  it("the library document counts add up", () => {
+    const answer = site.pillarDetail.knowledge.faq.find((f) =>
+      /can't be read/i.test(f.question),
+    )?.answer;
+    expect(answer, "the unreadable-documents FAQ should still exist").toBeDefined();
+    const n = (re: RegExp) => Number((re.exec(answer!)?.[1] ?? "").replace(/,/g, ""));
+    const imported = n(/Of ([\d,]+) imported/);
+    const searchable = n(/([\d,]+) became full-text/);
+    const native = n(/([\d,]+) by native/);
+    const ocr = n(/([\d,]+) through OCR/);
+    const remaining = n(/remaining ([\d,]+)/);
+
+    expect(
+      native + ocr,
+      `${native} native + ${ocr} OCR should equal ${searchable} searchable`,
+    ).toBe(searchable);
+    expect(
+      imported - searchable,
+      `${imported} imported − ${searchable} searchable should equal the ${remaining} stated as remaining`,
+    ).toBe(remaining);
   });
 });

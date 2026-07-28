@@ -52,17 +52,24 @@ describe("palette — text contrast (WCAG 2.2 AA)", () => {
 const LIGHT_SURFACES = ["color-surface-page", "color-surface-raised", "color-surface-sunken"];
 
 /**
- * Per-tier bands. Floors keep a border perceivable; ceilings keep the
- * hierarchy from inverting — without an upper bound a later edit could make
- * `subtle` heavier than `border` and both would still "pass".
+ * Per-tier bands. Floors keep a border perceivable; ceilings keep each tier
+ * meaning a weight rather than merely "some number below the next one".
  *
  * Only the control tier is bound by WCAG 1.4.11's 3:1. The decorative tiers
  * are deliberately below it: a card edge at 3:1 reads as a control.
+ *
+ * The ceilings are absolute on purpose, and the reasoning is written down in
+ * docs/decisions/ADR-design-direction.md so it lives where a designer looks.
+ * A relative bound (`subtle < border`) was proposed and rejected: the bands
+ * would then be satisfied by subtle=2.98 / border=2.99, and — because a tier
+ * is chosen without knowing which of the three surfaces it lands on — a
+ * "quiet inner rule" on a white card can out-weigh a "card edge" on a
+ * porcelain one. Only an absolute band sees across surfaces.
  */
-const BORDER_TIERS: Record<string, { min: number; max: number }> = {
-  "color-border-subtle": { min: 1.3, max: 1.75 },
-  "color-border": { min: 1.6, max: 3.0 },
-  "color-border-strong": { min: AA_NON_TEXT, max: 21 },
+const BORDER_TIERS: Record<string, { min: number; max: number; purpose: string }> = {
+  "color-border-subtle": { min: 1.3, max: 1.75, purpose: "quiet rules inside a card" },
+  "color-border": { min: 1.6, max: 3.0, purpose: "card edges and dividers" },
+  "color-border-strong": { min: AA_NON_TEXT, max: 21, purpose: "control boundaries" },
 };
 
 describe("palette — non-text UI contrast (WCAG 1.4.11)", () => {
@@ -73,7 +80,11 @@ describe("palette — non-text UI contrast (WCAG 1.4.11)", () => {
    * Deriving the list from the file means a new tier cannot be added without
    * someone making a threshold decision about it.
    */
-  const declared = [...css.matchAll(/--(color-border[a-z-]*):\s*#[0-9a-fA-F]{6}/g)].map(
+  // [a-z0-9-] not [a-z-]: a token named --color-border-2 would otherwise be
+  // skipped by the enumeration AND by the coverage check below, landing in the
+  // one state this guard exists to make impossible — a border token nobody
+  // made a threshold decision about.
+  const declared = [...css.matchAll(/--(color-border[a-z0-9-]*):\s*#[0-9a-fA-F]{6}/g)].map(
     (m) => m[1]!,
   );
 
@@ -87,17 +98,26 @@ describe("palette — non-text UI contrast (WCAG 1.4.11)", () => {
       const tier = BORDER_TIERS[fg];
       if (!tier) throw new Error(`No threshold declared for --${fg}`);
       const ratio = contrastRatio(token(fg), token(bg));
-      expect(ratio).toBeGreaterThanOrEqual(tier.min);
-      expect(ratio).toBeLessThanOrEqual(tier.max);
+      const why = `--${fg} is the "${tier.purpose}" tier, banded ${tier.min}–${tier.max} against every light surface. Got ${ratio.toFixed(3)} on --${bg}. If this border needs more weight, use the tier that already has it rather than redefining this one; the tiers are documented in docs/decisions/ADR-design-direction.md.`;
+      expect(ratio, why).toBeGreaterThanOrEqual(tier.min);
+      // Strictly less than: the card ceiling and the control floor are both
+      // 3.0, so `<=` would let those two tiers legally sit on the same value.
+      expect(ratio, why).toBeLessThan(tier.max);
     },
   );
 
-  it("orders the tiers — subtle quieter than card, card quieter than control", () => {
-    const page = token("color-surface-page");
-    const ratio = (name: string) => contrastRatio(token(name), page);
-    expect(ratio("color-border-subtle")).toBeLessThan(ratio("color-border"));
-    expect(ratio("color-border")).toBeLessThan(ratio("color-border-strong"));
-  });
+  it.each(LIGHT_SURFACES)(
+    "orders the tiers on %s — subtle quieter than card, card quieter than control",
+    (surface) => {
+      // Checked on all three grounds, not just `page`. The bands overlap by
+      // design (subtle tops out at 1.75, card starts at 1.6), so ordering is a
+      // separate claim from banding — and an inversion on `raised` or `sunken`
+      // passed every assertion here until 2026-07-28.
+      const ratio = (name: string) => contrastRatio(token(name), token(surface));
+      expect(ratio("color-border-subtle")).toBeLessThan(ratio("color-border"));
+      expect(ratio("color-border")).toBeLessThan(ratio("color-border-strong"));
+    },
+  );
 
   it("has fully retired the old --color-edge token", () => {
     // It was declared in BOTH tokens.css and globals.css's @theme block. If the

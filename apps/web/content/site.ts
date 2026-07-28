@@ -114,7 +114,12 @@ export const site = {
     features: [
       {
         title: "Referenced",
-        body: `${CITATIONS} citations with PMID and DOI. Never a number without a reason.`,
+        // NOT "with PMID and DOI" — that was on the homepage until 2026-07-28
+        // and only 56 of the 87 qualify. 16 have neither: the APLS manual is
+        // ISBN-only, Mosteller's BSA formula predates both schemes. What is
+        // true of all 87, and enforced by registry-gate.test.ts, is that each
+        // resolves to something a reader can open.
+        body: `${CITATIONS} citations, every one traceable to its source. Never a number without a reason.`,
         tone: "crimson" as const,
       },
       {
@@ -473,7 +478,7 @@ export const site = {
         {
           question: "What happens to documents that can't be read?",
           answer:
-            "They stay findable by metadata. Of 2,425 imported documents, 2,272 became full-text searchable — 2,197 by native extraction and 75 through OCR. The remaining 152 are legacy formats, images and video, catalogued and findable but not searchable inside.",
+            "They stay findable by metadata. Of 2,425 imported documents, 2,272 became full-text searchable — 2,197 by native extraction and 75 through OCR. The remaining 153 are legacy formats, images and video, catalogued and findable but not searchable inside.",
         },
       ],
     },

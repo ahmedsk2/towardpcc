@@ -100,7 +100,7 @@ exactly one place; everything else is quiet.
 | `moss-100`      | `#E2F0E8` | success background tint                                         |
 | `accent-tint`   | `#F6E3E6` | chip/selection backgrounds on light (crimson at whisper volume) |
 | `ink-on-accent` | `#FFFFFF` | text on accent fills (6.8:1 on crimson-600)                     |
-| `edge`          | `#8E7E84` | control borders — ≥3:1 non-text contrast on white and porcelain |
+| `edge`          | `#8E7E84` | **RETIRED 2026-07-27** — see the border tiers in Part 5 below   |
 
 Rules: crimson is the one accent and appears at full strength once per
 screen as a CTA; brand crimson **never** doubles as an error color — alerts
@@ -294,3 +294,46 @@ no teal; no gold (the international childhood-cancer colour); the signature
 waveform is respiratory, never cardiac; the Space Grotesk / Inter / IBM Plex
 Mono stack; and the authenticity rule — no fabricated numbers, logos, counters,
 or testimonials.
+
+## Part 5 — border tiers (2026-07-27, polish pass)
+
+The single `edge` token above is retired. It described a control boundary, but
+the site paints borders at three different volumes, and having one token for
+all of them is how a **surface fill** came to be used as a border in 38 places
+at 1.056:1 — every card edge and section rule invisible, and the contrast guard
+green throughout, because it was asserting `edge`, a token the UI had stopped
+using.
+
+| Token                   | Hex       | Means                     | Contrast band on light |
+| ----------------------- | --------- | ------------------------- | ---------------------- |
+| `--color-border-subtle` | `#E7CFC7` | quiet rules inside a card | 1.3 – 1.75             |
+| `--color-border`        | `#D8B8AE` | card edges, dividers      | 1.6 – 3.0 (exclusive)  |
+| `--color-border-strong` | `#8E7E84` | control boundaries        | ≥ 3.0 (WCAG 1.4.11)    |
+
+Read against all three light grounds — `surface-page`, `surface-raised`,
+`surface-sunken` — and enforced by `packages/ui/src/tokens.test.ts`, which
+enumerates the tokens out of `tokens.css` rather than listing them by hand, so
+a new border token cannot be added without someone deciding its band.
+
+**Why the ceilings are absolute numbers and not "quieter than the next tier
+up".** The relative form was proposed in the 2026-07-28 guard audit and
+rejected. Three reasons, all of which cost something real:
+
+1. A relative bound is satisfied by `subtle` = 2.98 and `border` = 2.99 —
+   non-inverted, indistinguishable, passing. The absolute band is the only
+   thing making "subtle" denote a weight rather than a rank.
+2. An author writes `border-border-subtle` without knowing which of the three
+   surfaces it will land on. A per-surface comparison cannot see across
+   surfaces, so a quiet inner rule on a white card could legally out-weigh a
+   card edge on a blush one.
+3. Both values live in the same file, so a relative rule only ever compares an
+   edit to itself. This project has already shipped one figure that was
+   self-consistent and false; that is the same shape.
+
+The bands overlap deliberately (subtle tops out at 1.75, card starts at 1.6),
+so ordering is asserted separately from banding, on each surface.
+
+**If a border genuinely needs more weight, move it up a tier — do not redefine
+the tier.** That is what having three of them buys. Knockout borders on dark
+bands are the exception and use `ring-`, which is a box-shadow: it paints
+outside the box and takes part in no layout.
