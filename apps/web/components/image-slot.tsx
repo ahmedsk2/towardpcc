@@ -124,14 +124,7 @@ export function ImageSlot({
 
   if (!frame) {
     return (
-      <div
-        className={cn(
-          "overflow-hidden rounded-[26px] shadow-[0_34px_70px_-30px_rgba(61,21,38,0.55)]",
-          className,
-        )}
-      >
-        {imageArea}
-      </div>
+      <div className={cn("overflow-hidden rounded-[26px] shadow-2xl", className)}>{imageArea}</div>
     );
   }
 

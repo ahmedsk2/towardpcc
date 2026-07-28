@@ -104,7 +104,7 @@ export function PillarPage({
           {stats.map((s) => (
             <div
               key={s.label}
-              className="rounded-lg border border-border bg-surface-raised p-7 shadow-[0_20px_46px_-26px_rgba(61,21,38,0.4)]"
+              className="rounded-lg border border-border bg-surface-raised p-7 shadow-xl"
             >
               {/* Final value at first paint — deliberately NOT <Counter>.
                   This band sits above the fold (top ~636px at 1280x900), so a

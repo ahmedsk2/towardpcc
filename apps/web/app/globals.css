@@ -31,6 +31,10 @@
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  /* Declaring 2xl also overrides Tailwind's stock neutral-grey shadow of the
+     same name, which is what main-nav's drawer was silently getting. */
+  --shadow-2xl: var(--shadow-2xl);
   --color-alert-text: var(--color-alert-text);
   --color-alert-bg: var(--color-alert-bg);
   --color-success-text: var(--color-success-text);

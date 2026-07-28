@@ -144,7 +144,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                 {mega && (
                   <div
                     id="mega-calculators"
-                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-[0_30px_70px_-25px_rgba(61,21,38,0.4)] motion-safe:animate-[megaIn_180ms_var(--motion-ease)_both]"
+                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-2xl motion-safe:animate-[megaIn_180ms_var(--motion-ease)_both]"
                   >
                     <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3">
                       <p className="m-0 text-sm text-ink-muted">
