@@ -34,7 +34,22 @@ same guards.
    purely decorative hero elements, and count-up animation on **marketing
    figures only** — never on a computed clinical value, because rolling
    digits teach the eye that a number is decorative, and that is the exact
-   opposite of what a score must communicate. Carve-out retained:
+   opposite of what a score must communicate.
+
+   **Narrowed 2026-07-28 (revision 3): count-up is permitted in the home
+   counter band and nowhere else.** "Marketing figures only" was too loose. The
+   pillar-page hero stat band was legal under it and shipped a real defect: the
+   band sits above the fold, the component server-renders `0` and animates
+   after hydration, so the first paint read "0 Pilot unit" directly beneath
+   "Pilot underway · one Gulf unit", and "1 Areas of support" beside "Three
+   kinds of help." The underlying content was correct throughout — the
+   animation was reading correct values out loud starting from zero, in a place
+   where a visitor could screenshot the contradiction.
+
+   The rule is therefore positional, not categorical: count-up is safe where a
+   figure is decorative _and_ below the fold, so it has scrolled into view
+   before it animates. Every other figure renders its final value in the first
+   paint. Carve-out retained:
    `Skeleton`'s loading pulse — motivated state feedback that stops the
    moment content arrives, disabled under reduced motion
    (`motion-reduce:animate-none`).

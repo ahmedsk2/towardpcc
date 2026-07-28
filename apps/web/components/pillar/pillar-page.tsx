@@ -1,6 +1,5 @@
 import { Accordion, type AccordionItem } from "@towardpcc/ui";
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
-import { Counter } from "@/components/home/counter";
 import { ImageSlot } from "@/components/image-slot";
 import { Reveal } from "@/components/reveal";
 
@@ -101,8 +100,17 @@ export function PillarPage({
               key={s.label}
               className="rounded-lg border border-border bg-surface-raised p-7 shadow-[0_20px_46px_-26px_rgba(61,21,38,0.4)]"
             >
+              {/* Final value at first paint — deliberately NOT <Counter>.
+                  This band sits above the fold (top ~636px at 1280x900), so a
+                  count-up fired at load and the server-rendered 0 was on screen
+                  while the copy beside it said otherwise: "0 Pilot unit" under
+                  "Pilot underway · one Gulf unit", "1 Areas of support" beside
+                  "Three kinds of help." The values in site.ts were always
+                  right; the animation was reading them out loud from zero.
+                  Count-up is now home-band only (docs/design/motion.md). */}
               <dd className="m-0 font-numeric text-3xl font-semibold text-accent tabular-nums">
-                <Counter value={s.value} suffix={s.suffix} />
+                {s.value}
+                {s.suffix ?? ""}
               </dd>
               <dt className="mt-2 text-sm text-ink-muted">{s.label}</dt>
             </div>

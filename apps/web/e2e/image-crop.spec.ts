@@ -146,3 +146,59 @@ test.describe("image framing", () => {
     });
   }
 });
+
+/**
+ * Authoring metadata must never reach a visitor — including via the
+ * accessibility tree.
+ *
+ * ImageSlot renders a designed empty plate beneath the photograph so a missing
+ * asset degrades to something deliberate rather than a broken-image icon. The
+ * plate carried the asset's filename as a hint to whoever wired the slot up.
+ *
+ * That was invisible to sighted users (the loaded image occludes it completely)
+ * but `aria-hidden` was applied only when `src` was ABSENT — inverted. So
+ * exactly the slots that worked announced "Mission photograph,
+ * care-nurse-smiling.jpg" to a screen reader, and the strings surfaced in
+ * text extraction, reader mode and select-all.
+ *
+ * Checked through the accessibility tree rather than innerText, because the
+ * defect lived there and a visual check would have missed it entirely.
+ */
+test.describe("no authoring metadata reaches the page", () => {
+  const BANNED = [
+    /save as public\//i,
+    /\b[\w-]+\.(?:jpe?g|png|webp|avif|svg)\b/i,
+    /public\/images\//i,
+  ];
+
+  for (const path of PAGES) {
+    test(`${path} exposes no filenames or save-as notes`, async ({ page }) => {
+      await page.goto(path);
+      await page.waitForLoadState("load");
+
+      // Everything a screen reader or a text scraper can reach.
+      const exposed = await page.evaluate(() => {
+        const bits: string[] = [];
+        const walk = (node: Element) => {
+          if (node.getAttribute("aria-hidden") === "true") return;
+          for (const attr of ["aria-label", "alt", "title"]) {
+            const v = node.getAttribute(attr);
+            if (v) bits.push(v);
+          }
+          for (const child of node.children) walk(child);
+        };
+        walk(document.body);
+        bits.push(document.body.innerText);
+        return bits.join("\n");
+      });
+
+      for (const pattern of BANNED) {
+        const hit = exposed.match(pattern);
+        expect(
+          hit?.[0] ?? null,
+          `${path} exposes authoring metadata to assistive tech or text extraction: "${hit?.[0]}"`,
+        ).toBeNull();
+      }
+    });
+  }
+});

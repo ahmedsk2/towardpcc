@@ -159,8 +159,11 @@ end-state disabling, edge-fade masks, and fix the `aria-controls` bug.
 
 **Founder block.** Currently zero links despite naming two journals. Add the two
 publications as resolved DOI links, credentials as quiet chips, and the migrated
-`10+ years`. Keep the existing brand-waveform image — it is one of the ADR's two
-sanctioned uses.
+`10+ years`. The existing `brand-waveform.jpg` stays as-is — noting honestly
+that it is a third waveform use the ADR's two sanctioned forms do not cover. It
+predates this pass and is not widened here; whether to reconcile it with the ADR
+or amend the ADR to admit a static brand mark is a separate decision, not one to
+settle silently inside an optimization batch.
 
 **Footer.** Four columns, the two load-bearing claims as badges, scholar links
 rendered only when supplied (the row omits cleanly when absent).

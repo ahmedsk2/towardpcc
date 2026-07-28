@@ -30,6 +30,7 @@ export function ImageSlot({
   gradient = "from-surface-hero-raised via-accent to-coral",
   fit = "cover",
   frame = false,
+  priority = false,
 }: {
   label: string;
   hint?: string | undefined;
@@ -52,9 +53,15 @@ export function ImageSlot({
    * on instead of floating against the brand gradient.
    */
   frame?: boolean | undefined;
+  /**
+   * Opts out of lazy loading for a slot near the top of the page. Every slot
+   * was lazy with no priority hint, so the designed empty plate painted first
+   * and the photograph arrived after — a visible swap on the largest image on
+   * the page. Use sparingly: marking everything priority is the same as marking
+   * nothing.
+   */
+  priority?: boolean | undefined;
 }) {
-  const hidden = src ? {} : { "aria-hidden": "true" as const };
-
   const imageArea = (
     <div
       className={cn(
@@ -67,8 +74,15 @@ export function ImageSlot({
         <div className="absolute inset-0 bg-[radial-gradient(400px_300px_at_30%_25%,rgba(255,255,255,0.22),transparent_70%)]" />
       )}
 
-      {/* Placeholder sits underneath, so it shows through if src 404s. */}
+      {/* The empty-slot plate, underneath the image so it still shows through
+          if src 404s. Always aria-hidden: when an image IS present the plate is
+          fully occluded, so announcing it duplicates the alt text — and worse,
+          it announced authoring metadata. The condition used to be inverted
+          (hidden only when src was ABSENT), which meant precisely the working
+          slots read out "Mission photograph, care-nurse-smiling.jpg" to a
+          screen reader. The plate is decoration in both states. */}
       <div
+        aria-hidden="true"
         className={cn("relative z-10 px-6 text-center", frame ? "text-ink-muted" : "text-white")}
       >
         <svg
@@ -88,16 +102,11 @@ export function ImageSlot({
           />
         </svg>
         <p className="m-0 font-display text-base font-semibold">{label}</p>
-        {hint ? (
-          <p
-            className={cn(
-              "m-0 mt-1.5 font-numeric text-[11px] tracking-[0.06em]",
-              frame ? "text-ink-muted/70" : "text-white/70",
-            )}
-          >
-            {hint}
-          </p>
-        ) : null}
+        {/* `hint` is deliberately NOT rendered. It carries authoring metadata —
+            "care-nurse-smiling.jpg", "save as public/images/…" — which is a note
+            to whoever wires the slot up, not something a visitor should ever
+            meet. It stays in the prop so call sites keep documenting which
+            asset belongs here. */}
       </div>
 
       {src ? (
@@ -106,6 +115,7 @@ export function ImageSlot({
           alt={alt ?? ""}
           fill
           sizes="(max-width: 1024px) 100vw, 640px"
+          priority={priority}
           className={cn("z-20", fit === "contain" ? "object-contain" : "object-cover")}
         />
       ) : null}
@@ -115,7 +125,6 @@ export function ImageSlot({
   if (!frame) {
     return (
       <div
-        {...hidden}
         className={cn(
           "overflow-hidden rounded-[26px] shadow-[0_34px_70px_-30px_rgba(61,21,38,0.55)]",
           className,
@@ -128,7 +137,6 @@ export function ImageSlot({
 
   return (
     <figure
-      {...hidden}
       className={cn(
         "m-0 overflow-hidden rounded-[20px] border border-border bg-surface-raised shadow-lg",
         className,
