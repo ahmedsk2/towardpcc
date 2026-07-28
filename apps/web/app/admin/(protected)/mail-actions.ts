@@ -1,11 +1,68 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { recordAudit } from "@/lib/admin/audit";
 import { requireAdmin } from "@/lib/auth/guard";
 import { sendAdminTestEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { MAIL_KEYS } from "@/lib/mail-config";
+import { saveMailSettings } from "@/lib/mail-settings";
 
 export type TestMailState = { ok: boolean; message: string } | null;
+export type SaveSettingsState = { ok: boolean; message: string } | null;
+
+/**
+ * Persist the operator's mail settings.
+ *
+ * Only the keys in MAIL_KEYS are read from the form, so a crafted request
+ * cannot write arbitrary configuration rows — the allowlist is the schema.
+ *
+ * A blank field means "delete this override and fall back to the environment",
+ * which is the only route back to a working default from a form that cannot
+ * know what the environment holds.
+ */
+export async function saveSettings(
+  _prev: SaveSettingsState,
+  formData: FormData,
+): Promise<SaveSettingsState> {
+  const admin = await requireAdmin();
+
+  const patch: Record<string, string> = {};
+  for (const key of MAIL_KEYS) {
+    const raw = formData.get(key);
+    // Absent (not rendered) and blank (cleared) are different intents, so only
+    // fields actually present in the submission are considered.
+    if (typeof raw === "string") patch[key] = raw;
+  }
+
+  try {
+    const { changed } = await saveMailSettings(patch, admin.id);
+    if (changed.length === 0) {
+      return { ok: true, message: "No changes to save." };
+    }
+    // Key names only, never values — a secret copied into an append-only log
+    // the application can read is a secret with a second, longer-lived home.
+    await recordAudit({
+      actorId: admin.id,
+      action: "MAIL_SETTINGS_CHANGED",
+      entity: "AppSetting:mail",
+      diff: { changed },
+    });
+    revalidatePath("/admin/settings");
+    revalidatePath("/admin");
+    return {
+      ok: true,
+      message: `Saved ${changed.length} setting${changed.length === 1 ? "" : "s"}. Send a test to confirm the relay accepts them.`,
+    };
+  } catch (error) {
+    logger.error({ err: error }, "saving mail settings failed");
+    return {
+      ok: false,
+      message:
+        "Could not save. If this is the first time, the AppSetting table may not exist yet — the full error is in the application log.",
+    };
+  }
+}
 
 /**
  * Send a fixed test message to ADMIN_EMAIL, so the relay can be proven without

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mailConfigurationStatus } from "./mail-config";
+import { mailConfigurationStatus, mergeMailSettings } from "./mail-config";
 
 /**
  * The failure this guards against is not a crash — it is silence.
@@ -78,6 +78,51 @@ describe("mailConfigurationStatus", () => {
     process.env.SMTP_USER = "";
     process.env.SMTP_PASSWORD = "";
     expect(mailConfigurationStatus().configured).toBe(true);
+  });
+});
+
+describe("mergeMailSettings — database over environment", () => {
+  const ENV = { SMTP_HOST: "env.example.com", SMTP_PASSWORD: "env-pass" } as const;
+
+  it("lets a stored value override the environment", () => {
+    expect(
+      mergeMailSettings(ENV, [{ key: "SMTP_HOST", value: "stored.example.com" }]).SMTP_HOST,
+    ).toBe("stored.example.com");
+  });
+
+  it("falls back to the environment when there is no row", () => {
+    expect(mergeMailSettings(ENV, []).SMTP_HOST).toBe("env.example.com");
+  });
+
+  it("falls back to the environment for a blank stored value, rather than setting it to ''", () => {
+    // The empty-string defect, again. If a cleared field could store "", the
+    // host would be blank-but-present and every send would fail silently.
+    expect(mergeMailSettings(ENV, [{ key: "SMTP_HOST", value: "   " }]).SMTP_HOST).toBe(
+      "env.example.com",
+    );
+  });
+
+  it("DROPS a key whose stored value could not be decrypted, env included", () => {
+    // The case that looks wrong and is not. If the operator saved a new
+    // password and it cannot be read back, falling through to the old
+    // environment password would send mail with credentials they believe they
+    // replaced. Dropping it makes the config incomplete, which is reported.
+    const merged = mergeMailSettings(ENV, [{ key: "SMTP_PASSWORD", value: null }]);
+    expect(merged.SMTP_PASSWORD).toBeUndefined();
+    expect(mailConfigurationStatus(merged).missing).toContain("SMTP_PASSWORD");
+  });
+
+  it("ignores rows whose key is not a mail setting", () => {
+    // The table is shared with future settings; a stray key must not become
+    // part of the mail configuration just by existing.
+    const merged = mergeMailSettings(ENV, [{ key: "SOMETHING_ELSE", value: "x" }]);
+    expect(merged).toEqual(ENV);
+  });
+
+  it("trims a stored value, so a trailing newline does not become part of a hostname", () => {
+    expect(
+      mergeMailSettings(ENV, [{ key: "SMTP_HOST", value: " a.example.com\n" }]).SMTP_HOST,
+    ).toBe("a.example.com");
   });
 });
 

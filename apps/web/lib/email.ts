@@ -1,23 +1,27 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import nodemailer, { type Transporter } from "nodemailer";
 import type { SubmissionType } from "@towardpcc/db";
 import { TYPE_LABELS } from "@/lib/admin/submission-view";
 import { logger } from "@/lib/logger";
-import { env, mailConfigurationStatus } from "@/lib/mail-config";
+import { mailConfigurationStatus, type MailSettings } from "@/lib/mail-config";
+import { resolveMailSettings } from "@/lib/mail-settings";
 import { SITE_URL } from "@/lib/site-url";
 
 /**
  * Transactional email. Dev routes to Mailpit (localhost:1025); prod uses the
- * SMTP_* env. Two flows, per the threat model: the ADMIN is pinged when a
- * submission arrives (no submitter data in the mail), and the SUBMITTER is only
- * ever emailed AFTER a human triages — never an auto-reply that confirms a live
- * address to a spammer.
+ * relay configured in /admin/settings, falling back to the SMTP_* environment.
+ *
+ * ONE automatic flow: the admin is notified when a submission arrives, and that
+ * message carries no submitter data — a type label and a link into the inbox.
+ * Submitters are never emailed (ADR-0004), so the app cannot be induced to send
+ * anything to an address an untrusted party chose.
  */
 let warned = false;
 /** Logs once per process rather than per submission, so it is visible without
  *  drowning the log during a spam flood. */
-function warnIfUnconfigured(): boolean {
-  const status = mailConfigurationStatus();
+function warnIfUnconfigured(settings: MailSettings): boolean {
+  const status = mailConfigurationStatus(settings);
   if (status.configured) return true;
   if (!warned) {
     warned = true;
@@ -29,24 +33,57 @@ function warnIfUnconfigured(): boolean {
   return false;
 }
 
-let cached: Transporter | undefined;
-function transporter(): Transporter {
-  if (!cached) {
-    cached = nodemailer.createTransport({
-      // Explicit fallback rather than `??`, which does not catch "".
-      host: env("SMTP_HOST") ?? "localhost",
-      port: Number(env("SMTP_PORT") ?? 1025),
-      secure: process.env.SMTP_SECURE === "true",
-      // Finite timeouts so a slow/hung SMTP relay can't stall the request path
-      // for the library's multi-minute defaults (prod-readiness RES-01). Mail is
-      // best-effort here and never fails a stored submission.
-      connectionTimeout: 10_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 20_000,
-      ...(env("SMTP_USER") ? { auth: { user: env("SMTP_USER"), pass: env("SMTP_PASSWORD") } } : {}),
-    });
-  }
-  return cached;
+/**
+ * The transport, rebuilt whenever the settings it was built from change.
+ *
+ * This used to cache one transport for the life of the process, which made the
+ * host, port and credentials effectively immutable until a redeploy. That was
+ * tolerable while they lived only in Coolify — editing them there triggers a
+ * redeploy anyway. It stopped being tolerable the moment they became editable
+ * in /admin/settings: an operator would save a corrected password, press "send
+ * a test", and watch it fail against the old one with nothing on screen
+ * explaining why.
+ *
+ * Keyed on a fingerprint rather than invalidated by the save path, because the
+ * save happens in one process and the send may happen in another. A fingerprint
+ * is correct across all of them with no coordination. It covers only the
+ * connection settings; MAIL_FROM and MAIL_REPLY_TO are per-message and need no
+ * new connection.
+ */
+let cached: { fingerprint: string; transport: Transporter } | undefined;
+
+function transporter(settings: MailSettings): Transporter {
+  // Explicit fallbacks rather than `??` on raw env, which does not catch "".
+  const host = settings.SMTP_HOST ?? "localhost";
+  const port = Number(settings.SMTP_PORT ?? 1025);
+  const secure = settings.SMTP_SECURE === "true";
+  const user = settings.SMTP_USER;
+  const pass = settings.SMTP_PASSWORD;
+
+  // The password is hashed in, never concatenated into a readable key, so a
+  // credential cannot surface in a stack trace or a debugger view of this
+  // module's state.
+  const fingerprint = createHash("sha256")
+    .update(JSON.stringify([host, port, secure, user ?? ""]))
+    .update(pass ?? "")
+    .digest("hex");
+
+  if (cached?.fingerprint === fingerprint) return cached.transport;
+
+  const transport = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    // Finite timeouts so a slow/hung SMTP relay can't stall the request path
+    // for the library's multi-minute defaults (prod-readiness RES-01). Mail is
+    // best-effort here and never fails a stored submission.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+    ...(user ? { auth: { user, pass } } : {}),
+  });
+  cached = { fingerprint, transport };
+  return transport;
 }
 
 /**
@@ -60,8 +97,8 @@ function transporter(): Transporter {
  * has written to us". A missing sender is a configuration error and should
  * read as one.
  */
-function from(): string {
-  const value = env("MAIL_FROM");
+function from(settings: MailSettings): string {
+  const value = settings.MAIL_FROM;
   if (!value) throw new Error("MAIL_FROM is not set — refusing to send with a guessed sender");
   return value;
 }
@@ -74,23 +111,29 @@ function from(): string {
  * — deleting it and rediscovering the need — is how the towardpicu detour
  * started.
  */
-const replyTo = () => env("MAIL_REPLY_TO");
-
-async function send(opts: { to: string; subject: string; text: string }): Promise<void> {
-  const reply = replyTo();
-  await transporter().sendMail({ from: from(), ...(reply ? { replyTo: reply } : {}), ...opts });
+async function send(
+  settings: MailSettings,
+  opts: { to: string; subject: string; text: string },
+): Promise<void> {
+  const reply = settings.MAIL_REPLY_TO;
+  await transporter(settings).sendMail({
+    from: from(settings),
+    ...(reply ? { replyTo: reply } : {}),
+    ...opts,
+  });
 }
 
 export async function notifyAdminOfSubmission(type: SubmissionType, id: string): Promise<void> {
   // Fail loudly-in-logs rather than returning silently, which is what the old
   // `if (!to) return;` did — indistinguishable from a successful send.
-  if (!warnIfUnconfigured()) return;
-  const to = env("ADMIN_EMAIL");
+  const settings = await resolveMailSettings();
+  if (!warnIfUnconfigured(settings)) return;
+  const to = settings.ADMIN_EMAIL;
   if (!to) return;
   // Falls back to the canonical origin rather than "": an empty base produced a
   // relative path, which is not clickable in an email client.
   const base = SITE_URL;
-  await send({
+  await send(settings, {
     to,
     subject: `New ${TYPE_LABELS[type]} submission`,
     text: `A new ${TYPE_LABELS[type]} submission arrived.\n\nReview it in the admin inbox:\n${base}/admin/submissions/${id}`,
@@ -108,17 +151,17 @@ export async function notifyAdminOfSubmission(type: SubmissionType, id: string):
  * If you are tempted to add a "send to:" field, don't — that is the feature
  * the threat model names.
  *
- * Note what this can and cannot tell you. The nodemailer transport is built
- * once per process and caches SMTP_HOST/PORT/SECURE/USER/PASSWORD, so this
- * exercises the configuration the container BOOTED with. Changing those in
- * Coolify triggers a redeploy, so in practice they agree — but a hot-edited
- * variable will not be reflected here.
+ * It now tests what is actually stored, not what the container booted with:
+ * settings are resolved per call and the transport is keyed on a fingerprint of
+ * them, so saving a corrected password and immediately pressing this button
+ * exercises the new one.
  */
 export async function sendAdminTestEmail(): Promise<void> {
-  if (!warnIfUnconfigured()) throw new Error("outbound email is not configured");
-  const to = env("ADMIN_EMAIL");
+  const settings = await resolveMailSettings();
+  if (!warnIfUnconfigured(settings)) throw new Error("outbound email is not configured");
+  const to = settings.ADMIN_EMAIL;
   if (!to) throw new Error("ADMIN_EMAIL is not set");
-  await send({
+  await send(settings, {
     to,
     subject: "TowardPCC test message",
     text: `This is a test message sent from the TowardPCC admin area.

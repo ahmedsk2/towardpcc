@@ -3,6 +3,7 @@ import type { SubmissionStatus } from "@towardpcc/db";
 import { db } from "@towardpcc/db";
 import { requireAdmin } from "@/lib/auth/guard";
 import { mailConfigurationStatus } from "@/lib/mail-config";
+import { resolveMailSettings } from "@/lib/mail-settings";
 import {
   STATUS_LABELS,
   STATUS_ORDER,
@@ -36,7 +37,7 @@ export default async function InboxPage({
   ]);
   const countFor = (s: SubmissionStatus) => counts.find((c) => c.status === s)?._count ?? 0;
   const total = counts.reduce((n, c) => n + (c._count as number), 0);
-  const mailStatus = mailConfigurationStatus();
+  const mailStatus = mailConfigurationStatus(await resolveMailSettings());
 
   return (
     <div>

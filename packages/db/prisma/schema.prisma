@@ -3,7 +3,7 @@
 // side only, PRD §6.4); this schema serves only the submission/admin surfaces.
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   // Driver adapters + WASM query compiler (GA in Prisma 6.19) run queries via the
   // pure-JS `pg` driver with no native Rust engine — required because Prisma ships
   // no Windows-ARM64 engine (dev box), and fine on the Linux prod host. Enabled by
@@ -53,6 +53,7 @@ model AdminUser {
   triaged           Submission[]     @relation("TriagedBy")
   auditLogs         AuditLog[]
   calcMetaEdits     CalculatorMeta[]
+  settingEdits      AppSetting[]
 }
 
 /// Everything the public sends us. Free-form fields live in `payload` (JSONB),
@@ -119,4 +120,26 @@ model Unit {
   name           String
   picuBeds       Int?
   createdAt      DateTime     @default(now())
+}
+
+/// Operator-editable configuration, so the founder can set the mail relay from
+/// the admin area instead of editing Coolify environment variables.
+///
+/// A key-value table rather than typed columns: the set of settings will grow,
+/// and every addition would otherwise be a migration against a production
+/// database whose app role deliberately has no DDL rights.
+///
+/// Values here OVERRIDE the environment. That direction is deliberate — the UI
+/// is the thing an operator can actually reach, and a setting that silently
+/// loses to an env var would be the worst kind of surprise. Deleting a row
+/// falls back to the environment.
+model AppSetting {
+  key         String    @id
+  value       String
+  /// Whether `value` is an AES-256-GCM sealed box rather than plaintext.
+  /// Only the SMTP password is sealed today.
+  encrypted   Boolean   @default(false)
+  updatedAt   DateTime  @updatedAt
+  updatedBy   AdminUser @relation(fields: [updatedById], references: [id])
+  updatedById String
 }
