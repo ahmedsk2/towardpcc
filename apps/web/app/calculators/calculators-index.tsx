@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { ScoreCategory, ScoreSummary } from "@towardpcc/scoring-engine";
 import { StatusChip, cn } from "@towardpcc/ui";
@@ -53,6 +53,39 @@ export function CalculatorsIndex({
   }, [scores, query, activeCategory, showFavoritesOnly, favorites]);
 
   const favoriteCount = favorites.length;
+  const shownCount = grouped.reduce((n, g) => n + g.items.length, 0);
+  const isFiltered = Boolean(query.trim() || activeCategory || showFavoritesOnly);
+
+  /** How many scores sit in each category, so a chip can say what it will give
+   *  you before you press it rather than after. */
+  const categoryCounts = useMemo(() => {
+    const counts = {} as Record<ScoreCategory, number>;
+    for (const s of scores) counts[s.category] = (counts[s.category] ?? 0) + 1;
+    return counts;
+  }, [scores]);
+
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    /**
+     * "/" jumps to search, the convention every catalogue this audience uses
+     * already has. Ignored while typing — otherwise it steals the key from
+     * anyone entering a slash into a field, which on a site full of ratio
+     * scores ("P/F") is not hypothetical.
+     */
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== "/" || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      const el = document.activeElement;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (el instanceof HTMLElement && el.isContentEditable) return;
+      ev.preventDefault();
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div>
@@ -60,14 +93,29 @@ export function CalculatorsIndex({
         <label htmlFor="calc-search" className="sr-only">
           {c.searchLabel}
         </label>
-        <input
-          id="calc-search"
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={c.searchPlaceholder}
-          className="h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-        />
+        <div className="relative">
+          <input
+            ref={searchRef}
+            id="calc-search"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={c.searchPlaceholder}
+            className="h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 pe-12 text-ink-strong placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+          />
+          {/* Discoverability for the "/" shortcut. aria-hidden because a screen
+              reader user is told about it in the label, not by a glyph — and
+              hidden once there is text, where it would sit over the clear
+              button on some browsers. */}
+          {query ? null : (
+            <kbd
+              aria-hidden="true"
+              className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 rounded border border-border px-1.5 py-0.5 font-numeric text-[11px] text-ink-muted"
+            >
+              /
+            </kbd>
+          )}
+        </div>
       </div>
 
       {/* Category filter + favorites toggle */}
@@ -102,12 +150,52 @@ export function CalculatorsIndex({
             }}
           >
             {c.categoryLabels[cat]}
+            {/* The count sits inside the chip so it says what pressing it will
+                give you, rather than leaving you to press and find out. */}
+            <span aria-hidden="true" className="ms-1.5 tabular-nums opacity-60">
+              {categoryCounts[cat]}
+            </span>
           </FilterChip>
         ))}
       </div>
 
+      {/* A tally, but only while something is filtering — on an unfiltered
+          list "showing 22 of 22" is noise, and the page already says 22. */}
+      {isFiltered ? (
+        <p aria-live="polite" className="mt-6 font-numeric text-sm text-ink-muted">
+          Showing <span className="tabular-nums text-ink-strong">{shownCount}</span> of{" "}
+          <span className="tabular-nums">{scores.length}</span>
+        </p>
+      ) : null}
+
       {grouped.length === 0 ? (
-        <p className="mt-10 text-ink-muted">{showFavoritesOnly ? c.noFavorites : c.noResults}</p>
+        /* A designed empty state rather than a bare sentence: it names what was
+           searched for, and gives the way out. A dead end with no control is
+           how a catalogue makes someone think the tool is broken rather than
+           that their query was too narrow. */
+        <div className="mt-10 rounded-lg border border-border bg-surface-raised p-10 text-center shadow-sm">
+          <p className="font-display text-lg font-medium text-ink-strong">
+            {showFavoritesOnly ? c.noFavorites : c.noResults}
+          </p>
+          {query.trim() && !showFavoritesOnly ? (
+            <p className="mt-2 text-sm text-ink-muted">
+              Nothing matches “<span className="text-ink-strong">{query.trim()}</span>”
+              {activeCategory ? ` in ${c.categoryLabels[activeCategory].toLowerCase()}` : ""}.
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setActiveCategory(null);
+              setShowFavoritesOnly(false);
+              searchRef.current?.focus();
+            }}
+            className="mt-5 inline-flex min-h-11 items-center rounded-full border border-border-strong px-5 text-sm font-medium text-ink-strong transition-colors duration-150 hover:border-accent hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Clear filters
+          </button>
+        </div>
       ) : (
         <div className="mt-10 flex flex-col gap-10">
           {grouped.map((group) => (

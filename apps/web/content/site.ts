@@ -803,7 +803,7 @@ export const site = {
     indexLede:
       "Free, clinically referenced pediatric critical care scores. Every calculation runs in your browser and cites its published source.",
     searchPlaceholder: "Search calculators",
-    searchLabel: "Search calculators by name",
+    searchLabel: "Search calculators by name — press slash to jump here",
     noResults: "No calculators match your search.",
     noFavorites: "You have not starred any calculators yet.",
     filterGroupLabel: "Filter calculators by category",
