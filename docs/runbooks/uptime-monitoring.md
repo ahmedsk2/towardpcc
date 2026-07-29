@@ -57,27 +57,25 @@ have produced a login that silently never worked:
   middleware labels and merges them into its own router — the applied label
   reads `middlewares=gzip,kuma-auth`.
 
-## Step 2 — set the hostname (Coolify UI)
+## Step 2 — hostname: DONE 2026-07-29
 
-**This one cannot be done through the API.** Coolify 4.1.2 exposes no endpoint
-for a service sub-application's FQDN — `PATCH /services/{s}/applications/{a}`
-returns 404 and the field is rejected on the service itself. The
-`SERVICE_FQDN_*` environment variables are set correctly and are _not_ enough:
-the domain is stored on the sub-application record, and the generated router
-still carries the sslip.io host it was created with.
+`https://uptime.towardpcc.com:3001` is set on the sub-application, DNS resolves
+(proxied), and the whole path is verified end to end:
 
-In Coolify: **admin-tools → uptime-kuma → the `uptime-kuma` application → set
-the domain to `https://uptime.towardpcc.com`**, then redeploy.
-
-Verify the router picked it up:
-
-```bash
-ssh ubuntu@145.241.105.239   'C=$(sudo docker ps --filter name=uptime --format "{{.Names}}" | head -1);    sudo docker inspect "$C" --format "{{range \$k,\$v := .Config.Labels}}{{\$k}}={{\$v}}
-{{end}}" | grep "\.rule="'
+```
+no credentials   -> 401   www-authenticate: Basic realm="traefik"
+with credentials -> 302
 ```
 
-It should say `Host(\`uptime.towardpcc.com\`)`. Until it does, the DNS record in
-the next step will resolve to a proxy with no matching router and return 404.
+**Keep the `:3001` in the Coolify domain field.** Coolify warns that removing it
+will break routing, and the warning is right: the suffix names the _container_
+port to route to, not a public port. You browse to `https://uptime.towardpcc.com`
+with no port. This is the same convention as the `SERVICE_FQDN_UPTIMEKUMA_3001`
+environment variable.
+
+The API cannot set this — Coolify 4.1.2 has no endpoint for a service
+sub-application's FQDN. It is a UI field, and that is not a workaround waiting
+to be found.
 
 ## Step 3 — create the Uptime Kuma admin account
 

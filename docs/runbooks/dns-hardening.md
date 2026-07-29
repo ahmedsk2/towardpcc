@@ -86,8 +86,22 @@ send a visitor elsewhere and the visitor's resolver cannot tell.
 which means signing has started but nothing validates yet, because the parent
 zone has no DS record. That state is safe and can sit indefinitely.
 
-**Registrar-side: yours, because I have no GoDaddy access.** Add this DS record
-at GoDaddy → towardpcc.com → DNSSEC:
+**Registrar-side: DONE 2026-07-29.** Verified live — `AD: true` from both Google
+and Cloudflare resolvers, DS published at the parent, and every route still 200.
+DNSSEC is active and validating.
+
+One wrinkle worth knowing: **GoDaddy's DNSSEC page is the wrong one** for this
+domain. That page is the credit-based service for domains on GoDaddy
+nameservers, where GoDaddy holds the key. towardpcc.com is on Cloudflare
+nameservers, so Cloudflare signs and GoDaddy's only job is publishing the DS.
+That form lives under **Domain Settings → DNSSEC → Manage / Add DS Record**, not
+under Manage DNS.
+
+A second wrinkle: Cloudflare's own DNSSEC status may sit at `pending` for a
+while after the DS is live, because it polls. Do not chase it — trust the
+resolvers. `AD: true` is the answer.
+
+The record that was published:
 
 | Field       | Value                                                              |
 | ----------- | ------------------------------------------------------------------ |

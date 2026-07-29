@@ -233,11 +233,10 @@ reputation.
 - [x] **Uptime Kuma deployed 2026-07-29**, self-hosted in me-riyadh-1 so it adds
       no out-of-Kingdom processor. Running and healthy in Coolify project
       `admin-tools`.
-- [ ] Add the Traefik basic-auth label (Coolify UI — the API has no
-      custom-labels field for services) **before** the DNS record, because
-      Uptime Kuma's first visit creates the admin account with no
-      authentication.
-- [ ] Add the `uptime` A record, proxied. There is no wildcard on this zone.
+- [x] **Basic auth applied and verified** — 401 without credentials, 302 with,
+      through Cloudflare.
+- [x] **`uptime.towardpcc.com` live**, proxied, hostname set with its `:3001`
+      container-port suffix.
 - [ ] Create the monitors and point alerting at the SMTP relay.
 
 Full sequence, credential location and the four monitors worth having:
