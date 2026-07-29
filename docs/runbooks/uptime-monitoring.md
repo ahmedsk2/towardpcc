@@ -28,52 +28,56 @@ admin account, with no authentication.** Whoever loads that page first owns the
 monitor. So the window between "the hostname resolves" and "basic auth is
 active" is a window in which a stranger can claim it.
 
-## Step 1 — add the basic-auth middleware (do this FIRST)
+## Step 1 — basic auth: DONE, and verified
 
-The credential is already generated and sitting on the server. It was never
-printed into a chat log or a commit.
+Already applied and tested end to end, 2026-07-29:
+
+```
+no credentials   -> 401
+with credentials -> 302   (Uptime Kuma redirecting to its setup page)
+```
+
+The credential lives on the server, mode 600, and was never printed into a chat
+log or a commit:
 
 ```bash
 ssh ubuntu@145.241.105.239 'cat ~/uptime-kuma-basicauth.txt'
 ```
 
-That file (mode 600) holds the username and password. The bcrypt hash Traefik
-needs is separately at `~/.uptime-kuma-hash`.
+Two things went wrong getting here, both worth recording because both would
+have produced a login that silently never worked:
 
-In Coolify: **admin-tools → uptime-kuma → Advanced → Custom labels**, and add,
-substituting the contents of `~/.uptime-kuma-hash` for `<HASH>`:
+- **Do not pre-escape the `$` in the bcrypt hash.** Coolify does not
+  double-escape custom labels, so writing `$$2y$$05$$…` into the compose
+  reaches Traefik literally as `$$2y$$05$$…` — a hash no password can match.
+  Pass the raw hash with single dollars.
+- **Do not guess the router name.** Coolify generates
+  `http-0-<uuid>-uptime-kuma`, not `uptime-kuma`. You do not need to know it:
+  defining the middleware alone is enough, because Coolify parses custom
+  middleware labels and merges them into its own router — the applied label
+  reads `middlewares=gzip,kuma-auth`.
 
+## Step 2 — set the hostname (Coolify UI)
+
+**This one cannot be done through the API.** Coolify 4.1.2 exposes no endpoint
+for a service sub-application's FQDN — `PATCH /services/{s}/applications/{a}`
+returns 404 and the field is rejected on the service itself. The
+`SERVICE_FQDN_*` environment variables are set correctly and are _not_ enough:
+the domain is stored on the sub-application record, and the generated router
+still carries the sslip.io host it was created with.
+
+In Coolify: **admin-tools → uptime-kuma → the `uptime-kuma` application → set
+the domain to `https://uptime.towardpcc.com`**, then redeploy.
+
+Verify the router picked it up:
+
+```bash
+ssh ubuntu@145.241.105.239   'C=$(sudo docker ps --filter name=uptime --format "{{.Names}}" | head -1);    sudo docker inspect "$C" --format "{{range \$k,\$v := .Config.Labels}}{{\$k}}={{\$v}}
+{{end}}" | grep "\.rule="'
 ```
-traefik.http.middlewares.kuma-auth.basicauth.users=<HASH>
-traefik.http.routers.uptime-kuma.middlewares=kuma-auth
-```
 
-Coolify has container-label escaping enabled, so paste the hash exactly as the
-file contains it — do not double the `$` signs yourself.
-
-Then redeploy the service so the labels apply.
-
-> This is a UI step rather than an API call because Coolify 4.1.2 does not expose
-> a custom-labels field for **services** through its API — applications have one,
-> services do not. Not worth working around by editing the compose behind
-> Coolify's back; it would be silently overwritten on the next template update.
-
-## Step 2 — add the DNS record
-
-In Cloudflare, on the `towardpcc.com` zone:
-
-| Type | Name     | Content           | Proxy         |
-| ---- | -------- | ----------------- | ------------- |
-| A    | `uptime` | `145.241.105.239` | **Proxied** ✓ |
-
-Proxied, not DNS-only. The origin firewall admits only Cloudflare, so a
-grey-clouded record would simply time out.
-
-There is no wildcard on this zone — verified, a random subdomain returns
-NXDOMAIN — so every new hostname needs its own record.
-
-Traefik requests a Let's Encrypt certificate over HTTP-01 once the name
-resolves, which takes a minute or two on first load.
+It should say `Host(\`uptime.towardpcc.com\`)`. Until it does, the DNS record in
+the next step will resolve to a proxy with no matching router and return 404.
 
 ## Step 3 — create the Uptime Kuma admin account
 
