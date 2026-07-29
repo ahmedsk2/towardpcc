@@ -41,51 +41,31 @@ So the record set below permits **all four of Cloudflare's documented partner
 CAs**. It narrows issuance from roughly 150 authorities to four, which is most
 of the benefit, without betting the site on which one Cloudflare picks tomorrow.
 
-### The records
+### The records — APPLIED 2026-07-29
 
-Add these at the **apex** (`towardpcc.com`). Eight records — four issuers ×
-`issue` and `issuewild` — plus one reporting record.
+Nine records were created via the API: `issue` and `issuewild` for `pki.goog`,
+`letsencrypt.org`, `ssl.com` and `sectigo.com`, plus an `iodef` reporting
+address.
 
-| Type | Name            | Tag         | Value                                |
-| ---- | --------------- | ----------- | ------------------------------------ |
-| CAA  | `towardpcc.com` | `issue`     | `pki.goog; cansignhttpexchanges=yes` |
-| CAA  | `towardpcc.com` | `issue`     | `letsencrypt.org`                    |
-| CAA  | `towardpcc.com` | `issue`     | `ssl.com`                            |
-| CAA  | `towardpcc.com` | `issue`     | `sectigo.com`                        |
-| CAA  | `towardpcc.com` | `issuewild` | `pki.goog; cansignhttpexchanges=yes` |
-| CAA  | `towardpcc.com` | `issuewild` | `letsencrypt.org`                    |
-| CAA  | `towardpcc.com` | `issuewild` | `ssl.com`                            |
-| CAA  | `towardpcc.com` | `issuewild` | `sectigo.com`                        |
-| CAA  | `towardpcc.com` | `iodef`     | `mailto:ahmedsk2@gmail.com`          |
+**DNS then returned thirteen.** Cloudflare silently added `comodoca.com` and
+`digicert.com` for both tags, on its own initiative. That is the behaviour its
+documentation describes — "if Cloudflare has automatically added CAA records on
+your behalf, these records will not appear in the Cloudflare dashboard" — and it
+is a safety net doing exactly its job: it noticed a CAA set that did not cover
+every partner CA it might issue from, and widened it rather than letting a
+future renewal fail.
 
-Flags stay `0` on all of them. In the Cloudflare UI the tag is a dropdown
-("Only allow specific hostnames" = `issue`, "Only allow wildcards" = `issuewild`,
-"Send violation reports to" = `iodef`).
+Two things follow from that, both worth knowing:
 
-`issuewild` is included deliberately even though no wildcard certificate is used
-today. Omitting it does **not** mean "no wildcards" — a CAA set with `issue` but
-no `issuewild` allows wildcard issuance by the same authorities, so leaving it
-out buys nothing and leaves the intent unstated.
+- **The dashboard is not the source of truth for CAA on this zone.** Always
+  check with `dig`, or you will be reasoning about nine records when thirteen
+  are published.
+- The trap described above is real but Cloudflare partially defends against it.
+  Do not rely on that. It widened a set that was already close to correct; there
+  is no promise it rescues a set naming only Let's Encrypt.
 
-The `iodef` record asks a CA to email you when it refuses an issuance because of
-these records. That is the only signal you will ever get that someone tried to
-obtain a certificate for your domain.
-
-### Verify
-
-```bash
-dig towardpcc.com CAA +short
-```
-
-Expect nine lines. Then, and this is the part people skip, **check the site's
-certificate still renews**. Cloudflare's edge certificate renews automatically
-about 30 days before expiry, so a CAA mistake surfaces roughly a month later.
-Note the expiry now and put a reminder a week before it:
-
-```bash
-echo | openssl s_client -servername www.towardpcc.com -connect www.towardpcc.com:443 2>/dev/null \
-  | openssl x509 -noout -dates -issuer
-```
+Verified after the change: the edge certificate is still valid — issued by
+Let's Encrypt, expiring 2026-10-08 — and every public route still returns 200.
 
 ### After the edge migration
 
@@ -96,28 +76,35 @@ the reason for the wide set disappears with Cloudflare.
 
 ---
 
-## 2. DNSSEC — sign the zone
+## 2. DNSSEC — half done, one step left for you
 
 DNSSEC lets a resolver verify that a DNS answer really came from your zone and
 was not forged in transit. Without it, an attacker positioned to spoof DNS can
-send a visitor to another server, and the visitor's resolver cannot tell.
+send a visitor elsewhere and the visitor's resolver cannot tell.
 
-**This one can break the domain completely**, which the CAA change cannot. If
-the DS record at the registrar does not match the key Cloudflare is signing
-with, validating resolvers return SERVFAIL and the site becomes unreachable for
-a large share of the internet — not slow, _gone_. It is also the failure mode
-that produces the `dnssec: bogus` error that blocks certificate issuance.
+**Cloudflare-side: DONE 2026-07-29.** The zone is signed and reports `pending`,
+which means signing has started but nothing validates yet, because the parent
+zone has no DS record. That state is safe and can sit indefinitely.
 
-So: two steps, in this order, and do not leave a gap between them.
+**Registrar-side: yours, because I have no GoDaddy access.** Add this DS record
+at GoDaddy → towardpcc.com → DNSSEC:
 
-1. **Cloudflare → DNS → Settings → DNSSEC → Enable.** Cloudflare starts signing
-   the zone and shows you a DS record: key tag, algorithm, digest type, digest.
-   Nothing is validated yet, because the parent zone has no DS.
-2. **GoDaddy → domain → DNSSEC → add the DS record**, copying those four fields
-   exactly. This is the moment validation begins.
+| Field       | Value                                                              |
+| ----------- | ------------------------------------------------------------------ |
+| Key tag     | `2371`                                                             |
+| Algorithm   | `13` (ECDSA Curve P-256 with SHA-256)                              |
+| Digest type | `2` (SHA-256)                                                      |
+| Digest      | `237A6EA0A6C093FD1FA417EC295287E7203A1EA6303DDF9E7612058CB75B15ED` |
 
-Do not do step 2 from a screenshot or from memory — copy each field from the
-Cloudflare panel while it is open.
+**This is the step that can break the domain**, which nothing before it could.
+The moment that DS is published, validating resolvers start checking signatures.
+If the DS does not match the key Cloudflare signs with, they return SERVFAIL and
+the site becomes unreachable for a large share of the internet — not slow, gone.
+It is also what produces the `dnssec: bogus` error that blocks certificate
+issuance.
+
+So copy each field from the table rather than retyping it, and verify
+immediately afterwards.
 
 ### Verify, before you consider it done
 

@@ -265,9 +265,17 @@ SDK would transmit from pages that promise they transmit nothing.
       `.github/workflows/residency.yml`, asserts the TLS terminator, the MX, the
       apex SPF and DMARC, and the presence of a CAA record — failing loudly on
       drift in either direction.
-- [ ] Add CAA records and enable DNSSEC. **The check currently fails on this**:
-      there are zero CAA records, so any public CA may issue for towardpcc.com.
-      Founder action — it needs DNS dashboard access.
+- [x] **CAA records applied 2026-07-29** via the Cloudflare API. The residency
+      check now passes 5/5. Nine records were created; DNS returns thirteen —
+      Cloudflare silently added `comodoca.com` and `digicert.com` itself, which
+      is documented behaviour and means the dashboard is not the source of truth
+      for CAA on this zone. Verified afterwards that the edge certificate is
+      still valid and every route still 200s.
+- [~] **DNSSEC — Cloudflare side done, registrar side outstanding.** The zone is
+  signed and `pending`; nothing validates until a DS record is published at
+  GoDaddy, which needs registrar access I do not have. The exact DS is in
+  `docs/runbooks/dns-hardening.md`. **This is the one DNS change that can
+  take the domain offline**, so verify immediately after publishing it.
 - [ ] Back the single-region claim with an IAM policy or quota. The tenancy is
       subscribed to one region today, but that is state, not a control: an
       admin can add a region in one click and OCI never allows unsubscribing.
