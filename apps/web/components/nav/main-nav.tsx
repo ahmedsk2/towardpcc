@@ -110,13 +110,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
               );
             }
             return (
-              <li
-                key={href}
-                ref={wrapRef}
-                className="relative"
-                onMouseEnter={hoverOpen}
-                onMouseLeave={hoverClose}
-              >
+              <li key={href} ref={wrapRef} onMouseEnter={hoverOpen} onMouseLeave={hoverClose}>
                 <button
                   ref={triggerRef}
                   type="button"

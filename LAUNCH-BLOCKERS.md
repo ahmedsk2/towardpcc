@@ -357,6 +357,26 @@ SDK would transmit from pages that promise they transmit nothing.
   query/hash from collected URLs — deferred because Umami is not yet
   integrated into the app.
 
+### An unidentified e2e flake, roughly 1 run in 5
+
+Observed three times on 2026-07-29: a full local suite reports one failure while
+the line reporter's last output names `evidence-rail.spec.ts:82`. That name is
+weak evidence — the line reporter prints the _running_ test, and with
+`workers: 1` that only bounds where it happened. Six consecutive isolated runs
+of that spec and five consecutive full suites all passed, so it is not
+reproducible on demand and no cause has been established.
+
+**It does not turn CI red.** `playwright.config.ts` sets `retries: 2` under CI
+and `0` locally, so the flake is absorbed there and appears only on a developer
+machine. That is why CI has been green throughout while local runs occasionally
+were not.
+
+Deliberately not "fixed": two genuine flakes were found and repaired this
+session by identifying the actual race — a fixed sleep against a smooth scroll,
+and a layout measured before webfonts settled. Guessing at a third without
+evidence would more likely add a pointless wait than remove a race. Left open,
+with what is known, for whoever next sees it fail and can capture the output.
+
 ## Content / legal
 
 - [ ] Legal pages need counsel review (`TODO:counsel-review` markers, P6)

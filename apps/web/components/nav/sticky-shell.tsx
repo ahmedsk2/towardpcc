@@ -36,7 +36,14 @@ export function StickyShell({ children }: { children: React.ReactNode }) {
     >
       <div
         className={cn(
-          "mx-auto flex max-w-[1280px] items-center gap-7 px-6 transition-[height] duration-200",
+          // `relative` is the mega-menu's positioning context, deliberately.
+          // It used to anchor to its own <li>, which is only as wide as the
+          // "Calculators" button — so an 860px panel right-aligned to a trigger
+          // sitting mid-nav extended off the left edge of the screen and the
+          // first column was unreadable. Anchoring here bounds it to the header
+          // container, which is the widest thing it can be aligned to without
+          // escaping the page gutter.
+          "relative mx-auto flex max-w-[1280px] items-center gap-7 px-6 transition-[height] duration-200",
           stuck ? "h-[64px]" : "h-[84px]",
         )}
       >

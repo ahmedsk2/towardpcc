@@ -4,8 +4,13 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@towardpcc/web", "dev"],
-      "port": 3000
+      "runtimeArgs": [
+        "--filter",
+        "@towardpcc/web",
+        "dev"
+      ],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

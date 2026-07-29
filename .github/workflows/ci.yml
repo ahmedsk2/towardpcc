@@ -8,7 +8,62 @@ on:
 permissions:
   contents: read
 
+# Supersede an in-flight run when a newer commit lands on the same ref. Pushing
+# three times in five minutes used to bill three full runs, two of which nobody
+# would ever read. Not applied to main, where each commit's result is the record
+# of whether that commit was good.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
+  # Which of the expensive jobs actually need to run.
+  #
+  # A full run costs about 11 minutes: e2e, lighthouse and container are roughly
+  # 8 of those. This repository carries a lot of documentation — runbooks, ADRs,
+  # a launch-blockers file edited several times a day — and every one of those
+  # commits was paying the full 11 minutes to prove that a markdown file had not
+  # broken a Playwright test. That exhausted a 2,000-minute allowance.
+  #
+  # `quality` still runs on every commit regardless, because it is what catches
+  # prettier drift in exactly those markdown files, and it is the cheap one.
+  #
+  # Uses plain git rather than a paths-filter action: this repository pins every
+  # third-party action to a 40-character SHA, and adding a dependency to decide
+  # whether to run tests is a poor trade for twelve lines of shell.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: filter
+        run: |
+          BASE="${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
+          # First push to a branch, or a force-push, reports an all-zero or
+          # missing base. Fall back to running everything: a false positive
+          # costs minutes, a false negative ships untested code.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "no usable base commit — running everything"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "$BASE" "${{ github.sha }}")"
+          echo "changed files:"; echo "$CHANGED" | sed 's/^/  /'
+          # Anything that is not documentation counts as code. Deliberately
+          # inverted — an unknown new path type runs the full suite rather than
+          # silently skipping it.
+          if echo "$CHANGED" | grep -qvE '^(docs/|.*\.md$|LICENSE$|\.claude/)'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "documentation only — skipping e2e, lighthouse and container"
+          fi
+
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -51,6 +106,8 @@ jobs:
   e2e:
     # TM-001 runtime privacy invariant: the calculators must compute with the
     # network cut off and leak no input data. Separate job — needs a browser.
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -71,6 +128,8 @@ jobs:
   lighthouse:
     # Performance budgets on the calculator pages (PRD §10). JS-size and CLS are
     # hard gates; timing metrics warn until calibrated on this consistent runner.
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -109,6 +168,8 @@ jobs:
   # vulnerable base layer or a regression in that hardening would only have
   # surfaced on the production host.
   container:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
