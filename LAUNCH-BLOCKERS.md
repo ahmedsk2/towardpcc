@@ -228,6 +228,37 @@ data region at any price. Zoho has a real Saudi datacentre; self-hosting inbound
 on the existing OCI instance is also viable, since receiving needs no sending
 reputation.
 
+### Monitoring (taskmanager 9.3)
+
+- [x] **Uptime Kuma deployed 2026-07-29**, self-hosted in me-riyadh-1 so it adds
+      no out-of-Kingdom processor. Running and healthy in Coolify project
+      `admin-tools`.
+- [ ] Add the Traefik basic-auth label (Coolify UI — the API has no
+      custom-labels field for services) **before** the DNS record, because
+      Uptime Kuma's first visit creates the admin account with no
+      authentication.
+- [ ] Add the `uptime` A record, proxied. There is no wildcard on this zone.
+- [ ] Create the monitors and point alerting at the SMTP relay.
+
+Full sequence, credential location and the four monitors worth having:
+`docs/runbooks/uptime-monitoring.md`.
+
+**Error tracking is deliberately skipped**, not forgotten. GlitchTip is five
+containers including its own Postgres and Redis, on a host that also runs an
+application holding real patient data. Errors already go to structured logs with
+PII redaction. If it is ever added it takes server-side errors only — a browser
+SDK would transmit from pages that promise they transmit nothing.
+
+### Integrity monitoring (TM-012)
+
+- [x] **DONE 2026-07-29.** `scripts/check-integrity.mjs`, run daily by
+      `.github/workflows/residency.yml`. Twelve checks: calculator pages still
+      carry their own score name and validation status, /trust still makes its
+      claims, no third-party script on a calculator page, security headers
+      present, and the `/api/v1` surface is still exactly health and ready —
+      which is ADR-0005's commitment checked against the running system rather
+      than trusted to memory.
+
 ### Residency has to be checked, not asserted
 
 - [x] **DONE 2026-07-28.** `scripts/check-residency.mjs`, run daily by
