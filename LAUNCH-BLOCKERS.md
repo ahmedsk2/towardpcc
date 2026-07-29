@@ -11,6 +11,11 @@
 
   When an item needs more than a sentence or two, promote it to a `###`
   subsection with a one-line checkbox and the prose underneath, as below.
+
+  I broke this rule myself on 2026-07-29, two days after writing it, and CI went
+  red for exactly the predicted reason. The pull is real: you are mid-thought,
+  the detail belongs with the item, and adding a blank line feels harmless.
+  It is not.
 -->
 
 Running list of everything that must be resolved before public launch.
@@ -212,12 +217,10 @@ no `rua=`.
 - [x] **WAF attached and INSPECTING, 2026-07-29.** Applied through the OCI
       Console after `create-for-load-balancer` returned silently on this CLI
       build. Verified rather than assumed: normal routes still 200, while XSS,
-      boolean SQL injection and UNION SELECT probes all return **403**.
-
-      It has no geographic component — it blocks on attack signature, not
-              origin, so visitors inside and outside Saudi Arabia are treated
-              identically. It protects nothing until cutover, since DNS still points at
-              Cloudflare.
+      boolean SQL injection and UNION SELECT probes all return **403**. It has
+      no geographic component — it blocks on attack signature, not origin, so
+      visitors inside and outside Saudi Arabia are treated identically, and it
+      protects nothing until cutover since DNS still points at Cloudflare.
 
 - [ ] Rewrite the residency copy in the SAME deploy as the DNS cutover.
 
