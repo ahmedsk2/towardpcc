@@ -122,46 +122,76 @@ NSGs instead, which are additive to it. That is what kept the co-tenant safe:
 their traffic still arrives through the existing Cloudflare rules, unchanged,
 and the instance simply gained one extra permitted source.
 
+### Client IP — SOLVED and verified 2026-07-29
+
+This was the cutover blocker and it is closed, but the way it was closed matters
+more than the fact.
+
+Traefik now carries `forwardedHeaders.trustedIPs=10.0.1.0/24` on both
+entrypoints. It is backward-compatible by construction: Cloudflare's addresses
+are not in that subnet, so Cloudflare traffic stays untrusted and is handled
+exactly as before. Validated before restarting, and every hostname on the box
+checked after — the site, both co-tenant applications, the Coolify panel and
+the preview all returned what they did before.
+
+The load balancer injects `x-via-edge` carrying a shared secret, matched against
+`EDGE_SHARED_SECRET` in the application. That is what tells `lib/client-ip.ts`
+which chain it is on.
+
+**The first implementation was wrong, and only measurement caught it.** It took
+one trusted hop from the right of `X-Forwarded-For`, reasoning that the load
+balancer appends the client and is therefore last. A temporary echo service
+behind the real proxy showed what actually arrives:
+
+```
+X-Forwarded-For: 203.0.113.99, 128.234.116.155, 10.0.1.45
+                 ^client-forged  ^the real client  ^the LB, appended by Traefik
+X-Real-Ip:       128.234.116.155        (a forged value was OVERWRITTEN)
+X-Via-Edge:      <the secret>           (a forged value was OVERWRITTEN)
+```
+
+Two trusted proxies, not one. The original code would have resolved every
+visitor on earth to `10.0.1.45` — collapsing the per-IP rate limiter and the
+abuse hash into a single bucket, silently, with no failing test. It now reads
+`x-real-ip`, which needs no hop counting and which Traefik overwrites when a
+client tries to forge it. Verified by forging one.
+
 ### What still blocks the cutover
 
-**Client IP.** This is the whole reason the earlier design work mattered, and it
-is not solved. Confirmed on the running system: Traefik has no
-`forwardedHeaders.trustedIPs`, and the application container publishes no host
-port, so the only ingress is host:443 → Traefik. Traefik therefore rewrites
-`X-Forwarded-For` from the connecting peer — which after a cutover is the load
-balancer. Every visitor would collapse into one bucket, and the per-IP rate
-limiter and the salted abuse hash would both become meaningless.
+**Nothing structural — but three operational items, and the first has a
+deadline.**
 
-`lib/client-ip.ts` is already a dual-path resolver keyed on `x-via-edge`, so the
-application side is ready. What is missing is a path that preserves the real
-address, and the three options are:
+1. **Certificate renewal is manual.** acme.sh issued into `/opt/acme-staging`
+   on the host; the load balancer holds an uploaded copy. Nothing renews it.
+   The certificate expires **2026-10-27**, so a cutover before that date needs a
+   renewal path first, or the site fails at the edge months later. The OCI CLI
+   is not installed on the host, so this needs either that plus an API key, or a
+   scheduled job run from elsewhere. **Do not cut over without solving this.**
+2. **The WAF is created but NOT attached**, so it protects nothing. See below.
+3. Once cut over, the residency copy on `/trust` and `/legal/data-protection`
+   must change in the SAME deploy — it currently says requests may be processed
+   outside the Kingdom, which would become understated rather than false, but
+   still wrong.
 
-1. **Trust the LB in Traefik** — set `forwardedHeaders.trustedIPs` to the LB
-   subnet. Then Traefik appends rather than replaces, and the rightmost hop is
-   correct. Backward-compatible for Cloudflare traffic, since Cloudflare's
-   addresses stay untrusted and are handled exactly as today. But it is Traefik
-   static config, shared with every other application on the host.
-2. **Bypass Traefik** — publish the app's port and point the LB at it directly.
-   Costs the zero-downtime deploy gate, because two containers cannot bind one
-   host port, so Coolify falls back to stop-then-start.
-3. **A towardpcc-owned reverse proxy** inside the Coolify stack, bound to a host
-   port, forwarding by service name. Keeps both properties; most work.
+### WAF: policy exists, attachment does not
 
-Until one is chosen and proven, a cutover would silently degrade abuse
-protection. That is worse than the residency exposure it fixes.
+`towardpcc-waf` is ACTIVE with three OWASP capabilities — XSS `941110` v2, SQL
+injection `942100` v1, RCE `944100` v1. Getting those versions right took
+measurement too: the documented-looking guess of `941110` v1 does not exist, and
+the API rejects the whole policy for one wrong version.
 
-### Also outstanding
+**It is not attached to the load balancer and therefore does nothing.** Verified
+honestly: XSS and SQL-injection probes through the LB return 200, not 403.
 
-- **WAF policy not attached.** The regional WAF needs protection-capability keys
-  and versions that the CLI's `--all` pagination would not return cleanly. The
-  HTTPS listener it attaches to already exists, so this is additive work rather
-  than a redesign.
-- The HTTP→HTTPS redirect emits `Location: https://host:443/path`. Functionally
-  correct, cosmetically wrong; drop the explicit port from the rule set's
-  `redirectUri`.
-- Certificate renewal is manual. acme.sh issued this one into
-  `/opt/acme-staging` on the host; before any cutover it needs a renewal hook
-  that re-uploads to the load balancer, or the site breaks 90 days later.
+`oci waf web-app-firewall create-for-load-balancer` returns silently — no id, no
+error, no work request, and no firewall appears in the list afterwards. Two CLI
+quirks were already hit in this area and may be related: `--all` returns an
+empty document on this build, and `create-web-app-firewall-load-balancer` does
+not exist despite matching Oracle's own docs.
+
+Next step is the Console rather than more CLI archaeology: **WAF → Policies →
+towardpcc-waf → Enforcement points → Add → the load balancer.** Then re-run the
+two probes above and expect 403.
 
 ## Steps
 

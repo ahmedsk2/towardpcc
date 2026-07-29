@@ -190,16 +190,22 @@ no `rua=`.
   throughout that neither the site nor the co-tenant's application was
   affected. The shared security list was never touched — ingress came from
   two NSGs, which are additive to it.
-- [ ] **Cutover is blocked on client IP, and this is not a detail.** Traefik has
-      no `forwardedHeaders.trustedIPs` and the app publishes no host port, so it
-      rewrites `X-Forwarded-For` from the peer — which after a cutover is the
-      load balancer. Every visitor would collapse into one bucket and the per-IP
-      rate limiter and abuse hash would both stop meaning anything. Three
-      options with their costs are in `docs/runbooks/edge-migration-ksa.md`;
-      one must be chosen and proven first.
-- [ ] Attach the regional WAF policy to the LB's HTTPS listener, and add a
-      certificate-renewal hook that re-uploads to the load balancer — without it
-      the staged path breaks 90 days after issuance.
+- [x] **Client IP SOLVED 2026-07-29.** Traefik now trusts the LB subnet, the LB
+      injects a secret `x-via-edge`, and `client-ip.ts` resolves from
+      `x-real-ip`. The first implementation counted hops and was wrong — the
+      measured chain has TWO trusted proxies, so it would have resolved every
+      visitor to the load balancer's own address, silently. Caught by measuring
+      the live chain with a temporary echo service, not by reasoning.
+- [ ] **Certificate renewal — has a deadline.** The LB's certificate expires
+      **2026-10-27** and nothing renews it. The OCI CLI is not on the host, so
+      this needs either that plus an API key, or a scheduled job elsewhere.
+      **Do not cut over before solving it.**
+- [ ] **Attach the WAF policy.** `towardpcc-waf` is ACTIVE with XSS, SQLi and
+      RCE capabilities but is NOT attached, so it protects nothing — verified,
+      probes return 200 rather than 403. `create-for-load-balancer` returns
+      silently on this CLI build; use the Console: WAF → Policies →
+      towardpcc-waf → Enforcement points → Add.
+- [ ] Rewrite the residency copy in the SAME deploy as the DNS cutover.
 
 Settled 2026-07-28: scope is plaintext PII **and** metadata for everything the
 platform controls, with written carve-outs for recipient-chosen mail delivery
