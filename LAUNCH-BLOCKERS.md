@@ -164,8 +164,11 @@ then — no figure is invented.
 
 ### SMTP relay (TM-008) — needs one credential
 
-- [ ] Enter the `mail.towardpicu.com` mailbox password at `/admin/settings`,
-      with the host, user and `MAIL_FROM`. Founder-only: it is a credential.
+- [x] **DONE 2026-07-29.** Relay configured at `/admin/settings`:
+      `mail.towardpicu.com`, port 465 with `SMTP_SECURE=true` (the correct
+      pairing for implicit TLS), sending as `@towardpicu.com` — the domain that
+      can authenticate. Proven end to end by an Uptime Kuma alert arriving,
+      which also confirms SMTP AUTH.
 
 Everything on the engineering side is done. Settings are editable in the admin
 area, stored encrypted, and override the environment. The transport is keyed on
@@ -329,15 +332,11 @@ SDK would transmit from pages that promise they transmit nothing.
       subscribed to one region today, but that is state, not a control: an
       admin can add a region in one click and OCI never allows unsubscribing.
 
-- [ ] **HSTS preload-list submission (P8)** — **the precondition is now met.**
-      Checked 2026-07-27: hstspreload.org reports the domain **preloadable with
-      zero errors and zero warnings**, and has never been submitted
-      (`status: unknown`). The item's own gate — HTTPS confirmed on the apex and
-      every subdomain — holds: the apex 308s to www over HTTPS, and the only
-      other live subdomain, `next.towardpcc.com`, serves 200 over HTTPS.
-      Remains deliberately un-submitted because it is genuinely hard to reverse:
-      once preloaded, any future subdomain that cannot do HTTPS is unreachable
-      in browsers for months. A founder decision, not an engineering one.
+- [x] **HSTS preload SUBMITTED 2026-07-29** — hstspreload.org reports 0 errors
+      and 0 warnings, status `pending`; it ships with the next browser release
+      cycle. Every subdomain was confirmed HTTPS-capable first, because
+      `includeSubDomains` binds all of them, and the commitment is effectively
+      irreversible on any useful timescale.
 - [~] **CSP + security headers ship WITH P5** (TM-005). DONE: strict static
   security headers (HSTS, nosniff, Referrer-Policy, X-Frame-Options, a
   restrictive Permissions-Policy, COOP) + a two-tier CSP in
