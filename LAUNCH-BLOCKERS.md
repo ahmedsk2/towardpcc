@@ -452,9 +452,33 @@ the restore drill re-run afterwards.
       revisiting that file**. Do not "fix" anything here by turning Cloudflare
       proxying off — the origin is locked to Cloudflare and grey-clouding takes
       the site fully offline (ADR-0003).
-- [ ] Lower-severity items (SPC-WEB-002/003/004, SPC-API-002/004/005,
-      SPC-DB-004/005, SPC-TM-001/002/003, SPC-CON-009/010, SPC-SUP-002) — see the
-      report's remediation tiers.
+- [x] **SPC-WEB-003 done 2026-07-29** — the session cookie's Secure flag and
+      `__Secure-` prefix are pinned to NODE_ENV rather than inferred from
+      `X-Forwarded-Proto`. More urgent than when it was filed: a second proxy
+      path now exists, and the failure was silent — a cookie issued without
+      Secure, under a different name, on a login that appears to work.
+- [x] **SPC-WEB-006 / SPC-WEB-007 done** — `no-store` and
+      `Cross-Origin-Resource-Policy: same-origin` on `/admin` and `/api`, with
+      e2e asserting the public tier does NOT carry them so the scoping stays
+      meaningful.
+- [x] **SPC-API-004 done** — `requireRole("OWNER")` now guards the two actions
+      that write a credential or send mail. It had never been called, so the
+      two-tier model granted nothing and an EDITOR equalled an OWNER. A
+      structural test fails the build if either guard weakens.
+- [x] **SPC-API-005 done** — `/api/v1/health` returns `{status:"ok"}` and no
+      longer publishes the engine version to anonymous callers.
+- [x] **SPC-CON-010 done earlier** — CI asserts the Prisma WASM query compiler
+      ships in the image.
+- [ ] **SPC-DB-004 accepted, not fixed.** Submission payloads are cleartext
+      JSONB. Column encryption would mean the application holding a key to data
+      it must search and display, on a database whose disk is already encrypted
+      and whose app role is least-privilege. The honest mitigation is the
+      24-month retention purge, which needs the scheduler below.
+- [ ] **SPC-DB-005** — the retention purge still has no scheduler, and must run
+      as `towardpcc_owner` because AuditLog is append-only to the app role.
+- [ ] SPC-WEB-002 (`style-src 'unsafe-inline'` on the admin tier),
+      SPC-API-002, SPC-TM-001/002/003, SPC-CON-009 (unpinned `dumb-init`),
+      SPC-SUP-002 — see the report's remediation tiers.
 
 ### Container hardening is written but NOT applied
 

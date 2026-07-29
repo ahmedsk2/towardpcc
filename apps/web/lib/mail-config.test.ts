@@ -170,3 +170,47 @@ describe("outbound mail cannot be aimed by a caller", () => {
     }
   });
 });
+
+/**
+ * The OWNER boundary, held structurally.
+ *
+ * `requireRole()` existed for weeks and was never called, so the two-tier model
+ * granted nothing: every admin action used `requireAdmin()` alone and an EDITOR
+ * could do everything an OWNER could (SPC-API-004). A role column that enforces
+ * nothing is worse than none, because it reads like a control to whoever adds
+ * the second account.
+ *
+ * Asserted by reading source rather than by importing: these are server actions
+ * behind the `@/` alias, which vitest does not resolve.
+ */
+describe("credential-touching admin actions are OWNER-only", () => {
+  // Comments stripped before counting. The docblocks in that file legitimately
+  // mention requireRole("OWNER") while explaining why it is there, and counting
+  // prose alongside code made this assertion fail on its own documentation —
+  // the third time a source-scanning guard in this repo has been tripped by
+  // English rather than by a defect.
+  const source = readFileSync(
+    new URL("../app/admin/(protected)/mail-actions.ts", import.meta.url),
+    "utf8",
+  )
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+
+  it('guards both mail actions with requireRole("OWNER")', () => {
+    const exported = [...source.matchAll(/export async function (\w+)/g)].map((m) => m[1]);
+    expect(exported.length, "no exported actions found — has this file moved?").toBeGreaterThan(0);
+    // Every exported action in this file writes a credential or sends mail.
+    const guards = source.match(/requireRole\("OWNER"\)/g) ?? [];
+    expect(
+      guards.length,
+      `${exported.length} exported action(s) but ${guards.length} OWNER guard(s). Saving SMTP settings and triggering a send must not be available to an EDITOR.`,
+    ).toBe(exported.length);
+  });
+
+  it("does not fall back to the weaker guard in this file", () => {
+    expect(
+      /requireAdmin\(/.test(source),
+      "mail-actions.ts calls requireAdmin() — that is the guard an EDITOR passes",
+    ).toBe(false);
+  });
+});

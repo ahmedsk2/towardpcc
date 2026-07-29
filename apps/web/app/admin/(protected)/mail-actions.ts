@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { recordAudit } from "@/lib/admin/audit";
-import { requireAdmin } from "@/lib/auth/guard";
+import { requireRole } from "@/lib/auth/guard";
 import { sendAdminTestEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { MAIL_KEYS } from "@/lib/mail-config";
@@ -25,7 +25,9 @@ export async function saveSettings(
   _prev: SaveSettingsState,
   formData: FormData,
 ): Promise<SaveSettingsState> {
-  const admin = await requireAdmin();
+  // OWNER only: this writes the SMTP password. The whole point of the tier is
+  // that not every admin account can read or replace a credential.
+  const admin = await requireRole("OWNER");
 
   const patch: Record<string, string> = {};
   for (const key of MAIL_KEYS) {
@@ -79,8 +81,8 @@ export async function saveSettings(
  *  - The recipient is read server-side from ADMIN_EMAIL and the body is a
  *    constant. Neither crosses the wire, so there is nothing for a caller to
  *    choose. This is deliberately not parameterised.
- *  - `requireAdmin()` runs first, before anything is read or sent. The layout
- *    guard is not trusted on its own; authorization is per-handler here.
+ *  - `requireRole("OWNER")` runs first, before anything is read or sent. The
+ *    layout guard is not trusted on its own; authorization is per-handler here.
  *  - It is a Server Action, so Next's Origin check supplies CSRF protection,
  *    and the CSP already restricts `form-action` to 'self'.
  *
@@ -92,7 +94,9 @@ export async function sendTestEmail(
   _prev: TestMailState,
   _formData: FormData,
 ): Promise<TestMailState> {
-  const admin = await requireAdmin();
+  // OWNER only: this causes the platform to send mail. An EDITOR works the
+  // inbox and has no reason to reach the relay.
+  const admin = await requireRole("OWNER");
   try {
     await sendAdminTestEmail();
     await recordAudit({

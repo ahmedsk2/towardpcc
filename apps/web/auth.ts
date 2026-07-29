@@ -49,6 +49,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt", maxAge: 60 * 60 * 8 },
   pages: { signIn: "/admin/login" },
   trustHost: true,
+
+  /**
+   * The session cookie's Secure flag and `__Secure-` prefix, pinned rather than
+   * inferred (SPC-WEB-003).
+   *
+   * Auth.js derives both from `X-Forwarded-Proto` when `trustHost` is set. That
+   * worked because exactly one proxy chain existed and it set the header
+   * correctly. It is no longer a safe thing to leave implicit: an OCI load
+   * balancer now sits in front as a second possible path, and the failure mode
+   * is silent and severe — a session cookie issued without `Secure`, under a
+   * different name, on a login that appears to succeed and then does not stay
+   * logged in. Nothing would log an error.
+   *
+   * Keyed off NODE_ENV rather than the header, so it cannot be influenced by a
+   * request. Development stays plain so `http://localhost` still works — a
+   * `__Secure-` cookie is rejected outright over http, which would make local
+   * login impossible.
+   */
+  useSecureCookies: process.env.NODE_ENV === "production",
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-authjs.session-token"
+          : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   providers: [
     Credentials({
       credentials: { email: {}, password: {}, token: {} },

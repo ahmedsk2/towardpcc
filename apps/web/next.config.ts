@@ -31,6 +31,37 @@ const nextConfig: NextConfig = {
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
         ],
       },
+      {
+        /**
+         * The authenticated surfaces get two headers the public pages do not
+         * (SPC-WEB-006, SPC-WEB-007).
+         *
+         * `no-store` because these responses render submission PII — a
+         * clinician's name, address and message. The pages are already
+         * `dynamic = "force-dynamic"`, so Next does not cache them, but that
+         * governs Next's own cache and says nothing to a corporate proxy or a
+         * browser's back-forward cache. On a shared ward machine that is the
+         * difference between a colleague seeing an enquiry and not.
+         *
+         * `Cross-Origin-Resource-Policy: same-origin` blocks another origin
+         * from embedding these responses as a subresource, which is the
+         * Spectre-class leak COOP alone does not close. Scoped here rather than
+         * site-wide deliberately: on the public pages it would buy nothing and
+         * could interfere with legitimate embedding of a calculator page.
+         */
+        source: "/admin/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+        ],
+      },
     ];
   },
 };
