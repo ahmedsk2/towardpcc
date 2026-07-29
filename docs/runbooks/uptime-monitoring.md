@@ -79,9 +79,35 @@ to be found.
 
 ## Step 3 — create the Uptime Kuma admin account
 
-Load `https://uptime.towardpcc.com`, pass basic auth, and create the account
-**immediately**. Use a different password from the basic-auth one; they protect
-different things and one is shared.
+Visit `https://uptime.towardpcc.com`. **The first prompt is the Traefik
+basic-auth dialog, not Uptime Kuma.** Browsers render it as a bare
+username/password box, so it reads as "log in" and invites the conclusion that
+an account already exists. It does not — verified by checking the container:
+`kuma.db` is absent and `/app/data` holds only empty directories until setup
+completes.
+
+Past basic auth, Uptime Kuma 2.x sends you to `/setup-database` first. Choose
+**SQLite** — embedded, nothing else to run, and what the `uptime-kuma-data`
+volume exists for. The admin account comes after that.
+
+Use a different password from the basic-auth one. They protect different layers,
+and the basic-auth credential is shared infrastructure rather than a personal
+login.
+
+### Credential handling, and a mistake worth not repeating
+
+The basic-auth credential lives at `~/uptime-kuma-basicauth.txt` on the server,
+mode 600:
+
+```bash
+ssh -i <key> ubuntu@145.241.105.239 "cat ~/uptime-kuma-basicauth.txt"
+```
+
+**It was rotated on 2026-07-29 because the previous one was exposed.** The cause
+is worth recording because it is easy to repeat: `curl -u user:pass -w
+"%{url_effective}"` prints the credentials back, because curl embeds them in the
+effective URL. Diagnosing over HTTP with a password in it means never printing
+the URL — only the status code.
 
 ## Step 4 — the monitors worth having
 
