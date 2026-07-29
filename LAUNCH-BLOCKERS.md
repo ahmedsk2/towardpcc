@@ -209,11 +209,16 @@ no `rua=`.
       made, use a dedicated OCI user with a narrow policy rather than the
       tenancy admin key.
 
-- [ ] **Attach the WAF policy.** `towardpcc-waf` is ACTIVE with XSS, SQLi and
-      RCE capabilities but is NOT attached, so it protects nothing — verified,
-      probes return 200 rather than 403. `create-for-load-balancer` returns
-      silently on this CLI build; use the Console: WAF → Policies →
-      towardpcc-waf → Enforcement points → Add.
+- [x] **WAF attached and INSPECTING, 2026-07-29.** Applied through the OCI
+      Console after `create-for-load-balancer` returned silently on this CLI
+      build. Verified rather than assumed: normal routes still 200, while XSS,
+      boolean SQL injection and UNION SELECT probes all return **403**.
+
+      It has no geographic component — it blocks on attack signature, not
+              origin, so visitors inside and outside Saudi Arabia are treated
+              identically. It protects nothing until cutover, since DNS still points at
+              Cloudflare.
+
 - [ ] Rewrite the residency copy in the SAME deploy as the DNS cutover.
 
 Settled 2026-07-28: scope is plaintext PII **and** metadata for everything the
@@ -271,9 +276,12 @@ reputation.
 - [x] **Monitors created and passing 2026-07-29** — site, readiness, apex
       redirect and calculators, all wired to the email notification. SMTP is
       configured, so alerts have somewhere to go.
-- [ ] Press **Test** on the Uptime Kuma notification once, to prove the alert
-      path end to end. Monitoring that records outages and tells nobody is the
-      exact failure the `/admin` mail banner exists to prevent.
+- [x] **Alert path proven 2026-07-29** — the founder tested the Uptime Kuma
+      notification and the email arrived. That also proves the relay,
+      credentials and AUTH work, which no check from this side could.
+- [ ] Press **Send a test email** in `/admin/settings` once. Kuma proves the
+      relay; this proves the _application's_ own transport, which is a separate
+      code path with its own settings resolution.
 
 Full sequence, credential location and the four monitors worth having:
 `docs/runbooks/uptime-monitoring.md`.

@@ -173,7 +173,26 @@ deadline.**
    outside the Kingdom, which would become understated rather than false, but
    still wrong.
 
-### WAF: policy exists, attachment does not
+### WAF: attached and inspecting — DONE 2026-07-29
+
+Verified against the running load balancer: normal routes 200, while XSS,
+boolean SQL injection and UNION SELECT probes all return 403.
+
+Applied through the OCI Console (Riyadh region — the WAF pages look empty from
+any other region, which is the easiest way to waste ten minutes here). The CLI
+route is a dead end on this build: `create-for-load-balancer` returns silently,
+and `create-web-app-firewall-load-balancer` does not exist despite matching
+Oracle's documentation.
+
+**Latency note, measured rather than assumed.** From a Saudi client the load
+balancer answered in 0.21–0.37s against Cloudflare's 0.70–1.17s — roughly three
+times faster. The trace explains why: across one session Cloudflare served this
+zone from DMM (Dammam), ZRH (Zurich) and GIG (Rio de Janeiro). Traffic from
+Riyadh was being routed to Brazil. So cutover should make the site faster for
+the Gulf audience and slower for distant visitors, who lose edge proximity and
+static-asset caching entirely.
+
+### Historical: why the CLI route was abandoned
 
 `towardpcc-waf` is ACTIVE with three OWASP capabilities — XSS `941110` v2, SQL
 injection `942100` v1, RCE `944100` v1. Getting those versions right took
