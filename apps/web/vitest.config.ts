@@ -26,6 +26,7 @@ export default defineConfig({
         "lib/auth/totp.ts",
         "lib/auth/password.ts",
         "lib/rate-limit.ts",
+        "lib/submission-guards.ts",
       ],
       thresholds: { lines: 100, functions: 100, branches: 90, statements: 100 },
     },

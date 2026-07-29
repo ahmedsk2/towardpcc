@@ -7,6 +7,7 @@ import { resolveClientIp } from "@/lib/client-ip";
 import { notifyAdminOfSubmission } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { classifyDrop } from "@/lib/submission-guards";
 
 /**
  * The one server-side path every public form goes through (PRD §9): Zod
@@ -61,7 +62,6 @@ const PER_IP = { max: 5, windowMs: 10 * 60_000 };
 // attack; a genuine legitimate surge above it just degrades gracefully.
 const GLOBAL = { max: 300, windowMs: 10 * 60_000 };
 const MAX_TRACKED_IPS = 20_000;
-const MIN_FILL_MS = 2_500; // faster than this = almost certainly a bot
 
 // Fail-closed sliding-window limiter (see lib/rate-limit.ts for the invariants +
 // its unit tests). Per-instance state; single-replica only until a shared store
@@ -100,13 +100,28 @@ export async function handleSubmission(
   type: SubmissionType,
   formData: FormData,
 ): Promise<SubmitResult> {
-  // Honeypot: a field real users never see; if filled, accept-and-drop so bots
-  // get a success and no row is written.
-  if ((formData.get("website") as string)?.length) return { ok: true };
-
-  // Time-trap: forms carry the render time; an instant submit is a bot.
-  const renderedAt = Number(formData.get("t") ?? 0);
-  if (!renderedAt || Date.now() - renderedAt < MIN_FILL_MS) return { ok: true };
+  // Honeypot + time-trap. Both accept-and-drop: the caller gets `ok: true` and
+  // no row is written, so a bot cannot tell a rejection from a delivery.
+  //
+  // That is the right design against bots and the wrong one against ourselves.
+  // A dropped submission and a delivered one look identical from the outside,
+  // which is also true from the inside if nothing records the drop — and until
+  // now nothing did. A visitor whose JavaScript had not run submitted `t` at its
+  // rendered default of "0", landed in this branch, saw the success panel, and
+  // left. No row, no log, no count. The reasoning behind each reason, and why
+  // `no-timestamp` is kept distinct from `too-fast`, is in submission-guards.ts.
+  const drop = classifyDrop({
+    honeypot: formData.get("website") as string | null,
+    stamp: formData.get("t") as string | null,
+    now: Date.now(),
+  });
+  if (drop) {
+    // Reason only. Never the payload: a submission we deliberately refused to
+    // store must not reappear in the log, which is the one place it would
+    // outlive the decision not to keep it.
+    logger.warn({ type, reason: drop }, "submission dropped");
+    return { ok: true };
+  }
 
   const ipHash = await hashClientIp();
   if (!limiter.check(ipHash, Date.now())) {
