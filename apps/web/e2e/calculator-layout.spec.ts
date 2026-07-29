@@ -32,6 +32,28 @@ async function resultVisibleAfterScrolling(
   const panel = page.locator('[data-print="result"]');
   await expect(panel).toBeVisible();
 
+  // Let the LAYOUT settle before measuring it.
+  //
+  // This is the second race in this helper and it sits upstream of the first.
+  // `scrollHeight` was sampled while lazy images and webfonts were still
+  // arriving, so the scroll target was computed against a page that then grew
+  // underneath it. On a fast machine everything had landed already; under full
+  // suite load it had not, which is why this passed in isolation and failed
+  // roughly one run in five inside the whole suite — the worst possible
+  // signature, because "re-run it" appears to work.
+  let lastHeight = -1;
+  await expect
+    .poll(
+      async () => {
+        const h = await page.evaluate(() => document.body.scrollHeight);
+        const stable = h === lastHeight;
+        lastHeight = h;
+        return stable;
+      },
+      { timeout: 5000, message: "the page never stopped growing" },
+    )
+    .toBe(true);
+
   // Two thirds down the page — comfortably past where an 11px-travel rail
   // would have vanished.
   const target = await page.evaluate(() => {

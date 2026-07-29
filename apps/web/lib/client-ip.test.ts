@@ -81,9 +81,26 @@ describe("resolveClientIp", () => {
    * The load balancer does not strip it, so it must not merely be demoted — it
    * must not be read.
    */
+  /**
+   * Chain B — behind the OCI load balancer, after the KSA migration (ADR-0004).
+   *
+   * These were rewritten on 2026-07-29 after measuring the real header chain,
+   * which did not match what the first implementation assumed. Through the load
+   * balancer a request arrives as:
+   *
+   *     X-Forwarded-For: <client-forged>, <real client>, <load balancer>
+   *     X-Real-Ip:       <real client>          (forgeries overwritten)
+   *     X-Via-Edge:      <the secret>           (forgeries overwritten)
+   *
+   * Two trusted proxies, not one: Traefik appends the load balancer because it
+   * now trusts that subnet. Counting one hop from the right therefore resolved
+   * every visitor to the load balancer's own address — the exact collapse this
+   * code exists to prevent. The fixture below is that measured chain.
+   */
   describe("behind the OCI load balancer", () => {
     const SECRET = "s3cr3t-edge-token";
-    const withSecret = (extra: Record<string, string>) => h({ "x-via-edge": SECRET, ...extra });
+    const REAL = "128.234.116.155";
+    const LB = "10.0.1.45";
 
     beforeEach(() => {
       process.env.EDGE_SHARED_SECRET = SECRET;
@@ -92,51 +109,47 @@ describe("resolveClientIp", () => {
       delete process.env.EDGE_SHARED_SECRET;
     });
 
-    it("takes the rightmost hop, which is the one the load balancer appended", () => {
-      expect(resolveClientIp(withSecret({ "x-forwarded-for": "10.0.0.9, 203.0.113.7" }))).toBe(
-        "203.0.113.7",
-      );
+    /** The chain exactly as production produced it. */
+    const realChain = (extra: Record<string, string> = {}) =>
+      h({
+        "x-via-edge": SECRET,
+        "x-forwarded-for": `203.0.113.99, ${REAL}, ${LB}`,
+        "x-real-ip": REAL,
+        ...extra,
+      });
+
+    it("resolves the real client, not the load balancer", () => {
+      // The regression that shipped and was caught by measurement: taking the
+      // rightmost hop yields 10.0.1.45 for every visitor on earth.
+      const ip = resolveClientIp(realChain());
+      expect(ip).toBe(REAL);
+      expect(ip).not.toBe(LB);
+    });
+
+    it("ignores the client-forged leftmost hop", () => {
+      expect(resolveClientIp(realChain())).not.toBe("203.0.113.99");
     });
 
     it("IGNORES cf-connecting-ip, which is forgeable once Cloudflare is out of the path", () => {
-      // The regression that would silently reintroduce CWE-348: a client sets
-      // this header directly against the load balancer and is believed.
-      expect(
-        resolveClientIp(
-          withSecret({
-            "cf-connecting-ip": "1.2.3.4",
-            "x-forwarded-for": "1.2.3.4, 203.0.113.7",
-          }),
-        ),
-      ).toBe("203.0.113.7");
+      expect(resolveClientIp(realChain({ "cf-connecting-ip": "1.2.3.4" }))).toBe(REAL);
     });
 
-    it("ignores x-real-ip on this path too", () => {
-      expect(
-        resolveClientIp(withSecret({ "x-real-ip": "1.2.3.4", "x-forwarded-for": "203.0.113.7" })),
-      ).toBe("203.0.113.7");
-    });
-
-    it("ignores a forged leftmost hop", () => {
-      expect(
-        resolveClientIp(withSecret({ "x-forwarded-for": "1.2.3.4, 5.6.7.8, 203.0.113.7" })),
-      ).toBe("203.0.113.7");
+    it("returns unknown rather than a non-address when the chain is malformed", () => {
+      // If the rule set silently failed to apply, what arrives is whatever the
+      // caller sent. Storing that as an address would poison the abuse hash.
+      expect(resolveClientIp(h({ "x-via-edge": SECRET, "x-real-ip": "not-an-ip" }))).toBe(
+        "unknown",
+      );
+      expect(resolveClientIp(h({ "x-via-edge": SECRET }))).toBe("unknown");
     });
 
     it("survives a client that also sends x-via-edge", () => {
       // Fetch joins duplicate headers with ", ", so a naive equality check on
-      // the whole value would fail open OR closed depending on ordering.
-      expect(
-        resolveClientIp(
-          h({ "x-via-edge": `forged, ${SECRET}`, "x-forwarded-for": "10.0.0.9, 203.0.113.7" }),
-        ),
-      ).toBe("203.0.113.7");
-    });
-
-    it("rejects a rightmost hop that is not an IP literal", () => {
-      // If the rule set silently did not apply, the rightmost value is whatever
-      // the caller sent. Storing that as an address would poison the hash.
-      expect(resolveClientIp(withSecret({ "x-forwarded-for": "not-an-ip" }))).toBe("unknown");
+      // the whole value would fail. Verified live that the load balancer
+      // overwrites a forged value outright, but this must not depend on that.
+      expect(resolveClientIp(h({ "x-via-edge": `forged, ${SECRET}`, "x-real-ip": REAL }))).toBe(
+        REAL,
+      );
     });
   });
 

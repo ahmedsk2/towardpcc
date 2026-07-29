@@ -55,22 +55,13 @@
  */
 
 /**
- * How many proxies at the right-hand end of `x-forwarded-for` are ours on
- * chain B. Exactly one: the OCI load balancer. Named rather than inlined
- * because if a second in-region hop is ever added, this is the number that has
- * to change, and a bare `- 1` in an index expression does not announce itself.
- */
-const TRUSTED_PROXY_HOPS = 1;
-
-/**
  * Rejects anything that is not an IP literal.
  *
- * The rightmost XFF hop is only trustworthy if the load balancer actually
- * appended it. If it did not — a misconfigured listener, a rule set that
- * silently did not apply — the rightmost value is whatever the caller sent,
- * and it will usually not be a valid address. This does not make forgery
- * impossible, but it stops a malformed or injected value from being stored as
- * though it were an address.
+ * A value is only trustworthy if a proxy we trust actually wrote it. If one did
+ * not — a misconfigured listener, a rule set that silently failed to apply —
+ * what arrives is whatever the caller sent, and it will usually not be a valid
+ * address. This does not make forgery impossible; it stops a malformed or
+ * injected value from being stored as though it were an address.
  */
 function isIpLiteral(value: string): boolean {
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(value)) {
@@ -80,6 +71,51 @@ function isIpLiteral(value: string): boolean {
   return /^[0-9a-fA-F:]+$/.test(value) && value.includes(":");
 }
 
+/**
+ * The client address on chain B, taken from `x-real-ip`.
+ *
+ * THIS WAS WRONG BEFORE, AND THE WAY IT WAS WRONG IS WORTH KEEPING.
+ *
+ * The first version counted one trusted hop from the right-hand end of
+ * `x-forwarded-for`, reasoning that the load balancer appends the client and is
+ * therefore last. Measured against the real chain on 2026-07-29, that is not
+ * what arrives:
+ *
+ *     X-Forwarded-For: 203.0.113.99, 128.234.116.155, 10.0.1.45
+ *                      ^client-forged ^the real client  ^the load balancer,
+ *                                                        appended by Traefik
+ *
+ * There are TWO trusted proxies, not one — Traefik appends the load balancer's
+ * address because it now trusts that subnet. So the old code would have
+ * resolved every visitor on earth to `10.0.1.45`, which is precisely the
+ * collapse the whole exercise existed to prevent, and it would have done so
+ * silently.
+ *
+ * `x-real-ip` avoids counting hops at all. Traefik sets it to the address the
+ * immediately-upstream trusted proxy vouched for, and — verified by sending a
+ * forged one — **overwrites** any value the client supplies. The load balancer
+ * likewise overwrites a forged `x-via-edge`. Both were tested against the
+ * running system rather than reasoned about, because reasoning about it is what
+ * produced the bug above.
+ *
+ * This is topology-dependent either way. The advantage of `x-real-ip` is that
+ * inserting another in-region hop (an OCI WAF, say) changes the hop count but
+ * not this.
+ */
+function edgeClientIp(headers: Headers): string | undefined {
+  const value = headers.get("x-real-ip")?.trim();
+  return value && isIpLiteral(value) ? value : undefined;
+}
+
+/**
+ * The last hop in `x-forwarded-for`, used only on chain A.
+ *
+ * There the rightmost entry is what our own proxy observed, and the leftmost is
+ * whatever the caller chose to send (CWE-348). Note this is the OPPOSITE
+ * situation from chain B, where the rightmost is a proxy of ours rather than a
+ * client — the two chains have different shapes and the same rule cannot serve
+ * both. That difference is exactly what the earlier bug got wrong.
+ */
 function rightmostHop(headers: Headers): string | undefined {
   const xff = headers.get("x-forwarded-for");
   if (!xff) return undefined;
@@ -87,8 +123,7 @@ function rightmostHop(headers: Headers): string | undefined {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  const hop = hops[hops.length - TRUSTED_PROXY_HOPS];
-  return hop && isIpLiteral(hop) ? hop : undefined;
+  return hops[hops.length - 1];
 }
 
 /**
@@ -109,9 +144,15 @@ function isFromRegionalEdge(headers: Headers): boolean {
 
 export function resolveClientIp(headers: Headers): string {
   if (isFromRegionalEdge(headers)) {
-    // Chain B. `cf-connecting-ip` and `x-real-ip` are NOT consulted here — both
-    // are forgeable once the origin is reachable without passing Cloudflare.
-    return rightmostHop(headers) ?? "unknown";
+    // Chain B. `cf-connecting-ip` is NOT consulted here: the load balancer does
+    // not strip it, so it is attacker-settable the moment the origin is
+    // reachable without passing Cloudflare.
+    //
+    // `x-real-ip` IS consulted, which reverses an earlier comment saying it was
+    // equally forgeable. On this path it is not — Traefik overwrites a
+    // client-supplied value once it trusts the upstream, which was verified by
+    // sending one. See edgeClientIp.
+    return edgeClientIp(headers) ?? "unknown";
   }
 
   // Chain A, unchanged. Cloudflare sets this on every proxied request,
