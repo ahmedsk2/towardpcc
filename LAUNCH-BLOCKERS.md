@@ -268,7 +268,12 @@ reputation.
       through Cloudflare.
 - [x] **`uptime.towardpcc.com` live**, proxied, hostname set with its `:3001`
       container-port suffix.
-- [ ] Create the monitors and point alerting at the SMTP relay.
+- [x] **Monitors created and passing 2026-07-29** — site, readiness, apex
+      redirect and calculators, all wired to the email notification. SMTP is
+      configured, so alerts have somewhere to go.
+- [ ] Press **Test** on the Uptime Kuma notification once, to prove the alert
+      path end to end. Monitoring that records outages and tells nobody is the
+      exact failure the `/admin` mail banner exists to prevent.
 
 Full sequence, credential location and the four monitors worth having:
 `docs/runbooks/uptime-monitoring.md`.

@@ -109,20 +109,47 @@ is worth recording because it is easy to repeat: `curl -u user:pass -w
 effective URL. Diagnosing over HTTP with a password in it means never printing
 the URL — only the status code.
 
-## Step 4 — the monitors worth having
+## Step 4 — monitors: DONE 2026-07-29
 
-Add these four. The first is the one that will actually page you; the rest catch
-the failures that do not take the site down.
+Four monitors, all live and passing, all wired to the email notification.
 
-| Monitor            | URL                                      | Interval | Why                                                                                                                                                                                           |
-| ------------------ | ---------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Site up            | `https://www.towardpcc.com/`             | 60s      | The obvious one.                                                                                                                                                                              |
-| Readiness          | `https://www.towardpcc.com/api/v1/ready` | 60s      | Returns unhealthy when the **database** is unreachable, which `/` will not — Next serves static pages happily with a dead database, so the site looks fine while every form submission fails. |
-| Certificate expiry | same as "Site up"                        | —        | Enable the TLS expiry notification. Cloudflare renews the edge certificate automatically, but a CAA mistake breaks renewal weeks later and silently. See `dns-hardening.md`.                  |
-| Apex redirect      | `https://towardpcc.com/`                 | 5 min    | Should 308 to `www`. Catches a canonical-host regression, which is invisible to users and quietly damaging to search.                                                                         |
+| Monitor                           | Target                                   | Interval | Retries |
+| --------------------------------- | ---------------------------------------- | -------- | ------- |
+| TowardPCC — site                  | `https://www.towardpcc.com/`             | 60s      | 3       |
+| TowardPCC — readiness (database)  | `https://www.towardpcc.com/api/v1/ready` | 60s      | 3       |
+| TowardPCC — apex redirects to www | `https://towardpcc.com/`                 | 5 min    | 2       |
+| TowardPCC — calculators           | `https://www.towardpcc.com/calculators`  | 5 min    | 2       |
 
-Set the retry count above 1. A single failed probe from one runner is not an
-outage, and an alert that cries wolf gets muted, which is worse than no alert.
+First heartbeats confirmed: 200, 200, **308**, 200.
+
+**The readiness one is the one that earns its keep.** It goes unhealthy when the
+_database_ is unreachable, which `/` will not — Next serves static pages happily
+with a dead database, so the site looks perfect while every form submission
+fails silently. Watching only the homepage would miss exactly the outage that
+matters most here.
+
+The apex monitor accepts `300-399` as success, because a 308 to `www` is the
+correct answer. Left at the default `200-299` it would page you for the system
+working properly, which is how alerting gets muted.
+
+Retries are above 1 on every monitor. A single failed probe from one runner is
+not an outage, and an alert that cries wolf gets ignored — which is worse than
+no alert.
+
+Certificate expiry is a flag on the site monitor rather than a separate check,
+so a Cloudflare renewal failure surfaces there.
+
+### How these were added, and the caveat that comes with it
+
+Uptime Kuma exposes no REST API for creating monitors — its API is socket.io and
+needs a login. These were inserted directly into `kuma.db` and the container
+restarted, after backing the database up to `kuma.db.bak-<timestamp>` in the
+same volume.
+
+That is a legitimate way in but not a durable habit: the schema is internal and
+can change between releases. **Add future monitors through the UI.** If you ever
+need to script them again, back up first and re-check `pragma table_info(monitor)`
+rather than assuming these columns still apply.
 
 ## Step 5 — alerting
 
