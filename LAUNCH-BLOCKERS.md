@@ -285,9 +285,9 @@ reputation.
 - [x] **Alert path proven 2026-07-29** — the founder tested the Uptime Kuma
       notification and the email arrived. That also proves the relay,
       credentials and AUTH work, which no check from this side could.
-- [ ] Press **Send a test email** in `/admin/settings` once. Kuma proves the
-      relay; this proves the _application's_ own transport, which is a separate
-      code path with its own settings resolution.
+- [x] **Application test send confirmed 2026-07-29.** Kuma proved the relay;
+      this proves the application's own transport, which resolves its settings
+      through a different path. Both mail paths are now verified end to end.
 
 Full sequence, credential location and the four monitors worth having:
 `docs/runbooks/uptime-monitoring.md`.
