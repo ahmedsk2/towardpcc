@@ -107,17 +107,32 @@ If `EDGE_SHARED_SECRET` is unset, the edge path is unreachable by construction.
    removing them takes a patient-data application offline. Note that
    `next.towardpcc.com` and `deploy.towardpcc.com` are ours and are also
    proxied.
-2. **Snapshot everything.** AGENT. `get_security_list`, `get_subnet`,
-   `get_vnic` (`nsg_ids` currently empty), and the Coolify app's domain/port
-   config, saved outside the repo. Every rollback below is "restore the recorded
-   prior value"; without a byte-exact baseline that becomes a guess, under
-   pressure, on a host with real patient data.
+2. **Snapshot everything.** AGENT. ✅ **Done 2026-07-29.** VCN, subnets, the
+   security list with all 32 ingress rules, instances and (empty) load-balancer
+   list, captured to the session scratchpad — deliberately outside the repo,
+   since it is infrastructure state rather than source.
+
+   Recorded here so the numbers can be checked without opening the files: **32
+   ingress rules — 15 × port 80 and 15 × port 443 from Cloudflare's ranges, one
+   SSH, one ICMP.** Zero load balancers exist today. Every rollback below is
+   "restore the recorded prior value", and without a byte-exact baseline that
+   becomes a guess, under pressure, on a host that also runs a clinical
+   application.
+
 3. **Client-IP trust boundary.** AGENT. ✅ Done — see above.
 4. **NSG** admitting the app port from the LB subnet only, attached to
    hosting-1's VNIC. Additive to the shared security list, so the co-tenant is
    untouched.
 5. **Obtain the Let's Encrypt certificate via DNS-01** and import it. No DNS
    change to the A records; no impact on live traffic.
+
+   **This is the current blocker for staging.** DNS-01 proves control of the
+   domain by writing a `_acme-challenge` TXT record, which needs a Cloudflare
+   API token with `Zone:DNS:Edit` on this zone. None exists yet. Everything from
+   step 4 onward waits on it — the load balancer cannot terminate TLS without a
+   certificate, and without terminating TLS it cannot carry the WAF, because an
+   OCI regional WAF attaches only to an HTTP/HTTPS listener.
+
 6. **Create the LB** (flexible, 10 Mbps), **an HTTPS/443 listener** and **an
    HTTP/80 listener with a redirect rule**, backend set pointing at
    10.0.1.71, health check against the app's health endpoint.
