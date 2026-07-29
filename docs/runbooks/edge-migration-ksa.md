@@ -98,6 +98,71 @@ If `EDGE_SHARED_SECRET` is unset, the edge path is unreachable by construction.
 > HTTP, or empirically prove rule-set injection works on HTTP2 first.** Treat
 > this as a hard gate on the DNS cutover, not a soft check.
 
+## STAGED AND PROVEN — 2026-07-29
+
+The in-region path is built and serving the site correctly. **Nothing has been
+cut over.** Cloudflare still serves every real visitor; the load balancer was
+tested by resolving the hostname to its own IP with `curl --resolve`.
+
+|               |                                                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Load balancer | `towardpcc-edge`, flexible 10 Mbps, **145.241.110.213**                                                              |
+| Certificate   | Let's Encrypt EC-256, `towardpcc.com` + `www`, via DNS-01, expires 2026-10-27                                        |
+| Backend       | `10.0.1.71:443` → Traefik, TLS re-encrypted, health **OK**                                                           |
+| Listeners     | HTTPS :443, and HTTP :80 redirecting 301 to HTTPS                                                                    |
+| NSGs          | `towardpcc-lb-public` (0.0.0.0/0 → 80,443 on the LB) and `towardpcc-origin-from-lb` (LB's NSG → 443 on the instance) |
+
+Verified through the LB: `/`, `/calculators`, `/contact`, `/trust`,
+`/validation`, `/api/v1/ready` all 200; HTTP redirects 301; apex 308s to www.
+Verified simultaneously through Cloudflare: the live site and the co-tenant's
+application unaffected throughout.
+
+**Nothing touched the shared security list.** Ingress was granted with two
+NSGs instead, which are additive to it. That is what kept the co-tenant safe:
+their traffic still arrives through the existing Cloudflare rules, unchanged,
+and the instance simply gained one extra permitted source.
+
+### What still blocks the cutover
+
+**Client IP.** This is the whole reason the earlier design work mattered, and it
+is not solved. Confirmed on the running system: Traefik has no
+`forwardedHeaders.trustedIPs`, and the application container publishes no host
+port, so the only ingress is host:443 → Traefik. Traefik therefore rewrites
+`X-Forwarded-For` from the connecting peer — which after a cutover is the load
+balancer. Every visitor would collapse into one bucket, and the per-IP rate
+limiter and the salted abuse hash would both become meaningless.
+
+`lib/client-ip.ts` is already a dual-path resolver keyed on `x-via-edge`, so the
+application side is ready. What is missing is a path that preserves the real
+address, and the three options are:
+
+1. **Trust the LB in Traefik** — set `forwardedHeaders.trustedIPs` to the LB
+   subnet. Then Traefik appends rather than replaces, and the rightmost hop is
+   correct. Backward-compatible for Cloudflare traffic, since Cloudflare's
+   addresses stay untrusted and are handled exactly as today. But it is Traefik
+   static config, shared with every other application on the host.
+2. **Bypass Traefik** — publish the app's port and point the LB at it directly.
+   Costs the zero-downtime deploy gate, because two containers cannot bind one
+   host port, so Coolify falls back to stop-then-start.
+3. **A towardpcc-owned reverse proxy** inside the Coolify stack, bound to a host
+   port, forwarding by service name. Keeps both properties; most work.
+
+Until one is chosen and proven, a cutover would silently degrade abuse
+protection. That is worse than the residency exposure it fixes.
+
+### Also outstanding
+
+- **WAF policy not attached.** The regional WAF needs protection-capability keys
+  and versions that the CLI's `--all` pagination would not return cleanly. The
+  HTTPS listener it attaches to already exists, so this is additive work rather
+  than a redesign.
+- The HTTP→HTTPS redirect emits `Location: https://host:443/path`. Functionally
+  correct, cosmetically wrong; drop the explicit port from the rule set's
+  `redirectUri`.
+- Certificate renewal is manual. acme.sh issued this one into
+  `/opt/acme-staging` on the host; before any cutover it needs a renewal hook
+  that re-uploads to the load balancer, or the site breaks 90 days later.
+
 ## Steps
 
 1. **Establish the co-tenant's and our own subdomains' dependencies.** FOUNDER.

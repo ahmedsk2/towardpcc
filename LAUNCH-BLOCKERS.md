@@ -182,8 +182,24 @@ no `rua=`.
 
 ### KSA-only processing (ADR-0004)
 
-- [ ] Move the edge from Cloudflare to an OCI Flexible LB + regional WAF in
-      me-riyadh-1. Runbook: `docs/runbooks/edge-migration-ksa.md`.
+- [~] **Edge migration — STAGED AND PROVEN 2026-07-29, not cut over.** An OCI
+  flexible load balancer at `145.241.110.213` serves the whole site
+  correctly over HTTPS with a Let's Encrypt certificate, with an HTTP→HTTPS
+  redirect and a healthy backend. Verified with `curl --resolve` while
+  Cloudflare continued serving every real visitor, and confirmed live
+  throughout that neither the site nor the co-tenant's application was
+  affected. The shared security list was never touched — ingress came from
+  two NSGs, which are additive to it.
+- [ ] **Cutover is blocked on client IP, and this is not a detail.** Traefik has
+      no `forwardedHeaders.trustedIPs` and the app publishes no host port, so it
+      rewrites `X-Forwarded-For` from the peer — which after a cutover is the
+      load balancer. Every visitor would collapse into one bucket and the per-IP
+      rate limiter and abuse hash would both stop meaning anything. Three
+      options with their costs are in `docs/runbooks/edge-migration-ksa.md`;
+      one must be chosen and proven first.
+- [ ] Attach the regional WAF policy to the LB's HTTPS listener, and add a
+      certificate-renewal hook that re-uploads to the load balancer — without it
+      the staged path breaks 90 days after issuance.
 
 Settled 2026-07-28: scope is plaintext PII **and** metadata for everything the
 platform controls, with written carve-outs for recipient-chosen mail delivery
