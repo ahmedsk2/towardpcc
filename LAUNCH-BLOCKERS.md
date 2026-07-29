@@ -196,10 +196,19 @@ no `rua=`.
       measured chain has TWO trusted proxies, so it would have resolved every
       visitor to the load balancer's own address, silently. Caught by measuring
       the live chain with a temporary echo service, not by reasoning.
-- [ ] **Certificate renewal — has a deadline.** The LB's certificate expires
-      **2026-10-27** and nothing renews it. The OCI CLI is not on the host, so
-      this needs either that plus an API key, or a scheduled job elsewhere.
-      **Do not cut over before solving it.**
+- [~] **Certificate renewal — deadline now monitored, not automated.** The LB's
+  certificate expires **2026-10-27** and nothing renews it. The daily
+  production check now fails 21 days out with the exact reissue steps, so it
+  cannot pass unnoticed; verified by lowering the threshold and watching it
+  go red.
+
+      Deliberately NOT automated yet. Doing so means an OCI API key with
+      load-balancer write access sitting on a host that also runs an application
+      holding real patient data, to keep a certificate alive on a path serving
+      nobody. That trade is worth making at cutover and not before. When it is
+      made, use a dedicated OCI user with a narrow policy rather than the
+      tenancy admin key.
+
 - [ ] **Attach the WAF policy.** `towardpcc-waf` is ACTIVE with XSS, SQLi and
       RCE capabilities but is NOT attached, so it protects nothing — verified,
       probes return 200 rather than 403. `create-for-load-balancer` returns
@@ -286,6 +295,9 @@ SDK would transmit from pages that promise they transmit nothing.
       `.github/workflows/residency.yml`, asserts the TLS terminator, the MX, the
       apex SPF and DMARC, and the presence of a CAA record — failing loudly on
       drift in either direction.
+- [x] **HSTS preload submitted 2026-07-29** — 0 errors, 0 warnings, status
+      pending; ships with the next browser release cycle. Every subdomain was
+      confirmed HTTPS-capable first, because `includeSubDomains` binds them all.
 - [x] **CAA records applied 2026-07-29** via the Cloudflare API. The residency
       check now passes 5/5. Nine records were created; DNS returns thirteen —
       Cloudflare silently added `comodoca.com` and `digicert.com` itself, which

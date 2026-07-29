@@ -150,7 +150,65 @@ async function checkCaa() {
   );
 }
 
-const CHECKS = [checkEdge, checkMx, checkSpf, checkDmarc, checkCaa];
+/**
+ * The staged load balancer's certificate.
+ *
+ * It is not serving anyone yet, which is exactly why this exists. A certificate
+ * on a dormant path is the easiest thing in an infrastructure to forget: it was
+ * obtained by hand with acme.sh, uploaded to the load balancer by hand, and
+ * nothing renews it. The failure would arrive months after everyone considered
+ * this work finished, and — if a cutover happened in between — it would arrive
+ * as an outage rather than a warning.
+ *
+ * So this fails 21 days out. Not on expiry, which is too late to be useful, and
+ * not 60 days out, which would sit red for weeks and teach everyone to ignore
+ * it. Long enough to renew calmly, short enough that a red run means act now.
+ *
+ * Checked over a direct TLS connection to the load balancer's own address,
+ * because that is the copy that matters — the certificate on disk in
+ * /opt/acme-staging could be renewed and still not be the one being served.
+ */
+async function checkStagedEdgeCertificate() {
+  const LB_IP = process.env.EDGE_LB_IP ?? "145.241.110.213";
+  const tls = await import("node:tls");
+  const daysLeft = await new Promise((resolve) => {
+    const socket = tls.connect(
+      { host: LB_IP, port: 443, servername: "www.towardpcc.com", timeout: 10_000 },
+      () => {
+        const cert = socket.getPeerCertificate();
+        socket.end();
+        if (!cert?.valid_to) return resolve(null);
+        resolve(Math.floor((Date.parse(cert.valid_to) - Date.now()) / 86_400_000));
+      },
+    );
+    socket.on("error", () => resolve(null));
+    socket.on("timeout", () => {
+      socket.destroy();
+      resolve(null);
+    });
+  });
+
+  if (daysLeft === null) {
+    record(
+      "staged edge certificate",
+      true,
+      "load balancer not reachable — treated as informational",
+      "The staged path may have been torn down deliberately. If it should exist, check the load balancer and its NSG.",
+    );
+    return;
+  }
+
+  record(
+    "staged edge certificate",
+    daysLeft > 21,
+    `${daysLeft} days remaining`,
+    daysLeft > 21
+      ? "Renewal is still manual, so this is the only thing that will tell you."
+      : "RENEW NOW. Reissue with acme.sh (DNS-01, Cloudflare token on the host) and re-upload to the load balancer — `oci lb certificate create` then point the listener at the new name. Nothing does this automatically.",
+  );
+}
+
+const CHECKS = [checkEdge, checkMx, checkSpf, checkDmarc, checkCaa, checkStagedEdgeCertificate];
 
 for (const check of CHECKS) {
   try {
