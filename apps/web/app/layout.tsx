@@ -38,7 +38,7 @@ export const metadata: Metadata = {
         url: "/images/og-waveform.jpg",
         width: 1200,
         height: 630,
-        alt: "TowardPCC — a glowing respiratory waveform on a deep oxblood field.",
+        alt: "TowardPCC: a glowing respiratory waveform on a deep oxblood field.",
       },
     ],
   },

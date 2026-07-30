@@ -53,7 +53,7 @@ export default function ValidationPage() {
         crumb="Clinical validation"
         eyebrow="Validation"
         title="Two clinicians, or the badge keeps saying pending"
-        lede="Every score names its source and is tested against that source's worked examples. That makes it faithful to the literature — it does not make it reviewed. This page says exactly where that stands."
+        lede="Every score names its source and is tested against that source's worked examples. That makes it faithful to the literature. It does not make it reviewed. This page says exactly where that stands."
       />
 
       <div className="mx-auto max-w-[1100px] px-6 py-16">
@@ -68,7 +68,7 @@ export default function ValidationPage() {
             </p>
             <p className="mt-3">
               A reviewer is named on the score they reviewed, with their credentials and the date.
-              Not a logo, not an endorsement of the platform — a specific person accountable for a
+              Not a logo, not an endorsement of the platform: a specific person accountable for a
               specific number.
             </p>
           </div>
@@ -165,7 +165,7 @@ export default function ValidationPage() {
 
         <Callout tone="note" className="mt-14 max-w-[68ch]">
           Until a score is reviewed its page says so plainly. Nothing here is presented as validated
-          because it is tested, and nothing is presented as tested because it is cited — they are
+          because it is tested, and nothing is presented as tested because it is cited. They are
           three separate claims and the site keeps them apart.
         </Callout>
       </div>

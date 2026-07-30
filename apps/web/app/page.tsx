@@ -14,7 +14,7 @@ const pillars = [
   {
     href: "/calculators",
     title: site.pillars.calculators.title,
-    body: "Twenty-two Tier-A PICU scores. Every computation runs in your browser — proven by an automated zero-network test on every release.",
+    body: "Twenty-two Tier-A PICU scores. Every computation runs in your browser, proven by an automated zero-network test on every release.",
     chip: "Live now",
     chipTone: "live" as const,
     media: "from-accent-deep via-accent to-coral",
@@ -30,7 +30,7 @@ const pillars = [
   {
     href: "/knowledge",
     title: site.pillars.knowledge.title,
-    body: "The PedsCC Library — your unit's own protocols and guidelines, searchable down to the exact page. Piloting with PICU physicians across the Gulf.",
+    body: "The PedsCC Library: your unit's own protocols and guidelines, searchable down to the exact page. Piloting with PICU physicians across the Gulf.",
     chip: "In production · piloting",
     chipTone: "pilot" as const,
     media: "from-surface-hero-raised via-accent-deep to-accent",
@@ -57,7 +57,7 @@ const pillars = [
   {
     href: "/services",
     title: site.pillars.services.title,
-    body: "Research aid, biostatistics, and AI-assisted research guidance for fellows — free of charge, queued honestly, with no SLA we can't keep.",
+    body: "Research aid, biostatistics, and AI-assisted research guidance for fellows. Free of charge, queued honestly, with no SLA we can't keep.",
     chip: "Free · capacity-based",
     chipTone: "neutral" as const,
     media: "from-success-text to-success-text/60",

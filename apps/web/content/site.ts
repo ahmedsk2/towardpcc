@@ -82,10 +82,10 @@ export const site = {
     heading: "Every child. Every PICU. The same tools.",
     lede: "Free, referenced clinical calculators for pediatric critical care, with knowledge and data systems for every unit and research support for every investigator. Built from Saudi Arabia for the world.",
     promise:
-      "Free, referenced clinical calculators that run entirely in your browser — the start of a shared digital home for pediatric critical care.",
+      "Free, referenced clinical calculators that run entirely in your browser: the start of a shared digital home for pediatric critical care.",
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
-    heroSceneLabel: "A calm, breathing respiratory waveform — the signature of TowardPCC.",
+    heroSceneLabel: "A calm, breathing respiratory waveform: the signature of TowardPCC.",
     status: "Live. 22 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
@@ -93,7 +93,7 @@ export const site = {
       points: [
         "The calculators run entirely in your browser. Nothing you enter is transmitted or stored.",
         "Our servers are located in Saudi Arabia.",
-        "We collect the minimum needed to run the service — and never patient data.",
+        "We collect the minimum needed to run the service, and never patient data.",
       ],
       link: "Read how we handle data",
       href: "/legal/data-protection",
@@ -134,7 +134,7 @@ export const site = {
       },
       {
         title: "Honest status",
-        body: "Live, piloting or planned — we say which, always.",
+        body: "Live, piloting or planned. We say which, always.",
         tone: "moss" as const,
       },
     ],
@@ -190,8 +190,8 @@ export const site = {
       items: [
         {
           quote:
-            "Clinicians budget roughly two to three minutes to answer a clinical question — and abandon the search beyond it.",
-          source: "Del Fiol et al. JAMA Intern Med, 2014 — systematic review of 72 studies",
+            "Clinicians budget roughly two to three minutes to answer a clinical question, and abandon the search beyond it.",
+          source: "Del Fiol et al. JAMA Intern Med, 2014 (systematic review of 72 studies)",
         },
         {
           quote:
@@ -210,7 +210,7 @@ export const site = {
         },
         {
           quote:
-            "A locally-curated guideline app reached 91 of 152 NHS acute trusts — trust followed local curation.",
+            "A locally-curated guideline app reached 91 of 152 NHS acute trusts: trust followed local curation.",
           source: "MicroGuide, reported deployment figures",
         },
       ],
@@ -298,12 +298,12 @@ export const site = {
     description:
       "TowardPCC builds the digital backbone of pediatric critical care: free clinical calculators for every clinician, knowledge and data systems for every unit, and research support for every investigator. Starting in Saudi Arabia and the Gulf, built for the world.",
     metaDescription:
-      "The mission, principles, and honest roadmap of TowardPCC — built from Saudi Arabia for the pediatric critical care community worldwide.",
+      "The mission, principles, and honest roadmap of TowardPCC, built from Saudi Arabia for the pediatric critical care community worldwide.",
     principlesHeading: "How we build",
     principles: [
       {
         title: "Free and referenced",
-        body: "The calculators are free to use, and every score cites its published source with its validation status shown honestly — never a number without a reason.",
+        body: "The calculators are free to use, and every score cites its published source with its validation status shown honestly. Never a number without a reason.",
       },
       {
         title: "Privacy by design",
@@ -311,7 +311,7 @@ export const site = {
       },
       {
         title: "Honest about where we are",
-        body: "We say plainly what is live, what is piloting, and what is still to come. No fake logos, counters, or testimonials — ever.",
+        body: "We say plainly what is live, what is piloting, and what is still to come. No fake logos, counters, or testimonials. Ever.",
       },
       {
         title: "Built from Saudi Arabia, for everyone",
@@ -331,7 +331,7 @@ export const site = {
     story: [
       {
         title: "A colour nobody had claimed",
-        body: "We audited the critical-care and paediatric institutions we could reach. Every one of them anchored on blue, and paediatric intensive care had no awareness colour of its own. So TowardPCC is crimson — close kin to the Saudi Critical Care Society's red, and unmistakably not another hospital blue.",
+        body: "We audited the critical-care and paediatric institutions we could reach. Every one of them anchored on blue, and paediatric intensive care had no awareness colour of its own. So TowardPCC is crimson: close kin to the Saudi Critical Care Society's red, and unmistakably not another hospital blue.",
       },
       {
         title: "A breath, not a heartbeat",
@@ -339,7 +339,7 @@ export const site = {
       },
       {
         title: "Red never means wrong",
-        body: "Brand crimson is reserved for actions. Warnings and errors are amber with an icon, never bare colour — so a red button on this site always means “do this”, and never “you got that wrong”.",
+        body: "Brand crimson is reserved for actions. Warnings and errors are amber with an icon, never bare colour, so a red button on this site always means “do this”, and never “you got that wrong”.",
       },
     ],
   },
@@ -350,7 +350,7 @@ export const site = {
     lede: "Questions, feedback, or a correction on a calculator? Send a message and we'll reply by email. You can also reach us directly.",
     emailLabel: "Or email us at",
     email: "info@towardpcc.com",
-    metaDescription: "Reach the TowardPCC team — a message form and direct email.",
+    metaDescription: "Reach the TowardPCC team: a message form and direct email.",
   },
 
   stub: {
@@ -362,22 +362,22 @@ export const site = {
     services: {
       formHeading: "Request research support",
       body: [
-        "We help with study design, analysis planning, biostatistics, and interpretation — not with individual patient care. Work is provided free of charge, subject to availability, and requests are answered in order of arrival and complexity.",
+        "We help with study design, analysis planning, biostatistics, and interpretation, but not with individual patient care. Work is provided free of charge, subject to availability, and requests are answered in order of arrival and complexity.",
         "Describe the question, not the patient: please do not include any patient-identifiable information in your request.",
       ],
     },
     knowledge: {
       formHeading: "Request a pilot",
       body: [
-        "The PedsCC Library is a self-hosted, invitation-only library that makes a unit's own protocols, guidelines, and slide decks fully searchable — down to the exact page — with a governed contribute-and-review workflow and locally-authored “our unit's approach” notes.",
+        "The PedsCC Library is a self-hosted, invitation-only library that makes a unit's own protocols, guidelines, and slide decks fully searchable, down to the exact page, with a governed contribute-and-review workflow and locally-authored “our unit's approach” notes.",
         "We pilot the software; each unit brings, owns, and can export its own content at any time. It has been validated on a real, multi-thousand-document collection and is offered as a pilot to interested PICU teams.",
       ],
     },
     data: {
       formHeading: "Register your interest",
       body: [
-        "The future Gulf and MENA PICU registry and unit dashboards will be built on the same validated scoring engine as the public calculators. This version collects no patient data — we are gauging interest and shaping governance with prospective participating units.",
-        "Servers are located in Saudi Arabia. For the registry itself, deployments will be configured to meet the data-protection requirements of each participating Gulf country — data residency, consent, and governance — in coordination with each institution.",
+        "The future Gulf and MENA PICU registry and unit dashboards will be built on the same validated scoring engine as the public calculators. This version collects no patient data. We are gauging interest and shaping governance with prospective participating units.",
+        "Servers are located in Saudi Arabia. For the registry itself, deployments will be configured to meet the data-protection requirements of each participating Gulf country (data residency, consent, and governance) in coordination with each institution.",
       ],
     },
   },
@@ -392,7 +392,7 @@ export const site = {
     knowledge: {
       badge: "In production · piloting across the Gulf",
       heading: "The PedsCC Library",
-      lede: "Your unit's own protocols, guidelines and teaching material — searchable down to the exact page. We pilot the software; your unit owns the content.",
+      lede: "Your unit's own protocols, guidelines and teaching material, searchable down to the exact page. We pilot the software; your unit owns the content.",
       stats: [
         { value: 2425, label: "Documents imported" },
         { value: 64388, label: "Pages indexed & searchable" },
@@ -415,7 +415,7 @@ export const site = {
         },
         {
           title: "“Our unit's approach”",
-          body: "Locally-authored consensus stances sit beside the external guideline — because the thing clinicians actually need is the tie-breaker.",
+          body: "Locally-authored consensus stances sit beside the external guideline, because the thing clinicians actually need is the tie-breaker.",
         },
       ],
       topicsHeading: "Organised the way a PICU thinks.",
@@ -436,7 +436,7 @@ export const site = {
         {
           question: "Who owns the content?",
           answer:
-            "Your unit does, entirely. We pilot the software, not the content. A nightly export runs so the database indexes your library but never imprisons it — you can leave with everything at any time.",
+            "Your unit does, entirely. We pilot the software, not the content. A nightly export runs so the database indexes your library but never imprisons it. You can leave with everything at any time.",
         },
         {
           question: "Is it an AI chatbot over medical knowledge?",
@@ -451,7 +451,7 @@ export const site = {
         {
           question: "What happens to documents that can't be read?",
           answer:
-            "They stay findable by metadata. Of 2,425 imported documents, 2,272 became full-text searchable — 2,197 by native extraction and 75 through OCR. The remaining 153 are legacy formats, images and video, catalogued and findable but not searchable inside.",
+            "They stay findable by metadata. Of 2,425 imported documents, 2,272 became full-text searchable: 2,197 by native extraction and 75 through OCR. The remaining 153 are legacy formats, images and video, catalogued and findable but not searchable inside.",
         },
       ],
     },
@@ -495,7 +495,7 @@ export const site = {
       capabilities: [
         {
           title: "No patient data here",
-          body: "This public site collects none. The registry runs as a separate, governed deployment inside the participating unit — it is not connected to this website.",
+          body: "This public site collects none. The registry runs as a separate, governed deployment inside the participating unit. It is not connected to this website.",
         },
         {
           title: "One validated engine",
@@ -503,7 +503,7 @@ export const site = {
         },
         {
           title: "Residency per jurisdiction",
-          body: "Deployments are configured to meet the data-protection requirements of each participating country — residency, consent and governance — with each institution.",
+          body: "Deployments are configured to meet the data-protection requirements of each participating country (residency, consent and governance) with each institution.",
         },
         {
           title: "Numbers we can stand behind",
@@ -519,7 +519,7 @@ export const site = {
         {
           question: "Can our unit join?",
           answer:
-            "The registry is at single-unit pilot stage. Register your interest and we will talk about governance, residency and timing — we would rather onboard slowly and correctly than broadly and badly.",
+            "The registry is at single-unit pilot stage. Register your interest and we will talk about governance, residency and timing. We would rather onboard slowly and correctly than broadly and badly.",
         },
         {
           question: "Where would our data live?",
@@ -531,7 +531,7 @@ export const site = {
     services: {
       badge: "Free · capacity-based",
       heading: "Research support for fellows and investigators",
-      lede: "Research aid, biostatistics analysis, and AI-assisted research guidance — provided free of charge by the TowardPCC team, subject to availability.",
+      lede: "Research aid, biostatistics analysis, and AI-assisted research guidance, provided free of charge by the TowardPCC team, subject to availability.",
       stats: [
         { value: 3, label: "Areas of support" },
         { value: 0, label: "Cost, in any currency" },
@@ -550,7 +550,7 @@ export const site = {
         },
         {
           title: "Biostatistics analysis",
-          body: "Study design and analysis support — chosen before data collection where possible, which is when it actually helps.",
+          body: "Study design and analysis support, chosen before data collection where possible, which is when it actually helps.",
         },
         {
           title: "AI-assisted guidance",
@@ -570,7 +570,7 @@ export const site = {
         {
           question: "What should I not send?",
           answer:
-            "Any patient-identifiable information. Describe the question, not the patient — we do not want, and will not store, identifiable clinical data.",
+            "Any patient-identifiable information. Describe the question, not the patient. We do not want, and will not store, identifiable clinical data.",
         },
         {
           question: "Will you help with individual patient care?",
@@ -595,7 +595,7 @@ export const site = {
       privacyLine:
         "We collect your name, email, and message only to reply. Stored on our servers in Saudi Arabia, kept up to 24 months, never used for tracking.",
       successTitle: "Message sent",
-      successBody: "Thank you — we've received your message and will reply by email.",
+      successBody: "Thank you. We've received your message and will reply by email.",
     },
     service: {
       submitLabel: "Request research support",
@@ -610,10 +610,10 @@ export const site = {
         },
       ],
       privacyLine:
-        "We collect your name, email, affiliation, and request to scope the work. No patient-identifiable data — describe the question, not the patient. Stored in Saudi Arabia, kept up to 24 months.",
+        "We collect your name, email, affiliation, and request to scope the work. No patient-identifiable data. Describe the question, not the patient. Stored in Saudi Arabia, kept up to 24 months.",
       successTitle: "Request received",
       successBody:
-        "Thank you — your request is queued. We'll reply by email as capacity allows. Requests are answered in order of arrival and complexity.",
+        "Thank you. Your request is queued. We'll reply by email as capacity allows. Requests are answered in order of arrival and complexity.",
     },
     knowledge: {
       submitLabel: "Request a pilot",
@@ -632,7 +632,7 @@ export const site = {
         "We collect your name, email, unit, and country to arrange the pilot. Your unit's documents always remain yours. Stored in Saudi Arabia, kept up to 24 months.",
       successTitle: "Pilot request received",
       successBody:
-        "Thank you — we've received your interest in the PedsCC Library pilot and will follow up by email to discuss next steps.",
+        "Thank you. We've received your interest in the PedsCC Library pilot and will follow up by email to discuss next steps.",
     },
     data: {
       submitLabel: "Register interest",
@@ -651,7 +651,7 @@ export const site = {
         "We collect your name, email, institution, and country to gauge registry interest. No patient data is collected in this version. Stored in Saudi Arabia, kept up to 24 months.",
       successTitle: "Interest registered",
       successBody:
-        "Thank you — we've noted your interest in the future PICU registry and will keep you posted as it takes shape.",
+        "Thank you. We've noted your interest in the future PICU registry and will keep you posted as it takes shape.",
     },
   },
 
@@ -659,12 +659,12 @@ export const site = {
     title: "How we handle data",
     heading: "How we handle data",
     metaDescription:
-      "TowardPCC's data-handling approach: client-side calculators, servers in Saudi Arabia, and minimal collection — never patient data.",
+      "TowardPCC's data-handling approach: client-side calculators, servers in Saudi Arabia, and minimal collection. Never patient data.",
     lede: "Privacy is designed into TowardPCC, not bolted on. This page states plainly what happens to data today; the full legal privacy policy lands before public launch.",
     sections: [
       {
         heading: "The calculators never send your inputs anywhere",
-        body: "Every calculation runs entirely in your browser. The values you type — a weight, a blood gas, a score — are computed on your own device and are never transmitted to us or stored on any server. You can confirm this: the calculators keep working with the network switched off.",
+        body: "Every calculation runs entirely in your browser. The values you type (a weight, a blood gas, a score) are computed on your own device and are never transmitted to us or stored on any server. You can confirm this: the calculators keep working with the network switched off.",
       },
       {
         heading: "No patient data is collected",
@@ -672,7 +672,7 @@ export const site = {
       },
       {
         heading: "Our servers are in Saudi Arabia",
-        body: "The site is hosted on infrastructure located in Saudi Arabia, and anything the platform stores — for example a pilot request you choose to send us — stays within that hosting.\n\nRequests to the site travel through a global content-delivery and security network before they reach those servers. That network protects the site and keeps it fast, and it means that while your data is stored in Saudi Arabia, the request carrying it may be processed outside the Kingdom while in transit. We would rather say so than imply otherwise.\n\nThe calculators are unaffected: what you type into them never leaves your browser at all, so there is nothing to route anywhere.",
+        body: "The site is hosted on infrastructure located in Saudi Arabia, and anything the platform stores (for example a pilot request you choose to send us) stays within that hosting.\n\nRequests to the site travel through a global content-delivery and security network before they reach those servers. That network protects the site and keeps it fast, and it means that while your data is stored in Saudi Arabia, the request carrying it may be processed outside the Kingdom while in transit. We would rather say so than imply otherwise.\n\nThe calculators are unaffected: what you type into them never leaves your browser at all, so there is nothing to route anywhere.",
       },
       {
         heading: "We collect the minimum to run the service",
@@ -745,7 +745,7 @@ export const site = {
     residencyHeading: "Where your data lives",
     // §8.3 approved wording — used in spirit; overclaiming is prohibited.
     residencyBody:
-      "TowardPCC is hosted on servers located in Saudi Arabia and operates in alignment with the Saudi Personal Data Protection Law (PDPL). For the upcoming PICU registry, deployments will be configured to comply with the data-protection requirements of each participating Gulf country — including data-residency, consent, and governance requirements — in coordination with each institution.",
+      "TowardPCC is hosted on servers located in Saudi Arabia and operates in alignment with the Saudi Personal Data Protection Law (PDPL). For the upcoming PICU registry, deployments will be configured to comply with the data-protection requirements of each participating Gulf country (including data-residency, consent, and governance requirements) in coordination with each institution.",
     subProcessorsHeading: "Who else touches the data",
     // Two corrections on 2026-07-28. It named "our email delivery for replies"
     // as a current sub-processor when no relay is configured and nothing has
@@ -757,13 +757,13 @@ export const site = {
       "We keep third parties to the minimum. Today they are three: Oracle Cloud Infrastructure, our hosting provider, in Saudi Arabia; Cloudflare, which routes and protects traffic to the site and therefore handles requests in transit; and a mail provider outside the Kingdom, which carries email sent to the address on this page and the internal notification telling us that something arrived. That notification names the kind of enquiry and nothing about the person who sent it. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
     deletionHeading: "Access, correction, and deletion",
     deletionBody:
-      "You can ask us what we hold about you, correct it, or have it deleted, at any time — email us and we will act on it. Calculator use leaves nothing to delete.",
+      "You can ask us what we hold about you, correct it, or have it deleted, at any time. Email us and we will act on it. Calculator use leaves nothing to delete.",
     contactLabel: "Email",
     contactEmail: "info@towardpcc.com",
     // TODO(counsel-review): full privacy policy pending counsel review before
     // launch — tracked in LAUNCH-BLOCKERS.md (kept out of the shipped copy).
     pendingNote:
-      "This is a plain-language summary written for clinicians and IT departments — not the final legal privacy policy. The full policy receives a counsel review before public launch.",
+      "This is a plain-language summary written for clinicians and IT departments, not the final legal privacy policy. The full policy receives a counsel review before public launch.",
   },
 
   terms: {
@@ -802,7 +802,7 @@ export const site = {
     title: "Medical disclaimer",
     heading: "Medical disclaimer",
     metaDescription:
-      "TowardPCC is an informational and educational aid for qualified health professionals — not a medical device, and not a substitute for clinical judgment.",
+      "TowardPCC is an informational and educational aid for qualified health professionals. Not a medical device, and not a substitute for clinical judgment.",
     lede: "The same disclaimer summarized on every calculator, in full.",
     sections: [
       {
@@ -819,7 +819,7 @@ export const site = {
       },
       {
         heading: "Validation is shown honestly",
-        body: "Each calculator shows its validation status plainly. Where independent clinical validators have not yet been named, the badge says so — “Independent clinical validation: pending” — rather than implying an endorsement that does not exist.",
+        body: "Each calculator shows its validation status plainly. Where independent clinical validators have not yet been named, the badge says so (“Independent clinical validation: pending”) rather than implying an endorsement that does not exist.",
       },
       {
         heading: "No patient-identifiable data",
@@ -829,7 +829,7 @@ export const site = {
   },
 
   pwa: {
-    offline: "You're offline — the calculators still work.",
+    offline: "You're offline. The calculators still work.",
     updateReady: "A new version is available.",
     updateAction: "Update",
     installTitle: "Install",
@@ -873,7 +873,7 @@ export const site = {
     indexLede:
       "Free, clinically referenced pediatric critical care scores. Every calculation runs in your browser and cites its published source.",
     searchPlaceholder: "Search calculators",
-    searchLabel: "Search calculators by name — press slash to jump here",
+    searchLabel: "Search calculators by name. Press slash to jump here.",
     noResults: "No calculators match your search.",
     noFavorites: "You have not starred any calculators yet.",
     filterGroupLabel: "Filter calculators by category",
@@ -882,7 +882,7 @@ export const site = {
     addFavorite: "Add to favorites:",
     removeFavorite: "Remove from favorites:",
     favoritesNote:
-      "Favorites are saved in this browser only — never transmitted or stored on a server.",
+      "Favorites are saved in this browser only, never transmitted or stored on a server.",
     categoryLabels: {
       "mortality-severity": "Mortality and severity",
       "organ-dysfunction": "Organ dysfunction",
