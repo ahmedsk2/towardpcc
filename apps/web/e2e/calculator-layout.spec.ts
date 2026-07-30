@@ -140,4 +140,57 @@ test.describe("calculator layout", () => {
       );
     }
   });
+
+  /**
+   * On one column the answer must follow the inputs directly.
+   *
+   * This shipped broken: the reference zone shared a column wrapper with the
+   * form, so a phone showed inputs, then the entire formula/limitations/
+   * evidence block, and only then the result. Nothing caught it, because every
+   * layout assertion above runs at 1440x900 where the two-column grid hides the
+   * source order entirely.
+   *
+   * Asserted on both a short and a long score: the short one is where a naive
+   * fix is tempting, and the long one is where the sticky rail it must not
+   * regress actually matters.
+   */
+  for (const slug of [SHORT, LONG]) {
+    test(`the result precedes the reference zone on a phone (${slug})`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto(slug);
+      await page.waitForLoadState("load");
+
+      const geometry = await page.evaluate(() => {
+        const result = document.querySelector('[data-print="result"]');
+        const tablist = document.querySelector('[role="tablist"]');
+        const form = document.querySelector("form[aria-label]");
+        if (!result || !tablist || !form) return null;
+        const y = (el: Element) => el.getBoundingClientRect().top + window.scrollY;
+        return {
+          formBottom: form.getBoundingClientRect().bottom + window.scrollY,
+          resultTop: y(result),
+          tablistTop: y(tablist),
+          singleColumn: result.getBoundingClientRect().left < 40,
+        };
+      });
+
+      expect(geometry, "expected a result panel, a tablist and a form").not.toBeNull();
+      const g = geometry!;
+
+      expect(g.singleColumn, "375px should not be rendering the two-column grid").toBe(true);
+      expect(g.resultTop, "the result must come after the inputs, not above them").toBeGreaterThan(
+        g.formBottom - 1,
+      );
+      expect(
+        g.tablistTop,
+        "the reference zone must come AFTER the result — it used to sit between the last input and the answer",
+      ).toBeGreaterThan(g.resultTop);
+
+      // And directly after: a row gap stacked on a component margin once left an
+      // 80px dead band here, which reads as the end of the page on a phone.
+      expect(g.resultTop - g.formBottom, "gap between the last input and the result").toBeLessThan(
+        72,
+      );
+    });
+  }
 });

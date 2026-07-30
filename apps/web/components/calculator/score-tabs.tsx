@@ -51,7 +51,9 @@ export function ScoreTabs({ items }: { items: readonly ScoreTab[] }) {
   };
 
   return (
-    <div className="mt-12">
+    // No top margin: the parent grid's row gap owns the space above this zone.
+    // Carrying both stacked them into an 80px gap on a phone.
+    <div>
       <noscript>
         <style
           dangerouslySetInnerHTML={{ __html: "[data-score-panel]{display:block!important}" }}

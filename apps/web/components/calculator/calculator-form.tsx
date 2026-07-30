@@ -203,7 +203,11 @@ function CalculatorFormInner({
      * The children are server components, slotted in here, so nothing extra
      * crosses the RSC boundary.
      */
-    <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+    /* gap-y-12 rather than a uniform gap-8, and ScoreTabs no longer carries its
+       own mt-12. Introducing a second grid row turned gap-8 into a ROW gap that
+       stacked on that margin, leaving an 80px dead band between the answer and
+       the reference zone on a phone. One source of vertical rhythm, not two. */
+    <div className="grid items-start gap-x-8 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
       <form
         className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1"
         noValidate
@@ -351,7 +355,13 @@ function InputField({
           {input.helpText && range ? " " : null}
           {/* Persists after typing, unlike the placeholder, so the accepted
               range is still on screen when a value is being corrected. */}
-          {range ? <span className="numeric text-ink-muted/85">Accepted {range}</span> : null}
+          {/* Full `ink-muted`, no opacity modifier. `/85` composited to #847579
+              on the page ground — 4.22:1 at 13px, under the 4.5:1 AA needs.
+              Plain ink-muted is 5.92:1. This is the line that tells a clinician
+              why their value was rejected, on every numeric field of every
+              calculator, so it was the worst possible place to shave contrast
+              for a shade of visual hierarchy. */}
+          {range ? <span className="numeric text-ink-muted">Accepted {range}</span> : null}
         </p>
       ) : null}
     </div>

@@ -164,10 +164,18 @@ body {
     font-size: 0.75em;
     word-break: break-all;
   }
-  /* Result panel: full width, no sticky, always visible. */
+  /* Result panel: full width, no sticky, always visible.
+
+     The grid placement must be reset too. Tailwind emits `lg:` as a bare
+     min-width query with no media type, so `lg:col-start-2 lg:row-start-1
+     lg:row-span-2` applies when printing and pinned the panel into a
+     22rem-wide second column on the page. Resetting position and width alone
+     left it there, because neither overrides grid placement. */
   [data-print="result"] {
     position: static !important;
     width: 100% !important;
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
     border: 1px solid #000 !important;
     break-inside: avoid;
   }
