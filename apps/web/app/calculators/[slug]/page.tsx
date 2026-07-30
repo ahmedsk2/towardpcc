@@ -73,6 +73,13 @@ export default async function CalculatorDetailPage({
    * which is most of why the page read as a wall of text. As panels they cost
    * the height of the tallest one rather than the sum of all four.
    *
+   * The measure is 58ch, not the 68ch it was, because `ch` is the width of the
+   * "0" glyph and this body face is narrower than that in ordinary lowercase
+   * text. 68ch measured 686px, which renders 82 characters per line — well past
+   * the 45-75 that stays comfortable to read, and a real part of why this zone
+   * felt heavy. 58ch lands near 70. The unit reads as though it means
+   * characters and does not.
+   *
    * They are server components passed into the client form as children, so the
    * score definition never crosses the RSC boundary as data.
    */
@@ -80,7 +87,7 @@ export default async function CalculatorDetailPage({
     {
       id: "formula",
       label: c.formulaHeading,
-      content: <p className="max-w-[68ch] leading-relaxed text-ink-body">{score.formula?.en}</p>,
+      content: <p className="max-w-[58ch] leading-relaxed text-ink-body">{score.formula?.en}</p>,
     },
     {
       id: "limitations",
@@ -89,7 +96,7 @@ export default async function CalculatorDetailPage({
         // The accepted-range list that used to live here is gone: every range
         // now sits in its own field, where a rejected value is actually being
         // corrected, rather than in a list at the bottom of the page.
-        <p className="max-w-[68ch] leading-relaxed text-ink-body">{score.notes.en}</p>
+        <p className="max-w-[58ch] leading-relaxed text-ink-body">{score.notes.en}</p>
       ),
     },
     {
@@ -102,7 +109,7 @@ export default async function CalculatorDetailPage({
             <h3 className="font-display text-lg font-medium text-ink-strong">
               {c.referencesHeading}
             </h3>
-            <ol className="mt-3 max-w-[68ch] list-decimal space-y-3 pl-5 leading-relaxed text-ink-body">
+            <ol className="mt-3 max-w-[58ch] list-decimal space-y-3 pl-5 leading-relaxed text-ink-body">
               {score.references.map((ref, i) => (
                 <li key={i}>
                   {ref.citation}
@@ -142,7 +149,7 @@ export default async function CalculatorDetailPage({
       id: "version",
       label: c.versionHeading,
       content: (
-        <div className="max-w-[68ch]">
+        <div className="max-w-[58ch]">
           <ValidationBadge validators={score.validators} />
           <ul className="mt-6 list-none space-y-3 text-sm text-ink-body">
             {score.changelog.map((entry) => (
@@ -233,7 +240,7 @@ export default async function CalculatorDetailPage({
             <h2 className="font-display text-lg font-medium text-ink-strong">
               {c.disclaimerHeading}
             </h2>
-            <Callout tone="note" className="mt-3 max-w-[68ch]">
+            <Callout tone="note" className="mt-3 max-w-[58ch]">
               {c.disclaimer}
             </Callout>
           </section>

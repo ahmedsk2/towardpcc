@@ -59,7 +59,7 @@ export default function ValidationPage() {
       <div className="mx-auto max-w-[1100px] px-6 py-16">
         <section>
           <h2 className="font-display text-2xl font-medium text-ink-strong">The standard</h2>
-          <div className="mt-4 max-w-[68ch] leading-relaxed text-ink-body">
+          <div className="mt-4 max-w-[58ch] leading-relaxed text-ink-body">
             <p>
               Two independent reviewers per score, each a clinician who uses it. Review means
               checking three things: that the formula matches the cited publication, that the
@@ -78,7 +78,7 @@ export default function ValidationPage() {
           <h2 className="font-display text-2xl font-medium text-ink-strong">
             Where it stands today
           </h2>
-          <p className="mt-3 max-w-[68ch] leading-relaxed text-ink-body">
+          <p className="mt-3 max-w-[58ch] leading-relaxed text-ink-body">
             {complete === 0 ? (
               <>
                 <strong>None of the {rows.length} scores has completed review.</strong> The engine
@@ -144,7 +144,7 @@ export default function ValidationPage() {
 
         <section className="mt-14">
           <h2 className="font-display text-2xl font-medium text-ink-strong">Volunteer</h2>
-          <div className="mt-4 max-w-[68ch] leading-relaxed text-ink-body">
+          <div className="mt-4 max-w-[58ch] leading-relaxed text-ink-body">
             <p>
               If you practise pediatric critical care and use any of these scores, you are qualified
               to review it. It takes about an hour per score: read the definition, check it against
@@ -163,7 +163,7 @@ export default function ValidationPage() {
           </Link>
         </section>
 
-        <Callout tone="note" className="mt-14 max-w-[68ch]">
+        <Callout tone="note" className="mt-14 max-w-[58ch]">
           Until a score is reviewed its page says so plainly. Nothing here is presented as validated
           because it is tested, and nothing is presented as tested because it is cited. They are
           three separate claims and the site keeps them apart.

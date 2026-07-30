@@ -39,8 +39,8 @@ function Claim({
   return (
     <section className="border-t border-border pt-8">
       <h2 className="font-display text-xl font-medium text-ink-strong">{heading}</h2>
-      <div className="mt-3 max-w-[68ch] leading-relaxed text-ink-body">{children}</div>
-      <p className="mt-4 flex max-w-[68ch] items-start gap-2.5 rounded-md border border-border-subtle bg-surface-sunken/60 p-3.5 font-numeric text-[13px] text-ink-muted">
+      <div className="mt-3 max-w-[58ch] leading-relaxed text-ink-body">{children}</div>
+      <p className="mt-4 flex max-w-[58ch] items-start gap-2.5 rounded-md border border-border-subtle bg-surface-sunken/60 p-3.5 font-numeric text-[13px] text-ink-muted">
         <span aria-hidden="true" className="mt-0.5 shrink-0 text-accent">
           ✓
         </span>
@@ -181,7 +181,7 @@ export default function TrustPage() {
           </Claim>
         </div>
 
-        <Callout tone="note" className="mt-14 max-w-[68ch]">
+        <Callout tone="note" className="mt-14 max-w-[58ch]">
           If a claim on this site cannot be checked, that is a defect. Tell us at{" "}
           <a
             href={`mailto:${site.utility.email}`}
