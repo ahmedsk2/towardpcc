@@ -220,6 +220,7 @@ function CalculatorFormInner({
             field={state[input.id] ?? { raw: "" }}
             error={errorsById.get(input.id)}
             onChange={(patch) => setField(input.id, patch)}
+            missingAsNormal={Boolean(definition.missingAsNormal)}
           />
         ))}
       </form>
@@ -238,16 +239,155 @@ function CalculatorFormInner({
   );
 }
 
+type OptionModel = { value: string; label: string };
+
+/**
+ * Whether a unit list can be shown as visible segments instead of a dropdown.
+ *
+ * Not "is it two options" — that premise breaks on the corpus. `unitsPerKgPerMin`
+ * pairs `units/kg/min` with `milliunits/kg/min` (12 and 17 characters), whose own
+ * doc-comment calls it a documented 1000x error trap; truncating either of those
+ * to fit a segment would be the worst possible place to save space. So the rule
+ * is written on length: two segments up to 6 characters, or three up to 3.
+ * Everything longer keeps the dropdown, which can show the full string.
+ */
+function unitsFitASegmentedToggle(units: readonly string[]): boolean {
+  const longest = Math.max(...units.map((u) => u.length));
+  return (units.length === 2 && longest <= 6) || (units.length === 3 && longest <= 3);
+}
+
+/**
+ * One option: a real `<input type="radio">` with the chrome hidden and the
+ * `<label>` carrying the visible treatment.
+ *
+ * The radio is present rather than simulated, so arrow-key navigation,
+ * selection-follows-focus, the single tab stop for the whole group, and form
+ * semantics are the browser's job rather than ours. `role="listbox"` would have
+ * implied a popup and handed us every keyboard behaviour to reimplement.
+ *
+ * Selected state carries FOUR cues, because `accent-tint` is #fff2ee — 1.10:1
+ * against white, and byte-identical to `surface-sunken`. It is invisible on its
+ * own and cannot mean anything by itself (WCAG 1.4.1). So: the radio dot fills
+ * (shape), the border goes crimson at a constant 2px (never 1px to 2px, which
+ * would shift every row by 2px), the label goes medium weight, and the tint
+ * arrives last as reinforcement rather than as the signal.
+ *
+ * Hover moves the BORDER, not the fill. `hover:bg-surface-sunken` would paint an
+ * unselected row #fff2ee — the selected fill exactly — so hovering would read as
+ * selecting.
+ */
+function OptionControl({
+  name,
+  option,
+  selected,
+  horizontal,
+  invalid,
+  onSelect,
+}: {
+  name: string;
+  option: OptionModel;
+  selected: boolean;
+  horizontal: boolean;
+  invalid: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <label
+      data-opt=""
+      {...(selected ? { "data-selected": "" } : {})}
+      /* No colour in the base string. `cn` here concatenates, it does not merge
+         Tailwind conflicts, so a `bg-*` in the base and another in the state
+         branch both land on the element and the stylesheet's own ordering picks
+         the winner — which was the base one. Each branch owns its colours
+         outright, so there is nothing to resolve. */
+      className={cn(
+        "flex min-h-11 cursor-pointer gap-2.5 rounded-md border-2 px-3 py-2.5 text-sm",
+        "transition-colors duration-150 motion-reduce:transition-none",
+        "focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
+        horizontal ? "items-center justify-center text-center" : "w-full items-start",
+        selected
+          ? "border-accent bg-accent-tint font-medium text-ink-strong"
+          : invalid
+            ? "border-alert-text bg-surface-raised text-ink-body"
+            : "border-border-strong bg-surface-raised text-ink-body hover:border-ink-muted",
+      )}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={option.value}
+        checked={selected}
+        onChange={onSelect}
+        className="mt-0.5 size-4 shrink-0 accent-accent"
+      />
+      <span>{option.label}</span>
+    </label>
+  );
+}
+
+/** Unit chooser as visible segments. Same radio mechanics as OptionControl. */
+function UnitToggle({
+  input,
+  units,
+  field,
+  onChange,
+}: {
+  input: ScoreInput;
+  units: readonly string[];
+  field: Field;
+  onChange: (patch: { raw?: string; unit?: string }) => void;
+}) {
+  const current = field.unit ?? units[0];
+  return (
+    <fieldset role="radiogroup" className="shrink-0">
+      {/* Preserves the accessible name the old `aria-label` supplied. */}
+      <legend className="sr-only">{`${input.label.en} ${c.unitLabel}`}</legend>
+      <div className="flex gap-1">
+        {units.map((u) => {
+          const selected = current === u;
+          return (
+            <label
+              key={u}
+              data-opt=""
+              {...(selected ? { "data-selected": "" } : {})}
+              className={cn(
+                "flex h-11 cursor-pointer items-center justify-center rounded-md border-2 px-3 text-sm",
+                "transition-colors duration-150 motion-reduce:transition-none",
+                "focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent",
+                selected
+                  ? "border-accent bg-accent-tint font-medium text-ink-strong"
+                  : "border-border-strong bg-surface-raised text-ink-body hover:border-ink-muted",
+              )}
+            >
+              <input
+                type="radio"
+                name={`unit-${input.id}`}
+                value={u}
+                checked={selected}
+                onChange={() => onChange({ unit: u })}
+                className="sr-only"
+              />
+              {u}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 function InputField({
   input,
   field,
   error,
   onChange,
+  missingAsNormal,
 }: {
   input: ScoreInput;
   field: Field;
   error?: string | undefined;
   onChange: (patch: { raw?: string; unit?: string }) => void;
+  missingAsNormal: boolean;
 }) {
   const id = `field-${input.id}`;
   const hasHint = Boolean(input.helpText) || input.type === "numeric";
@@ -265,14 +405,41 @@ function InputField({
       ? `${input.min}–${input.max}${input.unit.canonical ? ` ${input.unit.canonical}` : ""}`
       : null;
 
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium text-ink-strong">
-        {input.label.en}
-      </label>
+  const hint = error ? (
+    <p id={`${id}-error`} className="flex items-start gap-1.5 text-sm text-alert-text" role="alert">
+      <span
+        aria-hidden="true"
+        className="numeric mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-alert-bg text-[11px] font-medium"
+      >
+        !
+      </span>
+      {error}
+    </p>
+  ) : hasHint ? (
+    <p id={`${id}-help`} className="text-sm text-ink-muted">
+      {input.helpText?.en}
+      {input.helpText && range ? " " : null}
+      {/* Persists after typing, unlike the placeholder, so the accepted
+          range is still on screen when a value is being corrected. */}
+      {/* Full `ink-muted`, no opacity modifier. `/85` composited to #847579
+          on the page ground — 4.22:1 at 13px, under the 4.5:1 AA needs.
+          Plain ink-muted is 5.92:1. This is the line that tells a clinician
+          why their value was rejected, on every numeric field of every
+          calculator, so it was the worst possible place to shave contrast
+          for a shade of visual hierarchy. */}
+      {range ? <span className="numeric text-ink-muted">Accepted {range}</span> : null}
+    </p>
+  ) : null;
 
-      {input.type === "numeric" && (
-        <div className="flex gap-2">
+  if (input.type === "numeric") {
+    return (
+      <div className="flex flex-col gap-2">
+        <label htmlFor={id} className="text-sm font-medium text-ink-strong">
+          {input.label.en}
+        </label>
+        {/* `flex-wrap`, so on the narrowest phones the unit control drops to
+            its own line instead of squeezing the number box. No media query. */}
+        <div className="flex flex-wrap items-start gap-2">
           <input
             id={id}
             type="number"
@@ -283,88 +450,108 @@ function InputField({
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             onChange={(e) => onChange({ raw: e.target.value })}
-            className="numeric h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong tabular-nums placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
+            className="numeric h-11 w-full min-w-[8.5rem] flex-1 rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong tabular-nums placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
           />
-          {units.length > 1 && (
-            <select
-              aria-label={`${input.label.en} ${site.calculators.unitLabel}`}
-              value={field.unit ?? units[0]}
-              onChange={(e) => onChange({ unit: e.target.value })}
-              className="h-11 shrink-0 rounded-md border border-border-strong bg-surface-raised px-3 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
-            >
-              {units.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
-          )}
+          {units.length > 1 ? (
+            unitsFitASegmentedToggle(units) ? (
+              <UnitToggle input={input} units={units} field={field} onChange={onChange} />
+            ) : (
+              <select
+                aria-label={`${input.label.en} ${c.unitLabel}`}
+                value={field.unit ?? units[0]}
+                onChange={(e) => onChange({ unit: e.target.value })}
+                className="h-11 shrink-0 rounded-md border border-border-strong bg-surface-raised px-3 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
+              >
+                {units.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            )
+          ) : null}
         </div>
-      )}
+        {hint}
+      </div>
+    );
+  }
 
-      {input.type === "categorical" && (
-        <select
-          id={id}
-          value={field.raw}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange({ raw: e.target.value })}
-          className="h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
-        >
-          <option value="">—</option>
-          {input.options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label.en}
-            </option>
-          ))}
-        </select>
-      )}
+  const opts: OptionModel[] =
+    input.type === "boolean"
+      ? [
+          { value: "true", label: c.booleanYes },
+          { value: "false", label: c.booleanNo },
+        ]
+      : input.options.map((o) => ({ value: o.value, label: o.label.en }));
 
-      {input.type === "boolean" && (
-        <select
-          id={id}
-          value={field.raw}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy}
-          onChange={(e) => onChange({ raw: e.target.value })}
-          className="h-11 w-full rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
-        >
-          <option value="">—</option>
-          <option value="true">Yes</option>
-          <option value="false">No</option>
-        </select>
-      )}
+  // Two short options sit side by side; everything else stacks full-width.
+  //
+  // Decided from the label text, not from a breakpoint. The binding case is a
+  // 320px viewport, where the form column is 272px and a two-up cell is 132px —
+  // about 13 characters at 14px before the text wraps and the two segments stop
+  // matching height. Anything longer, or any group of three or more, gets rows.
+  // pGCS is the reason: its longest option is 76 characters, which no
+  // side-by-side arrangement survives at any width.
+  const horizontal = opts.length === 2 && Math.max(...opts.map((o) => o.label.length)) <= 13;
 
-      {error ? (
-        <p
-          id={`${id}-error`}
-          className="flex items-start gap-1.5 text-sm text-alert-text"
-          role="alert"
-        >
-          <span
-            aria-hidden="true"
-            className="numeric mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-alert-bg text-[11px] font-medium"
-          >
-            !
+  return (
+    /**
+     * `role="radiogroup"` is set explicitly. A bare `<fieldset>` maps to
+     * `role="group"` in HTML-AAM — there is no implicit radiogroup mapping — so
+     * without this a screen reader announces the options as a loose collection
+     * with no "3 of 6" position and no group semantics. `aria-labelledby`
+     * rather than relying on `<legend>`, because the native legend-names-fieldset
+     * behaviour is not guaranteed once the role is overridden.
+     */
+    <fieldset
+      role="radiogroup"
+      aria-labelledby={`${id}-legend`}
+      aria-describedby={describedBy}
+      aria-invalid={error ? true : undefined}
+      aria-required={input.required || undefined}
+      className="flex flex-col gap-2"
+    >
+      <legend id={`${id}-legend`} className="text-sm font-medium text-ink-strong">
+        {input.label.en}
+        {!input.required && (
+          <span className="ml-2 font-numeric text-[11px] tracking-[0.09em] text-ink-muted uppercase">
+            {missingAsNormal ? c.optionalScoredAsNormal : c.optionalLabel}
           </span>
-          {error}
-        </p>
-      ) : hasHint ? (
-        <p id={`${id}-help`} className="text-sm text-ink-muted">
-          {input.helpText?.en}
-          {input.helpText && range ? " " : null}
-          {/* Persists after typing, unlike the placeholder, so the accepted
-              range is still on screen when a value is being corrected. */}
-          {/* Full `ink-muted`, no opacity modifier. `/85` composited to #847579
-              on the page ground — 4.22:1 at 13px, under the 4.5:1 AA needs.
-              Plain ink-muted is 5.92:1. This is the line that tells a clinician
-              why their value was rejected, on every numeric field of every
-              calculator, so it was the worst possible place to shave contrast
-              for a shade of visual hierarchy. */}
-          {range ? <span className="numeric text-ink-muted">Accepted {range}</span> : null}
-        </p>
-      ) : null}
-    </div>
+        )}
+      </legend>
+
+      <div className={horizontal ? "grid max-w-sm grid-cols-2 gap-2" : "flex flex-col gap-2"}>
+        {opts.map((o) => (
+          <OptionControl
+            key={o.value}
+            name={id}
+            option={o}
+            selected={field.raw === o.value}
+            horizontal={horizontal}
+            invalid={Boolean(error)}
+            onSelect={() => onChange({ raw: o.value })}
+          />
+        ))}
+      </div>
+
+      {/* Offered on every group that holds a value, not only optional ones.
+          A native radio cannot be unchecked, and a `<select>` could always be
+          returned to its blank entry — without this, replacing the dropdowns
+          would quietly remove the ability to undo a mis-tap on the 13 required
+          categorical fields. */}
+      {field.raw !== "" && (
+        <button
+          type="button"
+          onClick={() => onChange({ raw: "" })}
+          className="inline-flex min-h-11 items-center self-start rounded-sm px-1 text-sm text-accent-deep underline decoration-accent/40 underline-offset-2 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          <span className="sr-only">{`${c.clearSelectionLabel} ${input.label.en}`}</span>
+          <span aria-hidden="true">{c.clearSelection}</span>
+        </button>
+      )}
+
+      {hint}
+    </fieldset>
   );
 }
 

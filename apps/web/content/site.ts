@@ -908,6 +908,17 @@ export const site = {
     copied: "Copied",
     printLabel: "Print",
     unitLabel: "Unit",
+    // Option groups. Yes/No were hardcoded in the JSX while every other
+    // user-visible string lives here.
+    booleanYes: "Yes",
+    booleanNo: "No",
+    optionalLabel: "Optional",
+    // Only for additive composites, where blank is not merely permitted but
+    // actively scored. Saying just "optional" there would understate it: the
+    // score comes out lower, not incomplete.
+    optionalScoredAsNormal: "Optional · blank scored as normal",
+    clearSelection: "Clear",
+    clearSelectionLabel: "Clear the selection for",
     // Privacy line — must be architecturally true (PRD §6.4)
     privacyLine:
       "Calculations run entirely in your browser. Nothing you enter is transmitted or stored.",

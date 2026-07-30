@@ -164,6 +164,24 @@ body {
     font-size: 0.75em;
     word-break: break-all;
   }
+  /* Option rows: print the chosen answer, not the whole scoring sheet.
+     A <select> printed as one box showing one value. Radio groups would
+     otherwise print all fifteen pGCS options, turning a clinical record into a
+     blank scoring sheet with marks on it. Keyed off `data-selected`, which
+     React sets, rather than `:has(:checked)` — the same signal the on-screen
+     styling uses, so the two cannot disagree. */
+  [data-opt]:not([data-selected]) {
+    display: none !important;
+  }
+  [data-opt] input {
+    display: none !important;
+  }
+  [data-opt] {
+    border: 0 !important;
+    background: none !important;
+    padding: 0 !important;
+  }
+
   /* Result panel: full width, no sticky, always visible.
 
      The grid placement must be reset too. Tailwind emits `lg:` as a bare
