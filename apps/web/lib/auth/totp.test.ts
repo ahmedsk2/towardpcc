@@ -40,7 +40,20 @@ describe("secret encryption (AES-256-GCM)", () => {
   it("rejects a tampered ciphertext (GCM auth tag)", () => {
     const enc = encryptSecret(generateTotpSecret());
     const [iv, tag, ct] = enc.split(".") as [string, string, string];
-    const flipped = ct.slice(0, -2) + (ct.endsWith("A") ? "B" : "A") + ct.slice(-1);
+
+    // Flip a bit in the decoded bytes rather than substituting a base64
+    // character. The previous version read `ct.endsWith("A")` but wrote to the
+    // SECOND-to-last position, so whenever that character was already "A" the
+    // "tampered" value was identical to the original — it decrypted correctly,
+    // nothing threw, and the test failed. Measured at 6.3% of runs.
+    const bytes = Buffer.from(ct, "base64");
+    bytes[0] ^= 0x01;
+    const flipped = bytes.toString("base64");
+
+    // Assert the precondition. A tamper test whose tamper silently did nothing
+    // is the failure this test just had; without this line the same class of
+    // bug returns unnoticed, passing instead of failing.
+    expect(flipped).not.toBe(ct);
     expect(() => decryptSecret([iv, tag, flipped].join("."))).toThrow();
   });
 

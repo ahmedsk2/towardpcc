@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/nav/site-header";
 import { BackToTop } from "@/components/nav/back-to-top";
 import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorker } from "@/components/pwa/service-worker";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { site } from "@/content/site";
 import { SITE_URL } from "@/lib/site-url";
 import { graph, organizationSchema, webSiteSchema } from "@/lib/structured-data";
@@ -90,6 +91,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <SiteFooter />
         <BackToTop />
+        {/* Last in the body: it is fixed-position, phone-only, and renders
+            nothing at all on the server or on any device that is already
+            installed, so it costs nothing where it does not apply. */}
+        <InstallPrompt />
       </body>
     </html>
   );

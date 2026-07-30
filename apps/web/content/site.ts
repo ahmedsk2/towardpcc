@@ -226,36 +226,9 @@ export const site = {
         "Fellowship — Pediatric Critical Care",
         "Fellowship — Pediatric Neurocritical Care",
       ],
-      publicationsLead: "Published work:",
-      /**
-       * Each entry renders as a link when `href` is present and as plain text
-       * otherwise. The section named two journals and carried no links at all,
-       * which on a page arguing for referenced evidence is the wrong signal.
-       *
-       * The DOIs are deliberately absent rather than guessed: a wrong DOI
-       * resolves to someone else’s paper, which is a worse failure than no
-       * link. Supply them and each becomes a link with no other change.
-       */
-      publications: [
-        {
-          title:
-            "Optimizing mechanical ventilation: personalizing mechanical power to reduce ICU mortality — a retrospective cohort study",
-          venue: "PLOS ONE, 2025",
-          href: "https://doi.org/10.1371/journal.pone.0318018",
-        },
-        {
-          title:
-            "Examining the use of machine learning algorithms to enhance the pediatric triaging approach",
-          venue: "Open Access Emergency Medicine, 2025",
-          href: "https://doi.org/10.2147/OAEM.S494280",
-        },
-        {
-          title:
-            "Predicting length of stay in the pediatric intensive care unit at a tertiary center in Saudi Arabia using machine learning",
-          venue: "International Journal of Medical Informatics, 2026",
-          href: "https://doi.org/10.1016/j.ijmedinf.2026.106482",
-        },
-      ] as { title: string; venue: string; href?: string }[],
+      // The publication list was removed at the founder's request. The ORCID
+      // link in the footer remains the canonical, self-updating record of the
+      // same thing, which is why nothing replaced it here.
     },
     ctaBand: {
       heading: "Start with a calculator. Stay for the rest.",
@@ -720,6 +693,17 @@ export const site = {
       columns: ["Feature", "What we collect", "Why", "Kept for"],
       rows: [
         ["Calculators", "Nothing", "They compute in your browser", "—"],
+        // Browser-local storage was missing from a table that calls itself the
+        // complete picture. It never reaches a server, so it was arguably out
+        // of scope — but "we collect nothing here" and "your browser keeps a
+        // couple of preferences" are different sentences, and a reader clearing
+        // site data deserves to know which one applies.
+        [
+          "Preferences saved in your browser",
+          "Which calculators you favorited, and whether you dismissed the install prompt",
+          "So the site remembers them on this device",
+          "Until you clear this browser's data",
+        ],
         [
           "Contact / pilot / interest / research forms",
           "Your name, email, and what you wrote; a salted, truncated hash of your IP",
@@ -871,6 +855,16 @@ export const site = {
     ],
     offlineNote:
       "Once installed and opened online at least once, the entire calculator catalogue works with no connection.",
+    // The phone-only install nudge. Worded around the offline capability rather
+    // than "install our app": a clinician adds this to a home screen because
+    // the ward has dead zones, not because they wanted another icon.
+    installPromptAriaLabel: "Install TowardPCC",
+    installPromptHeading: "Use the calculators offline",
+    installPromptBody:
+      "Add TowardPCC to your home screen and every calculator keeps working with no signal.",
+    installPromptAction: "Add to home screen",
+    installPromptHow: "How to install",
+    installPromptDismiss: "Not now",
   },
 
   calculators: {

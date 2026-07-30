@@ -57,9 +57,15 @@ export function SiteFooter() {
               </p>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-ink-on-dark/70">{site.footer.vision}</p>
+            {/* `flex w-fit`, not `inline-flex`. Both links were inline-level, so
+                they shared a line box and ran together as
+                "info@towardpcc.comFounder ORCID profile" — the margin-top on the
+                second one cannot separate two boxes that are on the same line.
+                `w-fit` keeps each hit area to its own text rather than the
+                column width. */}
             <a
               href={`mailto:${site.utility.email}`}
-              className="mt-4 inline-flex rounded-sm font-numeric text-xs tracking-[0.06em] text-coral transition-colors duration-150 hover:text-coral-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+              className="mt-4 flex w-fit rounded-sm font-numeric text-xs tracking-[0.06em] text-coral transition-colors duration-150 hover:text-coral-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
             >
               {site.utility.email}
             </a>
@@ -70,7 +76,7 @@ export function SiteFooter() {
             <a
               href={site.utility.orcid}
               rel="me noopener"
-              className="mt-2 inline-flex items-center gap-1.5 rounded-sm font-numeric text-xs tracking-[0.06em] text-ink-on-dark/70 transition-colors duration-150 hover:text-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+              className="mt-2 flex w-fit items-center gap-1.5 rounded-sm font-numeric text-xs tracking-[0.06em] text-ink-on-dark/70 transition-colors duration-150 hover:text-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="size-3.5 shrink-0">
                 <circle

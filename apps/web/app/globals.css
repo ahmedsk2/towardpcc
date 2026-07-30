@@ -92,6 +92,22 @@ body {
   }
 }
 
+/* Install-prompt entry (components/pwa/install-prompt.tsx). Motion-safe only;
+   under reduced motion the sheet simply appears.
+
+   An animation rather than a transition between two React states, deliberately.
+   A transition needs a painted frame to elapse between mount and the state
+   flip, which means driving it from requestAnimationFrame — and rAF does not
+   run while the tab is unfocused, so the banner mounted at opacity 0 and stayed
+   there until the tab was brought forward. An animation plays from the
+   stylesheet with no JavaScript timing at all. */
+@keyframes installIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
 /* Numbers are the product: any element carrying scores/results opts in. */
 .numeric {
   font-family: var(--font-numeric);

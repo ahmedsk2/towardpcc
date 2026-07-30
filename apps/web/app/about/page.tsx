@@ -88,24 +88,17 @@ export default function AboutPage() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-5 text-sm font-medium text-ink-strong">{f.publicationsLead}</p>
-              <ul className="mt-2 max-w-[62ch] list-none space-y-1.5 text-sm text-ink-muted">
-                {f.publications.map((p) => (
-                  <li key={p.title}>
-                    {p.href ? (
-                      <a
-                        href={p.href}
-                        className="text-accent-deep underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
-                      >
-                        {p.title}
-                      </a>
-                    ) : (
-                      <span className="text-ink-body">{p.title}</span>
-                    )}
-                    <span className="text-ink-muted"> — {p.venue}</span>
-                  </li>
-                ))}
-              </ul>
+              {/* Moved here when the home page's founder section was removed.
+                  It is founder context, and About is where founder context now
+                  lives — leaving it on the home page was the thing being
+                  removed, losing it altogether was not. */}
+              <p className="mt-6 font-numeric text-sm text-ink-muted">
+                <span className="font-semibold text-accent-deep tabular-nums">
+                  {site.home.founderYears.value}
+                  {site.home.founderYears.suffix}
+                </span>{" "}
+                {site.home.founderYears.label.toLowerCase()}
+              </p>
             </div>
           </Reveal>
         </div>
