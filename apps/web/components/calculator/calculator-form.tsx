@@ -183,29 +183,42 @@ function CalculatorFormInner({
   }, [definition, outcome]);
 
   return (
-    // The page's reference content is passed in as children and rendered in
-    // this column rather than after the grid. A sticky element can only travel
-    // within its parent, so when the grid held nothing but the inputs, a
-    // two-input score gave the result rail 11px of travel on a 2443px page and
-    // the answer scrolled away almost immediately. With the whole page in the
-    // left column the rail stays on screen for every score, however few inputs
-    // it has. The children are server components; they render on the server and
-    // are slotted in here, so nothing extra crosses the RSC boundary.
+    /**
+     * Three grid items in the order form → result → reference, placed
+     * explicitly on large screens and left to flow on small ones.
+     *
+     * The DOM order is the mobile order, and it is the reason for this shape.
+     * The reference content used to sit in the same column wrapper as the form,
+     * which on one column put the whole formula/limitations/evidence zone
+     * BETWEEN the last input and the answer: on a phone you typed a value and
+     * then scrolled past everything to find out what it computed.
+     *
+     * Moving it out cannot go back to the original arrangement either, where
+     * the grid held only the inputs. A sticky element travels within its own
+     * grid area, so a two-input score gave the result rail 11px of travel on a
+     * 2443px page and the answer scrolled away almost immediately. Spanning the
+     * rail across both rows restores the full-page travel while leaving the
+     * reference content after it in source order.
+     *
+     * The children are server components, slotted in here, so nothing extra
+     * crosses the RSC boundary.
+     */
     <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-      <div className="flex min-w-0 flex-col">
-        <form className="flex flex-col gap-5" noValidate aria-label={definition.name}>
-          {inputs.map((input) => (
-            <InputField
-              key={input.id}
-              input={input}
-              field={state[input.id] ?? { raw: "" }}
-              error={errorsById.get(input.id)}
-              onChange={(patch) => setField(input.id, patch)}
-            />
-          ))}
-        </form>
-        {children}
-      </div>
+      <form
+        className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1"
+        noValidate
+        aria-label={definition.name}
+      >
+        {inputs.map((input) => (
+          <InputField
+            key={input.id}
+            input={input}
+            field={state[input.id] ?? { raw: "" }}
+            error={errorsById.get(input.id)}
+            onChange={(patch) => setField(input.id, patch)}
+          />
+        ))}
+      </form>
 
       <ResultPanel
         definition={definition}
@@ -213,7 +226,10 @@ function CalculatorFormInner({
         copied={copied}
         onCopy={copySummary}
         showPartialCue={showPartialCue}
+        className="lg:col-start-2 lg:row-start-1 lg:row-span-2"
       />
+
+      <div className="min-w-0 lg:col-start-1 lg:row-start-2">{children}</div>
     </div>
   );
 }
@@ -348,12 +364,14 @@ function ResultPanel({
   copied,
   onCopy,
   showPartialCue,
+  className,
 }: {
   definition: ScoreDefinition;
   outcome: ComputeResult | null;
   copied: boolean;
   onCopy: () => void;
   showPartialCue: boolean;
+  className?: string;
 }) {
   const ok = outcome?.ok ? outcome : null;
   // One output → a single dominant headline. Several outputs → an equal-weight
@@ -366,7 +384,10 @@ function ResultPanel({
       data-print="result"
       // top-24 clears the sticky header (84px, shrinking to 64px on scroll)
       // rather than tucking underneath it.
-      className="h-max rounded-lg border border-border bg-surface-raised p-6 shadow-md lg:sticky lg:top-24"
+      className={cn(
+        "h-max rounded-lg border border-border bg-surface-raised p-6 shadow-md lg:sticky lg:top-24",
+        className,
+      )}
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
       {!ok ? (

@@ -46,8 +46,10 @@ describe("secret encryption (AES-256-GCM)", () => {
     // SECOND-to-last position, so whenever that character was already "A" the
     // "tampered" value was identical to the original — it decrypted correctly,
     // nothing threw, and the test failed. Measured at 6.3% of runs.
+    // read/write rather than `bytes[0] ^= 1`: noUncheckedIndexedAccess types an
+    // index read as possibly undefined, and these accessors are range-checked.
     const bytes = Buffer.from(ct, "base64");
-    bytes[0] ^= 0x01;
+    bytes.writeUInt8(bytes.readUInt8(0) ^ 0x01, 0);
     const flipped = bytes.toString("base64");
 
     // Assert the precondition. A tamper test whose tamper silently did nothing
