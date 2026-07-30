@@ -24,7 +24,7 @@ describe("calculator meta descriptions", () => {
   const describeFor = (slug: string) => scoreDescription(getScore(slug)!);
 
   it("covers every published score", () => {
-    expect(slugs.length).toBe(22);
+    expect(slugs.length).toBe(23);
   });
 
   it.each(slugs)("%s fits inside the display limit", (slug) => {

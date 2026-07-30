@@ -383,10 +383,16 @@ with what is known, for whoever next sees it fail and can capture the output.
 - [ ] Calculator validator slots empty by design — badge shows
       "Independent clinical validation: pending" until real names provided
 - [x] Tier-B instrument IP checks done (docs/decisions/ADR-tier-b-ip.md,
-      2026-07-25): all 8 stay unbuilt in v1 — 5 need permission (COMFORT-B,
-      CAPD, SOS-PD, FLACC, Bedside PEWS), 4 need legal review. To build any,
+      2026-07-25): 7 of 8 stay unbuilt in v1 — 5 need permission (COMFORT-B,
+      CAPD, SOS-PD, FLACC, Bedside PEWS), 3 need legal review. To build any,
       the founder must obtain written permission (FLACC/CAPD are the cleanest
       routes). Not a launch blocker for v1 (v1 ships the IP-clean scores).
+      PRISM III / PRISM IV is the eighth and is now BUILT and published
+      (2026-07-31): its patent expired in 2015 and PRISM IV was placed in the
+      public domain by its own authors, so the review it was waiting on had
+      already been answered by the primary sources. See the ADR addendum. The
+      "needs legal review" rating had been inherited from secondary sources
+      that were never revised after the patent lapsed.
 - [x] PWA raster PNG icons (192/512 + maskable) — DONE (polish pass): generated
       from the SVGs via Playwright/Chromium (sharp has no ARM64 dev binary),
       committed to public/, and wired into manifest.ts. Regenerate with

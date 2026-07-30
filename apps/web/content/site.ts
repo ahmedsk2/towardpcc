@@ -13,7 +13,7 @@
  * count is 87 — and it survived because the e2e guard compared the rendered
  * figure to this file, so the number only had to agree with itself.
  */
-const CITATIONS = 87;
+const CITATIONS = 91;
 
 export const site = {
   name: "TowardPCC",
@@ -86,7 +86,7 @@ export const site = {
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
     heroSceneLabel: "A calm, breathing respiratory waveform: the signature of TowardPCC.",
-    status: "Live. 22 referenced calculators.",
+    status: "Live. 23 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
       heading: "How we handle data",
@@ -99,9 +99,9 @@ export const site = {
       href: "/legal/data-protection",
     },
     // Hero eyebrow — reflects the live registry count, not a marketing claim.
-    badge: "Live now · 22 referenced calculators",
+    badge: "Live now · 23 referenced calculators",
     heroTrust: [
-      { value: "22", label: "Calculators live" },
+      { value: "23", label: "Calculators live" },
       // Value injected at render from the registry — see app/page.tsx. It was
       // hardcoded to 89 and the real count is 87; the site overclaimed by two
       // for as long as anyone had been reading it.
@@ -114,11 +114,12 @@ export const site = {
     features: [
       {
         title: "Referenced",
-        // NOT "with PMID and DOI" — that was on the homepage until 2026-07-28
-        // and only 56 of the 87 qualify. 16 have neither: the APLS manual is
-        // ISBN-only, Mosteller's BSA formula predates both schemes. What is
-        // true of all 87, and enforced by registry-gate.test.ts, is that each
-        // resolves to something a reader can open.
+        // NOT "with PMID and DOI" — that was on the homepage until 2026-07-28,
+        // when only 56 of the then-87 qualified. Some have neither: the APLS
+        // manual is ISBN-only, Mosteller's BSA formula predates both schemes.
+        // What is true of all of them, and enforced by registry-gate.test.ts,
+        // is that each resolves to something a reader can open. The count is
+        // derived from the registry by figures.test.ts, never typed twice.
         body: `${CITATIONS} citations, every one traceable to its source. Never a number without a reason.`,
         tone: "crimson" as const,
       },
@@ -140,7 +141,7 @@ export const site = {
     ],
     /**
      * Counters. Every figure is verified against the repo:
-     * 22 registered scores, and the citation total COUNTED from those
+     * Registered-score and citation totals are COUNTED from the registry
      * definitions rather than typed — see CITATIONS above. The typed figure was
      * 89 against a real 87, and the e2e guard did not catch it because it
      * compared the rendered number to this file rather than to the registry.
@@ -152,7 +153,7 @@ export const site = {
     countersLede:
       "Every figure here is something you can go and count. Nothing on this page is an estimate.",
     counters: [
-      { value: 22, label: "Referenced calculators" },
+      { value: 23, label: "Referenced calculators" },
       { value: CITATIONS, label: "Literature citations" },
       { value: 64388, label: "Library pages indexed" },
       { value: 100, suffix: "%", label: "Engine test coverage" },
@@ -244,7 +245,7 @@ export const site = {
         {
           state: "Live now",
           items: [
-            "22 referenced PICU calculators",
+            "23 referenced PICU calculators",
             "Offline-capable, installable as an app",
             "Free research and biostatistics support",
           ],
@@ -488,7 +489,7 @@ export const site = {
       lede: "A PICU registry is currently being piloted in one unit in the Gulf region, built on the same validated scoring engine as the public calculators.",
       stats: [
         { value: 1, label: "Pilot unit" },
-        { value: 22, label: "Scores available to the registry" },
+        { value: 23, label: "Scores available to the registry" },
         { value: 0, label: "Patient records on this site" },
       ],
       capabilitiesHeading: "Governance before scale.",

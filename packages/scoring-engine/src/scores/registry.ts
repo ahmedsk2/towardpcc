@@ -16,6 +16,7 @@ import { pelod2 } from "./pelod2";
 import { pfRatio } from "./pf-ratio";
 import { phoenix } from "./phoenix";
 import { pim3 } from "./pim3";
+import { prism } from "./prism";
 import { psofa } from "./psofa";
 import { qtc } from "./qtc";
 import { serumOsmolality } from "./serum-osmolality";
@@ -44,6 +45,7 @@ export const registry: readonly ScoreDefinition[] = [
   pfRatio,
   phoenix,
   pim3,
+  prism,
   psofa,
   qtc,
   serumOsmolality,
