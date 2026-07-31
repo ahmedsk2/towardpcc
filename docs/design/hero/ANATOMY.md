@@ -456,10 +456,73 @@ rather than `insidePleura`, which is both more correct and measurably better.
 
 ---
 
-## Known open defect — the heart floats above the diaphragm
+## Amendment E — the diaphragm domes, and what that resolved (2026-07-31)
 
-Found by the phase-1 verification sweep, confirmed by measurement, and NOT
-fixed. Recording it rather than leaving it for the next reader to rediscover.
+### The heart no longer floats
+
+The open defect recorded here is CLOSED. It was not, in the end, about which
+landmark was wrong. It was about the SHAPE.
+
+A hemidiaphragm does not fall monotonically from the mediastinum outward. It
+rises from the cardiophrenic angle to a dome over the central tendon and only
+then falls to the costophrenic angle. Modelled as a monotonic fall it was
+highest exactly where the heart has to rest on it, so there was nowhere to put
+the heart but above the entire diaphragm, with a 0.096-tall band of lung in the
+wedge between them — in the one place a chest film shows the cardiac silhouette
+merging into the diaphragm.
+
+Both alternatives listed here were worse than they looked. Raising the domes
+uniformly closed the gap and dragged the costophrenic angles from 32 and 43
+degrees down to 18 and 22, pulling delivered depth away from spec. Lowering the
+apex pushed cardiac height past the real range.
+
+With the dome at 40% of the way out, the lateral fall runs from there rather
+than from the midline: the same drop over 60% of the distance, needing far less
+curvature, so the falloff power drops from 6.5 to 1.8. Every measure improves
+at once.
+
+|                               | Before      | After      | Spec  |
+| ----------------------------- | ----------- | ---------- | ----- |
+| Lung beneath the cardiac apex | 213 samples | **0**      | none  |
+| Costophrenic angle, right     | 32 deg      | **30 deg** | 32    |
+| Costophrenic angle, left      | 43 deg      | **34 deg** | 32    |
+| Angle asymmetry               | 0.0150      | **0.0150** | 0.015 |
+
+The dome constants change MEANING as well as value: they are now the height at
+the central tendon, not at the mediastinum, which is what a dome is.
+
+Asserted, and the assertion was confirmed to fail on the old diaphragm.
+
+### R:L lung volume is 1.00, and the diaphragm is not why
+
+Measured while chasing the above, and NOT fixed.
+
+|                              | Ratio       |
+| ---------------------------- | ----------- |
+| Documented                   | 1.10 - 1.25 |
+| Shell volume, with the heart | **1.00**    |
+| Shell volume, heart removed  | **0.943**   |
+
+Without the heart the LEFT lung is larger, because its hemidiaphragm is lower.
+The heart then removes 8.6% of the left against 3.1% of the right, which
+cancels almost exactly to parity. Dome height does not move it: the ratio held
+at 1.00 across every dome pair tested. Nor does the mediastinal border, which
+shifts a lung rather than narrowing it and pushes it past the chest wall.
+
+Reaching the documented range needs the heart to displace roughly twice as much
+left lung as it does. The heart's own size is not in question — CTR is 0.4797
+against a specified 0.48 and both borders are exact — so the missing volume
+belongs to structures this model does not have: the descending aorta, the
+oesophagus, and in a child the thymus, all of which sit left and posterior.
+
+Left as a measured limitation rather than tuned away. A constant chosen to land
+the ratio would be exactly the mistake the mass-fraction assertion taught:
+fitting geometry to a number that is measuring something else.
+
+## Superseded — the heart floats above the diaphragm
+
+CLOSED by Amendment E above. Kept for the measurements, which is why the fix
+was findable.
 
 The cardiac hull's lowest point is y = **-0.459**. The left hemidiaphragm dome
 is at **-0.555**. Between them, directly beneath the cardiac apex at x = 0.149,
