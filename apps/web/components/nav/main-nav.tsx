@@ -165,9 +165,18 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                       </p>
                       <Link
                         href="/calculators"
-                        className="shrink-0 rounded-sm font-numeric text-[11px] tracking-[0.09em] text-accent uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        className="group/all shrink-0 rounded-sm font-numeric text-[11px] tracking-[0.09em] text-accent uppercase transition-[color] duration-150 ease-[var(--motion-ease)] hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
                       >
-                        {site.nav.browseAll} →
+                        {site.nav.browseAll}{" "}
+                        {/* The arrow advances rather than the label moving: a
+                            label that shifts on hover is harder to click, which
+                            is the opposite of what the affordance is for. */}
+                        <span
+                          aria-hidden="true"
+                          className="inline-block transition-[translate] duration-150 ease-[var(--motion-ease)] group-hover/all:translate-x-0.5 motion-reduce:transition-none"
+                        >
+                          →
+                        </span>
                       </Link>
                     </div>
 
@@ -297,7 +306,9 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
             </ul>
             <Link
               href="/calculators"
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-bold text-ink-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              // Matches the header CTA: accent-deep on hover, which holds
+              // 9.05:1 under white where accent-bright would fall to 4.01:1.
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-bold text-ink-on-accent transition-[background-color,box-shadow] duration-150 ease-[var(--motion-ease)] hover:bg-accent-deep hover:shadow-[var(--shadow-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
             >
               {site.nav.headerCta}
             </Link>

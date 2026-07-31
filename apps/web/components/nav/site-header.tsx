@@ -51,8 +51,16 @@ export function SiteHeader() {
         <Link
           href="/"
           aria-label={site.nav.homeAriaLabel}
-          className="flex shrink-0 items-center gap-2.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="flex shrink-0 items-center gap-2.5 rounded-sm transition-[filter] duration-150 ease-[var(--motion-ease)] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
         >
+          {/* Hover brightens the mark rather than moving it: a logo that
+              shifts makes the whole header feel loose.
+              On the ANCHOR, as a plain `hover:` — a `group-hover/brand:`
+              variant on the child never applied, while `size-9` on the same
+              element did, so Tailwind was loaded and the named-group variant
+              specifically was not resolving. A hover that silently does
+              nothing is worse than no hover, and plain `hover:` is the form
+              every working hover on this site already uses. */}
           <span className="grid size-9 place-items-center rounded-[11px] bg-gradient-accent shadow-[0_6px_16px_-6px_rgba(207,31,61,0.6)]">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-5 text-white">
               <path
