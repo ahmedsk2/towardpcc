@@ -63,12 +63,12 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
           <g className="cps-world">
             {scene.paths.map((p) => (
               <path
-                key={`${p.kind}${p.band}`}
+                key={`${p.kind}${p.band}${p.dots ? "d" : ""}`}
                 className={`cps-${p.kind}`}
                 d={p.d}
                 fill="none"
                 stroke={INK[p.kind]}
-                strokeOpacity={p.opacity.toFixed(3)}
+                strokeOpacity={Math.min(1, p.opacity).toFixed(3)}
                 strokeWidth={p.width.toFixed(2)}
                 strokeLinecap="round"
               />

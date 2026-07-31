@@ -57,7 +57,10 @@ test.describe("hero figure", () => {
     // collapse is the whole rendering argument: as individual lines this would
     // be six times the element budget for a figure that never changes shape.
     expect(scene!.edges, "the mesh is missing").toBeGreaterThan(1500);
-    expect(scene!.paths, "edges were not bucketed into bands").toBeLessThanOrEqual(15);
+    // Five bands per system for the edges and five more for the vertices,
+    // which are zero-length subpaths with a round linecap rather than three
+    // thousand circles.
+    expect(scene!.paths, "edges were not bucketed into bands").toBeLessThanOrEqual(30);
     expect(scene!.airwayBands).toBeGreaterThan(2);
     expect(scene!.heartBands).toBeGreaterThan(2);
     expect(scene!.pleuraBands).toBeGreaterThan(2);

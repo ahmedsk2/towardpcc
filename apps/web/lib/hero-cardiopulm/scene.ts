@@ -44,6 +44,20 @@ export interface ScenePath {
   d: string;
   opacity: number;
   width: number;
+  /**
+   * True for the vertex paths.
+   *
+   * Vertices are drawn as ZERO-LENGTH SUBPATHS with a round linecap, which a
+   * renderer paints as a disc of stroke-width diameter. That is what makes
+   * them free: three thousand vertices would be three thousand circles, most
+   * of the element budget spent on texture, but as `M x y L x y` they fold
+   * into the same depth-banded paths the edges already use and cost nothing
+   * but path data.
+   *
+   * They earn their place — a mesh drawn as edges alone reads as a net, and
+   * the vertices are what make it read as sampled structure.
+   */
+  dots?: boolean;
 }
 
 export interface SceneNode {
@@ -91,6 +105,9 @@ const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: 
   pleura: { far: 0.035, near: 0.17, wFar: 0.4, wNear: 0.65 },
 };
 
+/** Vertices sit a little brighter than their edges, or they vanish into them. */
+const DOT_LIFT = 1.35;
+
 const KIND_ORDER: MeshKind[] = ["pleura", "airway", "heart"];
 
 let cached: SceneModel | null = null;
@@ -132,6 +149,29 @@ export function buildScene(): SceneModel {
         // the volume feel deep rather than merely layered.
         opacity: style.far + (style.near - style.far) * Math.pow(t, 1.6),
         width: style.wFar + (style.wNear - style.wFar) * t,
+      });
+    });
+
+    // Vertices, in the same bands.
+    const dotBuckets: string[][] = Array.from({ length: BANDS }, () => []);
+    mesh.points.forEach((p, i) => {
+      if (p.kind !== kind) return;
+      const q = projected[i]!;
+      const band = Math.min(BANDS - 1, Math.floor(norm(q.z) * BANDS));
+      const x = q.x.toFixed(1);
+      const y = q.y.toFixed(1);
+      dotBuckets[band]!.push(`M${x} ${y}L${x} ${y}`);
+    });
+    dotBuckets.forEach((segs, band) => {
+      if (!segs.length) return;
+      const t = band / (BANDS - 1);
+      paths.push({
+        kind,
+        band,
+        d: segs.join(""),
+        dots: true,
+        opacity: (style.far + (style.near - style.far) * Math.pow(t, 1.4)) * DOT_LIFT,
+        width: style.wFar * 1.5 + (style.wNear * 2.2 - style.wFar * 1.5) * t,
       });
     });
   }

@@ -101,18 +101,26 @@ describe("scene projection", () => {
     // The whole rendering argument: 3,000 edges as individual lines would be
     // six times the element budget for a figure that never changes shape.
     expect(scene.counts.edges).toBeGreaterThan(1500);
-    expect(scene.paths.length).toBeLessThanOrEqual(15);
-    expect(scene.counts.elements).toBeLessThan(600);
+    // Five bands per system for the edges, and five more for the vertices,
+    // which ride as zero-length subpaths rather than as three thousand circles.
+    expect(scene.paths.length).toBeLessThanOrEqual(30);
+    expect(scene.counts.elements).toBeLessThan(150);
   });
 
   it("shades the depth bands monotonically", () => {
     // Depth is carried by brightness alone, so the bands must be ordered. If
     // they were not, near structure would recede behind far structure.
+    // Edges and vertices band independently, so each family is checked on its
+    // own — interleaving them would compare a near edge against a far dot.
     for (const kind of ["airway", "heart", "pleura"] as const) {
-      const bands = scene.paths.filter((p) => p.kind === kind).sort((a, b) => a.band - b.band);
-      for (let i = 1; i < bands.length; i++) {
-        expect(bands[i]!.opacity).toBeGreaterThan(bands[i - 1]!.opacity);
-        expect(bands[i]!.width).toBeGreaterThan(bands[i - 1]!.width);
+      for (const dots of [false, true]) {
+        const bands = scene.paths
+          .filter((p) => p.kind === kind && Boolean(p.dots) === dots)
+          .sort((a, b) => a.band - b.band);
+        for (let i = 1; i < bands.length; i++) {
+          expect(bands[i]!.opacity).toBeGreaterThan(bands[i - 1]!.opacity);
+          expect(bands[i]!.width).toBeGreaterThan(bands[i - 1]!.width);
+        }
       }
     }
   });
@@ -121,7 +129,7 @@ describe("scene projection", () => {
     // The pleura is the room, not the subject. Drawn any heavier it becomes an
     // outline, and an outline around a mesh reads as a box.
     const brightest = (kind: string) =>
-      Math.max(...scene.paths.filter((p) => p.kind === kind).map((p) => p.opacity));
+      Math.max(...scene.paths.filter((p) => p.kind === kind && !p.dots).map((p) => p.opacity));
     expect(brightest("pleura")).toBeLessThan(brightest("airway"));
     expect(brightest("airway")).toBeLessThan(brightest("heart"));
   });
