@@ -1,4 +1,5 @@
-import { ENVELOPE, HEART, LUNG, THORAX } from "./anatomy";
+import { ENVELOPE, FISSURES, HEART, LUNG, THORAX } from "./anatomy";
+import type { Lobe } from "./tree";
 import { cardiacField } from "./heart";
 
 /**
@@ -97,6 +98,32 @@ export function notchDepthAt(y: number): number {
       ? (u / n.deepestAtFraction) * 0.5
       : 0.5 + ((u - n.deepestAtFraction) / (1 - n.deepestAtFraction)) * 0.5;
   return n.medialX * (0.5 - 0.5 * Math.cos(2 * Math.PI * skewed));
+}
+
+/** Signed distance to the oblique fissure: positive above it (upper lobe). */
+export function obliqueFissureSide(y: number, z: number): number {
+  return y - (LUNG_CENTRE_Y + FISSURES.obliqueOffsetY) + z * FISSURES.obliqueSlopeZ;
+}
+
+/**
+ * Which lobe a point belongs to, from the FISSURE PLANES.
+ *
+ * The fissures are already the thing that divides a lung into lobes, so lobe
+ * membership is a question the geometry can answer exactly rather than a label
+ * assigned by whichever bronchus happened to reach a point first.
+ *
+ * This matters beyond bookkeeping: AIRWAYS DO NOT CROSS FISSURES. A bronchus
+ * that ends up in the wrong lobe is not a near miss, it is an anatomical
+ * impossibility, and growing each lobe's tree only toward its own territory is
+ * what makes that structurally true instead of merely likely.
+ */
+export function lobeAt(x: number, y: number, z: number): Lobe | null {
+  if (!insideLung(x, y, z)) return null;
+  const sign = x < 0 ? -1 : 1;
+  if (sign > 0) return obliqueFissureSide(y, z) > 0 ? "lul" : "lll";
+  if (obliqueFissureSide(y, z) <= 0) return "rll";
+  // Horizontal fissure, RIGHT LUNG ONLY — what resolves three lobes there.
+  return y > LUNG_CENTRE_Y + FISSURES.horizontalOffsetY ? "rul" : "rml";
 }
 
 /**

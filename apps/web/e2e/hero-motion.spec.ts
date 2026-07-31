@@ -21,11 +21,11 @@ import { expect, test } from "@playwright/test";
  *    the figure keeps rendering, just flat.
  *
  * What is new, because this scene can fail in ways the stack could not: the
- * geometry is server-rendered and only four custom properties are animated, so
- * both halves of that split need holding in place.
+ * geometry is server-rendered as depth-banded paths and only four custom
+ * properties are animated, so both halves of that split need holding in place.
  */
 test.describe("hero figure", () => {
-  test("renders the cardiopulmonary scene, separated in depth", async ({ page }) => {
+  test("renders the cardiopulmonary mesh, shaded by depth", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("load");
 
@@ -33,41 +33,42 @@ test.describe("hero figure", () => {
       const frame = document.querySelector(".cps-frame");
       const world = document.querySelector(".cps-world");
       if (!frame || !world) return null;
-      const particles = Array.from(frame.querySelectorAll<HTMLElement>(".cps-g > i"));
-      const depths = new Set(
-        particles.map((el) => {
-          const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
-          return Math.round(m.m43);
-        }),
+      const paths = Array.from(frame.querySelectorAll<SVGPathElement>("path[class^=cps-]"));
+      const opacities = new Set(paths.map((p) => getComputedStyle(p).strokeOpacity));
+      const segments = paths.reduce(
+        (a, p) => a + (p.getAttribute("d") ?? "").split("M").length - 1,
+        0,
       );
       return {
-        particles: particles.length,
-        groups: frame.querySelectorAll(".cps-g").length,
-        shells: frame.querySelectorAll(".cps-shell").length,
-        chambers: frame.querySelectorAll(".cps-chamber").length,
-        preserve3d: getComputedStyle(world).transformStyle,
+        paths: paths.length,
+        edges: segments,
+        airwayBands: frame.querySelectorAll("path.cps-airway").length,
+        heartBands: frame.querySelectorAll("path.cps-heart").length,
+        pleuraBands: frame.querySelectorAll("path.cps-pleura").length,
+        clusters: frame.querySelectorAll(".cps-clusters circle").length,
+        heartNodes: frame.querySelectorAll(".cps-heart-nodes circle").length,
+        distinctOpacities: opacities.size,
         worldTransformed: getComputedStyle(world).transform !== "none",
-        perspective: getComputedStyle(document.querySelector(".cps-stage")!).perspective,
-        distinctDepths: depths.size,
       };
     });
 
     expect(scene, "expected the scene in the DOM").not.toBeNull();
-    expect(scene!.particles).toBeGreaterThan(400);
-    expect(scene!.shells, "three nested pleural outlines per lung").toBe(6);
-    expect(scene!.chambers, "four cardiac chambers").toBe(4);
 
-    // The performance argument rests on grouping: per-frame cost scales with
-    // the number of elements whose style changes, not with particle count.
-    expect(scene!.groups).toBeLessThan(100);
+    // Thousands of edges, collapsed into a handful of depth-banded paths. That
+    // collapse is the whole rendering argument: as individual lines this would
+    // be six times the element budget for a figure that never changes shape.
+    expect(scene!.edges, "the mesh is missing").toBeGreaterThan(1500);
+    expect(scene!.paths, "edges were not bucketed into bands").toBeLessThanOrEqual(15);
+    expect(scene!.airwayBands).toBeGreaterThan(2);
+    expect(scene!.heartBands).toBeGreaterThan(2);
+    expect(scene!.pleuraBands).toBeGreaterThan(2);
+    expect(scene!.clusters, "no alveolar clusters").toBeGreaterThan(20);
+    expect(scene!.heartNodes, "no cardiac vertices").toBeGreaterThan(100);
 
-    expect(scene!.preserve3d, "preserve-3d is lost — the scene will render flat").toBe(
-      "preserve-3d",
-    );
-    expect(scene!.worldTransformed, "the scene is not rotated into perspective").toBe(true);
-    expect(scene!.perspective, "no perspective — the depth is wasted").not.toBe("none");
-    // Particles genuinely occupy different depths rather than one plane.
-    expect(scene!.distinctDepths, "particles are not separated in Z").toBeGreaterThan(20);
+    // Depth is carried by brightness alone, so the bands must actually differ.
+    // If they collapsed to one opacity the mesh would read as a flat doily.
+    expect(scene!.distinctOpacities, "depth banding is not shading").toBeGreaterThan(4);
+    expect(scene!.worldTransformed, "the sway is not applied").toBe(true);
   });
 
   test("lays the scene out proportionally, with nothing escaping the frame", async ({ page }) => {
@@ -86,23 +87,16 @@ test.describe("hero figure", () => {
         const previous = card.style.width;
         card.style.width = `${w}px`;
         const box = frame.getBoundingClientRect();
-        const escaped = Array.from(frame.querySelectorAll<HTMLElement>(".cps-g > i")).filter(
-          (el) => {
-            const r = el.getBoundingClientRect();
-            return (
-              r.left < box.left - 2 ||
-              r.right > box.right + 2 ||
-              r.top < box.top - 2 ||
-              r.bottom > box.bottom + 2
-            );
-          },
-        ).length;
+        const svg = frame.querySelector<SVGSVGElement>(".cps-svg")!.getBoundingClientRect();
         const aspect = box.width / box.height;
         card.style.width = previous;
-        return { escaped, aspect };
+        return {
+          aspect,
+          fills: Math.abs(svg.width - box.width) < 2 && Math.abs(svg.height - box.height) < 2,
+        };
       }, width);
 
-      expect(overflow.escaped, `particles escaped the frame at ${width}px`).toBe(0);
+      expect(overflow.fills, `the scene did not fill its frame at ${width}px`).toBe(true);
       expect(overflow.aspect, `aspect drifted at ${width}px`).toBeCloseTo(340 / 440, 2);
     }
   });
@@ -163,14 +157,14 @@ test.describe("hero figure", () => {
   });
 
   test("the geometry is server-rendered, not built in the browser", async ({ page }) => {
-    // 544 particles must arrive as HTML. If they ever start being constructed
+    // The mesh must arrive as HTML. If it ever starts being constructed
     // client-side, the route pays for the geometry twice and the scene pops in
     // after hydration instead of being there on first paint.
     const response = await page.request.get("/");
     const html = await response.text();
-    const particles = (html.match(/class="cps-g[^"]*"/g) ?? []).length;
-    expect(particles, "groups are missing from the server HTML").toBeGreaterThan(50);
-    expect(html).toContain("cps-shell");
+    const bands = (html.match(/class="cps-(airway|heart|pleura)"/g) ?? []).length;
+    expect(bands, "the mesh is missing from the server HTML").toBeGreaterThan(8);
+    expect(html).toContain("cps-clusters");
   });
 
   test("no 3D library and no canvas is downloaded for the hero", async ({ page }) => {

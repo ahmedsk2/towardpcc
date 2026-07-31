@@ -221,10 +221,16 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
       // at x -0.054 and the left at +0.124, so the right tree must cross 0.313
       // to reach its pleura against the left's 0.228 — and both sides had the
       // same decay, depth and isotropic branching.
+      //
+      // Measured on the TREE, not on the sampled particles. The particles are a
+      // thinned draw from the tree, so at the narrow preset's smaller budget
+      // the extremes are simply less likely to be sampled — the same assertion
+      // read 0.827 on desktop and 0.684 on narrow for identical geometry. What
+      // fills a lung is where the airway reaches.
       let minX = Infinity;
       let maxX = -Infinity;
-      for (let i = 0; i < s.tree.count; i++) {
-        const x = s.tree.positions[i * 3]!;
+      for (let i = 0; i < s.tree.segments.length; i += 3) {
+        const x = s.tree.segments[i]!;
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
       }

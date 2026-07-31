@@ -1,5 +1,5 @@
 import { ENVELOPE, FISSURES, LUNG, THORAX } from "./anatomy";
-import { insideLung, MEDIAL_X } from "./envelope";
+import { insideLung, MEDIAL_X, obliqueFissureSide } from "./envelope";
 
 /**
  * The pleural surfaces, as STROKED OUTLINES rather than particles.
@@ -50,8 +50,8 @@ const STEPS_X = 200;
  * The oblique fissure, as a signed distance. Runs infero-anteriorly across both
  * lungs, separating upper lobe from lower.
  */
-function obliqueFissure(x: number, y: number, sign: number, centreY: number, centreX: number) {
-  return y - (centreY - FISSURES.obliqueOffsetY) + (x - centreX) * sign * FISSURES.obliqueSlope;
+function obliqueFissure(y: number, z: number) {
+  return obliqueFissureSide(y, z);
 }
 
 /** The horizontal fissure. RIGHT LUNG ONLY — it is what resolves three lobes there. */
@@ -151,15 +151,14 @@ function splitAtFissures(
   loop: { x: number; y: number }[],
   lung: "right" | "left",
   centreY: number,
-  centreX: number,
+  z: number,
 ): ShellSegment[] {
-  const sign = lung === "right" ? -1 : 1;
   const gap = ENVELOPE.fissureGap;
   const segments: ShellSegment[] = [];
   let run: { x: number; y: number }[] = [];
 
   for (const p of loop) {
-    const onOblique = Math.abs(obliqueFissure(p.x, p.y, sign, centreY, centreX)) < gap;
+    const onOblique = Math.abs(obliqueFissure(p.y, z)) < gap;
     const onHorizontal = lung === "right" && Math.abs(horizontalFissure(p.y, centreY)) < gap;
     if (onOblique || onHorizontal) {
       if (run.length > 1) segments.push({ points: run });
@@ -181,7 +180,7 @@ export function generateShells(): Shell[] {
     for (const z of ENVELOPE.shellDepths) {
       const loop = march(lung, z);
       if (loop.length < 4) continue;
-      shells.push({ lung, z, loop, segments: splitAtFissures(loop, lung, centreY, centreX) });
+      shells.push({ lung, z, loop, segments: splitAtFissures(loop, lung, centreY, z) });
     }
   }
   return shells;

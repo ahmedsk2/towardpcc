@@ -3,11 +3,10 @@ import {
   BRANCHING,
   CENTRAL_AIRWAY_SHARE,
   BRONCHI,
+  COLONISATION,
   CLUSTER_SHARE,
   EXTRA_GENERATIONS_RIGHT,
   LENGTH_DECAY_BY_SIDE,
-  LOBE_TERRITORY,
-  TERRITORY_PULL,
   TRACHEA_LENGTH_FACTOR,
   LOBAR_BRONCHI,
   LOBAR_LENGTH_FACTOR,
@@ -15,7 +14,7 @@ import {
   MIN_STUB_FRACTION,
   RUL_TAKEOFF,
 } from "./anatomy";
-import { insideLung } from "./envelope";
+import { insideLung, lobeAt } from "./envelope";
 import { cardiacField } from "./heart";
 import { fibonacciSphere, jitter, mulberry32 } from "./rng";
 
@@ -64,6 +63,19 @@ export interface TreeGeometry {
   clusterCentroids: Float32Array;
   clusterCount: number;
   count: number;
+  /**
+   * The branch segments themselves, as xyzxyz sextuples in anatomy units.
+   *
+   * A bronchial tree is a GRAPH, and drawing it as one is the difference
+   * between an airway and a scatter of dots. Nearest-neighbour meshing over the
+   * sampled points cannot recover this: it links whatever happens to be close,
+   * so a distal twig of the right lower lobe joins a twig of the middle lobe
+   * that never shared a bronchus with it. The connectivity is already known at
+   * generation time and is simply carried out.
+   */
+  segments: Float32Array;
+  /** Generation per segment, so distal branches can be drawn finer. */
+  segmentGeneration: Uint8Array;
 }
 
 export const CENTRAL_AIRWAY_GENERATION = 1;
@@ -143,8 +155,32 @@ export function generateTree(budget: number, generations: number, seed: number):
   // Main bronchi. Roll 180° puts the right main at negative x.
   const rightHilum = extend(carina, BRONCHI.right.angleDeg, 180, BRONCHI.right.length);
   const leftHilum = extend(carina, BRONCHI.left.angleDeg, 0, BRONCHI.left.length);
+  // The right upper lobe bronchus arises very early — the most recognisable
+  // feature of the right airway, and the only lobar bronchus above the
+  // pulmonary artery. Explicit, not left to the generic recursion.
+  const rulOrigin = {
+    x: carina.x + (rightHilum.x - carina.x) * RUL_TAKEOFF.alongRightMain,
+    y: carina.y + (rightHilum.y - carina.y) * RUL_TAKEOFF.alongRightMain,
+    z: 0,
+  };
+
+  // The right main bronchus is SPLIT AT THAT TAKEOFF: carina to takeoff, then
+  // takeoff to hilum.
+  //
+  // Not bookkeeping. The RUL leaves from a point ALONG the right main, and
+  // unless that point is also an endpoint of the segments either side of it,
+  // nothing shares it — the entire right upper lobe then hangs off a node no
+  // other branch touches. Measured: a 259-node component floating free of a
+  // 924-node tree, which on screen is a lobe of airways attached to nothing.
   branches.push({
     from: carina,
+    to: rulOrigin,
+    radius: AIRWAY_RADII.rightMain,
+    generation: 1,
+    lobe: "rll",
+  });
+  branches.push({
+    from: rulOrigin,
     to: rightHilum,
     radius: AIRWAY_RADII.rightMain,
     generation: 1,
@@ -158,14 +194,6 @@ export function generateTree(budget: number, generations: number, seed: number):
     lobe: "lll",
   });
 
-  // The right upper lobe bronchus arises very early — the most recognisable
-  // feature of the right airway, and the only lobar bronchus above the
-  // pulmonary artery. Explicit, not left to the generic recursion.
-  const rulOrigin = {
-    x: carina.x + (rightHilum.x - carina.x) * RUL_TAKEOFF.alongRightMain,
-    y: carina.y + (rightHilum.y - carina.y) * RUL_TAKEOFF.alongRightMain,
-    z: 0,
-  };
   branches.push({
     from: rulOrigin,
     to: extend(rulOrigin, RUL_TAKEOFF.angleDeg, 180, RUL_TAKEOFF.length),
@@ -194,95 +222,164 @@ export function generateTree(budget: number, generations: number, seed: number):
     });
   }
 
-  // Recursive bifurcation below the lobar bronchi.
-  const frontier = branches.filter((b) => b.generation === 2);
-  let current = frontier;
-  for (let g = 3; g <= generations + EXTRA_GENERATIONS_RIGHT; g++) {
-    const next: Branch[] = [];
-    for (const parent of current) {
-      // Past the nominal depth only the right tree keeps dividing.
-      if (g > generations && !isRight(parent.lobe)) continue;
-      // Parent direction as polar-from-down, so children inherit its aim.
-      const dx = parent.to.x - parent.from.x;
-      const dy = parent.to.y - parent.from.y;
-      const dz = parent.to.z - parent.from.z;
-      const len0 = Math.hypot(dx, dy, dz) || 1;
-      const axisDeg = (Math.acos(Math.max(-1, Math.min(1, -dy / len0))) * 180) / Math.PI;
-      const parentRoll = (Math.atan2(dz, dx) * 180) / Math.PI;
-      const roll = jitter(rng, parentRoll + g * BRANCHING.rollDeg, BRANCHING.rollJitterDeg);
-      const len = Math.hypot(
-        parent.to.x - parent.from.x,
-        parent.to.y - parent.from.y,
-        parent.to.z - parent.from.z,
-      );
+  // ── Space colonisation ──────────────────────────────────────────────────
+  // The lobar bronchi are the trunk; everything distal grows into its lobe.
+  // See COLONISATION in anatomy.ts for why this replaced a steered recursion.
+  const C = COLONISATION;
 
-      // Per-side decay: the right hilum sits far medial of the right pleura, so
-      // a shared decay leaves the larger lung hollow. See LENGTH_DECAY_BY_SIDE.
-      const decay = LENGTH_DECAY_BY_SIDE[isRight(parent.lobe) ? "right" : "left"];
+  /** Attractors, scattered through each lobe and owned by it alone. */
+  const attractors: { x: number; y: number; z: number; lobe: Lobe; alive: boolean }[] = [];
+  for (const lobe of LOBES) {
+    let placed = 0;
+    let guard = 0;
+    while (placed < C.attractorsPerLobe && guard++ < C.attractorsPerLobe * 300) {
+      const x = (rng() * 2 - 1) * C.sampleHalfX;
+      const y = C.sampleMinY + rng() * C.sampleSpanY;
+      const z = (rng() * 2 - 1) * C.sampleHalfZ;
+      if (lobeAt(x, y, z) !== lobe) continue;
+      if (cardiacField(x, y, z) < 0) continue;
+      attractors.push({ x, y, z, lobe, alive: true });
+      placed++;
+    }
+  }
 
-      for (const sign of [-1, 1]) {
-        const div = jitter(rng, BRANCHING.divergenceDeg, BRANCHING.divergenceJitterDeg) * sign;
-        const childLen = len * jitter(rng, decay, BRANCHING.lengthJitter);
-        const free = extend(parent.to, axisDeg + div, roll + (sign > 0 ? 0 : 180), childLen);
+  interface Node {
+    x: number;
+    y: number;
+    z: number;
+    dx: number;
+    dy: number;
+    dz: number;
+    lobe: Lobe;
+    generation: number;
+    radius: number;
+    parent: number;
+    grew: boolean;
+  }
 
-        // Steer along the lobe's growth axis. The branch keeps its length; only
-        // its aim is blended, so divergence and roll still shape the tree.
-        const T = LOBE_TERRITORY[parent.lobe];
-        const tx = T.x;
-        const ty = T.y;
-        const tz = T.z;
-        const tl = Math.hypot(tx, ty, tz) || 1;
-        const w = TERRITORY_PULL;
-        let ax = (free.x - parent.to.x) * (1 - w) + (tx / tl) * childLen * w;
-        let ay = (free.y - parent.to.y) * (1 - w) + (ty / tl) * childLen * w;
-        let az = (free.z - parent.to.z) * (1 - w) + (tz / tl) * childLen * w;
-        const al = Math.hypot(ax, ay, az) || 1;
-        ax = (ax / al) * childLen;
-        ay = (ay / al) * childLen;
-        az = (az / al) * childLen;
-        const to = { x: parent.to.x + ax, y: parent.to.y + ay, z: parent.to.z + az };
+  const nodes: Node[] = [];
+  for (const b of branches.filter((br) => br.generation === 2)) {
+    const dx = b.to.x - b.from.x;
+    const dy = b.to.y - b.from.y;
+    const dz = b.to.z - b.from.z;
+    const len = Math.hypot(dx, dy, dz) || 1;
+    nodes.push({
+      x: b.to.x,
+      y: b.to.y,
+      z: b.to.z,
+      dx: dx / len,
+      dy: dy / len,
+      dz: dz / len,
+      lobe: b.lobe,
+      generation: 2,
+      radius: b.radius,
+      parent: -1,
+      grew: false,
+    });
+  }
 
-        // Cardiac exclusion — the heart gets a real cavity, not a thicket.
-        if (cardiacField(to.x, to.y, to.z) < 0) continue;
-
-        // Pleural containment. An airway cannot leave the lung — but it does
-        // not vanish at the surface either, so the branch is SHORTENED to the
-        // boundary rather than discarded. Discarding was measurably worse than
-        // the defect: culling any tip that crossed the pleura removed whole
-        // deep generations, so the desktop preset (which runs deeper) ended up
-        // filling LESS of its lung than the narrow one, 0.83 against 0.88.
-        // Clamping keeps the branch, ends it against the pleura where a real
-        // airway ends, and guarantees containment at the same time.
-        if (!insideLung(to.x, to.y, to.z)) {
-          let lo = 0;
-          let hi = 1;
-          for (let it = 0; it < 12; it++) {
-            const mid = (lo + hi) / 2;
-            if (insideLung(parent.to.x + ax * mid, parent.to.y + ay * mid, parent.to.z + az * mid))
-              lo = mid;
-            else hi = mid;
-          }
-          // A stub shorter than a fifth of its intended length is a branch that
-          // was already at the surface; drop it rather than ship a nub.
-          if (lo < MIN_STUB_FRACTION) continue;
-          to.x = parent.to.x + ax * lo;
-          to.y = parent.to.y + ay * lo;
-          to.z = parent.to.z + az * lo;
+  for (let iter = 0; iter < C.maxIterations; iter++) {
+    // Each live attractor votes for its nearest node within the influence
+    // radius. A node pulled from two directions bifurcates; one with no votes
+    // has filled its neighbourhood and stops.
+    const pull = new Map<number, { x: number; y: number; z: number; n: number }>();
+    let anyAlive = false;
+    for (const a of attractors) {
+      if (!a.alive) continue;
+      anyAlive = true;
+      let best = -1;
+      let bestD: number = C.influenceRadius;
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i]!;
+        if (n.lobe !== a.lobe) continue;
+        const d = Math.hypot(n.x - a.x, n.y - a.y, n.z - a.z);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
         }
+      }
+      if (best < 0) continue;
+      const n = nodes[best]!;
+      const len = Math.hypot(a.x - n.x, a.y - n.y, a.z - n.z) || 1;
+      const acc = pull.get(best) ?? { x: 0, y: 0, z: 0, n: 0 };
+      acc.x += (a.x - n.x) / len;
+      acc.y += (a.y - n.y) / len;
+      acc.z += (a.z - n.z) / len;
+      acc.n++;
+      pull.set(best, acc);
+    }
+    if (!anyAlive || pull.size === 0) break;
 
-        next.push({
-          from: parent.to,
-          to,
-          radius: parent.radius * BRANCHING.radiusDecay,
-          generation: g,
-          lobe: parent.lobe,
-        });
+    const grown: Node[] = [];
+    for (const [i, acc] of pull) {
+      const n = nodes[i]!;
+      // Blend the attractor direction with the parent's heading; a branch that
+      // can turn arbitrarily sharply reads as a kinked wire, not an airway.
+      let dx = acc.x / acc.n + n.dx * C.parentInertia;
+      let dy = acc.y / acc.n + n.dy * C.parentInertia;
+      let dz = acc.z / acc.n + n.dz * C.parentInertia;
+      const len = Math.hypot(dx, dy, dz);
+      if (len < 1e-6) continue;
+      dx /= len;
+      dy /= len;
+      dz /= len;
+
+      // Try a full step, then progressively shorter ones. A tip that stops the
+      // moment a whole step would cross the pleura halts a full step short of
+      // the surface everywhere, and the lungs read as under-filled at the edge.
+      let to: { x: number; y: number; z: number } | null = null;
+      for (const f of [1, ...C.stepFallbacks]) {
+        const c = {
+          x: n.x + dx * C.stepLength * f,
+          y: n.y + dy * C.stepLength * f,
+          z: n.z + dz * C.stepLength * f,
+        };
+        if (cardiacField(c.x, c.y, c.z) < 0) continue;
+        if (!insideLung(c.x, c.y, c.z)) continue;
+        to = c;
+        break;
+      }
+      if (!to) continue;
+
+      const generation = n.generation + 1;
+      branches.push({
+        from: { x: n.x, y: n.y, z: n.z },
+        to,
+        radius: n.radius * BRANCHING.radiusDecay,
+        generation,
+        lobe: n.lobe,
+      });
+      grown.push({
+        ...to,
+        dx,
+        dy,
+        dz,
+        lobe: n.lobe,
+        generation,
+        radius: n.radius * BRANCHING.radiusDecay,
+        parent: i,
+        grew: false,
+      });
+      n.grew = true;
+    }
+    if (grown.length === 0) break;
+    nodes.push(...grown);
+
+    for (const a of attractors) {
+      if (!a.alive) continue;
+      for (const n of grown) {
+        if (n.lobe !== a.lobe) continue;
+        if (Math.hypot(n.x - a.x, n.y - a.y, n.z - a.z) < C.killRadius) {
+          a.alive = false;
+          break;
+        }
       }
     }
-    branches.push(...next);
-    current = next;
-    if (current.length === 0) break;
   }
+
+  // Tips are the terminals: nodes that never grew are where the tree ended.
+  const terminalPoints = nodes.filter((n) => !n.grew);
+  const deepest = Math.max(...branches.map((b) => b.generation));
 
   // ── Sample ────────────────────────────────────────────────────────────────
   const pos: number[] = [];
@@ -292,11 +389,6 @@ export function generateTree(budget: number, generations: number, seed: number):
   const lobeTag: number[] = [];
   const centroids: number[] = [];
   let cid = 0;
-
-  const deepest = generations + EXTRA_GENERATIONS_RIGHT;
-  const terminals = branches.filter(
-    (b) => current.includes(b) || b.generation === (isRight(b.lobe) ? deepest : generations),
-  );
 
   /**
    * Budget is allocated PER LOBE against LOBE_SHARES, and allocated AFTER the
@@ -343,7 +435,7 @@ export function generateTree(budget: number, generations: number, seed: number):
     const want =
       li === LOBES.length - 1 ? lobeBudget - allocated : Math.round(lobeBudget * LOBE_SHARES[lobe]);
     allocated += want;
-    const lobeTerminals = terminals.filter((b) => b.lobe === lobe);
+    const lobeTerminals = terminalPoints.filter((t) => t.lobe === lobe);
     const lobeBranches = branches.filter((b) => b.lobe === lobe);
     if (lobeBranches.length === 0) continue;
 
@@ -357,9 +449,9 @@ export function generateTree(budget: number, generations: number, seed: number):
       const sphere = fibonacciSphere(per, t.radius * BRANCHING.clusterRadiusFactor);
       let kept = 0;
       for (let i = 0; i < per && placed < clusterWant; i++) {
-        const x = t.to.x + sphere[i * 3]!;
-        const y = t.to.y + sphere[i * 3 + 1]!;
-        const z = t.to.z + sphere[i * 3 + 2]!;
+        const x = t.x + sphere[i * 3]!;
+        const y = t.y + sphere[i * 3 + 1]!;
+        const z = t.z + sphere[i * 3 + 2]!;
         if (cardiacField(x, y, z) < 0) continue;
         if (!insideLung(x, y, z)) continue;
         pos.push(x, y, z);
@@ -371,7 +463,7 @@ export function generateTree(budget: number, generations: number, seed: number):
         placed++;
       }
       if (kept > 0) {
-        centroids.push(t.to.x, t.to.y, t.to.z);
+        centroids.push(t.x, t.y, t.z);
         cid++;
       }
     }
@@ -417,7 +509,16 @@ export function generateTree(budget: number, generations: number, seed: number):
     }
   }
 
+  const segments: number[] = [];
+  const segmentGeneration: number[] = [];
+  for (const b of branches) {
+    segments.push(b.from.x, b.from.y, b.from.z, b.to.x, b.to.y, b.to.z);
+    segmentGeneration.push(Math.min(255, b.generation));
+  }
+
   return {
+    segments: new Float32Array(segments),
+    segmentGeneration: new Uint8Array(segmentGeneration),
     positions: new Float32Array(pos),
     isCluster: new Uint8Array(isCluster),
     clusterId: new Uint8Array(clusterId),

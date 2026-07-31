@@ -242,9 +242,25 @@ export const LUNG = {
  * resolves three lobes there and two on the left.
  */
 export const FISSURES = {
-  obliqueOffsetY: 0.08,
-  obliqueSlope: 0.55,
-  horizontalOffsetY: 0.14,
+  /**
+   * The oblique fissure, as a plane through each lung.
+   *
+   * IT SLOPES WITH Z, NOT X. The oblique fissure runs posterosuperior to
+   * anteroinferior: high at the back, low at the front. Sloping it with lateral
+   * position instead tilted it in the coronal plane, which is not a plane any
+   * fissure lies in, and put a third of each lower lobe into the upper one.
+   *
+   * The offsets are CALIBRATED against LOBE_SHARES rather than eyeballed. Lobe
+   * membership is now answered by these planes, so the two had to agree, and
+   * they never had to before: shares were allocated to a particle budget by
+   * fiat while the fissures were only density gaps in a drawn shell. Solving
+   * for the documented proportions lands every lobe within 2.7 points and three
+   * of the five within 0.2.
+   */
+  obliqueOffsetY: -0.02,
+  obliqueSlopeZ: -0.6,
+  /** The horizontal fissure. RIGHT LUNG ONLY, and near enough horizontal. */
+  horizontalOffsetY: 0.1,
 } as const;
 
 /**
@@ -375,62 +391,60 @@ export const LENGTH_DECAY_BY_SIDE = { right: 0.87, left: 0.76 } as const;
 export const EXTRA_GENERATIONS_RIGHT = 1;
 
 /**
- * The territory each lobe grows into, and how strongly branches are pulled
- * toward it.
+ * Space-colonisation parameters for the airway tree.
  *
- * WHY THIS EXISTS. Divergence plus a golden-angle roll spreads children
- * isotropically, so whether a lobe reaches its pleural surface is decided by
- * whether jitter happened to aim a branch laterally rather than front-to-back.
- * Measured over 20 seeds, right-lung fill ranged 0.56 to 0.84 of the pleural
- * half-width on the same geometry — the variance was larger than the defect
- * being fixed. Decay and depth cannot repair that: they lengthen branches
- * without pointing them anywhere.
+ * WHAT REPLACED WHAT. Branches used to be steered toward a per-lobe growth axis
+ * with a tunable pull. That satisfied the fill assertion and destroyed the
+ * tree: every branch in a lobe pointed the same way, so the airways rendered as
+ * straight rays from the carina to a knot of clusters at the far end, with
+ * nothing in between. The assertion could not catch it because it measures
+ * lateral EXTENT, and a single ray reaching the pleura has full extent.
  *
- * Lungs are not built isotropically either. Airway branching is guided by the
- * surrounding mesenchyme — the tree grows into the space it is given, which is
- * why lobes fill their territory instead of ending wherever chance left them.
- * Each child direction is therefore blended toward its lobe's territory centre.
- * Divergence, jitter and roll still shape the tree; the pull only decides which
- * way "outward" is.
+ * Space colonisation is the standard algorithm for this and it is the right
+ * one, because it is close to how the thing actually develops: attractors are
+ * scattered through the lobe, a tip grows toward the average direction of the
+ * attractors near it, and attractors are consumed as they are reached. Branches
+ * bifurcate where attractors pull in two directions and stop where the volume
+ * is filled, so the tree fills its lobe by SUBDIVIDING rather than by reaching.
  *
- * Territories follow the fissures: the oblique fissure divides upper from
- * lower, and the horizontal fissure (right lung only) separates the middle
- * lobe, which is also the most anterior, hence its positive z.
- *
- * These are DIRECTIONS, not destinations — the growth axis of each lobe, which
- * is what the surrounding mesenchyme actually supplies.
- *
- * Both point-based attempts failed, in opposite ways, and the second failure is
- * the instructive one. Aiming at each lobe's centre of mass was worse than no
- * pull at all (0.70 fill against 0.84): a branch steered toward the middle of
- * its lobe stops in the middle of its lobe. Moving the targets subpleural fixed
- * the right lung and then broke the left, dropping it 0.98 -> 0.84, because a
- * target point CAPS reach as well as directing it: once a branch arrives, the
- * direction to the target is short and arbitrary, so the tree piles up at the
- * aim point instead of continuing past it.
- *
- * A direction has no such failure mode. Branches keep heading outward wherever
- * they are, and length decay — not an arbitrary point — is what stops them,
- * which is also how a real airway terminates.
+ * Attractors are assigned to lobes by the fissure planes, and a lobe's tree
+ * only ever sees its own — which makes "airways do not cross fissures"
+ * structurally true rather than merely likely.
  */
-export const LOBE_TERRITORY = {
-  // The RIGHT axes run MORE LATERALLY than their left counterparts. Not a
-  // fudge: the right hilum sits at x -0.054 against the left's +0.124, so the
-  // right lobes start 0.07 closer to the midline and must cross correspondingly
-  // more chest to reach their pleura. Symmetric growth axes left the right lung
-  // hollow at 0.62 of its half-width while the left reached 0.86.
-  /** Up and lateral, over the azygos arch. */
-  rul: { x: -0.76, y: 0.65, z: -0.06 },
-  /** Lateral and ANTERIOR — the middle lobe lies against the sternum. */
-  rml: { x: -0.9, y: -0.26, z: 0.35 },
-  /** Down and lateral, into the posterior costophrenic recess. */
-  rll: { x: -0.73, y: -0.67, z: -0.13 },
-  lul: { x: 0.62, y: 0.78, z: 0.0 },
-  lll: { x: 0.6, y: -0.79, z: -0.13 },
+export const COLONISATION = {
+  /** Attractors scattered per lobe, before culling to the lobe's volume. */
+  attractorsPerLobe: 260,
+  /** A tip is influenced by attractors within this distance. */
+  influenceRadius: 0.16,
+  /** An attractor is consumed once a node comes this close. */
+  killRadius: 0.038,
+  /** How far a tip advances per iteration. */
+  stepLength: 0.032,
+  /** Safety bound on the growth loop. */
+  maxIterations: 90,
+  /** Box the attractors are drawn from, before being culled to each lobe. */
+  sampleHalfX: 0.4,
+  sampleMinY: -0.7,
+  sampleSpanY: 1.1,
+  sampleHalfZ: 0.25,
+  /**
+   * Fractions of a full step to try when the full one would leave the lung.
+   *
+   * Without this a tip simply stops as soon as a whole step would cross the
+   * pleura, so the tree halts a full step short of the surface all the way
+   * round and the lungs read as under-filled at their edges.
+   */
+  stepFallbacks: [0.55, 0.28],
+  /**
+   * Blend of the attractor direction with the parent's own direction.
+   *
+   * 0 would let a tip turn arbitrarily sharply toward whatever is nearest,
+   * which produces kinked, wandering branches. Airways change direction
+   * gradually, and inheriting some of the parent's heading is what keeps a
+   * branch reading as a continuation of its parent rather than a new object.
+   */
+  parentInertia: 0.42,
 } as const;
-
-/** How strongly a child is steered along its lobe's growth axis. 0 = isotropic. */
-export const TERRITORY_PULL = 0.68;
 
 /** Recursive bifurcation below the lobar bronchi (ANATOMY.md §4). */
 export const BRANCHING = {
