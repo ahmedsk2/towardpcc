@@ -102,9 +102,11 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
+                    {...(active ? { "data-active": "" } : {})}
                     className={cn(navLink, active && navLinkActive)}
                   >
                     {label}
+                    <span aria-hidden="true" className={navRule} />
                   </Link>
                 </li>
               );
@@ -117,6 +119,9 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                   aria-expanded={mega}
                   aria-controls="mega-calculators"
                   onClick={() => setMega(!mega)}
+                  // The trace stays lit while the panel is open, so the trigger
+                  // reads as the source of the thing on screen.
+                  {...(active || mega ? { "data-active": "" } : {})}
                   className={cn(navLink, active && navLinkActive)}
                 >
                   {label}
@@ -124,7 +129,13 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                     viewBox="0 0 10 6"
                     fill="none"
                     aria-hidden="true"
-                    className={cn("size-2 transition-transform duration-150", mega && "rotate-180")}
+                    // `transition-[rotate]`: Tailwind v4 compiles `rotate-180`
+                    // to the `rotate` property, so `transition-transform` here
+                    // was transitioning nothing and the chevron snapped.
+                    className={cn(
+                      "size-2 transition-[rotate] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
+                      mega && "rotate-180",
+                    )}
                   >
                     <path
                       d="M1 1l4 4 4-4"
@@ -133,6 +144,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                       strokeLinecap="round"
                     />
                   </svg>
+                  <span aria-hidden="true" className={navRule} />
                 </button>
 
                 {mega && (
@@ -279,5 +291,26 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
 }
 
 const navLink =
-  "inline-flex items-center gap-1.5 rounded-md px-3.5 py-2.5 text-[15px] font-semibold text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "group relative inline-flex min-h-11 items-center gap-1.5 rounded-md px-3.5 py-2.5 text-[15px] font-semibold text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const navLinkActive = "text-accent";
+
+/**
+ * The rule under a nav item: a crimson trace that wipes in from the leading
+ * edge and, on leave, collapses out through the trailing one.
+ *
+ * The direction flip is the whole idea. Only `scale` transitions, never
+ * `transform-origin`, so when the pointer leaves, the origin snaps back to
+ * `right` in the same frame the scale starts falling — the rule reads as
+ * something passing through rather than a light being switched off.
+ *
+ * `transition-[scale]`, not `transition-transform`: Tailwind v4 compiles
+ * `scale-x-0` to the `scale` property, so naming `transform` here would
+ * transition a property that never changes and the rule would snap. That was
+ * live on eight elements before it was fixed.
+ *
+ * It also does the job `navLinkActive` could not. Marking the current page with
+ * `text-accent` alone gives it no positional cue at all — the visitor has to
+ * compare hues against neighbouring items to work out where they are.
+ */
+const navRule =
+  "pointer-events-none absolute inset-x-3.5 bottom-1.5 h-0.5 origin-right scale-x-0 rounded-full bg-accent transition-[scale] duration-150 ease-[var(--motion-ease)] group-hover:origin-left group-hover:scale-x-100 group-focus-visible:origin-left group-focus-visible:scale-x-100 group-data-[active]:origin-left group-data-[active]:scale-x-100 motion-reduce:transition-none";
