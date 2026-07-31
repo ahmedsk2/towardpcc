@@ -16,7 +16,14 @@ test.describe("evidence rail", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto("/");
-    await page.waitForLoadState("load");
+    // `networkidle`, not just `load`. The service worker registers on load and
+    // then reloads the page to take control; interacting before that reload
+    // means the click scrolls the rail, the reload resets it to the start, and
+    // the indicator returns to where it began — so the "it moved" assertion
+    // fails for a reason that has nothing to do with the rail. Waiting for the
+    // network to settle lets the SW's reload happen first. This is the same
+    // reload the layout suite works around with a scrollHeight poll.
+    await page.waitForLoadState("networkidle");
     await page.locator("#evidence-track").scrollIntoViewIfNeeded();
   });
 
@@ -63,9 +70,20 @@ test.describe("evidence rail", () => {
     await expect
       .poll(
         async () => {
-          const labels = await current.evaluateAll((els) =>
-            els.map((el) => el.getAttribute("aria-label")),
-          );
+          // The service worker can reload the page out from under an in-flight
+          // evaluate, which destroys the execution context and throws — not a
+          // product failure, but it took the whole suite red about one run in
+          // twenty. layout.spec.ts already guards its evaluate this way; this
+          // one polled but still let the throw escape, so the retry it was
+          // built around never got a chance to run.
+          let labels: (string | null)[];
+          try {
+            labels = await current.evaluateAll((els) =>
+              els.map((el) => el.getAttribute("aria-label")),
+            );
+          } catch {
+            return null; // context destroyed mid-navigation — poll again
+          }
           // The accessible name is the citation source, so a change proves the
           // indicator tracks the real scroll position rather than a counter.
           return labels.length === 1 && labels[0] !== before ? labels[0] : null;

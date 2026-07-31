@@ -280,8 +280,8 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3.5 py-1.5 text-sm transition-colors duration-150",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+        "rounded-full border px-3.5 py-1.5 text-sm transition-[color,background-color,border-color,scale] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
+        "motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         // Selected state carries a non-color cue (checkmark + heavier weight) so
         // it never relies on color alone (WCAG 1.4.1); cf. the active nav link's
         // underline.

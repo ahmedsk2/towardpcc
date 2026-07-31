@@ -37,9 +37,13 @@ export function BackToTop() {
       }
       className={cn(
         "fixed end-6 z-[90] grid size-12 place-items-center rounded-full bg-gradient-accent text-white",
-        "shadow-[0_14px_30px_-10px_rgba(207,31,61,0.8)] transition-[bottom] duration-300",
+        // `translate`, not `bottom`: bottom is a layout property, which
+        // motion.md revision 4 forbids outright, and the compositor cannot
+        // fast-path it. The button stays pinned at bottom-6 and slides out of
+        // view on the Y axis instead.
+        "shadow-[0_14px_30px_-10px_rgba(207,31,61,0.8)] bottom-6 transition-[translate] duration-300 ease-[var(--motion-ease)] motion-reduce:transition-none",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-        shown ? "bottom-6" : "-bottom-20",
+        shown ? "translate-y-0" : "translate-y-32",
       )}
       // Keep it out of the tab order until it is actually on screen.
       tabIndex={shown ? 0 : -1}

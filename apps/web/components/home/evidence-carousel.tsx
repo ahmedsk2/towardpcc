@@ -196,8 +196,9 @@ export function EvidenceCarousel() {
 }
 
 const arrow =
-  "grid size-11 place-items-center rounded-full border-2 border-border-strong bg-surface-raised text-ink-strong transition-colors duration-150 " +
-  "hover:border-accent hover:bg-accent hover:text-ink-on-accent " +
+  "grid size-11 place-items-center rounded-full border-2 border-border-strong bg-surface-raised text-ink-strong " +
+  "transition-[color,background-color,border-color,scale] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none " +
+  "hover:border-accent hover:bg-accent hover:text-ink-on-accent motion-safe:active:scale-90 " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
   // At the ends the button is disabled, so it must stop offering hover
   // feedback too — a control that lights up and then does nothing is the thing

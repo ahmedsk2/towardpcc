@@ -79,9 +79,18 @@ const featureTone: Record<string, string> = {
   moss: "bg-linear-135 from-success-text to-success-text/70",
 };
 
+// The pill CTAs — the largest, most-clicked buttons on the site. They lift a
+// touch on hover and press 1px on click. `translate` is named in the transition
+// because both the lift and the press are `translate` utilities, and Tailwind
+// v4 compiles those to the `translate` property: under `transition-colors` the
+// press was inert and snapped, like the eight hover lifts fixed earlier. The
+// lift is the universal cue here — it reads on the dark hero and the crimson
+// CTA band alike, where a crimson glow would vanish into the ground.
 const ctaBase =
-  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-bold transition-colors duration-150 " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral active:translate-y-px";
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-bold " +
+  "transition-[translate,background-color,border-color,box-shadow,color] duration-150 ease-[var(--motion-ease)] " +
+  "motion-safe:hover:-translate-y-0.5 active:translate-y-px motion-reduce:transition-none " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral";
 
 export default function HomePage() {
   return (

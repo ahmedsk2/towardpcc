@@ -59,7 +59,10 @@ export function Accordion({
                   />
                   <span
                     className={cn(
-                      "absolute h-0.5 w-3 transition-transform duration-200",
+                      // `transition-[rotate]`: Tailwind v4 compiles rotate-90
+                      // to the `rotate` property, so naming `transform` here
+                      // transitioned nothing and the plus snapped to a minus.
+                      "absolute h-0.5 w-3 transition-[rotate] duration-200 ease-[var(--motion-ease)] motion-reduce:transition-none",
                       isOpen ? "bg-ink-on-accent" : "rotate-90 bg-accent",
                     )}
                   />
