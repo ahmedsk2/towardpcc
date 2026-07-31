@@ -1,4 +1,6 @@
 import {
+  APEX_SCAN,
+  APEX_TAPER_CLAMP,
   APEX_TAPER_POWER,
   CHAMBERS,
   CHAMBER_BLEND_K,
@@ -58,12 +60,33 @@ function smin(a: number, b: number, k: number): number {
   return b * (1 - h) + a * h - k * h * (1 - h);
 }
 
-/** Signed distance to the blended union. Negative inside. */
+/**
+ * Undo the apex taper, so a point can be tested against the untapered chambers.
+ *
+ * The taper is a shear-like warp of x that depends only on y, so it inverts
+ * exactly. That is what lets the taper live in the FIELD rather than being
+ * applied to particles afterwards — and it has to live in the field, because
+ * anything else asks the model two different questions and believes both
+ * answers. It did: the sampled particles were tapered to a point at the apex
+ * while cardiacField still described the untapered ellipsoid union, so the
+ * airway exclusion, the analytic hull and the drawn surface were all shaped
+ * against a heart that never shipped. Ray-marching the field produced a ball.
+ */
+function untaperX(x: number, y: number): number {
+  const depth = Math.max(0, Math.min(1, (LV.centroid.y - y) / LV.radii.y));
+  // Clamped below 1: at exactly 1 the map collapses every x onto the apex and
+  // has no inverse.
+  const t = Math.min(APEX_TAPER_CLAMP, Math.pow(depth, APEX_TAPER_POWER));
+  return (x - HEART.apex.x * t) / (1 - t);
+}
+
+/** Signed distance to the blended, tapered union. Negative inside. */
 export function cardiacField(x: number, y: number, z: number): number {
-  let d = ellipsoidField(x, y, z, CHAMBERS[0].centroid, CHAMBERS[0].radii) - 1;
+  const ux = untaperX(x, y);
+  let d = ellipsoidField(ux, y, z, CHAMBERS[0].centroid, CHAMBERS[0].radii) - 1;
   for (let i = 1; i < CHAMBERS.length; i++) {
     const c = CHAMBERS[i]!;
-    d = smin(d, ellipsoidField(x, y, z, c.centroid, c.radii) - 1, CHAMBER_BLEND_K);
+    d = smin(d, ellipsoidField(ux, y, z, c.centroid, c.radii) - 1, CHAMBER_BLEND_K);
   }
   return d;
 }
@@ -138,13 +161,17 @@ const CHAMBER_IS_LEFT = CHAMBERS.map((c) => (c.side === "left" ? 1 : 0));
  * bridges that belong to no single chamber.
  */
 export function chamberLeftness(x: number, y: number, z: number): number {
+  // Un-tapered first, for the same reason the field is: the chambers are
+  // defined in untapered space and a tapered query would ask them about a
+  // point they never contained.
+  const ux = untaperX(x, y);
   let weighted = 0;
   let total = 0;
   for (let i = 0; i < CHAMBERS.length; i++) {
     const c = CHAMBERS[i]!;
     // exp(-field / softness): ~1 at the centroid, falling smoothly outward, so
     // distant chambers contribute negligibly rather than not at all.
-    const w = Math.exp(-ellipsoidField(x, y, z, c.centroid, c.radii) / MEMBERSHIP_SOFTNESS);
+    const w = Math.exp(-ellipsoidField(ux, y, z, c.centroid, c.radii) / MEMBERSHIP_SOFTNESS);
     weighted += w * CHAMBER_IS_LEFT[i]!;
     total += w;
   }
@@ -168,6 +195,26 @@ export function chamberLeftness(x: number, y: number, z: number): number {
  * below the LV centroid, so it cannot move either.
  */
 const HULL_STEP = HULL_SCAN.xSpan / 100;
+
+/**
+ * The apex, found on the field rather than among the samples.
+ *
+ * Analytic because the taper now lives in the field, so the apex is a property
+ * of the geometry rather than of whichever particle happened to land lowest.
+ * The sampled extreme ranged 0.121 to 0.155 in x across seeds and missed the
+ * y bound outright at the narrow budget; none of that is the anatomy moving.
+ */
+export function cardiacApex(): { x: number; y: number } {
+  let best = { x: 0, y: Infinity };
+  for (let i = 0; i <= 900; i++) {
+    const y = HEART.baseY - (i / 900) * (HEART.baseY - (HEART.apex.y - APEX_SCAN.belowApex));
+    for (let j = 0; j <= 400; j++) {
+      const x = APEX_SCAN.xMin + (j / 400) * APEX_SCAN.xSpan;
+      if (cardiacField(x, y, 0) <= 0 && y < best.y) best = { x, y };
+    }
+  }
+  return best;
+}
 
 export function cardiacHullExtentX(): { minX: number; maxX: number; ctr: number } {
   const inside = (x: number, y: number, z: number) => cardiacField(x, y, z) <= 0;
@@ -244,9 +291,9 @@ export function generateHeart(budget: number, seed: number): HeartGeometry {
       const depth = -d; // 0 at surface, larger toward the core
       if (rng() > Math.exp(-depth * HEART_HULL_BIAS)) continue;
 
-      const apexDepth = Math.max(0, Math.min(1, (LV.centroid.y - y) / LV.radii.y));
-      const t = Math.pow(apexDepth, APEX_TAPER_POWER);
-      const px = x * (1 - t) + HEART.apex.x * t;
+      // No taper applied here: it is in the field, so a point that passed the
+      // union test is already in tapered space.
+      const px = x;
 
       const i = written * 3;
       positions[i] = px;

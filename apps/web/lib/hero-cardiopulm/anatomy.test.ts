@@ -11,7 +11,7 @@ import {
   THORAX,
   type Preset,
 } from "./anatomy";
-import { cardiacField, cardiacHullExtentX, generateHeart } from "./heart";
+import { cardiacApex, cardiacField, cardiacHullExtentX, generateHeart } from "./heart";
 import { generateTree, LOBES, MAIN_BRONCHI } from "./tree";
 import {
   insideLung,
@@ -84,16 +84,20 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
       }
       // +x is the viewer's right = the patient's LEFT. This is correct.
       //
-      // The geometric apex is HEART.apex.x exactly, by construction of the
-      // taper. The band is wider than that because this measures a SAMPLED
-      // extreme: over 60 seeds at both presets the lowest particle ranged
-      // 0.121 to 0.155 in x, since at the narrow budget the cloud does not
-      // always reach deep enough for the taper to fully converge. Tightening
-      // the band toward the spec value would assert the RNG, not the anatomy.
-      expect(apexX).toBeGreaterThanOrEqual(0.115);
-      expect(apexX).toBeLessThanOrEqual(0.17);
-      expect(minY).toBeGreaterThanOrEqual(-0.475);
-      expect(minY).toBeLessThanOrEqual(-0.43);
+      // ANALYTIC. The taper lives in the field now, so the apex is a property
+      // of the geometry rather than of whichever particle happened to land
+      // lowest — and the sampled extreme was measuring the RNG: 0.121 to 0.155
+      // in x across seeds, and missing the y bound outright at the narrow
+      // budget on geometry that had not changed.
+      const apex = cardiacApex();
+      expect(apex.x).toBeGreaterThanOrEqual(0.13);
+      expect(apex.x).toBeLessThanOrEqual(0.17);
+      expect(apex.y).toBeGreaterThanOrEqual(-0.475);
+      expect(apex.y).toBeLessThanOrEqual(-0.43);
+
+      // The sampled cloud must still agree in direction, or the particles and
+      // the field have come apart the way they had before the taper moved.
+      expect(apexX).toBeGreaterThan(0);
       expect(minY).toBeLessThan(HEART.baseY);
     });
 

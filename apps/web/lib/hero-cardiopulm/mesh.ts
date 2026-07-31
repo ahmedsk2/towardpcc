@@ -1,4 +1,5 @@
-import { BUDGET, DEFAULT_SEED, LUNG, THORAX } from "./anatomy";
+import { BUDGET, DEFAULT_SEED, HEART_CENTRE, LUNG, THORAX } from "./anatomy";
+import { cardiacField, chamberLeftness } from "./heart";
 import { generateHeart } from "./heart";
 import { insideLung } from "./envelope";
 import { mulberry32 } from "./rng";
@@ -75,6 +76,11 @@ const PLEURA_SEGMENTS = 30;
  * Seeded, so the surface is identical on every build.
  */
 const PLEURA_JITTER = 0.42;
+
+/** The cardiac surface is swept finer: it is smaller and it is the subject. */
+const HEART_MARCH_MAX = 0.42;
+const HEART_RINGS = 20;
+const HEART_SEGMENTS = 26;
 
 function knn(
   points: MeshPoint[],
@@ -157,18 +163,84 @@ export function buildMesh(preset: keyof typeof BUDGET = "desktop"): Mesh {
     });
   }
 
-  // ── Heart: a surface, so meshed by proximity ────────────────────────────
-  const heartFrom = points.length;
-  for (let i = 0; i < heart.count; i++) {
-    points.push({
-      x: heart.positions[i * 3]!,
-      y: heart.positions[i * 3 + 1]!,
-      z: heart.positions[i * 3 + 2]!,
-      kind: "heart",
-      t: heart.tint[i]!,
-    });
+  // ── Heart: a SURFACE GRID, ray-marched off the cardiac field ────────────
+  //
+  // The same sweep the lungs get, and for the same reason. Nearest-neighbour
+  // meshing over sampled particles produced a web: correct points joined in
+  // whatever order proximity happened to suggest, with edges cutting through
+  // the organ and no facet anywhere. Beside a bronchial tree drawn from its own
+  // connectivity and lungs drawn as a real surface, it was the one system that
+  // still looked like a scatter with lines added.
+  //
+  // The blended chamber union is star-shaped about its centre, so the same
+  // march works: step out until the field turns positive, bisect the crossing.
+  // Vertices carry chamber laterality, so the right-to-left tint survives the
+  // change of representation — the surface still knows which chambers it is.
+  const heartRng = mulberry32(DEFAULT_SEED ^ 0x1c0d);
+  const heartGrid: number[][] = [];
+  for (let iu = 0; iu <= HEART_RINGS; iu++) {
+    const v = (iu / HEART_RINGS) * 0.94 + 0.03;
+    const row: number[] = [];
+    for (let iv = 0; iv < HEART_SEGMENTS; iv++) {
+      const az = ((iv + (heartRng() - 0.5) * PLEURA_JITTER) / HEART_SEGMENTS) * Math.PI * 2;
+      const polar = v * Math.PI + ((heartRng() - 0.5) * PLEURA_JITTER * Math.PI) / HEART_RINGS;
+      const dx = Math.sin(polar) * Math.cos(az);
+      const dy = Math.cos(polar);
+      const dz = Math.sin(polar) * Math.sin(az);
+      // Scans the WHOLE range and keeps the outermost crossing. Breaking at
+      // the first exit returns the first shell, and neither of these solids is
+      // star-shaped: a ray leaving the ventricles can re-enter at the left
+      // atrium, which sits posteriorly and higher. Stopping early cut the top
+      // third off the heart — the mesh reached y -0.170 against a base at
+      // -0.030, so the great-vessel end simply was not there.
+      let inside = -1;
+      for (let r = 0.01; r <= HEART_MARCH_MAX; r += 0.006) {
+        const p = {
+          x: HEART_CENTRE.x + dx * r,
+          y: HEART_CENTRE.y + dy * r,
+          z: HEART_CENTRE.z + dz * r,
+        };
+        if (cardiacField(p.x, p.y, p.z) <= 0) inside = r;
+      }
+      if (inside < 0) {
+        row.push(-1);
+        continue;
+      }
+      let lo = inside;
+      let hi = inside + 0.006;
+      for (let k = 0; k < 14; k++) {
+        const mid = (lo + hi) / 2;
+        const p = {
+          x: HEART_CENTRE.x + dx * mid,
+          y: HEART_CENTRE.y + dy * mid,
+          z: HEART_CENTRE.z + dz * mid,
+        };
+        if (cardiacField(p.x, p.y, p.z) <= 0) lo = mid;
+        else hi = mid;
+      }
+      const x = HEART_CENTRE.x + dx * lo;
+      const y = HEART_CENTRE.y + dy * lo;
+      const z = HEART_CENTRE.z + dz * lo;
+      row.push(points.length);
+      points.push({ x, y, z, kind: "heart", t: chamberLeftness(x, y, z) });
+    }
+    heartGrid.push(row);
   }
-  edges.push(...knn(points, heartFrom, points.length, "heart", NEIGHBOURS, MAX_EDGE));
+  const joinHeart = (a: number, b: number) => {
+    if (a < 0 || b < 0) return;
+    const p = points[a]!;
+    const q = points[b]!;
+    const d = Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z);
+    if (d > MAX_EDGE) return;
+    edges.push({ a, b, kind: "heart", depth: Math.min(1, d / MAX_EDGE) });
+  };
+  for (let iu = 0; iu < heartGrid.length; iu++) {
+    for (let iv = 0; iv < HEART_SEGMENTS; iv++) {
+      joinHeart(heartGrid[iu]![iv]!, heartGrid[iu]![(iv + 1) % HEART_SEGMENTS]!);
+      if (iu + 1 < heartGrid.length) joinHeart(heartGrid[iu]![iv]!, heartGrid[iu + 1]![iv]!);
+    }
+  }
+  void heart;
 
   // ── Pleura: a STRUCTURED SURFACE GRID, ray-marched off insideLung ───────
   //
@@ -204,10 +276,11 @@ export function buildMesh(preset: keyof typeof BUDGET = "desktop"): Mesh {
         const dy = Math.cos(jitteredPolar);
         const dz = Math.sin(jitteredPolar) * Math.sin(az);
         // March out, then bisect the last inside/outside pair.
+        // Outermost crossing, for the same reason as the heart: the cardiac
+        // notch makes a lung non-star-shaped, so a ray can leave and re-enter.
         let inside = -1;
         for (let r = 0.02; r <= 0.62; r += 0.01) {
           if (insideLung(cx + dx * r, cy + dy * r, dz * r)) inside = r;
-          else if (inside > 0) break;
         }
         if (inside < 0) {
           row.push(-1);

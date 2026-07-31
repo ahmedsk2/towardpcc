@@ -142,13 +142,11 @@ export function buildScene(): SceneModel {
     return { x: q.x, y: q.y, depth: d, r: 1.4 + 1.8 * d };
   });
 
+  // No cardiac vertex dots. They existed to give the heart mass when it was a
+  // proximity web of loose points; the surface grid carries it on its own, and
+  // 520 circles is most of the element budget spent restating what the mesh
+  // already says.
   const heartNodes: SceneNode[] = [];
-  mesh.points.forEach((p, i) => {
-    if (p.kind !== "heart") return;
-    const q = projected[i]!;
-    const d = norm(q.z);
-    heartNodes.push({ x: q.x, y: q.y, depth: d, r: 0.7 + 1.1 * d });
-  });
 
   cached = {
     paths,

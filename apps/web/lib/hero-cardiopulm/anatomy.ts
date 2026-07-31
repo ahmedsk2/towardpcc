@@ -158,6 +158,15 @@ export const CHAMBERS = [
   },
 ] as const;
 
+/**
+ * Centre the cardiac surface is ray-marched from.
+ *
+ * Midway between the borders and between base and apex — deep inside the
+ * blended union, which is what a star-shaped sweep needs. Derived rather than
+ * typed: it is the middle of the box HEART already describes.
+ */
+export const HEART_CENTRE = { x: 0.06, y: -0.24, z: 0.01 } as const;
+
 /** Soft-min blend constant for the chamber union — a smooth join, not four balls. */
 export const CHAMBER_BLEND_K = 0.04;
 
@@ -175,8 +184,19 @@ export const MEMBERSHIP_SOFTNESS = 0.18;
 /** How sharply the inferior heart converges on the apex. 2 = quadratic. */
 export const APEX_TAPER_POWER = 2;
 
+/**
+ * Ceiling on the taper factor, so the warp stays invertible.
+ *
+ * At exactly 1 the taper maps every x onto the apex and has no inverse, which
+ * matters because the field un-tapers a query point before testing it.
+ */
+export const APEX_TAPER_CLAMP = 0.985;
+
 /** Hull-bias falloff: how strongly sampling favours the surface over the core. */
 export const HEART_HULL_BIAS = 26;
+
+/** Bounds of the analytic apex scan. Must reach below the tapered apex. */
+export const APEX_SCAN = { belowApex: 0.06, xMin: -0.2, xSpan: 0.55 } as const;
 
 /** Bounds of the analytic cardiac-hull scan. Must enclose the whole heart. */
 export const HULL_SCAN = { yMin: -0.5, ySpan: 0.5, zMin: -0.25, zSpan: 0.5, xSpan: 0.5 } as const;
