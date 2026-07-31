@@ -668,8 +668,22 @@ export const RHYTHM = {
   pulseTravelFraction: 0.55,
   /** Ventricles only, and capped: this perfuses, it does not squeeze. */
   maxVolumetricChange: 0.03,
-  /** Global radial scale about the tree root. */
-  breathScaleGlobal: 0.07,
+  /**
+   * Breathing is DIAPHRAGMATIC, and anisotropic because of it.
+   *
+   * A single radial scale about the carina was the first attempt and it reads
+   * as a zoom rather than a breath: everything grows together, including the
+   * pleura, so nothing moves relative to anything else and the eye sees the
+   * camera pushing in. Rendered as a filmstrip that is unmistakable.
+   *
+   * A child breathes mostly with the diaphragm. The apex barely moves; the
+   * bases descend. So the expansion is anchored AT THE LUNG APEX and is mostly
+   * vertical, with a small lateral component for the ribs. The bases then
+   * travel about 0.055 of the lung field on inspiration while the apex stays
+   * put, which is what the motion actually looks like.
+   */
+  breathScaleVertical: 0.055,
+  breathScaleLateral: 0.018,
   /** Alveolar clusters additionally scale about their own centroids. */
   breathScaleCluster: 0.18,
   /** Recruitment glow at end-inspiration. */

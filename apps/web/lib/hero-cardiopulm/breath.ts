@@ -38,9 +38,17 @@ export function breathAt(tMs: number, breathMs: number = RHYTHM.breathMs): Breat
   };
 }
 
-/** Global radial scale about the tree root. */
-export function globalBreathScale(v: number): number {
-  return 1 + RHYTHM.breathScaleGlobal * v;
+/**
+ * Diaphragmatic expansion, anchored at the lung apex.
+ *
+ * Two scales, not one: a child breathes mostly with the diaphragm, so the apex
+ * barely moves and the bases descend. A single radial scale reads as a zoom.
+ */
+export function breathScale(v: number): { x: number; y: number } {
+  return {
+    x: 1 + RHYTHM.breathScaleLateral * v,
+    y: 1 + RHYTHM.breathScaleVertical * v,
+  };
 }
 
 /** Alveolar clusters swell about their own centroids — recruitment. */

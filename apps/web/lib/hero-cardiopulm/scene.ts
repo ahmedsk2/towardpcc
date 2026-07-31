@@ -1,4 +1,4 @@
-import { RHYTHM } from "./anatomy";
+import { RHYTHM, THORAX } from "./anatomy";
 import { buildMesh, type MeshKind } from "./mesh";
 
 /**
@@ -208,6 +208,15 @@ export function buildScene(): SceneModel {
  * a reader who never sees this move still sees lungs that are full and a heart
  * that is perfused.
  */
+/**
+ * The point the breath expands about: the lung APEX, not the carina.
+ *
+ * Anchoring at the carina moved the apices up as much as it moved the bases
+ * down, which is not how a chest works. Anchored at the apex, inspiration
+ * descends the bases and leaves the apex where it is.
+ */
+export const BREATH_ANCHOR_Y = sy(THORAX.lungApexY);
+
 export const REDUCED_MOTION_POSE = {
   breath: 0.72,
   beatScale: 1 + RHYTHM.maxVolumetricChange * 0.6,

@@ -1,7 +1,12 @@
 import type { CSSProperties } from "react";
 
 import { RHYTHM } from "@/lib/hero-cardiopulm/anatomy";
-import { buildScene, REDUCED_MOTION_POSE, SCENE } from "@/lib/hero-cardiopulm/scene";
+import {
+  BREATH_ANCHOR_Y,
+  buildScene,
+  REDUCED_MOTION_POSE,
+  SCENE,
+} from "@/lib/hero-cardiopulm/scene";
 import { site } from "@/content/site";
 import { PulseDriver } from "./pulse-driver";
 
@@ -136,13 +141,19 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
 }
 
 /* ── Breathing ──────────────────────────────────────────────────────────── */
-/* The tree and the surfaces expand about the carina together: a lung that
-   inflates without its pleura moving is a lung inside a rigid box. */
+/* DIAPHRAGMATIC, and anchored at the lung APEX. A single radial scale about
+   the carina reads as a zoom: everything grows together, so nothing moves
+   relative to anything else. A child breathes mostly with the diaphragm — the
+   apex barely moves and the bases descend — so the expansion is mostly
+   vertical, about the top of the lung, with a small lateral term for the ribs. */
 .cps-airway,
 .cps-pleura,
 .cps-clusters {
-  transform: scale(calc(1 + ${RHYTHM.breathScaleGlobal} * var(--breath)));
-  transform-origin: ${SCENE.originX}px ${SCENE.originY}px;
+  transform: scale(
+    calc(1 + ${RHYTHM.breathScaleLateral} * var(--breath)),
+    calc(1 + ${RHYTHM.breathScaleVertical} * var(--breath))
+  );
+  transform-origin: ${SCENE.originX}px ${BREATH_ANCHOR_Y.toFixed(1)}px;
   transform-box: view-box;
 }
 /* Clusters additionally brighten on inspiration — recruitment, and the thing
