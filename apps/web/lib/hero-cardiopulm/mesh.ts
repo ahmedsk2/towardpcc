@@ -25,7 +25,18 @@ import { generateTree } from "./tree";
  * bronchus with it. Only the heart and the pleural surfaces, which are surfaces
  * rather than trees, are meshed by proximity.
  */
-export type MeshKind = "airway" | "heart" | "pleura";
+/**
+ * "trachea" covers the CENTRAL airway — trachea, carina, main and lobar
+ * bronchi — as a system of its own rather than as the first few edges of the
+ * airway.
+ *
+ * Not a taxonomy nicety. It is the one shape in a chest that everybody reads
+ * instantly, and drawn at the same weight as a fifth-generation twig it
+ * disappeared into the parenchyma: an air column three times the calibre of
+ * anything around it, rendered at the same half-pixel stroke. Giving it its own
+ * kind gives it its own depth bands and its own weight.
+ */
+export type MeshKind = "trachea" | "airway" | "heart" | "pleura";
 
 export interface MeshPoint {
   x: number;
@@ -52,6 +63,15 @@ export interface Mesh {
 }
 
 /** How many neighbours each surface point is joined to. */
+/**
+ * Generations drawn as the central airway.
+ *
+ * Through the lobar bronchi: trachea, carina, both main bronchi, the early RUL
+ * takeoff and the four lobar branches. That is the whole recognisable
+ * inverted Y plus its first division, and it is where a reader's eye lands.
+ */
+const CENTRAL_GENERATIONS = 2;
+
 const SURFACE_NEIGHBOURS = 4;
 /**
  * Longest edge worth drawing, in anatomy units.
@@ -134,7 +154,13 @@ export function buildMesh(preset: keyof typeof BUDGET = "desktop"): Mesh {
     const a = nodeOf(tree.segments[o]!, tree.segments[o + 1]!, tree.segments[o + 2]!);
     const b = nodeOf(tree.segments[o + 3]!, tree.segments[o + 4]!, tree.segments[o + 5]!);
     if (a === b) continue;
-    edges.push({ a, b, kind: "airway", depth: tree.segmentGeneration[s]! / maxGen });
+    const generation = tree.segmentGeneration[s]!;
+    edges.push({
+      a,
+      b,
+      kind: generation <= CENTRAL_GENERATIONS ? "trachea" : "airway",
+      depth: generation / maxGen,
+    });
   }
 
   // Alveolar clusters ride on top as luminous nodes — the part that breathes.

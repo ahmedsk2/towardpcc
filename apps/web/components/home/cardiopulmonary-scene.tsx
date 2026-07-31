@@ -1,5 +1,8 @@
 import type { CSSProperties } from "react";
 
+import type { MeshKind } from "@/lib/hero-cardiopulm/mesh";
+import type { ScenePath } from "@/lib/hero-cardiopulm/scene";
+
 import { RHYTHM } from "@/lib/hero-cardiopulm/anatomy";
 import {
   BREATH_ANCHOR_Y,
@@ -33,7 +36,27 @@ import { PulseDriver } from "./pulse-driver";
  */
 const scene = buildScene();
 
+/**
+ * Paths regrouped by depth band, so parallax and breath can NEST rather than
+ * being concatenated into one transform string. The band group carries the
+ * horizontal shift; the paths inside it carry breath and beat, each about its
+ * own origin.
+ */
+const bands = (() => {
+  const byBand = new Map<string, { kind: MeshKind; band: number; z: number; paths: ScenePath[] }>();
+  for (const p of scene.paths) {
+    const key = `${p.kind}:${p.band}`;
+    const hit = byBand.get(key);
+    if (hit) hit.paths.push(p);
+    else byBand.set(key, { kind: p.kind, band: p.band, z: p.z, paths: [p] });
+  }
+  return [...byBand.values()];
+})();
+
 const INK = {
+  // Between the airway and the pleura: unmistakably the trunk, still the
+  // same figure as the branches hanging off it.
+  trachea: "color-mix(in oklab, var(--color-coral), var(--color-peach) 55%)",
   airway: "var(--color-coral)",
   heart: "var(--color-accent-bright)",
   pleura: "var(--color-peach)",
@@ -50,7 +73,8 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
             "--breath": `${REDUCED_MOTION_POSE.breath}`,
             "--beat": `${REDUCED_MOTION_POSE.beatScale}`,
             "--wave": `${REDUCED_MOTION_POSE.wave}`,
-            "--sway": `${REDUCED_MOTION_POSE.swayDeg}deg`,
+            "--sway-cos": `${Math.cos((REDUCED_MOTION_POSE.swayDeg * Math.PI) / 180).toFixed(5)}`,
+            "--sway-sin": `${Math.sin((REDUCED_MOTION_POSE.swayDeg * Math.PI) / 180).toFixed(5)}`,
           } as CSSProperties
         }
       >
@@ -60,23 +84,40 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
           viewBox={`0 0 ${SCENE.width} ${SCENE.height}`}
           preserveAspectRatio="xMidYMid meet"
         >
-          {/* The sway is a rotation about the vertical axis, applied as a
-              horizontal squeeze. A real rotation would need the mesh
-              reprojected every frame, which is exactly the per-vertex work this
-              architecture exists to avoid; at ±12° the difference is not
-              visible and the cost is one transform on one group. */}
+          {/* DEPTH-BAND PARALLAX, not a turntable.
+              For a yaw of theta about the vertical axis a point at depth z
+              moves to x' = x*cos(theta) + z*sin(theta). Within a band z is
+              nearly constant, so the band translates by one value and this
+              group carries the cos term — first-order exact, 31 transforms a
+              frame, no path ever rewritten.
+              A true rotation on this architecture would re-project 2,989 points
+              and rebuild 30 path strings every frame, roughly 6.8 MB/s of
+              string allocation at 60fps. That is not a tuning problem, it is
+              the wrong architecture for the requirement.
+              A chest also has a canonical view in a way a brain does not: past
+              90 degrees the viewer is behind the patient and the apex points
+              the wrong way, undoing every bit of the mirroring discipline the
+              geometry enforces. */}
           <g className="cps-world">
-            {scene.paths.map((p) => (
-              <path
-                key={`${p.kind}${p.band}${p.dots ? "d" : ""}`}
-                className={`cps-${p.kind}`}
-                d={p.d}
-                fill="none"
-                stroke={INK[p.kind]}
-                strokeOpacity={Math.min(1, p.opacity).toFixed(3)}
-                strokeWidth={p.width.toFixed(2)}
-                strokeLinecap="round"
-              />
+            {bands.map(({ kind, band, z, paths }) => (
+              <g
+                key={`${kind}${band}`}
+                className="cps-band"
+                style={{ "--z": z.toFixed(1) } as CSSProperties}
+              >
+                {paths.map((p) => (
+                  <path
+                    key={p.dots ? "d" : "e"}
+                    className={`cps-${p.kind}`}
+                    d={p.d}
+                    fill="none"
+                    stroke={INK[p.kind]}
+                    strokeOpacity={Math.min(1, p.opacity).toFixed(3)}
+                    strokeWidth={p.width.toFixed(2)}
+                    strokeLinecap="round"
+                  />
+                ))}
+              </g>
             ))}
 
             {/* Cardiac vertices, so the heart reads as mass and not only wire. */}
@@ -134,8 +175,15 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
   overflow: visible;
 }
 .cps-world {
-  transform: scaleX(calc(1 - 0.055 * (var(--sway) / ${RHYTHM.swayDeg}deg) * (var(--sway) / ${RHYTHM.swayDeg}deg)));
+  transform: scaleX(var(--sway-cos));
   transform-origin: ${SCENE.originX}px ${SCENE.originY}px;
+  transform-box: view-box;
+  will-change: transform;
+}
+/* The parallax shift. Nested outside breath and beat, so the three compose
+   instead of fighting over one transform property. */
+.cps-band {
+  transform: translateX(calc(var(--z) * var(--sway-sin) * 1px));
   transform-box: view-box;
   will-change: transform;
 }
@@ -147,6 +195,7 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
    apex barely moves and the bases descend — so the expansion is mostly
    vertical, about the top of the lung, with a small lateral term for the ribs. */
 .cps-airway,
+.cps-trachea,
 .cps-pleura,
 .cps-clusters {
   transform: scale(

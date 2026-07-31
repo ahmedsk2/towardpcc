@@ -45,6 +45,16 @@ export interface ScenePath {
   opacity: number;
   width: number;
   /**
+   * Mean depth of the band, in scene pixels.
+   *
+   * The parallax lever. For a yaw of theta about the vertical axis a point at
+   * depth z moves to x' = x*cos(theta) + z*sin(theta). Within a band z is
+   * nearly constant — that is what a band IS — so the whole band translates by
+   * one value and the root carries the cos term. First-order exact, 31
+   * transforms a frame, and no path is ever rewritten.
+   */
+  z: number;
+  /**
    * True for the vertex paths.
    *
    * Vertices are drawn as ZERO-LENGTH SUBPATHS with a round linecap, which a
@@ -93,6 +103,24 @@ function project(p: { x: number; y: number; z: number }, yaw: number, pitch: num
 
 /** Per-system band styling: opacity and stroke width at the far and near bands. */
 const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: number }> = {
+  /**
+   * The central airway: the brightest and heaviest thing after the heart.
+   *
+   * A real trachea is an air column several times the calibre of the branches
+   * below it, and on a film it is the first thing a reader finds. Drawn at
+   * parenchymal weight it vanished into the tree it is the trunk of.
+   *
+   * A NARROW ramp, unlike the others. The central airway runs down the midline
+   * at roughly one depth, so it only ever populates the middle bands — given
+   * the wide ramp the other systems use, its brightest band came out dimmer
+   * than the parenchyma around it, which is the opposite of the point. It does
+   * not need depth shading; it needs to be consistently the trunk.
+   *
+   * Weighted about twice the airway, not four times. At 3.4px of near-white it
+   * read as an overlay drawn ON the figure rather than as its trunk: the
+   * inverted Y was unmistakable and belonged to a different picture.
+   */
+  trachea: { far: 0.72, near: 0.92, wFar: 1.25, wNear: 1.9 },
   /** The structure the eye should follow first. */
   airway: { far: 0.14, near: 0.8, wFar: 0.5, wNear: 1.4 },
   /** The subject: brightest, and drawn last. */
@@ -108,7 +136,7 @@ const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: 
 /** Vertices sit a little brighter than their edges, or they vanish into them. */
 const DOT_LIFT = 1.35;
 
-const KIND_ORDER: MeshKind[] = ["pleura", "airway", "heart"];
+const KIND_ORDER: MeshKind[] = ["pleura", "airway", "trachea", "heart"];
 
 let cached: SceneModel | null = null;
 
@@ -128,6 +156,8 @@ export function buildScene(): SceneModel {
   for (const kind of KIND_ORDER) {
     const style = STYLE[kind];
     const buckets: string[][] = Array.from({ length: BANDS }, () => []);
+    const depthSum = new Array<number>(BANDS).fill(0);
+    const depthCount = new Array<number>(BANDS).fill(0);
     for (const e of mesh.edges) {
       if (e.kind !== kind) continue;
       const a = projected[e.a]!;
@@ -137,13 +167,17 @@ export function buildScene(): SceneModel {
       buckets[band]!.push(
         `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`,
       );
+      depthSum[band]! += ((a.z + b.z) / 2) * px(1);
+      depthCount[band]!++;
     }
+    const bandZ = (band: number) => (depthCount[band] ? depthSum[band]! / depthCount[band]! : 0);
     buckets.forEach((segs, band) => {
       if (!segs.length) return;
       const t = band / (BANDS - 1);
       paths.push({
         kind,
         band,
+        z: bandZ(band),
         d: segs.join(""),
         // Eased, so the far bands recede faster than linear. That is what makes
         // the volume feel deep rather than merely layered.
@@ -168,6 +202,7 @@ export function buildScene(): SceneModel {
       paths.push({
         kind,
         band,
+        z: bandZ(band),
         d: segs.join(""),
         dots: true,
         opacity: (style.far + (style.near - style.far) * Math.pow(t, 1.4)) * DOT_LIFT,
@@ -216,6 +251,17 @@ export function buildScene(): SceneModel {
  * descends the bases and leaves the apex where it is.
  */
 export const BREATH_ANCHOR_Y = sy(THORAX.lungApexY);
+
+/**
+ * Hard ceiling on the sway amplitude.
+ *
+ * The parallax is first-order exact, not an imitation, but only while the bands
+ * keep their depth order relative to one another. Past about 15 degrees they
+ * cross and the approximation visibly breaks — near structure starts sliding
+ * behind far structure. Asserted, because it is a number someone will
+ * reasonably want to turn up.
+ */
+export const MAX_SWAY_DEG = 15;
 
 export const REDUCED_MOTION_POSE = {
   breath: 0.72,

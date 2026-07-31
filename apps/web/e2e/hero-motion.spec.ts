@@ -43,9 +43,11 @@ test.describe("hero figure", () => {
         paths: paths.length,
         edges: segments,
         airwayBands: frame.querySelectorAll("path.cps-airway").length,
+        tracheaBands: frame.querySelectorAll("path.cps-trachea").length,
         heartBands: frame.querySelectorAll("path.cps-heart").length,
         pleuraBands: frame.querySelectorAll("path.cps-pleura").length,
         clusters: frame.querySelectorAll(".cps-clusters circle").length,
+        bandGroups: frame.querySelectorAll(".cps-band").length,
         distinctOpacities: opacities.size,
         worldTransformed: getComputedStyle(world).transform !== "none",
       };
@@ -60,11 +62,17 @@ test.describe("hero figure", () => {
     // Five bands per system for the edges and five more for the vertices,
     // which are zero-length subpaths with a round linecap rather than three
     // thousand circles.
-    expect(scene!.paths, "edges were not bucketed into bands").toBeLessThanOrEqual(30);
+    expect(scene!.paths, "edges were not bucketed into bands").toBeLessThanOrEqual(40);
     expect(scene!.airwayBands).toBeGreaterThan(2);
+    expect(scene!.tracheaBands, "the central airway is not drawn").toBeGreaterThan(1);
     expect(scene!.heartBands).toBeGreaterThan(2);
     expect(scene!.pleuraBands).toBeGreaterThan(2);
     expect(scene!.clusters, "no alveolar clusters").toBeGreaterThan(20);
+
+    // Parallax nests outside breath and beat rather than concatenating into
+    // one transform string, so each band needs its own group.
+    expect(scene!.bandGroups, "depth bands are not grouped for parallax").toBeGreaterThan(14);
+    expect(scene!.bandGroups).toBeLessThanOrEqual(20);
 
     // The heart carries itself as a surface. It used to need a few hundred
     // vertex dots because it was a proximity web with no facets; the mesh
@@ -135,6 +143,7 @@ test.describe("hero figure", () => {
           breath: Number(s.getPropertyValue("--breath")),
           beat: Number(s.getPropertyValue("--beat")),
           wave: Number(s.getPropertyValue("--wave")),
+          swayCos: Number(s.getPropertyValue("--sway-cos")),
           running: document.getAnimations().filter((a) => a.playState === "running").length,
         };
       });
@@ -144,6 +153,9 @@ test.describe("hero figure", () => {
       expect(before.breath).toBeGreaterThan(0.5);
       expect(before.beat).toBeGreaterThan(1);
       expect(before.wave).toBeGreaterThan(0);
+      // Turned slightly, not square on: the still is a composed pose.
+      expect(before.swayCos).toBeGreaterThan(0.9);
+      expect(before.swayCos).toBeLessThan(1);
       expect(before.running, "nothing may animate under reduced motion").toBe(0);
 
       // And it must STAY there — the driver must not have mounted at all.

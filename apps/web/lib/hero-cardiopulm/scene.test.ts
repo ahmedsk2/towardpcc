@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { RHYTHM } from "./anatomy";
 import { buildMesh } from "./mesh";
-import { buildScene, REDUCED_MOTION_POSE, SCENE, sx, sy } from "./scene";
+import { buildScene, MAX_SWAY_DEG, REDUCED_MOTION_POSE, SCENE, sx, sy } from "./scene";
 
 /**
  * The projection layer, tested separately from the anatomy.
@@ -15,17 +15,23 @@ import { buildScene, REDUCED_MOTION_POSE, SCENE, sx, sy } from "./scene";
 describe("mesh", () => {
   const mesh = buildMesh();
 
+  /** The airway is ONE tree; the central part is a separate kind only so it
+   *  can be drawn heavier. Connectivity does not care about that split. */
+  const isAirway = (k: string) => k === "airway" || k === "trachea";
+
   it("draws the airway from its own connectivity, not by proximity", () => {
     // A bronchial tree is a graph and the segments are known at generation
     // time. Nearest-neighbour meshing would join a distal twig of the right
     // lower lobe to one of the middle lobe that never shared a bronchus.
-    const airway = mesh.edges.filter((e) => e.kind === "airway");
+    const airway = mesh.edges.filter((e) => isAirway(e.kind));
     expect(airway.length).toBeGreaterThan(400);
     // Every airway edge must be a real segment: both ends are tree nodes.
     for (const e of airway) {
       expect(mesh.points[e.a]!.kind).toBe("airway");
       expect(mesh.points[e.b]!.kind).toBe("airway");
     }
+    // And the central airway must actually exist, or the trunk is unweighted.
+    expect(mesh.edges.filter((e) => e.kind === "trachea").length).toBeGreaterThan(4);
   });
 
   it("keeps the airway one connected tree", () => {
@@ -35,7 +41,7 @@ describe("mesh", () => {
     const airwayNodes = new Set<number>();
     const adjacency = new Map<number, number[]>();
     for (const e of mesh.edges) {
-      if (e.kind !== "airway") continue;
+      if (!isAirway(e.kind)) continue;
       airwayNodes.add(e.a);
       airwayNodes.add(e.b);
       (adjacency.get(e.a) ?? adjacency.set(e.a, []).get(e.a)!).push(e.b);
@@ -103,7 +109,9 @@ describe("scene projection", () => {
     expect(scene.counts.edges).toBeGreaterThan(1500);
     // Five bands per system for the edges, and five more for the vertices,
     // which ride as zero-length subpaths rather than as three thousand circles.
-    expect(scene.paths.length).toBeLessThanOrEqual(30);
+    // Four systems, five depth bands each, edges and vertices banding
+    // independently: forty at the ceiling, thirty-one where bands are non-empty.
+    expect(scene.paths.length).toBeLessThanOrEqual(40);
     expect(scene.counts.elements).toBeLessThan(150);
   });
 
@@ -112,7 +120,7 @@ describe("scene projection", () => {
     // they were not, near structure would recede behind far structure.
     // Edges and vertices band independently, so each family is checked on its
     // own — interleaving them would compare a near edge against a far dot.
-    for (const kind of ["airway", "heart", "pleura"] as const) {
+    for (const kind of ["trachea", "airway", "heart", "pleura"] as const) {
       for (const dots of [false, true]) {
         const bands = scene.paths
           .filter((p) => p.kind === kind && Boolean(p.dots) === dots)
@@ -131,7 +139,54 @@ describe("scene projection", () => {
     const brightest = (kind: string) =>
       Math.max(...scene.paths.filter((p) => p.kind === kind && !p.dots).map((p) => p.opacity));
     expect(brightest("pleura")).toBeLessThan(brightest("airway"));
-    expect(brightest("airway")).toBeLessThan(brightest("heart"));
+    expect(brightest("airway")).toBeLessThan(brightest("trachea"));
+    // The central airway is the trunk: heavier than what hangs off it.
+    const widest = (kind: string) =>
+      Math.max(...scene.paths.filter((p) => p.kind === kind && !p.dots).map((p) => p.width));
+    expect(widest("airway")).toBeLessThan(widest("trachea"));
+  });
+});
+
+describe("depth-band parallax", () => {
+  const scene = buildScene();
+
+  it("orders the bands monotonically in depth", () => {
+    // The parallax shifts each band by its own depth, so the bands must BE
+    // ordered in depth or near structure slides behind far structure.
+    for (const kind of ["airway", "heart", "pleura"] as const) {
+      const bands = scene.paths
+        .filter((p) => p.kind === kind && !p.dots)
+        .sort((a, b) => a.band - b.band);
+      for (let i = 1; i < bands.length; i++) {
+        expect(bands[i]!.z).toBeGreaterThan(bands[i - 1]!.z);
+      }
+    }
+    // The central airway is a short trunk near the midline, so it may not
+    // populate every band; only that what it does populate is ordered.
+    const trunk = scene.paths
+      .filter((p) => p.kind === "trachea" && !p.dots)
+      .sort((a, b) => a.band - b.band);
+    for (let i = 1; i < trunk.length; i++) {
+      expect(trunk[i]!.z).toBeGreaterThan(trunk[i - 1]!.z);
+    }
+  });
+
+  it("holds the sway amplitude below the angle at which bands cross", () => {
+    // First-order exact, not an imitation — but only while the bands keep
+    // their depth order relative to one another. Past ~15 degrees they cross
+    // and it visibly breaks. This is a number someone will reasonably want to
+    // turn up, so it is pinned rather than left to a comment.
+    expect(RHYTHM.swayDeg).toBeLessThanOrEqual(MAX_SWAY_DEG);
+    expect(MAX_SWAY_DEG).toBeLessThanOrEqual(15);
+  });
+
+  it("keeps the parallax shift small against the figure", () => {
+    // sin(15 deg) is 0.26, so the deepest band moves about a quarter of its
+    // depth. If that ever exceeded a tenth of the frame the scene would read
+    // as sliding apart rather than turning.
+    const deepest = Math.max(...scene.paths.map((p) => Math.abs(p.z)));
+    const shift = deepest * Math.sin((MAX_SWAY_DEG * Math.PI) / 180);
+    expect(shift).toBeLessThan(SCENE.width * 0.1);
   });
 });
 

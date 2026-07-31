@@ -28,7 +28,12 @@ import { breathAt } from "../apps/web/lib/hero-cardiopulm/breath";
 import { BREATH_ANCHOR_Y, buildScene, SCENE } from "../apps/web/lib/hero-cardiopulm/scene";
 
 const scene = buildScene();
-const INK = { airway: "255,150,130", heart: "244,72,96", pleura: "255,214,200" } as const;
+const INK = {
+  trachea: "255,214,200",
+  airway: "255,150,130",
+  heart: "244,72,96",
+  pleura: "255,214,200",
+} as const;
 
 const FRAMES = 14;
 const SPAN = RHYTHM.breathMs; // one full breath

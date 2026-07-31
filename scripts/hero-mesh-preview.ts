@@ -14,7 +14,12 @@ import { join } from "node:path";
 import { buildScene, SCENE } from "../apps/web/lib/hero-cardiopulm/scene";
 
 const scene = buildScene();
-const INK = { airway: "255,150,130", heart: "244,72,96", pleura: "255,214,200" } as const;
+const INK = {
+  trachea: "255,184,164",
+  airway: "255,150,130",
+  heart: "244,72,96",
+  pleura: "255,214,200",
+} as const;
 
 const parts = [
   ...scene.paths.map(

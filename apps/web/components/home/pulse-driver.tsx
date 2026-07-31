@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { RHYTHM } from "@/lib/hero-cardiopulm/anatomy";
 import { advanceBeat, beatState } from "@/lib/hero-cardiopulm/beat";
 import { breathAt } from "@/lib/hero-cardiopulm/breath";
+import { MAX_SWAY_DEG } from "@/lib/hero-cardiopulm/scene";
 
 /**
  * The only client code in the hero.
@@ -62,10 +63,17 @@ export function PulseDriver() {
       el.style.setProperty("--breath", breath.toFixed(4));
       el.style.setProperty("--beat", beat.scale.toFixed(4));
       el.style.setProperty("--wave", beat.wave.toFixed(4));
-      el.style.setProperty(
-        "--sway",
-        `${(RHYTHM.swayDeg * Math.sin((now / RHYTHM.swayPeriodMs) * Math.PI * 2)).toFixed(2)}deg`,
-      );
+      // Parallax, as cos and sin rather than an angle: the CSS multiplies each
+      // band's depth by the sine and scales the root by the cosine, which is
+      // the first-order exact form of a yaw about the vertical axis.
+      //
+      // CLAMPED to the ceiling. Past it the bands cross in depth and the
+      // approximation visibly breaks, so the clamp is here as well as asserted
+      // — a configured amplitude should degrade, not tear.
+      const amplitude = Math.min(RHYTHM.swayDeg, MAX_SWAY_DEG);
+      const yaw = (amplitude * Math.sin((now / RHYTHM.swayPeriodMs) * Math.PI * 2) * Math.PI) / 180;
+      el.style.setProperty("--sway-cos", Math.cos(yaw).toFixed(5));
+      el.style.setProperty("--sway-sin", Math.sin(yaw).toFixed(5));
 
       frame = requestAnimationFrame(tick);
     };
