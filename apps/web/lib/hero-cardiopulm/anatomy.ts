@@ -37,6 +37,31 @@ export const THORAX = {
   /** The origin. Stated for readability at call sites. */
   carinaY: 0,
   costophrenicY: -0.64,
+  /**
+   * The liver elevates the WHOLE right hemidiaphragm, so the right
+   * costophrenic angle sits slightly higher too — not just the medial dome.
+   * The single shared value made the two angles level, which is the one place
+   * this chest was symmetric where a real one is not.
+   */
+  rightCostophrenicY: -0.625,
+  leftCostophrenicY: -0.64,
+  /**
+   * Inferior extent of the thoracic shell — DELIBERATELY BELOW both
+   * costophrenic angles, so the shell never forms the lung's floor.
+   *
+   * It used to sit exactly at -0.64, and that quietly broke the base. The shell
+   * is deepest at the MIDLINE and rises laterally; the diaphragm is highest at
+   * the midline (the dome) and falls laterally to the costophrenic angle. The
+   * two therefore run in opposite directions, and the lung's lowest point came
+   * out where they crossed — mid-hemithorax, at a smooth tangency. Measured:
+   * the two costophrenic angles differed by 0.0007 against the 0.015 specified,
+   * i.e. they were level, and the included angle was 112 degrees on the right
+   * and 133 on the left against a documented requirement of under 45.
+   *
+   * Dropping the shell clear of the diaphragm lets the diaphragm alone define
+   * the base, which is what it does in a chest.
+   */
+  lungInferiorLimit: -0.78,
   /** The liver raises the right hemidiaphragm — it sits HIGHER than the left. */
   rightDiaphragmY: -0.505,
   leftDiaphragmY: -0.555,
@@ -88,7 +113,15 @@ export const CHAMBERS = [
     id: "rv",
     label: "right ventricle",
     side: "right",
-    centroid: { x: -0.02, y: -0.3, z: 0.115 },
+    // Shifted -0.020 -> -0.005 (review item 0, second-order). Narrowing the RA
+    // alone did not move the right heart border, because the RA never formed
+    // it: at rx 0.115 the RV reached -0.135, 0.015 LATERAL to the atrium. That
+    // is wrong twice — the right border on an AP film is an ATRIAL border, and
+    // the RV is the anterior chamber, not the lateral one. Shifting rather than
+    // shrinking puts the RV's right margin exactly on the border while keeping
+    // the chamber's volume, and carries it further across the midline, which is
+    // where the right ventricle actually lies.
+    centroid: { x: -0.005, y: -0.3, z: 0.115 },
     radii: { x: 0.115, y: 0.13, z: 0.08 },
     share: 0.3,
   },
@@ -96,16 +129,23 @@ export const CHAMBERS = [
     id: "ra",
     label: "right atrium",
     side: "right",
-    centroid: { x: -0.075, y: -0.14, z: 0.02 },
-    radii: { x: 0.075, y: 0.105, z: 0.075 },
+    // Reconciled 2026-07-31 (review item 0). ANATOMY.md §3's chamber table and
+    // border table disagreed: -0.075 - 0.075 reaches -0.150, against a stated
+    // right border of -0.120. The render followed the chambers, making the
+    // heart 24% too wide on the right and CTR 0.504 where 0.480 was intended.
+    // Narrowed to meet the border table, which is the clinically-read landmark.
+    centroid: { x: -0.07, y: -0.14, z: 0.02 },
+    radii: { x: 0.05, y: 0.105, z: 0.075 },
     share: 0.2,
   },
   {
     id: "lv",
     label: "left ventricle",
     side: "left",
+    // rx widened 0.115 -> 0.125 so the left border reaches the stated +0.240
+    // (review item 0). Cardiac width becomes exactly 0.360, CTR exactly 0.480.
     centroid: { x: 0.115, y: -0.315, z: 0.005 },
-    radii: { x: 0.115, y: 0.145, z: 0.1 },
+    radii: { x: 0.125, y: 0.145, z: 0.1 },
     share: 0.32,
   },
   {
@@ -120,6 +160,74 @@ export const CHAMBERS = [
 
 /** Soft-min blend constant for the chamber union — a smooth join, not four balls. */
 export const CHAMBER_BLEND_K = 0.04;
+
+/**
+ * Chamber-membership blend softness, in FIELD units (the field is normalised by
+ * chamber radii, so this does not read directly in anatomy units).
+ *
+ * Chosen by sweep. Re-run after the RA/LV/RV corrections of review item 0, the
+ * per-chamber tint means are RV 0.24 / RA 0.15 / LV 0.78 / LA 0.86 and the
+ * intermediate fraction is 22%: enough particles carry the gradient that there
+ * is no seam, while the chambers stay unambiguously themselves.
+ */
+export const MEMBERSHIP_SOFTNESS = 0.18;
+
+/** How sharply the inferior heart converges on the apex. 2 = quadratic. */
+export const APEX_TAPER_POWER = 2;
+
+/** Hull-bias falloff: how strongly sampling favours the surface over the core. */
+export const HEART_HULL_BIAS = 26;
+
+/** Bounds of the analytic cardiac-hull scan. Must enclose the whole heart. */
+export const HULL_SCAN = { yMin: -0.5, ySpan: 0.5, zMin: -0.25, zSpan: 0.5, xSpan: 0.5 } as const;
+
+/** Airway radii by level. Not decorative — cluster size scales with them. */
+export const AIRWAY_RADII = {
+  trachea: 0.026,
+  rightMain: 0.019,
+  leftMain: 0.016,
+  rul: 0.012,
+  lobar: 0.011,
+} as const;
+
+/** Trachea length, as a multiple of the right main bronchus. */
+export const TRACHEA_LENGTH_FACTOR = 1.6;
+
+/** Lobar bronchus length, as a fraction of the left main bronchus. */
+export const LOBAR_LENGTH_FACTOR = 0.62;
+
+/**
+ * Share of each lobe's budget spent on alveolar clusters rather than branch
+ * dust. Clusters are what visibly breathes, so they get the larger half.
+ */
+export const CLUSTER_SHARE = 0.55;
+
+/**
+ * Shortest branch worth keeping when clamped to the pleura, as a fraction of
+ * its intended length. Below this it was already at the surface — a nub, not a
+ * bronchus.
+ */
+export const MIN_STUB_FRACTION = 0.2;
+
+/** Lung shell dimensions. The pleural surface and the airway container both use these. */
+export const LUNG = {
+  halfWidth: 0.175,
+  /** Medial border offset from the midline — the mediastinum lives between these. */
+  medialX: 0.02,
+  /** Lateral limit of the boundary march; must exceed the pleural extent. */
+  scanSpan: 0.42,
+} as const;
+
+/**
+ * Fissure planes, as offsets from the lung's vertical centre plus the oblique's
+ * slope. The horizontal fissure exists on the RIGHT ONLY — that is what
+ * resolves three lobes there and two on the left.
+ */
+export const FISSURES = {
+  obliqueOffsetY: 0.08,
+  obliqueSlope: 0.55,
+  horizontalOffsetY: 0.14,
+} as const;
 
 /**
  * Main bronchi (ANATOMY.md §4). School-age child.
@@ -187,10 +295,133 @@ export const LOBAR_BRONCHI = [
   { lobe: "lll", polarDeg: 50, rollDeg: 0 },
 ] as const;
 
+/**
+ * Fraction of the airway budget belonging to each lobe (ANATOMY.md §4).
+ *
+ * SUPERSEDES the flat side-split for the airways. Allocating by side alone
+ * fixed the R:L ratio and left the distribution WITHIN each side to fall out of
+ * branch counts — which shipped the right lower lobe, the largest lobe of the
+ * lung, as the thinnest object in the scene at 13 particles. The lesson from
+ * the R:L fix generalises one level down: a documented proportion should be
+ * allocated, not hoped for.
+ *
+ * Right 53% / left 47% gives R:L 1.13, inside the documented [1.10, 1.25].
+ */
+export const LOBE_SHARES = {
+  rul: 0.2,
+  rml: 0.08,
+  rll: 0.25,
+  /** Includes the lingula, which is a left-upper structure, not a third lobe. */
+  lul: 0.23,
+  lll: 0.24,
+} as const;
+
+/**
+ * Per-side length decay per generation.
+ *
+ * NOT COSMETIC TUNING — it corrects a real geometric shortfall. The two hila
+ * are not equidistant from their pleural surfaces: the right main bronchus is
+ * short and steep (28 degrees, 0.115) so its hilum sits at x = -0.054, while
+ * the left is long and oblique (45 degrees, 0.175) putting its hilum at
+ * x = +0.124. From there the right tree must cross 0.313 of lateral distance to
+ * reach its pleura and the left only 0.228.
+ *
+ * With one shared decay the right tree simply cannot get there, and it did not:
+ * the right lung shipped filled to 0.225 of a 0.370 half-width, leaving an
+ * empty shell across its entire lateral third while the left reached 0.346.
+ * That reads as a chest with one lung missing, and it is backwards — the right
+ * lung is the LARGER one.
+ *
+ * Real anatomy compensates the same way, with longer and more numerous distal
+ * branches on the right. The spec did not say so, and the generator faithfully
+ * produced a hollow lung.
+ */
+export const LENGTH_DECAY_BY_SIDE = { right: 0.87, left: 0.76 } as const;
+
+/**
+ * The right tree runs one generation deeper than the left.
+ *
+ * Decay alone could not close the gap. At 0.87 against the left's 0.76 the
+ * right reached 0.843 of its pleural half-width on desktop and only 0.778 on
+ * the narrow preset, which runs a generation shallower to begin with — and
+ * pushing decay high enough to close that would have made the right airway
+ * barely taper at all, trading a hollow lung for an implausible one.
+ *
+ * The extra generation is the anatomically honest half of the fix: the right
+ * lung is larger and does carry more distal branches, so the depth asymmetry is
+ * a fact about the anatomy rather than a knob. It also fixes both presets at
+ * once, where decay had to be retuned per generation count. Costs nothing at
+ * render time — the budget is allocated per lobe, so this changes where
+ * particles sit, not how many there are.
+ */
+export const EXTRA_GENERATIONS_RIGHT = 1;
+
+/**
+ * The territory each lobe grows into, and how strongly branches are pulled
+ * toward it.
+ *
+ * WHY THIS EXISTS. Divergence plus a golden-angle roll spreads children
+ * isotropically, so whether a lobe reaches its pleural surface is decided by
+ * whether jitter happened to aim a branch laterally rather than front-to-back.
+ * Measured over 20 seeds, right-lung fill ranged 0.56 to 0.84 of the pleural
+ * half-width on the same geometry — the variance was larger than the defect
+ * being fixed. Decay and depth cannot repair that: they lengthen branches
+ * without pointing them anywhere.
+ *
+ * Lungs are not built isotropically either. Airway branching is guided by the
+ * surrounding mesenchyme — the tree grows into the space it is given, which is
+ * why lobes fill their territory instead of ending wherever chance left them.
+ * Each child direction is therefore blended toward its lobe's territory centre.
+ * Divergence, jitter and roll still shape the tree; the pull only decides which
+ * way "outward" is.
+ *
+ * Territories follow the fissures: the oblique fissure divides upper from
+ * lower, and the horizontal fissure (right lung only) separates the middle
+ * lobe, which is also the most anterior, hence its positive z.
+ *
+ * These are DIRECTIONS, not destinations — the growth axis of each lobe, which
+ * is what the surrounding mesenchyme actually supplies.
+ *
+ * Both point-based attempts failed, in opposite ways, and the second failure is
+ * the instructive one. Aiming at each lobe's centre of mass was worse than no
+ * pull at all (0.70 fill against 0.84): a branch steered toward the middle of
+ * its lobe stops in the middle of its lobe. Moving the targets subpleural fixed
+ * the right lung and then broke the left, dropping it 0.98 -> 0.84, because a
+ * target point CAPS reach as well as directing it: once a branch arrives, the
+ * direction to the target is short and arbitrary, so the tree piles up at the
+ * aim point instead of continuing past it.
+ *
+ * A direction has no such failure mode. Branches keep heading outward wherever
+ * they are, and length decay — not an arbitrary point — is what stops them,
+ * which is also how a real airway terminates.
+ */
+export const LOBE_TERRITORY = {
+  // The RIGHT axes run MORE LATERALLY than their left counterparts. Not a
+  // fudge: the right hilum sits at x -0.054 against the left's +0.124, so the
+  // right lobes start 0.07 closer to the midline and must cross correspondingly
+  // more chest to reach their pleura. Symmetric growth axes left the right lung
+  // hollow at 0.62 of its half-width while the left reached 0.86.
+  /** Up and lateral, over the azygos arch. */
+  rul: { x: -0.76, y: 0.65, z: -0.06 },
+  /** Lateral and ANTERIOR — the middle lobe lies against the sternum. */
+  rml: { x: -0.9, y: -0.26, z: 0.35 },
+  /** Down and lateral, into the posterior costophrenic recess. */
+  rll: { x: -0.73, y: -0.67, z: -0.13 },
+  lul: { x: 0.62, y: 0.78, z: 0.0 },
+  lll: { x: 0.6, y: -0.79, z: -0.13 },
+} as const;
+
+/** How strongly a child is steered along its lobe's growth axis. 0 = isotropic. */
+export const TERRITORY_PULL = 0.68;
+
 /** Recursive bifurcation below the lobar bronchi (ANATOMY.md §4). */
 export const BRANCHING = {
   divergenceDeg: 34,
   divergenceJitterDeg: 8,
+  /**
+   * Baseline length decay per generation. Overridden per side below — see
+   * lengthDecayBySide, which is where the real number lives.
+   */
   lengthDecay: 0.76,
   lengthJitter: 0.04,
   radiusDecay: 0.72,
@@ -221,11 +452,75 @@ export const ENVELOPE = {
     bottomY: -0.45,
     /** === HEART.leftBorderX, deliberately. Asserted equal. */
     medialX: 0.24,
+    /**
+     * The notch exists only ANTERIOR to this depth.
+     *
+     * It was cut through the full thickness of the lung, which is wrong: the
+     * heart lies against the ANTERIOR left lung, and the posterior left lung
+     * runs medially BEHIND it, down to the descending aorta and the spine.
+     * A full-depth cut removes lung that is really there — and hides the one
+     * fact the notch is supposed to convey, that the heart sits in FRONT.
+     *
+     * -0.05 sits just behind the left ventricle (z +0.005), so the notch opens
+     * on the anterior shells and closes on the posterior one. That difference
+     * between shells is depth information a particle cloud could not carry and
+     * a stroked shell shows for free.
+     */
+    anteriorZ: -0.05,
   },
-  /** Right lung exceeds left by 10–25%: the heart displaces the left. */
+  /**
+   * Right lung exceeds left by 10-25%: the heart displaces the left.
+   *
+   * Governs the ENVELOPE only. The airway tree is allocated per lobe against
+   * LOBE_SHARES, which supersedes this for airways and lands R:L at 1.13.
+   */
   rightLeftParticleRatio: 1.18,
-  /** Costophrenic angles are sharp — asserted below 45°. */
+  /** Costophrenic angles are sharp. Asserted below 45 degrees, both sides. */
   costophrenicAngleDeg: 32,
+  /**
+   * Thoracic wall profile, as superellipse exponents: |dx|^n + |dy|^n + |dz|^n.
+   *
+   * TWO EXPONENTS, because a chest is round at the top and square at the
+   * bottom. A plain ellipse (n = 2) has no straight wall anywhere, so it cannot
+   * produce a costophrenic angle at all — the base is an arc, and an arc has no
+   * corner. Pushing a single exponent up to 8 gives the vertical lower wall the
+   * angle needs, and then removes the apical dome with it: measured, the lung
+   * at y = +0.30 was 94% as wide as at y = -0.30, a column rather than a chest.
+   *
+   * Splitting them gives both. Above the shell's centre the profile stays
+   * rounded, tapering the apex to 57% of mid-lung width; below it the wall runs
+   * near-vertical down to the diaphragm.
+   */
+  wallExponentUpper: 2.5,
+  wallExponentLower: 8,
+  /**
+   * How sharply the diaphragm falls from its dome to the costophrenic angle.
+   *
+   * The costophrenic angle is the angle between a vertical chest wall and the
+   * diaphragm, so it is set by the diaphragm's SLOPE where the two meet. A
+   * quadratic falloff meets the wall at ~64 degrees — blunted, which on a
+   * pediatric film is the cardinal sign of an effusion. 6.5 keeps the dome
+   * broad and flat centrally and turns it down hard at the costal margin, the
+   * shape a diaphragm actually has, giving 28 degrees on the right and 37 on
+   * the left against the 32 documented above.
+   */
+  diaphragmFalloffPower: 6.5,
+  /**
+   * Depths at which each lung's surface is drawn as a stroked outline.
+   *
+   * Three per lung, six in the scene, replacing ~110 particles. The old shell
+   * was a particle cloud asked to carry two lung surfaces, three fissures, two
+   * costophrenic angles and the cardiac notch at once — and the notch, which §5
+   * calls the single most important silhouette feature, came out described by
+   * FIVE PARTICLES. It was geometrically correct and simply invisible.
+   *
+   * Because the cross-section narrows with |z|, the three outlines nest: the
+   * posterior and anterior shells draw at ~78% of the mid shell's size. That
+   * nesting is what reads as a volume rather than a sticker.
+   */
+  shellDepths: [-0.14, 0, 0.14],
+  /** Stroke break at a fissure, in anatomy units. */
+  fissureGap: 0.012,
 } as const;
 
 /**
@@ -236,6 +531,13 @@ export const ENVELOPE = {
  * DEFAULT OFF. Founder decision at the Phase 2 gate, on a real render.
  */
 export const THYMUS = {
+  /**
+   * OFF, and staying off. Confirmed with evidence rather than taste: the
+   * envelope has ~110 particles to carry two lung shells, three fissures, two
+   * costophrenic angles and the cardiac notch — the notch alone ends up
+   * described by 5 particles. A translucent veil in FRONT of all that would
+   * spend budget the silhouette cannot spare.
+   */
   enabled: false,
   zNear: 0.16,
   zFar: 0.2,
@@ -250,11 +552,14 @@ export const THYMUS = {
 /**
  * Physiology (HERO_BRIEF.md). A well child at rest.
  *
- * The beats-per-breath ratio is deliberately NON-INTEGER (3400/741 ≈ 4.59) so
+ * The beats-per-breath ratio is deliberately NON-INTEGER (3200/741 ≈ 4.32) so
  * the two rhythms never lock into a mechanical pattern. Asserted.
  */
 export const RHYTHM = {
-  breathMs: 3400,
+  // 3200 ms = 18.75/min, correctly in the school-age range (18-30). The
+  // original 3400 (17.6/min) was adolescent. 3200/741 = 4.32 beats per breath,
+  // still comfortably non-integer (review item 8).
+  breathMs: 3200,
   breathMsMin: 2400,
   breathMsMax: 5000,
   /** I:E ≈ 1:1.8 — inhale occupies 36% of the cycle. */
@@ -290,8 +595,13 @@ export const RHYTHM = {
  * separation from the airways, so it is not the first thing to cut.
  */
 export const BUDGET = {
-  desktop: { total: 550, airways: 250, heart: 190, envelope: 110, generations: 6 },
-  narrow: { total: 280, airways: 125, heart: 100, envelope: 55, generations: 5 },
+  // envelope: 0 PARTICLES — the pleural surfaces are six stroked paths now, and
+  // the ~110 particles they used to cost went to the airways and the heart,
+  // which is where the hollow right lung was. The six paths are still rendered
+  // elements and are charged against `total`, so airways + heart come to 544 on
+  // desktop and 274 on narrow, not the full budget.
+  desktop: { total: 550, airways: 316, heart: 228, envelope: 0, generations: 6 },
+  narrow: { total: 280, airways: 158, heart: 116, envelope: 0, generations: 5 },
 } as const;
 
 export type Preset = keyof typeof BUDGET;

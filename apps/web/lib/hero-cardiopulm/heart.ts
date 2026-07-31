@@ -1,4 +1,13 @@
-import { CHAMBERS, CHAMBER_BLEND_K, HEART } from "./anatomy";
+import {
+  APEX_TAPER_POWER,
+  CHAMBERS,
+  CHAMBER_BLEND_K,
+  HEART,
+  HEART_HULL_BIAS,
+  HULL_SCAN,
+  MEMBERSHIP_SOFTNESS,
+  THORAX,
+} from "./anatomy";
 import { mulberry32 } from "./rng";
 
 /**
@@ -64,28 +73,141 @@ export function cardiacField(x: number, y: number, z: number): number {
  * specified apex.
  *
  * DERIVED, not typed: a bare ellipsoid's lowest point sits directly under its
- * centroid, which would put the apex at the LV's x rather than at
- * HEART.apex.x. Shearing the LV so its bottom reaches the documented apex is
- * what makes the silhouette's inferolateral point real instead of asserted.
+ * centroid, which would put the apex at the LV's x rather than at HEART.apex.x.
+ *
+ * This was a pure lateral SHEAR and is now a TAPER, because a shear translates
+ * every horizontal slice without narrowing it — it moves the LV sideways and
+ * leaves it as wide at the bottom as at the base. A ventricle is a cone, and
+ * the apex is its tip. The delivered apex therefore landed at x = 0.122 against
+ * a specified 0.149: the theoretical bottom pole did map to the apex, but no
+ * sampled particle sits exactly on a pole, and the ones near it were medial of
+ * the centroid. Widening the LV radius per review item 0 did not move it.
+ *
+ * Interpolating toward the apex as depth^2 makes the inferior heart converge on
+ * a point, so the tip is where the particles actually are rather than where an
+ * unsampled extremum would have been.
+ *
+ * Applied by POSITION, not by chamber id. Keying it to the LV left the apex at
+ * 0.122 even after the taper landed, because the lowest particle in the cloud
+ * is not an LV particle: the sample box is expanded by CHAMBER_BLEND_K, so an
+ * RV sample can sit below the LV's pole and still be inside the union, and it
+ * escaped a taper that asked "which chamber drew you?" instead of "where are
+ * you?". Anatomically the position test is also the truer one — the inferior RV
+ * wraps onto the apex rather than stopping short of it.
  */
-const LV = CHAMBERS[2];
-const APEX_SHEAR = (HEART.apex.x - LV.centroid.x) / (LV.centroid.y - (LV.centroid.y - LV.radii.y));
+const LV = CHAMBERS[2]!;
 
 /**
- * Septal blend width, as a fraction of cardiac width. The right/left tint
- * crosses over this span so there is no hard seam down the middle — a visible
- * line would read as two hearts rather than one.
+ * How sharply the LV converges on the apex. 2 = quadratic: the upper LV is
+ * untouched and only the inferior third draws in.
  */
-const SEPTAL_BLEND = 0.15;
+
+/**
+ * Softness of the right/left membership blend, in field units.
+ *
+ * THE SEPTUM IS NOT THE MIDLINE. Tint was previously a ramp across x about a
+ * "septumX" derived from HEART.rightBorderX and fractionLeftOfMidline — which
+ * evaluates to −0.0001, i.e. the midline to within a rounding error. The right
+ * ventricle spans x −0.148 … +0.122, so every RV particle that crossed x = 0
+ * was painted as left heart: measured 0 of 30. The most anterior chamber, the
+ * one that IS the front of the heart, was being drawn as someone else's.
+ *
+ * The septum runs obliquely, upper-right to lower-left, and no function of x
+ * alone can express that. So laterality is now computed from CHAMBER
+ * MEMBERSHIP: each particle is softly assigned to the chambers whose fields it
+ * lies nearest, and tint is the left-sided share of that assignment. A particle
+ * deep in the RV reads right wherever it sits in x; the crossover falls on the
+ * real RV↔LV interface because that is where the two memberships balance.
+ *
+ * 0.18 chosen by sweep, not by eye. The field is normalised by chamber radii
+ * (~0.1 units), so softness does NOT read directly in anatomy units: 0.055 put
+ * only 8% of particles between the extremes — still a seam, merely a
+ * better-placed one. Across 0.055 → 0.5 the intermediate fraction climbs
+ * 8% → 83% while the per-chamber means hold at RV 0.30 / RA 0.21 / LV 0.82 /
+ * LA 0.83, so separation is not what the choice trades against. 0.18 is the
+ * knee: 21% of particles carry the gradient, spanning ~0.11 units of x, and
+ * the chambers stay unambiguously themselves.
+ */
+
+/** 1 for a left-heart chamber, 0 for a right-heart one. */
+const CHAMBER_IS_LEFT = CHAMBERS.map((c) => (c.side === "left" ? 1 : 0));
+
+/**
+ * Left-sided share of a point's soft chamber membership: 0 = purely right
+ * heart, 1 = purely left. Continuous everywhere, including in the soft-union
+ * bridges that belong to no single chamber.
+ */
+export function chamberLeftness(x: number, y: number, z: number): number {
+  let weighted = 0;
+  let total = 0;
+  for (let i = 0; i < CHAMBERS.length; i++) {
+    const c = CHAMBERS[i]!;
+    // exp(-field / softness): ~1 at the centroid, falling smoothly outward, so
+    // distant chambers contribute negligibly rather than not at all.
+    const w = Math.exp(-ellipsoidField(x, y, z, c.centroid, c.radii) / MEMBERSHIP_SOFTNESS);
+    weighted += w * CHAMBER_IS_LEFT[i]!;
+    total += w;
+  }
+  return total > 0 ? weighted / total : 0.5;
+}
+
+/**
+ * Lateral extent of the cardiac silhouette, computed from the field rather than
+ * from sampled particles — the AP borders a radiologist would measure.
+ *
+ * Sampling cannot answer this question. Across 40 seeds the widest sampled
+ * particle ranges 0.205 … 0.239 against a true border of 0.240, because a
+ * 100-190 particle cloud lands on an extremum only by luck. Asserting borders
+ * against sampled extremes therefore measures the RNG, and any assertion band
+ * loose enough to survive it is too loose to have caught the item-0 defect
+ * (a 24% over-wide right border) that motivated the check in the first place.
+ *
+ * Bisection is exact to the returned precision and seed-independent. Only the
+ * equatorial band is scanned: both borders are formed at chamber-centroid
+ * height (RA on the right, LV on the left), and the apex taper acts strictly
+ * below the LV centroid, so it cannot move either.
+ */
+const HULL_STEP = HULL_SCAN.xSpan / 100;
+
+export function cardiacHullExtentX(): { minX: number; maxX: number; ctr: number } {
+  const inside = (x: number, y: number, z: number) => cardiacField(x, y, z) <= 0;
+  let minX = 0;
+  let maxX = 0;
+  for (let yi = 0; yi <= 120; yi++) {
+    const y = HULL_SCAN.yMin + (yi / 120) * HULL_SCAN.ySpan;
+    for (let zi = 0; zi <= 40; zi++) {
+      const z = HULL_SCAN.zMin + (zi / 40) * HULL_SCAN.zSpan;
+      for (const dir of [-1, 1]) {
+        // Walk out until outside, then bisect the crossing.
+        let hit = 0;
+        let found = false;
+        for (let s = 0; s <= HULL_SCAN.xSpan; s += HULL_STEP) {
+          if (inside(dir * s, y, z)) {
+            hit = dir * s;
+            found = true;
+          } else if (found) break;
+        }
+        if (!found) continue;
+        let lo = hit;
+        let hi = hit + dir * HULL_STEP;
+        for (let it = 0; it < 40; it++) {
+          const mid = (lo + hi) / 2;
+          if (inside(mid, y, z)) lo = mid;
+          else hi = mid;
+        }
+        if (dir < 0) minX = Math.min(minX, lo);
+        else maxX = Math.max(maxX, lo);
+      }
+    }
+  }
+  return { minX, maxX, ctr: (maxX - minX) / THORAX.maxTransverseWidth };
+}
 
 export function generateHeart(budget: number, seed: number): HeartGeometry {
   const rng = mulberry32(seed);
   const positions = new Float32Array(budget * 3);
   const tint = new Float32Array(budget);
   const chamber = new Uint8Array(budget);
-
-  const septumX = HEART.rightBorderX + HEART.width * (1 - HEART.fractionLeftOfMidline);
-  const blendHalf = (HEART.width * SEPTAL_BLEND) / 2;
 
   let written = 0;
 
@@ -120,19 +242,22 @@ export function generateHeart(budget: number, seed: number): HeartGeometry {
       // Hull bias: accept readily near the surface, rarely deep inside. This
       // is what makes a shell instead of a blob.
       const depth = -d; // 0 at surface, larger toward the core
-      if (rng() > Math.exp(-depth * 26)) continue;
+      if (rng() > Math.exp(-depth * HEART_HULL_BIAS)) continue;
 
-      let px = x;
-      if (c.id === "lv") px += APEX_SHEAR * (c.centroid.y - y);
+      const apexDepth = Math.max(0, Math.min(1, (LV.centroid.y - y) / LV.radii.y));
+      const t = Math.pow(apexDepth, APEX_TAPER_POWER);
+      const px = x * (1 - t) + HEART.apex.x * t;
 
       const i = written * 3;
       positions[i] = px;
       positions[i + 1] = y;
       positions[i + 2] = z;
 
-      // Tint by position across the septum rather than by chamber id, so the
-      // blended region between RV and LV reads continuously.
-      tint[written] = Math.max(0, Math.min(1, (px - (septumX - blendHalf)) / (2 * blendHalf)));
+      // Sampled at the UNSHEARED position: the shear is a silhouette device
+      // that carries the LV's inferior pole out to the apex, and feeding a
+      // sheared x back into the field would ask the chambers where a point is
+      // that they never contained.
+      tint[written] = chamberLeftness(x, y, z);
       chamber[written] = ci;
 
       written++;

@@ -1,4 +1,20 @@
-import { BRANCHING, BRONCHI, ENVELOPE, LOBAR_BRONCHI, RUL_TAKEOFF } from "./anatomy";
+import {
+  AIRWAY_RADII,
+  BRANCHING,
+  BRONCHI,
+  CLUSTER_SHARE,
+  EXTRA_GENERATIONS_RIGHT,
+  LENGTH_DECAY_BY_SIDE,
+  LOBE_TERRITORY,
+  TERRITORY_PULL,
+  TRACHEA_LENGTH_FACTOR,
+  LOBAR_BRONCHI,
+  LOBAR_LENGTH_FACTOR,
+  LOBE_SHARES,
+  MIN_STUB_FRACTION,
+  RUL_TAKEOFF,
+} from "./anatomy";
+import { insideLung } from "./envelope";
 import { cardiacField } from "./heart";
 import { fibonacciSphere, jitter, mulberry32 } from "./rng";
 
@@ -52,6 +68,9 @@ interface Branch {
 
 const deg = (d: number) => (d * Math.PI) / 180;
 
+/** Right-lobe test. Module scope so the recursion can use it before sampling. */
+const isRight = (l: Lobe) => l.startsWith("r");
+
 /**
  * A branch of `length` leaving `from`.
  *
@@ -89,9 +108,9 @@ export function generateTree(budget: number, generations: number, seed: number):
 
   // Generation 0 — the trachea, vertical, descending to the carina.
   branches.push({
-    from: { x: 0, y: BRONCHI.right.length * 1.6, z: 0 },
+    from: { x: 0, y: BRONCHI.right.length * TRACHEA_LENGTH_FACTOR, z: 0 },
     to: carina,
-    radius: 0.026,
+    radius: AIRWAY_RADII.trachea,
     generation: 0,
     lobe: "rul",
   });
@@ -99,8 +118,20 @@ export function generateTree(budget: number, generations: number, seed: number):
   // Main bronchi. Roll 180° puts the right main at negative x.
   const rightHilum = extend(carina, BRONCHI.right.angleDeg, 180, BRONCHI.right.length);
   const leftHilum = extend(carina, BRONCHI.left.angleDeg, 0, BRONCHI.left.length);
-  branches.push({ from: carina, to: rightHilum, radius: 0.019, generation: 1, lobe: "rll" });
-  branches.push({ from: carina, to: leftHilum, radius: 0.016, generation: 1, lobe: "lll" });
+  branches.push({
+    from: carina,
+    to: rightHilum,
+    radius: AIRWAY_RADII.rightMain,
+    generation: 1,
+    lobe: "rll",
+  });
+  branches.push({
+    from: carina,
+    to: leftHilum,
+    radius: AIRWAY_RADII.leftMain,
+    generation: 1,
+    lobe: "lll",
+  });
 
   // The right upper lobe bronchus arises very early — the most recognisable
   // feature of the right airway, and the only lobar bronchus above the
@@ -113,7 +144,7 @@ export function generateTree(budget: number, generations: number, seed: number):
   branches.push({
     from: rulOrigin,
     to: extend(rulOrigin, RUL_TAKEOFF.angleDeg, 180, RUL_TAKEOFF.length),
-    radius: 0.012,
+    radius: AIRWAY_RADII.rul,
     generation: 2,
     lobe: "rul",
   });
@@ -131,8 +162,8 @@ export function generateTree(budget: number, generations: number, seed: number):
     const hilum = l.lobe.startsWith("r") ? rightHilum : leftHilum;
     branches.push({
       from: hilum,
-      to: extend(hilum, l.polarDeg, l.rollDeg, BRONCHI.left.length * 0.62),
-      radius: 0.011,
+      to: extend(hilum, l.polarDeg, l.rollDeg, BRONCHI.left.length * LOBAR_LENGTH_FACTOR),
+      radius: AIRWAY_RADII.lobar,
       generation: 2,
       lobe: l.lobe as Lobe,
     });
@@ -141,9 +172,11 @@ export function generateTree(budget: number, generations: number, seed: number):
   // Recursive bifurcation below the lobar bronchi.
   const frontier = branches.filter((b) => b.generation === 2);
   let current = frontier;
-  for (let g = 3; g <= generations; g++) {
+  for (let g = 3; g <= generations + EXTRA_GENERATIONS_RIGHT; g++) {
     const next: Branch[] = [];
     for (const parent of current) {
+      // Past the nominal depth only the right tree keeps dividing.
+      if (g > generations && !isRight(parent.lobe)) continue;
       // Parent direction as polar-from-down, so children inherit its aim.
       const dx = parent.to.x - parent.from.x;
       const dy = parent.to.y - parent.from.y;
@@ -158,13 +191,59 @@ export function generateTree(budget: number, generations: number, seed: number):
         parent.to.z - parent.from.z,
       );
 
+      // Per-side decay: the right hilum sits far medial of the right pleura, so
+      // a shared decay leaves the larger lung hollow. See LENGTH_DECAY_BY_SIDE.
+      const decay = LENGTH_DECAY_BY_SIDE[isRight(parent.lobe) ? "right" : "left"];
+
       for (const sign of [-1, 1]) {
         const div = jitter(rng, BRANCHING.divergenceDeg, BRANCHING.divergenceJitterDeg) * sign;
-        const childLen = len * jitter(rng, BRANCHING.lengthDecay, BRANCHING.lengthJitter);
-        const to = extend(parent.to, axisDeg + div, roll + (sign > 0 ? 0 : 180), childLen);
+        const childLen = len * jitter(rng, decay, BRANCHING.lengthJitter);
+        const free = extend(parent.to, axisDeg + div, roll + (sign > 0 ? 0 : 180), childLen);
+
+        // Steer along the lobe's growth axis. The branch keeps its length; only
+        // its aim is blended, so divergence and roll still shape the tree.
+        const T = LOBE_TERRITORY[parent.lobe];
+        const tx = T.x;
+        const ty = T.y;
+        const tz = T.z;
+        const tl = Math.hypot(tx, ty, tz) || 1;
+        const w = TERRITORY_PULL;
+        let ax = (free.x - parent.to.x) * (1 - w) + (tx / tl) * childLen * w;
+        let ay = (free.y - parent.to.y) * (1 - w) + (ty / tl) * childLen * w;
+        let az = (free.z - parent.to.z) * (1 - w) + (tz / tl) * childLen * w;
+        const al = Math.hypot(ax, ay, az) || 1;
+        ax = (ax / al) * childLen;
+        ay = (ay / al) * childLen;
+        az = (az / al) * childLen;
+        const to = { x: parent.to.x + ax, y: parent.to.y + ay, z: parent.to.z + az };
 
         // Cardiac exclusion — the heart gets a real cavity, not a thicket.
         if (cardiacField(to.x, to.y, to.z) < 0) continue;
+
+        // Pleural containment. An airway cannot leave the lung — but it does
+        // not vanish at the surface either, so the branch is SHORTENED to the
+        // boundary rather than discarded. Discarding was measurably worse than
+        // the defect: culling any tip that crossed the pleura removed whole
+        // deep generations, so the desktop preset (which runs deeper) ended up
+        // filling LESS of its lung than the narrow one, 0.83 against 0.88.
+        // Clamping keeps the branch, ends it against the pleura where a real
+        // airway ends, and guarantees containment at the same time.
+        if (!insideLung(to.x, to.y, to.z)) {
+          let lo = 0;
+          let hi = 1;
+          for (let it = 0; it < 12; it++) {
+            const mid = (lo + hi) / 2;
+            if (insideLung(parent.to.x + ax * mid, parent.to.y + ay * mid, parent.to.z + az * mid))
+              lo = mid;
+            else hi = mid;
+          }
+          // A stub shorter than a fifth of its intended length is a branch that
+          // was already at the surface; drop it rather than ship a nub.
+          if (lo < MIN_STUB_FRACTION) continue;
+          to.x = parent.to.x + ax * lo;
+          to.y = parent.to.y + ay * lo;
+          to.z = parent.to.z + az * lo;
+        }
 
         next.push({
           from: parent.to,
@@ -188,47 +267,55 @@ export function generateTree(budget: number, generations: number, seed: number):
   const centroids: number[] = [];
   let cid = 0;
 
-  const isRight = (l: Lobe) => l.startsWith("r");
-  const terminals = branches.filter((b) => b.generation === generations || current.includes(b));
+  const deepest = generations + EXTRA_GENERATIONS_RIGHT;
+  const terminals = branches.filter(
+    (b) => current.includes(b) || b.generation === (isRight(b.lobe) ? deepest : generations),
+  );
 
   /**
-   * Budget is split BY SIDE against the documented right:left ratio, rather
-   * than left to fall out of however many branches each side happens to have.
+   * Budget is allocated PER LOBE against LOBE_SHARES, and allocated AFTER the
+   * cardiac cull rather than before it.
    *
-   * The right lung is genuinely larger — the heart displaces the left — and the
-   * anatomy file pins that at 1.18. Letting branch counts decide it produced
-   * 3.14, because the right side carries an extra explicit lobar bronchus. A
-   * documented ratio should be allocated, not hoped for.
+   * Both halves of that matter. Allocating by side fixed R:L and still let the
+   * right lower lobe — the largest lobe of the lung — ship as the thinnest
+   * object in the scene, because within a side the split fell out of branch
+   * counts. And allocating before the cull means a lobe that loses points to
+   * the heart stays thin: the left upper lobe borders the cardiac notch and
+   * loses the most, which is exactly the lobe least able to afford it. Topping
+   * up to the share after culling is what makes the documented proportion the
+   * thing that actually ships.
    */
-  const ratio = ENVELOPE.rightLeftParticleRatio;
-  const sideBudgets = {
-    right: Math.round((budget * ratio) / (1 + ratio)),
-    left: budget - Math.round((budget * ratio) / (1 + ratio)),
-  };
-
-  for (const side of ["right", "left"] as const) {
-    const want = sideBudgets[side];
-    const sideTerminals = terminals.filter((b) => isRight(b.lobe) === (side === "right"));
-    const sideBranches = branches.filter((b) => isRight(b.lobe) === (side === "right"));
+  let allocated = 0;
+  for (let li = 0; li < LOBES.length; li++) {
+    const lobe = LOBES[li]!;
+    // The last lobe absorbs the rounding remainder, so five rounded shares sum
+    // to the budget rather than one over it.
+    const want =
+      li === LOBES.length - 1 ? budget - allocated : Math.round(budget * LOBE_SHARES[lobe]);
+    allocated += want;
+    const lobeTerminals = terminals.filter((b) => b.lobe === lobe);
+    const lobeBranches = branches.filter((b) => b.lobe === lobe);
+    if (lobeBranches.length === 0) continue;
 
     // Clusters get the larger share: they are what visibly breathes.
-    const clusterWant = Math.round(want * 0.55);
-    const perCluster = Math.max(3, Math.floor(clusterWant / Math.max(1, sideTerminals.length)));
-
+    const clusterWant = Math.round(want * CLUSTER_SHARE);
     let placed = 0;
-    for (const t of sideTerminals) {
+
+    for (const t of lobeTerminals) {
       if (cid >= 254 || placed >= clusterWant) break;
-      const sphere = fibonacciSphere(perCluster, t.radius * BRANCHING.clusterRadiusFactor);
+      const per = Math.max(3, Math.ceil(clusterWant / Math.max(1, lobeTerminals.length)));
+      const sphere = fibonacciSphere(per, t.radius * BRANCHING.clusterRadiusFactor);
       let kept = 0;
-      for (let i = 0; i < perCluster && placed < clusterWant; i++) {
+      for (let i = 0; i < per && placed < clusterWant; i++) {
         const x = t.to.x + sphere[i * 3]!;
         const y = t.to.y + sphere[i * 3 + 1]!;
         const z = t.to.z + sphere[i * 3 + 2]!;
         if (cardiacField(x, y, z) < 0) continue;
+        if (!insideLung(x, y, z)) continue;
         pos.push(x, y, z);
         isCluster.push(1);
         clusterId.push(cid);
-        lobeTag.push(LOBES.indexOf(t.lobe));
+        lobeTag.push(LOBES.indexOf(lobe));
         kept++;
         placed++;
       }
@@ -238,24 +325,42 @@ export function generateTree(budget: number, generations: number, seed: number):
       }
     }
 
-    // Branch dust fills the side's remaining budget. Sampled in passes so the
-    // proximal airway stays visible rather than being swamped by the periphery.
-    const dustWant = want - placed;
+    // Branch dust fills the lobe's remaining budget. Structured passes first, so
+    // the proximal airway stays visible rather than being swamped by the
+    // periphery; then jittered top-up, so a lobe that lost points to the
+    // cardiac cull still reaches its share instead of silently shipping thin.
     let dust = 0;
+    const dustWant = want - placed;
     for (let pass = 1; pass <= 8 && dust < dustWant; pass++) {
-      for (const b of sideBranches) {
+      for (const b of lobeBranches) {
         if (dust >= dustWant) break;
         const t = (pass - 0.5) / 8;
         const x = b.from.x + (b.to.x - b.from.x) * t;
         const y = b.from.y + (b.to.y - b.from.y) * t;
         const z = b.from.z + (b.to.z - b.from.z) * t;
         if (cardiacField(x, y, z) < 0) continue;
+        if (!insideLung(x, y, z)) continue;
         pos.push(x, y, z);
         isCluster.push(0);
         clusterId.push(255);
-        lobeTag.push(LOBES.indexOf(b.lobe));
+        lobeTag.push(LOBES.indexOf(lobe));
         dust++;
       }
+    }
+    let guard = 0;
+    while (dust < dustWant && guard++ < dustWant * 200) {
+      const b = lobeBranches[Math.floor(rng() * lobeBranches.length)]!;
+      const t = rng();
+      const x = b.from.x + (b.to.x - b.from.x) * t;
+      const y = b.from.y + (b.to.y - b.from.y) * t;
+      const z = b.from.z + (b.to.z - b.from.z) * t;
+      if (cardiacField(x, y, z) < 0) continue;
+      if (!insideLung(x, y, z)) continue;
+      pos.push(x, y, z);
+      isCluster.push(0);
+      clusterId.push(255);
+      lobeTag.push(LOBES.indexOf(lobe));
+      dust++;
     }
   }
 

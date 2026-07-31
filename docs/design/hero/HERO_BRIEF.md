@@ -575,3 +575,60 @@ render, and the development browser pane does not composite frames — screensho
 are unavailable. Phase 2 therefore delivers `anatomy-check.svg` (the §8
 orthographic AP projection, with the computed CTR printed) as a file, plus a
 deployed branch preview for judging the perspective render on a real phone.
+
+---
+
+## Amendment C — 2026-07-31: post-review budget and module shape
+
+Supersedes the **Particle budget** table above and the `lib/hero-cardiopulm/`
+file list. Both had survived from the Canvas draft.
+
+### Budget
+
+| Preset          | Total | Airways | Heart | Pleural surfaces |
+| --------------- | ----- | ------- | ----- | ---------------- |
+| Desktop         | 550   | 316     | 228   | 6 stroked paths  |
+| Narrow (<768px) | 280   | 158     | 116   | 6 stroked paths  |
+
+The old 3,500 / 1,800 totals were Canvas-era: one draw call per particle costs
+nothing like one DOM node per particle. The envelope's ~110 particles became six
+paths and the difference went to the airways and the heart, which is where the
+hollow right lung was. The six paths are rendered elements and are charged
+against the total, so the particle lines sum to 544 and 274, not the full
+budget.
+
+**The ceiling is no longer a per-frame CPU limit.** Measured in a real browser
+with batched writes, per-frame main-thread cost is flat from 300 to 3,500
+particles, because the animation writes one transform for the scene and one per
+group — particle transforms are static after mount. Cost tracks GROUP count:
+~50 groups (the scene's real shape, ~44 alveolar clusters plus systems) gives
+p95 0.7 ms against a 16.7 ms frame; 200 groups gives 2.9 ms.
+
+550 stands because GPU raster and layer memory are still unmeasured — both
+available harnesses run in hidden tabs, which do not composite. **Watch cluster
+count, not particle count.** If more particles are ever wanted, the lever is
+dropping `will-change: transform` from particles (they never animate
+individually), not raising the number blindly.
+
+### Module shape
+
+```
+lib/hero-cardiopulm/
+  rng.ts        mulberry32 seeded PRNG (determinism = testability)
+  anatomy.ts    landmark constants from ANATOMY.md — single source, no magic
+                numbers anywhere else in the module
+  tree.ts       generateTree(budget, generations, seed) → geometry
+  heart.ts      generateHeart(budget, seed) → geometry, plus cardiacField and
+                cardiacHullExtentX (analytic silhouette, not sampled)
+  envelope.ts   PREDICATES ONLY — insidePleura / insideLung / inCardiacNotch.
+                No longer emits particles. One definition of where the lung is,
+                shared by the tree (containment), the shells (outline) and the
+                assertions (landmarks), so a drawn surface cannot drift from a
+                grown one.
+  shells.ts     generateShells() → 6 stroked pleural outlines, 3 nested per lung
+  breath.ts     breathAt(tMs, breathMs) → v ∈ [0,1], plus phase info
+  beat.ts       beat phase + RSA coupling, driven by breath phase
+```
+
+`generatePleuralShell` never existed under that name and is not coming; the
+surfaces are `shells.ts`, and they are curves rather than clouds.

@@ -1,7 +1,8 @@
 import { RHYTHM } from "./anatomy";
 
 /**
- * The breath curve. ~17.6 breaths/min — a well child at rest.
+ * The breath curve. ~18.75 breaths/min — a well child at rest, school-age
+ * (18-30). 17.6 was adolescent; corrected with review item 8.
  *
  * I:E ≈ 1:1.8, so inhale occupies 36% of the cycle and exhale 64%. Both halves
  * are cosine segments, which matters for a reason that is easy to miss: the
