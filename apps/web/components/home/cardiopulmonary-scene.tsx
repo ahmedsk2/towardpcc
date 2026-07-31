@@ -9,6 +9,7 @@ import {
   buildScene,
   REDUCED_MOTION_POSE,
   SCENE,
+  VITALS,
 } from "@/lib/hero-cardiopulm/scene";
 import { site } from "@/content/site";
 import { PulseDriver } from "./pulse-driver";
@@ -65,26 +66,29 @@ const INK = {
 export function CardiopulmonaryScene({ className }: { className?: string }) {
   return (
     <figure className={className}>
-      <div
-        aria-hidden="true"
-        className="cps-frame"
-        style={
-          {
-            "--breath": `${REDUCED_MOTION_POSE.breath}`,
-            "--beat": `${REDUCED_MOTION_POSE.beatScale}`,
-            "--wave": `${REDUCED_MOTION_POSE.wave}`,
-            "--sway-cos": `${Math.cos((REDUCED_MOTION_POSE.swayDeg * Math.PI) / 180).toFixed(5)}`,
-            "--sway-sin": `${Math.sin((REDUCED_MOTION_POSE.swayDeg * Math.PI) / 180).toFixed(5)}`,
-          } as CSSProperties
-        }
-      >
-        <PulseDriver />
-        <svg
-          className="cps-svg"
-          viewBox={`0 0 ${SCENE.width} ${SCENE.height}`}
-          preserveAspectRatio="xMidYMid meet"
+      {/* The hover target wraps BOTH the mesh and the labels, so pointing
+          anywhere on the figure reveals them. */}
+      <div className="cps-stage">
+        <div
+          aria-hidden="true"
+          className="cps-frame"
+          style={
+            {
+              "--breath": `${REDUCED_MOTION_POSE.breath}`,
+              "--beat": `${REDUCED_MOTION_POSE.beatScale}`,
+              "--wave": `${REDUCED_MOTION_POSE.wave}`,
+              "--sway-cos": `${Math.cos((REDUCED_MOTION_POSE.swayDeg * Math.PI) / 180).toFixed(5)}`,
+              "--sway-sin": `${Math.sin((REDUCED_MOTION_POSE.swayDeg * Math.PI) / 180).toFixed(5)}`,
+            } as CSSProperties
+          }
         >
-          {/* DEPTH-BAND PARALLAX, not a turntable.
+          <PulseDriver />
+          <svg
+            className="cps-svg"
+            viewBox={`0 0 ${SCENE.width} ${SCENE.height}`}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {/* DEPTH-BAND PARALLAX, not a turntable.
               For a yaw of theta about the vertical axis a point at depth z
               moves to x' = x*cos(theta) + z*sin(theta). Within a band z is
               nearly constant, so the band translates by one value and this
@@ -98,57 +102,81 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
               90 degrees the viewer is behind the patient and the apex points
               the wrong way, undoing every bit of the mirroring discipline the
               geometry enforces. */}
-          <g className="cps-world">
-            {bands.map(({ kind, band, z, paths }) => (
-              <g
-                key={`${kind}${band}`}
-                className="cps-band"
-                style={{ "--z": z.toFixed(1) } as CSSProperties}
-              >
-                {paths.map((p) => (
-                  <path
-                    key={p.dots ? "d" : "e"}
-                    className={`cps-${p.kind}`}
-                    d={p.d}
-                    fill="none"
-                    stroke={INK[p.kind]}
-                    strokeOpacity={Math.min(1, p.opacity).toFixed(3)}
-                    strokeWidth={p.width.toFixed(2)}
-                    strokeLinecap="round"
+            <g className="cps-world">
+              {bands.map(({ kind, band, z, paths }) => (
+                <g
+                  key={`${kind}${band}`}
+                  className="cps-band"
+                  style={{ "--z": z.toFixed(1) } as CSSProperties}
+                >
+                  {paths.map((p) => (
+                    <path
+                      key={p.dots ? "d" : "e"}
+                      className={`cps-${p.kind}`}
+                      d={p.d}
+                      fill="none"
+                      stroke={INK[p.kind]}
+                      strokeOpacity={Math.min(1, p.opacity).toFixed(3)}
+                      strokeWidth={p.width.toFixed(2)}
+                      strokeLinecap="round"
+                    />
+                  ))}
+                </g>
+              ))}
+
+              {/* Cardiac vertices, so the heart reads as mass and not only wire. */}
+              <g className="cps-heart-nodes">
+                {scene.heartNodes.map((n, i) => (
+                  <circle
+                    key={i}
+                    cx={n.x.toFixed(1)}
+                    cy={n.y.toFixed(1)}
+                    r={n.r.toFixed(2)}
+                    fill="var(--color-accent-bright)"
+                    fillOpacity={(0.25 + 0.7 * n.depth).toFixed(3)}
                   />
                 ))}
               </g>
-            ))}
 
-            {/* Cardiac vertices, so the heart reads as mass and not only wire. */}
-            <g className="cps-heart-nodes">
-              {scene.heartNodes.map((n, i) => (
-                <circle
-                  key={i}
-                  cx={n.x.toFixed(1)}
-                  cy={n.y.toFixed(1)}
-                  r={n.r.toFixed(2)}
-                  fill="var(--color-accent-bright)"
-                  fillOpacity={(0.25 + 0.7 * n.depth).toFixed(3)}
-                />
-              ))}
+              {/* Alveolar clusters: the part that visibly breathes. */}
+              <g className="cps-clusters">
+                {scene.clusters.map((n, i) => (
+                  <circle
+                    key={i}
+                    cx={n.x.toFixed(1)}
+                    cy={n.y.toFixed(1)}
+                    r={n.r.toFixed(2)}
+                    fill="var(--color-peach)"
+                    fillOpacity={(0.35 + 0.6 * n.depth).toFixed(3)}
+                  />
+                ))}
+              </g>
             </g>
+          </svg>
+        </div>
 
-            {/* Alveolar clusters: the part that visibly breathes. */}
-            <g className="cps-clusters">
-              {scene.clusters.map((n, i) => (
-                <circle
-                  key={i}
-                  cx={n.x.toFixed(1)}
-                  cy={n.y.toFixed(1)}
-                  r={n.r.toFixed(2)}
-                  fill="var(--color-peach)"
-                  fillOpacity={(0.35 + 0.6 * n.depth).toFixed(3)}
-                />
-              ))}
-            </g>
-          </g>
-        </svg>
+        {/* PHYSIOLOGY, never anatomy — see VITALS. Real DOM text rather than
+          paths, so it is selectable and translatable, and NOT inside the
+          aria-hidden mesh: adding visible text makes the figure content.
+          Revealed on hover or keyboard focus rather than always on, so the
+          default state stays evocative and the labels do not compete with the
+          headline on first paint. Off below the narrow breakpoint, where a
+          cramped label is worse than none. */}
+        <ul className="cps-labels">
+          <li className="cps-label cps-label-rr">
+            <span className="cps-key">RR</span>
+            <span className="cps-val">{VITALS.respiratoryRate}</span>
+            <span className="cps-unit">/min</span>
+          </li>
+          <li className="cps-label cps-label-hr">
+            <span className="cps-key">HR</span>
+            <span className="cps-val">{VITALS.heartRate}</span>
+            <span className="cps-unit">bpm</span>
+          </li>
+          {/* The signature of the whole piece, and invisible to anyone who does
+            not already know it is there. One line makes it legible. */}
+          <li className="cps-label cps-label-rsa">{site.home.heroSceneCoupling}</li>
+        </ul>
       </div>
 
       {/* The accessible route to the same information. The mesh is aria-hidden
@@ -157,15 +185,100 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
       <figcaption className="sr-only">{site.home.heroSceneLabel}</figcaption>
 
       <style>{`
-.cps-frame {
+.cps-stage {
   position: relative;
-  aspect-ratio: ${SCENE.width} / ${SCENE.height};
   /* A chest is portrait, so at full column width the figure ran past the fold
      and cut the cardiac apex off — the one part of the picture a reader should
      not have to scroll for. Capped against viewport height instead: the width
      follows from the aspect ratio, so the whole thorax is always in view. */
   max-width: min(100%, 46vh);
   margin-inline: auto;
+}
+.cps-frame {
+  position: relative;
+  aspect-ratio: ${SCENE.width} / ${SCENE.height};
+}
+
+/* ── Labels ─────────────────────────────────────────────────────────────── */
+.cps-labels {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.cps-label {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  gap: 0.3em;
+  /* The existing small-label scale. No new size is invented for this. */
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-on-dark);
+  opacity: 0;
+  transition:
+    opacity 180ms var(--motion-ease),
+    translate 180ms var(--motion-ease);
+  translate: 0 4px;
+}
+/* Anchored OUTSIDE the thoracic silhouette. Never over the heart mesh. */
+.cps-label-rr {
+  top: 12%;
+  left: 0;
+}
+.cps-label-hr {
+  bottom: 20%;
+  right: 0;
+  /* Right-ALIGNED, not reversed. row-reverse read out as "bpm 81 HR". */
+}
+.cps-label-rsa {
+  bottom: 1%;
+  left: 0;
+  right: 0;
+  justify-content: center;
+  font-size: 10.5px;
+  opacity: 0;
+  color: color-mix(in oklab, var(--color-ink-on-dark), transparent 30%);
+}
+.cps-key {
+  font-family: var(--font-numeric);
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--color-ink-on-dark), transparent 45%);
+}
+.cps-val {
+  font-family: var(--font-numeric);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cps-unit {
+  color: color-mix(in oklab, var(--color-ink-on-dark), transparent 45%);
+}
+
+/* Reveal on hover or keyboard focus. Default stays evocative. */
+.cps-stage:hover .cps-label,
+.cps-stage:focus-within .cps-label {
+  opacity: 1;
+  translate: 0 0;
+}
+.cps-stage:hover .cps-label-rsa,
+.cps-stage:focus-within .cps-label-rsa {
+  opacity: 0.85;
+}
+
+/* No room on a phone, and a cramped label is worse than none. */
+@media (max-width: 767px) {
+  .cps-labels {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cps-label {
+    transition: none;
+    translate: 0 0;
+  }
 }
 .cps-svg {
   position: absolute;

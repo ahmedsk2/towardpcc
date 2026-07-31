@@ -85,8 +85,9 @@ export const site = {
       "Free, referenced clinical calculators that run entirely in your browser: the start of a shared digital home for pediatric critical care.",
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
+    heroSceneCoupling: "heart rate rises on inspiration",
     heroSceneLabel:
-      "A school-age child's heart and lungs, built from measured pediatric anatomy: airways branching from the carina into alveolar clusters that fill with each breath, four cardiac chambers in their true depth order, and both lungs outlined with the cardiac notch where the heart rests against the left one. It breathes about nineteen times a minute and beats about eighty-one, the way a well child at rest does.",
+      "A school-age child's heart and lungs, built from measured pediatric anatomy: airways branching from the carina into alveolar clusters that fill with each breath, four cardiac chambers in their true depth order, and both lungs outlined with the cardiac notch where the heart rests against the left one. It breathes about nineteen times a minute and beats about eighty-one, the way a well child at rest does, and the heart rate rises on inspiration as it does in a real one.",
     status: "Live. 23 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {

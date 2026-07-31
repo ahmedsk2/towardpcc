@@ -186,7 +186,12 @@ export default function HomePage() {
                 background: legible, but muddy, with none of the depth the
                 brightness gradient is carrying. Deep ground is what lets one
                 hue read as near and far. */}
-            <div className="rounded-3xl border border-white/10 bg-surface-hero/80 p-5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)] backdrop-blur-md">
+            {/* A RADIAL ground, not a flat panel. The figure is a luminous
+                mesh whose depth is carried entirely by brightness, so it wants
+                to sit in a pool of light rather than on an even field: the
+                falloff toward the corners is what makes the thorax read as
+                lit from within instead of pasted onto a dark rectangle. */}
+            <div className="rounded-3xl border border-white/10 bg-[radial-gradient(ellipse_at_50%_46%,var(--color-surface-hero-raised),var(--color-surface-hero)_68%)] p-5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)] backdrop-blur-md">
               <CardiopulmonaryScene />
             </div>
           </div>

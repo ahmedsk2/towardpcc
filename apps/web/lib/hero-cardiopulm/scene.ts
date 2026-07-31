@@ -263,6 +263,26 @@ export const BREATH_ANCHOR_Y = sy(THORAX.lungApexY);
  */
 export const MAX_SWAY_DEG = 15;
 
+/**
+ * What the scene is ACTUALLY running at, derived from the rhythm constants.
+ *
+ * Physiology, never anatomy. The labels name what is measured, not what is
+ * drawn — the same rule the organ stack followed with "Respiratory: PaO2/FiO2"
+ * and the same one the neuromonitoring hero follows with "ICP 14 mmHg". An
+ * anatomical label like "right upper lobe bronchus" would assert diagram-grade
+ * fidelity that a stylised tree and a four-ellipsoid heart cannot survive, and
+ * a clinician who reads one will evaluate the whole figure as a diagram.
+ *
+ * DERIVED, not typed. If these were written out they would drift from the
+ * animation the first time someone tuned a rate, and a hero that displays a
+ * respiratory rate it is not breathing at is worse than one that displays
+ * nothing.
+ */
+export const VITALS = {
+  respiratoryRate: Math.round(60_000 / RHYTHM.breathMs),
+  heartRate: RHYTHM.heartRateBpm,
+} as const;
+
 export const REDUCED_MOTION_POSE = {
   breath: 0.72,
   beatScale: 1 + RHYTHM.maxVolumetricChange * 0.6,
