@@ -473,13 +473,35 @@ between them.
 at -0.450 and §1 puts the left dome at -0.555, so the two cannot both be right
 about a heart that rests on the diaphragm.
 
-**The likely correct fix is not to move either number.** It is that this model's
-diaphragm falls monotonically from the mediastinum to the costophrenic angle,
-whereas a real hemidiaphragm rises from a LOW medial cardiophrenic angle to a
-dome near the midclavicular line and only then falls laterally. Give the floor
-that third inflection and the heart settles into the medial recess with no gap,
-without touching the apex, the dome, or the costophrenic work above.
+**Measured as a fraction of the lung field**, which is what makes the conflict
+legible:
 
-Deferred because reshaping the diaphragm perturbs the costophrenic angle and
-the airway containment that were just corrected against it, and that trade
-deserves its own measurement pass rather than a change made at the end of one.
+| Landmark         | This model   | Real                               |
+| ---------------- | ------------ | ---------------------------------- |
+| Carina           | 36% down     | ~30-35%                            |
+| Cardiac base     | 39% down     |                                    |
+| **Cardiac apex** | **81% down** | **~86%, resting on the left dome** |
+| Right dome       | 87% down     | ~84%                               |
+| **Left dome**    | **92% down** | **~86%**                           |
+
+Cardiac height is 0.42 of the lung field, which is correct (real 0.42-0.45), and
+the carina and right dome are both in range. So the error is not in one number:
+the apex sits ~5% too high AND the left dome ~6% too low, and they should meet.
+
+**Three candidate fixes, none free:**
+
+1. **Lower the apex to ~-0.50.** Keeps the domes. Pushes cardiac height to 0.47,
+   above the real range, unless the base drops too.
+2. **Raise the left dome to ~-0.47**, and the right above it to keep the liver
+   asymmetry. Shortens the lung base medially and steepens the dome-to-
+   costophrenic run, which would sharpen the costophrenic angles past the 32 and
+   43 degrees just measured.
+3. **Give the diaphragm its missing third inflection** — rise from a LOW medial
+   cardiophrenic angle to a dome near the midclavicular line, then fall to the
+   costophrenic angle. This model's floor is monotonic from the mediastinum
+   outward, which no hemidiaphragm is. Most anatomically honest, largest change.
+
+Deferred rather than guessed, because each choice moves a landmark that §1 or §3
+states explicitly, and all three perturb the costophrenic angles and the airway
+containment that were corrected against them. Whoever owns the spec should pick;
+the measurements above are what they need to pick with.
