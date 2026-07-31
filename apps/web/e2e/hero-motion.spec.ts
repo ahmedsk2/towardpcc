@@ -46,7 +46,6 @@ test.describe("hero figure", () => {
         heartBands: frame.querySelectorAll("path.cps-heart").length,
         pleuraBands: frame.querySelectorAll("path.cps-pleura").length,
         clusters: frame.querySelectorAll(".cps-clusters circle").length,
-        heartNodes: frame.querySelectorAll(".cps-heart-nodes circle").length,
         distinctOpacities: opacities.size,
         worldTransformed: getComputedStyle(world).transform !== "none",
       };
@@ -63,7 +62,11 @@ test.describe("hero figure", () => {
     expect(scene!.heartBands).toBeGreaterThan(2);
     expect(scene!.pleuraBands).toBeGreaterThan(2);
     expect(scene!.clusters, "no alveolar clusters").toBeGreaterThan(20);
-    expect(scene!.heartNodes, "no cardiac vertices").toBeGreaterThan(100);
+
+    // The heart carries itself as a surface. It used to need a few hundred
+    // vertex dots because it was a proximity web with no facets; the mesh
+    // says it now, and the dots were most of the element budget restating it.
+    expect(scene!.heartBands, "the heart is not meshed").toBeGreaterThan(2);
 
     // Depth is carried by brightness alone, so the bands must actually differ.
     // If they collapsed to one opacity the mesh would read as a flat doily.
