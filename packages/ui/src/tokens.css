@@ -80,6 +80,17 @@
   --shadow-xl: 0 20px 46px -26px rgba(61, 21, 38, 0.4);
   --shadow-2xl: 0 32px 70px -28px rgba(61, 21, 38, 0.5);
 
+  /* The accent RESPONSE glow — deliberately a separate scale from the plum
+     elevation steps above, for the reason that block gives: one says "this
+     lifts", the other says "this responds". That distinction is worth keeping.
+
+     What was not worth keeping is four hand-rolled rgba(207,31,61,...) literals
+     at 0.45, 0.5 and 0.8 alpha, drifting apart because each was tuned where it
+     was written. Two near-identical card glows now share this token; the
+     back-to-top button keeps its own heavier value, which is a different
+     intent rather than the same one mistyped. */
+  --shadow-accent: 0 18px 36px -24px rgba(207, 31, 61, 0.5);
+
   /* Semantic signals — deliberately NOT crimson */
   --color-alert-text: #8a5900;
   --color-alert-bg: #fbeed7;

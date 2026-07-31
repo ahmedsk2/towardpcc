@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useId, useRef } from "react";
-import { cn } from "@towardpcc/ui";
+import { buttonClasses, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import type { SubmitResult } from "@/lib/submissions";
 
@@ -133,10 +133,10 @@ export function SubmissionForm({
         <button
           type="submit"
           disabled={pending}
-          className={cn(
-            "inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-[15px] font-semibold text-ink-on-accent",
-            "transition-colors duration-150 hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60",
-          )}
+          // Shares the primary button's classes rather than carrying its own
+          // copy. This one had drifted to `disabled:opacity-60` against the
+          // shared `disabled:opacity-50`, and had no press or glow at all.
+          className={buttonClasses({ variant: "primary", className: "disabled:opacity-60" })}
         >
           {pending ? f.sending : submitLabel}
         </button>

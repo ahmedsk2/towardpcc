@@ -32,7 +32,7 @@ export const tokens = {
 export type TokenName = keyof typeof tokens;
 
 export { cn } from "./cn";
-export { Button, type ButtonProps } from "./button";
+export { Button, buttonClasses, type ButtonProps } from "./button";
 export { Card } from "./card";
 export { StatusChip, type StatusChipProps } from "./status-chip";
 export { Label, Input, Field, type FieldProps } from "./field";

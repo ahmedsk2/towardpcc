@@ -339,7 +339,7 @@ export default function HomePage() {
                 <Reveal className="group/reveal h-full">
                   <Link
                     href={p.href}
-                    className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[translate,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[0_34px_66px_-28px_rgba(207,31,61,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[translate,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[var(--shadow-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     {/* Named group so the rule keys off the Reveal wrapper
                         rather than the card's own hover group — the two are
