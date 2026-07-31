@@ -180,7 +180,13 @@ export default function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="rounded-3xl border border-white/20 bg-white/10 p-5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)] backdrop-blur-md">
+            {/* A DARK ground, not the frosted white panel the organ stack sat
+                on. The figure is a luminous wire mesh in the crimson family,
+                and on a mid-crimson card it was the same value as its own
+                background: legible, but muddy, with none of the depth the
+                brightness gradient is carrying. Deep ground is what lets one
+                hue read as near and far. */}
+            <div className="rounded-3xl border border-white/10 bg-surface-hero/80 p-5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.8)] backdrop-blur-md">
               <CardiopulmonaryScene />
             </div>
           </div>
