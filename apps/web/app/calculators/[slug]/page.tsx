@@ -194,7 +194,7 @@ export default async function CalculatorDetailPage({
       />
 
       <header className="mt-4">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-ink-strong md:text-4xl">
+        <h1 className="font-display text-display-2 leading-[1.08] font-bold tracking-tight text-ink-strong">
           {score.name}
         </h1>
         <TrustStrip score={score} />

@@ -24,9 +24,25 @@ export function ValidationBadge({ validators }: { validators: ValidatorSlots }) 
 
   return (
     <div className="rounded-md border border-dashed border-ink-muted/50 px-4 py-3">
-      <p className="font-numeric text-[11px] tracking-[0.08em] text-ink-muted uppercase">
-        {c.validationPending}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-numeric text-[11px] tracking-[0.08em] text-ink-muted uppercase">
+          {c.validationPending}
+        </p>
+        {/* An honest 0-of-2 meter: one filled segment per assigned validator,
+            so "pending" carries how far along it is rather than reading as a
+            binary stamp. Muted, never crimson — an incomplete state is not an
+            error on this site. */}
+        <span aria-hidden="true" className="flex shrink-0 gap-1">
+          {validators.map((v, i) => (
+            <span
+              key={i}
+              className={`h-1.5 w-5 rounded-full ${
+                v.status === "assigned" ? "bg-success-text" : "bg-ink-muted/25"
+              }`}
+            />
+          ))}
+        </span>
+      </div>
       <p className="mt-1 text-sm text-ink-muted">{c.validationPendingDetail}</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {validators.map((v, i) => (

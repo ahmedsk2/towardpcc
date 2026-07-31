@@ -159,14 +159,20 @@ export function CalculatorsIndex({
         ))}
       </div>
 
-      {/* A tally, but only while something is filtering — on an unfiltered
-          list "showing 22 of 22" is noise, and the page already says 22. */}
-      {isFiltered ? (
-        <p aria-live="polite" className="mt-6 font-numeric text-sm text-ink-muted">
-          Showing <span className="tabular-nums text-ink-strong">{shownCount}</span> of{" "}
-          <span className="tabular-nums">{scores.length}</span>
-        </p>
-      ) : null}
+      {/* The live region is always mounted, its content toggled — not mounted
+          only while filtering. A polite region that appears at the same moment
+          its text does often goes unannounced: the screen reader has nothing to
+          diff against. Reserving the row and changing only the text inside it
+          means the count is spoken on every filter change. Visually it is still
+          silent on an unfiltered list, where "showing 22 of 22" is noise. */}
+      <p aria-live="polite" className="mt-6 min-h-5 font-numeric text-sm text-ink-muted">
+        {isFiltered ? (
+          <>
+            Showing <span className="tabular-nums text-ink-strong">{shownCount}</span> of{" "}
+            <span className="tabular-nums">{scores.length}</span>
+          </>
+        ) : null}
+      </p>
 
       {grouped.length === 0 ? (
         /* A designed empty state rather than a bare sentence: it names what was
