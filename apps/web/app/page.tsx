@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cn } from "@towardpcc/ui";
 import { Reveal } from "@/components/reveal";
+import { Eyebrow } from "@/components/eyebrow";
 import { HeroScene } from "@/components/home/hero-scene";
 import { Counter } from "@/components/home/counter";
 import { EvidenceCarousel } from "@/components/home/evidence-carousel";
@@ -176,12 +177,12 @@ export default function HomePage() {
       {/* ── FEATURE STRIP (overlaps the hero) ───────────────────────── */}
       <div className="relative z-20 mx-auto -mt-16 max-w-[1280px] px-6">
         <ul className="grid list-none gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {h.features.map((f) => (
+          {h.features.map((f, i) => (
             <li key={f.title}>
               {/* `group` on the Reveal wrapper, which is the element that gains
                   data-shown — so the rule below draws itself from CSS when the
                   card enters view, with no second observer and no extra JS. */}
-              <Reveal className="group h-full">
+              <Reveal className="group h-full" delay={i * 60}>
                 <div className="relative h-full overflow-hidden rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-[translate] duration-200 hover:-translate-y-2">
                   <span
                     aria-hidden="true"
@@ -240,9 +241,7 @@ export default function HomePage() {
           </Reveal>
           <Reveal>
             <div>
-              <p className="mb-4 inline-flex rounded-full bg-accent-tint px-4 py-1.5 font-numeric text-[12px] font-semibold tracking-[0.14em] text-accent uppercase">
-                {h.missionHeading}
-              </p>
+              <Eyebrow>{h.missionHeading}</Eyebrow>
               <h2 className="font-display text-3xl font-bold tracking-tight text-ink-strong md:text-4xl">
                 {site.footer.vision}
               </h2>
@@ -319,9 +318,7 @@ export default function HomePage() {
       <section aria-labelledby="pillars-heading" className="bg-gradient-soft">
         <div className="mx-auto max-w-[1280px] px-6 py-24">
           <div className="mx-auto mb-14 max-w-[62ch] text-center">
-            <p className="mb-4 inline-flex rounded-full bg-accent-tint px-4 py-1.5 font-numeric text-[12px] font-semibold tracking-[0.14em] text-accent uppercase">
-              Four pillars
-            </p>
+            <Eyebrow>Four pillars</Eyebrow>
             <h2
               id="pillars-heading"
               className="font-display text-3xl font-bold tracking-tight text-ink-strong md:text-4xl"
@@ -334,9 +331,9 @@ export default function HomePage() {
           </div>
 
           <ul className="grid list-none gap-6 md:grid-cols-2">
-            {pillars.map((p) => (
+            {pillars.map((p, i) => (
               <li key={p.href}>
-                <Reveal className="group/reveal h-full">
+                <Reveal className="group/reveal h-full" delay={i * 70}>
                   <Link
                     href={p.href}
                     className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[translate,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[var(--shadow-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -411,9 +408,7 @@ export default function HomePage() {
       <section aria-labelledby="evidence-heading" className="bg-surface-raised">
         <div className="mx-auto max-w-[1280px] px-6 py-24">
           <div className="mx-auto mb-12 max-w-[62ch] text-center">
-            <p className="mb-4 inline-flex rounded-full bg-accent-tint px-4 py-1.5 font-numeric text-[12px] font-semibold tracking-[0.14em] text-accent uppercase">
-              {h.evidence.eyebrow}
-            </p>
+            <Eyebrow>{h.evidence.eyebrow}</Eyebrow>
             <h2
               id="evidence-heading"
               className="font-display text-3xl font-bold tracking-tight text-ink-strong md:text-4xl"
