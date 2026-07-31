@@ -88,7 +88,7 @@ const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: 
    * becomes an outline, and an outline around a mesh reads as a box the scene
    * has been placed inside.
    */
-  pleura: { far: 0.04, near: 0.22, wFar: 0.45, wNear: 0.8 },
+  pleura: { far: 0.035, near: 0.17, wFar: 0.4, wNear: 0.65 },
 };
 
 const KIND_ORDER: MeshKind[] = ["pleura", "airway", "heart"];

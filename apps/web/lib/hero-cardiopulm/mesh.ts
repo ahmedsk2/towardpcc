@@ -1,6 +1,7 @@
-import { BUDGET, DEFAULT_SEED } from "./anatomy";
+import { BUDGET, DEFAULT_SEED, LUNG, THORAX } from "./anatomy";
 import { generateHeart } from "./heart";
-import { generateShells } from "./shells";
+import { insideLung } from "./envelope";
+import { mulberry32 } from "./rng";
 import { generateTree } from "./tree";
 
 /**
@@ -59,16 +60,21 @@ const NEIGHBOURS = 3;
  */
 const MAX_EDGE = 0.11;
 
+/** Latitude and longitude divisions of each lung's surface grid. */
+const PLEURA_RINGS = 22;
+const PLEURA_SEGMENTS = 30;
 /**
- * Contour points to keep per shell.
+ * How far each grid direction is jittered, as a fraction of a cell.
  *
- * Sparse on purpose. Drawn as a continuous line the contour is an OUTLINE, and
- * an outline around a mesh reads as a drafting box the scene has been placed
- * inside. Scattered and woven to its neighbours it reads as what it is: the
- * surface the airways stop at. The mesh's own outer edges carry the silhouette,
- * which is the whole reason a mesh needs no outline.
+ * An unjittered lat/long grid is a perfect lattice, and a perfect lattice reads
+ * as a wireframe balloon: the eye locks onto the rows and stops seeing a
+ * surface. Displacing each direction by a fraction of a cell keeps the quads
+ * connected while breaking the regularity, which is what makes a mesh read as
+ * skin rather than as a net thrown over something.
+ *
+ * Seeded, so the surface is identical on every build.
  */
-const SHELL_SAMPLES = 17;
+const PLEURA_JITTER = 0.42;
 
 function knn(
   points: MeshPoint[],
@@ -105,7 +111,6 @@ export function buildMesh(preset: keyof typeof BUDGET = "desktop"): Mesh {
   const budget = BUDGET[preset];
   const heart = generateHeart(budget.heart, DEFAULT_SEED);
   const tree = generateTree(budget.airways, budget.generations, DEFAULT_SEED);
-  const shells = generateShells();
 
   const points: MeshPoint[] = [];
   const edges: MeshEdge[] = [];
@@ -165,20 +170,81 @@ export function buildMesh(preset: keyof typeof BUDGET = "desktop"): Mesh {
   }
   edges.push(...knn(points, heartFrom, points.length, "heart", NEIGHBOURS, MAX_EDGE));
 
-  // ── Pleura: the contours, subsampled, then woven across depths ──────────
-  // Proximity across the three depth shells weaves them into a surface rather
-  // than three loose rings.
+  // ── Pleura: a STRUCTURED SURFACE GRID, ray-marched off insideLung ───────
+  //
+  // Contour samples cannot make a surface. Three stacks of subsampled outlines
+  // gave the lungs no skin: the airways inside them read as volume and the
+  // lungs themselves read as a faint wire cage around it. A surface needs a
+  // grid whose neighbours are known, so that every quad is a facet.
+  //
+  // Each lung is swept on a latitude/longitude grid: for every direction, march
+  // outward from the lung's centre until insideLung stops being true, and that
+  // crossing is a vertex. Neighbours in both grid directions become edges, so
+  // the mesh is a shell rather than a cloud that happens to be hollow.
+  //
+  // Marched off insideLung itself, so the drawn skin cannot drift from the
+  // surface the airways are contained by.
   const pleuraFrom = points.length;
-  for (const shell of shells) {
-    for (const seg of shell.segments) {
-      const step = Math.max(1, Math.floor(seg.points.length / SHELL_SAMPLES));
-      for (let i = 0; i < seg.points.length; i += step) {
-        const p = seg.points[i]!;
-        points.push({ x: p.x, y: p.y, z: shell.z, kind: "pleura", t: 0 });
+  const surfaceRng = mulberry32(DEFAULT_SEED ^ 0x5eed);
+  for (const side of [-1, 1] as const) {
+    const cx = side * (LUNG.medialX + LUNG.halfWidth);
+    const cy = (THORAX.lungApexY + THORAX.costophrenicY) / 2;
+    const grid: number[][] = [];
+    for (let iu = 0; iu <= PLEURA_RINGS; iu++) {
+      // Latitude, apex to base. Endpoints are pulled just inside the poles:
+      // a ring of coincident vertices at each pole draws a starburst.
+      const v = (iu / PLEURA_RINGS) * 0.94 + 0.03;
+      const polar = v * Math.PI;
+      const row: number[] = [];
+      for (let iv = 0; iv < PLEURA_SEGMENTS; iv++) {
+        const az = ((iv + (surfaceRng() - 0.5) * PLEURA_JITTER) / PLEURA_SEGMENTS) * Math.PI * 2;
+        const jitteredPolar =
+          polar + ((surfaceRng() - 0.5) * PLEURA_JITTER * Math.PI) / PLEURA_RINGS;
+        const dx = Math.sin(jitteredPolar) * Math.cos(az);
+        const dy = Math.cos(jitteredPolar);
+        const dz = Math.sin(jitteredPolar) * Math.sin(az);
+        // March out, then bisect the last inside/outside pair.
+        let inside = -1;
+        for (let r = 0.02; r <= 0.62; r += 0.01) {
+          if (insideLung(cx + dx * r, cy + dy * r, dz * r)) inside = r;
+          else if (inside > 0) break;
+        }
+        if (inside < 0) {
+          row.push(-1);
+          continue;
+        }
+        let lo = inside;
+        let hi = inside + 0.01;
+        for (let k = 0; k < 14; k++) {
+          const mid = (lo + hi) / 2;
+          if (insideLung(cx + dx * mid, cy + dy * mid, dz * mid)) lo = mid;
+          else hi = mid;
+        }
+        row.push(points.length);
+        points.push({ x: cx + dx * lo, y: cy + dy * lo, z: dz * lo, kind: "pleura", t: 0 });
+      }
+      grid.push(row);
+    }
+
+    // Quad edges: along each ring, and between rings. Long edges are dropped —
+    // where the surface jumps, at the notch and the costophrenic angle, a
+    // connecting edge would bridge a real discontinuity.
+    const join = (a: number, b: number) => {
+      if (a < 0 || b < 0) return;
+      const p = points[a]!;
+      const q = points[b]!;
+      const d = Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z);
+      if (d > MAX_EDGE) return;
+      edges.push({ a, b, kind: "pleura", depth: Math.min(1, d / MAX_EDGE) });
+    };
+    for (let iu = 0; iu < grid.length; iu++) {
+      for (let iv = 0; iv < PLEURA_SEGMENTS; iv++) {
+        join(grid[iu]![iv]!, grid[iu]![(iv + 1) % PLEURA_SEGMENTS]!);
+        if (iu + 1 < grid.length) join(grid[iu]![iv]!, grid[iu + 1]![iv]!);
       }
     }
   }
-  edges.push(...knn(points, pleuraFrom, points.length, "pleura", 3, MAX_EDGE * 1.4));
+  void pleuraFrom;
 
   return { points, edges, nodes };
 }
