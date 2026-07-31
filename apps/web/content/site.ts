@@ -85,7 +85,8 @@ export const site = {
       "Free, referenced clinical calculators that run entirely in your browser: the start of a shared digital home for pediatric critical care.",
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
-    heroSceneLabel: "A calm, breathing respiratory waveform: the signature of TowardPCC.",
+    heroSceneLabel:
+      "The six organ systems a pediatric severity score is summed across: respiratory, coagulation, hepatic, cardiovascular, neurologic and renal. Shown as planes stacked in depth, because a score means nothing until every one of them is accounted for.",
     status: "Live. 23 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
