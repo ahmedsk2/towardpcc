@@ -197,6 +197,24 @@ export const TRACHEA_LENGTH_FACTOR = 1.6;
 export const LOBAR_LENGTH_FACTOR = 0.62;
 
 /**
+ * Share of the airway budget reserved for the MEDIASTINAL airway — trachea,
+ * carina, main bronchi — before the lobes are allocated.
+ *
+ * Reserved, because the generic dust loop gave it four particles out of 316.
+ * That loop walks every branch once per pass and stops when the lobe's budget
+ * is met, so a lobe with thirty branches spends its whole allowance in the
+ * first pass and the trachea receives exactly one point, the same as the
+ * thinnest distal twig. Rendered, the airways were glowing clusters at the lung
+ * apices with nothing joining them to anything.
+ *
+ * The inverted Y of trachea into main bronchi is the single most recognisable
+ * shape in a chest, and it is what makes the rest of the scene legible as an
+ * airway at all. Same lesson as the R:L ratio and the per-lobe shares: a
+ * structure that matters should be allocated, not hoped for.
+ */
+export const CENTRAL_AIRWAY_SHARE = 0.07;
+
+/**
  * Share of each lobe's budget spent on alveolar clusters rather than branch
  * dust. Clusters are what visibly breathes, so they get the larger half.
  */
@@ -453,6 +471,18 @@ export const ENVELOPE = {
     /** === HEART.leftBorderX, deliberately. Asserted equal. */
     medialX: 0.24,
     /**
+     * How the cut deepens across the band: 0 at both ends, deepest at this
+     * fraction of the way up from bottomY.
+     *
+     * The notch was a RECTANGLE — a constant-x wall across a fixed y band,
+     * which is what §5's table literally specifies and which, rendered, looks
+     * exactly like what it is: a drafting box cut out of the left lung, with
+     * two right angles where a heart border should curve. A cardiac notch is a
+     * smooth concavity. This keeps the spec's maximum depth, at one height, and
+     * eases to nothing at the top and bottom of the band.
+     */
+    deepestAtFraction: 0.38,
+    /**
      * The notch exists only ANTERIOR to this depth.
      *
      * It was cut through the full thickness of the lung, which is wrong: the
@@ -492,7 +522,7 @@ export const ENVELOPE = {
    * near-vertical down to the diaphragm.
    */
   wallExponentUpper: 2.5,
-  wallExponentLower: 8,
+  wallExponentLower: 4,
   /**
    * How sharply the diaphragm falls from its dome to the costophrenic angle.
    *

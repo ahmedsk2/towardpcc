@@ -150,23 +150,6 @@ body {
   }
 }
 
-/* Hero organ stack (components/home/organ-stack.tsx). A drift, not a spin: a
-   full rotation would put every label edge-on twice a revolution, and a label
-   you have to wait for is worse than no label. 20s alternation, ±16°, slow
-   enough to be ambient while the headline beside it is being read.
-
-   Under reduced motion the class is not emitted (motion-safe:) and the element
-   holds the outbound angle from its base transform — a composed still, not a
-   flat elevation. */
-@keyframes organDrift {
-  from {
-    transform: rotateX(16deg) rotateY(-16deg);
-  }
-  to {
-    transform: rotateX(16deg) rotateY(16deg);
-  }
-}
-
 /* Numbers are the product: any element carrying scores/results opts in. */
 .numeric {
   font-family: var(--font-numeric);

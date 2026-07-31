@@ -85,7 +85,8 @@ export function beatState(phase: number): BeatState {
  * Beats per breath for a given configuration.
  *
  * Asserted to sit clear of an integer: at a whole-number ratio the two rhythms
- * lock and the scene reads as a machine. The shipped default is ≈4.59.
+ * lock and the scene reads as a machine. The shipped default is ≈4.32 (3200 ms
+ * breath, 741 ms beat) — 4.59 predated the rate correction in review item 8.
  */
 export function beatsPerBreath(
   bpm: number = RHYTHM.heartRateBpm,

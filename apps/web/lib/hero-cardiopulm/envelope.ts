@@ -75,7 +75,28 @@ export function insideLung(x: number, y: number, z: number): boolean {
  */
 export function inCardiacNotch(x: number, y: number, z: number): boolean {
   const n = ENVELOPE.cardiacNotch;
-  return x > 0 && z > n.anteriorZ && y <= n.topY && y >= n.bottomY && x <= n.medialX;
+  if (x <= 0 || z <= n.anteriorZ) return false;
+  return x <= notchDepthAt(y);
+}
+
+/**
+ * How far medially the notch cuts at a given height. 0 outside the band.
+ *
+ * A raised cosine, skewed so the deepest point sits at 38% of the way up the
+ * band — level with the heart's widest part rather than its middle. At that
+ * one height the cut reaches ENVELOPE.cardiacNotch.medialX exactly, which is
+ * HEART.leftBorderX, which is what §5 asks for and what the assertion pins.
+ */
+export function notchDepthAt(y: number): number {
+  const n = ENVELOPE.cardiacNotch;
+  if (y > n.topY || y < n.bottomY) return 0;
+  const u = (y - n.bottomY) / (n.topY - n.bottomY);
+  // Skew so the peak lands at deepestAtFraction instead of the midpoint.
+  const skewed =
+    u < n.deepestAtFraction
+      ? (u / n.deepestAtFraction) * 0.5
+      : 0.5 + ((u - n.deepestAtFraction) / (1 - n.deepestAtFraction)) * 0.5;
+  return n.medialX * (0.5 - 0.5 * Math.cos(2 * Math.PI * skewed));
 }
 
 /**

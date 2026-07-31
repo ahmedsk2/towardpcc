@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cn } from "@towardpcc/ui";
 import { Reveal } from "@/components/reveal";
 import { Eyebrow } from "@/components/eyebrow";
-import { OrganStack } from "@/components/home/organ-stack";
+import { CardiopulmonaryScene } from "@/components/home/cardiopulmonary-scene";
 import { Counter } from "@/components/home/counter";
 import { EvidenceCarousel } from "@/components/home/evidence-carousel";
 import { ImageSlot } from "@/components/image-slot";
@@ -181,7 +181,7 @@ export default function HomePage() {
 
           <div className="relative">
             <div className="rounded-3xl border border-white/20 bg-white/10 p-5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)] backdrop-blur-md">
-              <OrganStack />
+              <CardiopulmonaryScene />
             </div>
           </div>
         </div>

@@ -117,13 +117,22 @@ test("home counters animate to their real values", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
+  // Wait for hydration before touching the DOM. Without this the scroll raced
+  // React and failed with "element is not attached to the DOM": the locator
+  // resolved against the server HTML and the node was replaced underneath it.
+  // Latent for as long as the hero was small, and real once the hero became a
+  // 544-particle scene, which widened the window the reconciler walks.
+  await page.waitForLoadState("networkidle");
+
   // The counter band is well below the fold; scroll it into view to trigger
   // the one-shot IntersectionObserver.
   const band = page.locator("#counters-heading").locator("..");
   await band.scrollIntoViewIfNeeded();
 
-  // 22 calculators / 89 citations / 64,388 pages / 100% coverage — the four
-  // verified figures. If any of these changes, the copy is wrong, not the test.
+  // 64,388 pages / 100% coverage — two of the four verified figures. If either
+  // changes, the copy is wrong, not the test. (The calculator and citation
+  // counts are 23 and 91, pinned separately in figures.test.ts; this comment
+  // said 22 and 89 for as long as that gap existed.)
   await expect(page.getByText("64,388", { exact: true })).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("100%", { exact: true })).toBeVisible();
 });

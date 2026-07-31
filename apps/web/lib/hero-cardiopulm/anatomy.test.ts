@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BRONCHI,
   BUDGET,
   CHAMBERS,
   DEFAULT_SEED,
@@ -16,6 +17,7 @@ import {
   insideLung,
   insidePleura,
   NOTCH_MATCHES_HEART_BORDER,
+  notchDepthAt,
   PLEURAL_LATERAL_EXTENT,
 } from "./envelope";
 import { generateShells, sampleShells, shellsAsPointCloud } from "./shells";
@@ -238,19 +240,33 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
       // BEYOND the pleural surface — one defect traded for its mirror image.
       // Reach and containment are separate properties needing separate
       // mechanisms; a single tuned constant just hides whichever the seed hides.
+      //
+      // Tested against insideLung, the predicate the tree actually contains
+      // against — NOT the weaker insidePleura, which ignores the notch and so
+      // would pass a tree growing through it.
+      //
+      // The MEDIASTINAL airway is exempt, and the exemption is verified rather
+      // than trusted. Trachea, carina and main bronchi run BETWEEN the lungs —
+      // that is what "between the lungs" means — and containing them deleted
+      // them: the scene rendered with alveolar clusters glowing at the apices
+      // and nothing joining them, because the inverted Y that everyone
+      // recognises as an airway had been culled for being outside the lung.
       let outside = 0;
+      let notActuallyCentral = 0;
       for (let i = 0; i < s.tree.count; i++) {
-        if (
-          !insidePleura(
-            s.tree.positions[i * 3]!,
-            s.tree.positions[i * 3 + 1]!,
-            s.tree.positions[i * 3 + 2]!,
-          )
-        ) {
-          outside++;
+        const x = s.tree.positions[i * 3]!;
+        const y = s.tree.positions[i * 3 + 1]!;
+        const z = s.tree.positions[i * 3 + 2]!;
+        if (s.tree.central[i] === 1) {
+          // A particle claiming the exemption must actually be central, or the
+          // exemption becomes somewhere for distal leaks to hide.
+          if (Math.abs(x) > 0.14 || y < BRONCHI.left.hilum.y - 0.06) notActuallyCentral++;
+          continue;
         }
+        if (!insideLung(x, y, z)) outside++;
       }
       expect(outside).toBe(0);
+      expect(notActuallyCentral).toBe(0);
     });
 
     it("allocates the airway budget per lobe, not per side", () => {
@@ -258,7 +274,11 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
       // the largest lobe of the lung — as the thinnest object in the scene, at
       // 13 particles, because within a side the split fell out of branch
       // counts. The lesson from the R:L fix generalises one level down.
-      const counts = LOBES.map((_, i) => [...s.tree.lobe].filter((v) => v === i).length);
+      // Excludes the mediastinal airway, which is reserved off the top and
+      // belongs to no lobe — counting it would skew every share by its size.
+      const counts = LOBES.map(
+        (_, i) => [...s.tree.lobe].filter((v, k) => v === i && s.tree.central[k] === 0).length,
+      );
       const total = counts.reduce((a, b) => a + b, 0);
       LOBES.forEach((lobe, i) => {
         const share = counts[i]! / total;
@@ -343,11 +363,12 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
         const x = s.envelope.positions[i * 3]!;
         const y = s.envelope.positions[i * 3 + 1]!;
         const z = s.envelope.positions[i * 3 + 2]!;
-        const inBand =
-          y <= ENVELOPE.cardiacNotch.topY &&
-          y >= ENVELOPE.cardiacNotch.bottomY &&
-          x < ENVELOPE.cardiacNotch.medialX - 0.005;
-        if (!inBand) continue;
+        // Against the notch's PROFILE, not a constant. The cut used to be a
+        // rectangle reaching medialX at every height in the band; it now eases
+        // to nothing at both ends, so lung correctly exists at x < medialX near
+        // the band edges and only the deepest height reaches the heart border.
+        const depth = notchDepthAt(y);
+        if (depth <= 0 || x >= depth - 0.004) continue;
         if (z > ENVELOPE.cardiacNotch.anteriorZ) anteriorIntruders++;
         else posteriorPresence++;
       }
@@ -588,15 +609,22 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
       // fact the notch is there to convey. The medial border inside the notch
       // band must therefore sit at the heart's left border on anterior shells
       // and at the mediastinum on the posterior one.
+      //
+      // Measured at the notch's DEEPEST height, which is the only height at
+      // which the spec's medialX applies. Taking the minimum across the whole
+      // band would measure the shallow ends instead: the notch is a smooth
+      // concavity now, not the rectangle that made every height equivalent.
+      const n = ENVELOPE.cardiacNotch;
+      const deepestY = n.bottomY + (n.topY - n.bottomY) * n.deepestAtFraction;
       const medialAt = (z: number) => {
         const sh = s.shells.find((h) => h.lung === "left" && h.z === z)!;
         const band = sh.segments
           .flatMap((g) => g.points)
-          .filter((p) => p.y <= ENVELOPE.cardiacNotch.topY && p.y >= ENVELOPE.cardiacNotch.bottomY);
-        return Math.min(...band.map((p) => p.x));
+          .filter((p) => Math.abs(p.y - deepestY) < 0.02);
+        return band.length ? Math.min(...band.map((p) => p.x)) : 0;
       };
-      expect(medialAt(0.14)).toBeGreaterThanOrEqual(ENVELOPE.cardiacNotch.medialX - 0.005);
-      expect(medialAt(-0.14)).toBeLessThan(ENVELOPE.cardiacNotch.medialX - 0.05);
+      expect(medialAt(0.14)).toBeGreaterThanOrEqual(n.medialX - 0.02);
+      expect(medialAt(-0.14)).toBeLessThan(n.medialX - 0.05);
     });
 
     it("respects the airway / heart split", () => {

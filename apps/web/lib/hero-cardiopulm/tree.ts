@@ -1,6 +1,7 @@
 import {
   AIRWAY_RADII,
   BRANCHING,
+  CENTRAL_AIRWAY_SHARE,
   BRONCHI,
   CLUSTER_SHARE,
   EXTRA_GENERATIONS_RIGHT,
@@ -49,12 +50,23 @@ export interface TreeGeometry {
   isCluster: Uint8Array;
   /** Index of the owning cluster, or 255 for branch dust. Clusters scale about their own centroid. */
   clusterId: Uint8Array;
+  /**
+   * 1 for the mediastinal airway — trachea, carina, main bronchi.
+   *
+   * Exposed so the pleural-containment assertion can be exact rather than
+   * lenient: these are legitimately outside the lungs, everything else must be
+   * inside, and without the flag the test would have to tolerate "a few"
+   * escapees and would stop catching real leaks.
+   */
+  central: Uint8Array;
   lobe: Uint8Array;
   /** Centroid per cluster, xyz triples — the origin each cluster scales about. */
   clusterCentroids: Float32Array;
   clusterCount: number;
   count: number;
 }
+
+export const CENTRAL_AIRWAY_GENERATION = 1;
 
 export const LOBES: readonly Lobe[] = ["rul", "rml", "rll", "lul", "lll"];
 
@@ -65,6 +77,19 @@ interface Branch {
   generation: number;
   lobe: Lobe;
 }
+
+/**
+ * Generations at or below which an airway is MEDIASTINAL, not intrapulmonary.
+ *
+ * The trachea, the carina and the main bronchi run in the mediastinum, between
+ * the lungs — that is what "between the lungs" means. Pleural containment must
+ * not be applied to them, and applying it deleted them: the rendered scene had
+ * alveolar clusters glowing at the lung apices with nothing joining them to
+ * anything, because the one part of an airway everybody recognises, the
+ * inverted Y of trachea into main bronchi, had been culled as "outside the
+ * lung". It is outside the lung. It is still the airway.
+ */
+const MEDIASTINAL_GENERATION = CENTRAL_AIRWAY_GENERATION;
 
 const deg = (d: number) => (d * Math.PI) / 180;
 
@@ -263,6 +288,7 @@ export function generateTree(budget: number, generations: number, seed: number):
   const pos: number[] = [];
   const isCluster: number[] = [];
   const clusterId: number[] = [];
+  const central: number[] = [];
   const lobeTag: number[] = [];
   const centroids: number[] = [];
   let cid = 0;
@@ -285,13 +311,37 @@ export function generateTree(budget: number, generations: number, seed: number):
    * up to the share after culling is what makes the documented proportion the
    * thing that actually ships.
    */
+  // ── The mediastinal airway, allocated off the top ───────────────────────
+  // Sampled evenly along its length rather than by the pass loop, so the
+  // trachea reads as a continuous run instead of a dotted hint.
+  const centralBranches = branches.filter((b) => b.generation <= CENTRAL_AIRWAY_GENERATION);
+  const centralWant = Math.round(budget * CENTRAL_AIRWAY_SHARE);
+  const perCentral = Math.max(2, Math.ceil(centralWant / Math.max(1, centralBranches.length)));
+  let centralPlaced = 0;
+  for (const b of centralBranches) {
+    for (let k = 0; k < perCentral && centralPlaced < centralWant; k++) {
+      const t = (k + 0.5) / perCentral;
+      const x = b.from.x + (b.to.x - b.from.x) * t;
+      const y = b.from.y + (b.to.y - b.from.y) * t;
+      const z = b.from.z + (b.to.z - b.from.z) * t;
+      if (cardiacField(x, y, z) < 0) continue;
+      pos.push(x, y, z);
+      isCluster.push(0);
+      clusterId.push(255);
+      central.push(1);
+      lobeTag.push(LOBES.indexOf(b.lobe));
+      centralPlaced++;
+    }
+  }
+
+  const lobeBudget = budget - centralPlaced;
   let allocated = 0;
   for (let li = 0; li < LOBES.length; li++) {
     const lobe = LOBES[li]!;
     // The last lobe absorbs the rounding remainder, so five rounded shares sum
     // to the budget rather than one over it.
     const want =
-      li === LOBES.length - 1 ? budget - allocated : Math.round(budget * LOBE_SHARES[lobe]);
+      li === LOBES.length - 1 ? lobeBudget - allocated : Math.round(lobeBudget * LOBE_SHARES[lobe]);
     allocated += want;
     const lobeTerminals = terminals.filter((b) => b.lobe === lobe);
     const lobeBranches = branches.filter((b) => b.lobe === lobe);
@@ -315,6 +365,7 @@ export function generateTree(budget: number, generations: number, seed: number):
         pos.push(x, y, z);
         isCluster.push(1);
         clusterId.push(cid);
+        central.push(0);
         lobeTag.push(LOBES.indexOf(lobe));
         kept++;
         placed++;
@@ -339,10 +390,11 @@ export function generateTree(budget: number, generations: number, seed: number):
         const y = b.from.y + (b.to.y - b.from.y) * t;
         const z = b.from.z + (b.to.z - b.from.z) * t;
         if (cardiacField(x, y, z) < 0) continue;
-        if (!insideLung(x, y, z)) continue;
+        if (b.generation > MEDIASTINAL_GENERATION && !insideLung(x, y, z)) continue;
         pos.push(x, y, z);
         isCluster.push(0);
         clusterId.push(255);
+        central.push(b.generation <= CENTRAL_AIRWAY_GENERATION ? 1 : 0);
         lobeTag.push(LOBES.indexOf(lobe));
         dust++;
       }
@@ -355,10 +407,11 @@ export function generateTree(budget: number, generations: number, seed: number):
       const y = b.from.y + (b.to.y - b.from.y) * t;
       const z = b.from.z + (b.to.z - b.from.z) * t;
       if (cardiacField(x, y, z) < 0) continue;
-      if (!insideLung(x, y, z)) continue;
+      if (b.generation > MEDIASTINAL_GENERATION && !insideLung(x, y, z)) continue;
       pos.push(x, y, z);
       isCluster.push(0);
       clusterId.push(255);
+      central.push(b.generation <= CENTRAL_AIRWAY_GENERATION ? 1 : 0);
       lobeTag.push(LOBES.indexOf(lobe));
       dust++;
     }
@@ -368,6 +421,7 @@ export function generateTree(budget: number, generations: number, seed: number):
     positions: new Float32Array(pos),
     isCluster: new Uint8Array(isCluster),
     clusterId: new Uint8Array(clusterId),
+    central: new Uint8Array(central),
     lobe: new Uint8Array(lobeTag),
     clusterCentroids: new Float32Array(centroids),
     clusterCount: cid,

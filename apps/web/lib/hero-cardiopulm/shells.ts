@@ -29,7 +29,16 @@ export interface Shell {
   lung: "right" | "left";
   /** Depth of the plane this outline is drawn on. */
   z: number;
+  /** The contour split at the fissures — what gets stroked. */
   segments: ShellSegment[];
+  /**
+   * The same contour UNBROKEN, for anything that needs a closed region.
+   *
+   * A fill built by concatenating `segments` is not this: it joins the end of
+   * one fragment to the start of the next, and those joins are chords straight
+   * across the lung. Rendered, that produced angular shards rather than a lung.
+   */
+  loop: { x: number; y: number }[];
 }
 
 /** Vertical resolution of the boundary march. */
@@ -172,7 +181,7 @@ export function generateShells(): Shell[] {
     for (const z of ENVELOPE.shellDepths) {
       const loop = march(lung, z);
       if (loop.length < 4) continue;
-      shells.push({ lung, z, segments: splitAtFissures(loop, lung, centreY, centreX) });
+      shells.push({ lung, z, loop, segments: splitAtFissures(loop, lung, centreY, centreX) });
     }
   }
   return shells;

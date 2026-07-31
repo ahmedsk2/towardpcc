@@ -86,7 +86,7 @@ export const site = {
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
     heroSceneLabel:
-      "The six organ systems a pediatric severity score is summed across: respiratory, coagulation, hepatic, cardiovascular, neurologic and renal. Shown as planes stacked in depth, because a score means nothing until every one of them is accounted for.",
+      "A school-age child's heart and lungs, built from measured pediatric anatomy: airways branching from the carina into alveolar clusters that fill with each breath, four cardiac chambers in their true depth order, and both lungs outlined with the cardiac notch where the heart rests against the left one. It breathes about nineteen times a minute and beats about eighty-one, the way a well child at rest does.",
     status: "Live. 23 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {

@@ -632,3 +632,76 @@ lib/hero-cardiopulm/
 
 `generatePleuralShell` never existed under that name and is not coming; the
 surfaces are `shells.ts`, and they are curves rather than clouds.
+
+---
+
+## Amendment D — 2026-07-31: the scene as built
+
+Phase 1 (geometry) and phase 2 (the scene) are both in. The figure ships at
+`apps/web/components/home/cardiopulmonary-scene.tsx` and replaces the organ
+stack, which has been deleted along with its keyframe.
+
+### The split that makes it affordable
+
+**Geometry is a server component.** 544 particles and six stroked pleural
+outlines are emitted as static markup with static transforms. Nothing in the
+scene re-renders, and the 170 KB route budget measures 156.1 KB with it in.
+
+**Only four custom properties animate**, written by `pulse-driver.tsx`, which is
+the sole client code and does nothing else. This follows directly from the
+phase-1 measurement: per-frame cost is flat in particle count and scales with
+the number of elements whose style changes. Here that is 4 chambers, 54
+clusters, 5 dust groups and the world, about 64 elements, measured at p95 0.7 ms
+against a 16.7 ms frame. Driving 544 particles would be the same picture at
+eight times the price.
+
+`will-change` therefore goes on the GROUPS, never the particles. Particles never
+animate individually, so promoting each one would buy nothing and cost 544
+compositor layers, which is the term that actually hurts a phone.
+
+### Why there is client code at all
+
+Respiratory sinus arrhythmia. No stylesheet can express "this animation's period
+depends on that animation's current value", and baking it into one master loop
+would require the beat and breath periods to be commensurate, which is exactly
+the lock-step the non-integer ratio exists to prevent. About a kilobyte buys the
+one property that makes two rhythms read as one organism.
+
+### Layout
+
+Percentages for x and y, container-query units for depth and perspective. NOT a
+scaled world: `scale(calc(100cqw / 340))` resolves to a length where `scale()`
+needs a number, so the browser drops the declaration — the first build rendered
+with no transform and no perspective at all, and looked merely flat rather than
+broken. Verified in e2e at 320, 520 and 760 px with zero particles escaping the
+frame and the aspect held to 340/440.
+
+### What the build changed about the geometry
+
+Four defects only became visible once it was drawn:
+
+1. **The central airway was missing.** Pleural containment culled the trachea,
+   carina and main bronchi, because they are mediastinal — they run BETWEEN the
+   lungs, which is what "between the lungs" means. The scene rendered as
+   alveolar clusters glowing at the apices with nothing joining them. They are
+   now exempt from containment, flagged as central, and the exemption is
+   verified rather than trusted.
+2. **The central airway then got four particles out of 316**, because the dust
+   loop gives every branch one point per pass and exhausts its budget in the
+   first. 7% of the airway budget is now reserved for it. Same lesson as the R:L
+   ratio and the per-lobe shares, a third time.
+3. **The notch was a rectangle.** §5's table specifies a constant-x cut across a
+   fixed y band, and rendered that is exactly what it looks like: a drafting box
+   with two right angles where a heart border should curve. It is now a raised
+   cosine, deepest at 38% of the way up the band, reaching the spec's medialX at
+   that one height.
+4. **The lower wall exponent of 8 drew a rectangle too.** It won the
+   costophrenic angle by two degrees and lost the silhouette; the lungs came out
+   as straight-sided boxes meeting the apex at a visible kink. 4 is a squircle
+   and still gives 32 degrees right, 43 left, against a limit of 45.
+
+### Not done
+
+The heart still floats above the diaphragm. See the open-defect note at the end
+of ANATOMY.md; it needs the diaphragm's missing third inflection and its own
+measurement pass.
