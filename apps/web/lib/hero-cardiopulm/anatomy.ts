@@ -62,9 +62,29 @@ export const THORAX = {
    * the base, which is what it does in a chest.
    */
   lungInferiorLimit: -0.78,
-  /** The liver raises the right hemidiaphragm — it sits HIGHER than the left. */
-  rightDiaphragmY: -0.505,
-  leftDiaphragmY: -0.555,
+  /**
+   * The hemidiaphragm DOMES, measured at the central tendon rather than at the
+   * mediastinum. The liver raises the right one; it sits HIGHER than the left.
+   *
+   * Raised from -0.505 and -0.555, which placed the domes at 87% and 92% of the
+   * way down the lung field against a real ~84%, and put the whole diaphragm
+   * BELOW the cardiac apex. The heart floated with lung drawn underneath it, in
+   * the one place a chest film shows the cardiac silhouette merging into the
+   * diaphragm.
+   */
+  rightDiaphragmY: -0.4,
+  leftDiaphragmY: -0.45,
+  /**
+   * The cardiophrenic angle, where the diaphragm meets the mediastinum.
+   *
+   * BELOW the dome, which is the point: a hemidiaphragm is not a slope from the
+   * mediastinum outward, it rises from here to a dome over the central tendon
+   * and only then falls to the costophrenic angle. Modelling it as monotonic
+   * meant the diaphragm was highest exactly where the heart needed to rest on
+   * it, and there was nowhere to put the heart but above the whole thing.
+   */
+  rightCardiophrenicY: -0.5,
+  leftCardiophrenicY: -0.55,
   maxTransverseWidth: 0.75,
   /** A child's chest is rounder than an adult's. */
   apDepth: 0.45,
@@ -555,6 +575,11 @@ export const ENVELOPE = {
    * rounded, tapering the apex to 57% of mid-lung width; below it the wall runs
    * near-vertical down to the diaphragm.
    */
+  /**
+   * Where the dome sits, as a fraction of the way from the mediastinal border
+   * to the chest wall. The central tendon, and where the cardiac apex rests.
+   */
+  diaphragmDomeLat: 0.4,
   wallExponentUpper: 2.5,
   wallExponentLower: 4,
   /**
@@ -562,13 +587,16 @@ export const ENVELOPE = {
    *
    * The costophrenic angle is the angle between a vertical chest wall and the
    * diaphragm, so it is set by the diaphragm's SLOPE where the two meet. A
-   * quadratic falloff meets the wall at ~64 degrees — blunted, which on a
-   * pediatric film is the cardinal sign of an effusion. 6.5 keeps the dome
-   * broad and flat centrally and turns it down hard at the costal margin, the
-   * shape a diaphragm actually has, giving 28 degrees on the right and 37 on
-   * the left against the 32 documented above.
+   * quadratic falloff over the FULL width met the wall at ~64 degrees, blunted,
+   * which on a pediatric film is the cardinal sign of an effusion.
+   *
+   * 1.8 rather than the 6.5 that a monotonic profile needed: the fall now runs
+   * from the dome at 0.4 to the chest wall rather than across the whole width,
+   * so the same drop happens over 60% of the distance and needs far less
+   * curvature. Delivers 30 degrees on the right and 34 on the left, bracketing
+   * the 32 documented above, with the two angles exactly 0.015 apart.
    */
-  diaphragmFalloffPower: 6.5,
+  diaphragmFalloffPower: 1.8,
   /**
    * Depths at which each lung's surface is drawn as a stroked outline.
    *

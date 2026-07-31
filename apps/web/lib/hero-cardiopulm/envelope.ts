@@ -171,17 +171,30 @@ export function insidePleura(x: number, y: number, z: number): boolean {
   // abut; that has to live in the predicate, not in one consumer of it.
   if (cardiacField(x, y, z) < 0) return false;
 
-  // The diaphragm: dome medially, costophrenic angle laterally.
+  // The diaphragm: a DOME over the central tendon, falling both ways.
   //
-  // Normalised by the FULL width, not the half-width. It was the half-width,
-  // so `lateral` ran 0 to 2 rather than 0 to 1 — the specified costophrenic
-  // depth was reached at mid-hemithorax and the floor kept plunging past it
-  // until the shell cut it off, which is why the two costophrenic angles came
-  // out level (0.0007 apart against a specified 0.015) and blunt.
+  // It used to fall monotonically from the mediastinum outward, which made it
+  // highest exactly where the heart has to rest on it — so there was nowhere to
+  // put the heart but above the entire diaphragm, and lung was drawn in the
+  // wedge between them. On a chest film that is the one place the cardiac
+  // silhouette merges into the diaphragm; there is no lung there at all.
+  //
+  // Normalised by the FULL width, not the half-width. It was the half-width, so
+  // `lateral` ran 0 to 2 rather than 0 to 1 and the specified costophrenic
+  // depth was reached at mid-hemithorax.
   const domeY = sign < 0 ? THORAX.rightDiaphragmY : THORAX.leftDiaphragmY;
+  const cphY = sign < 0 ? THORAX.rightCardiophrenicY : THORAX.leftCardiophrenicY;
   const cpY = sign < 0 ? THORAX.rightCostophrenicY : THORAX.leftCostophrenicY;
   const lateral = Math.min(1, Math.abs(x - sign * MEDIAL_X) / LUNG_FULL_WIDTH);
-  return y >= domeY + (cpY - domeY) * Math.pow(lateral, ENVELOPE.diaphragmFalloffPower);
+  const domeLat = ENVELOPE.diaphragmDomeLat;
+  if (lateral < domeLat) {
+    // Medial limb: rises from the cardiophrenic angle to the dome. A raised
+    // cosine, so it meets the dome flat rather than at a crease.
+    const u = lateral / domeLat;
+    return y >= cphY + (domeY - cphY) * (0.5 - 0.5 * Math.cos(Math.PI * u));
+  }
+  const v = (lateral - domeLat) / (1 - domeLat);
+  return y >= domeY + (cpY - domeY) * Math.pow(v, ENVELOPE.diaphragmFalloffPower);
 }
 
 /** Exposed so the assertion suite can test the notch against the real border. */

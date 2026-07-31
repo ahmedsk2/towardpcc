@@ -543,6 +543,25 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
       expect(delivered).toBeLessThan(specified * 2);
     });
 
+    it("rests the heart on the diaphragm, with no lung between", () => {
+      // On a chest film the cardiac silhouette MERGES into the left
+      // hemidiaphragm; the cardiophrenic angle is where they join and there is
+      // no lung in between. The model drew lung in that wedge for as long as
+      // the diaphragm fell monotonically from the mediastinum outward, which
+      // made it highest exactly where the heart has to rest on it — so there
+      // was nowhere to put the heart but above the whole diaphragm, and a
+      // 0.096-tall band of lung sat under the apex.
+      //
+      // A real hemidiaphragm domes over the central tendon and falls both ways.
+      const apex = cardiacApex();
+      let beneath = 0;
+      for (let i = 0; i <= 400; i++) {
+        const y = apex.y - 0.001 - (i / 400) * 0.18;
+        if (insideLung(apex.x, y, 0)) beneath++;
+      }
+      expect(beneath, "lung is drawn between the cardiac apex and the diaphragm").toBe(0);
+    });
+
     it("tapers the lung apex into a dome", () => {
       // The split wall exponent exists for this. A single exponent high enough
       // to give the vertical lower wall a costophrenic angle needs also flattens
