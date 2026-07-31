@@ -20,8 +20,8 @@ whole set is well under 1 MB.
 | `registry-dashboard.jpg` | `/data`                           | PICU registry dashboard, institution branding redacted |
 | `care-thermometer.jpg`   | `/services`                       | clinician taking a child's temperature                 |
 | `library-screenshot.jpg` | `/knowledge`                      | PedsCC Library browse view                             |
-| `care-teddy-oxygen.jpg`  | reserved                          | teddy bear in a hospital bed wearing an oxygen mask    |
-| `care-resting.jpg`       | reserved                          | child asleep in a hospital bed with a teddy            |
+| `care-teddy-oxygen.jpg`  | `/about`                          | teddy bear in a hospital bed wearing an oxygen mask    |
+| `care-resting.jpg`       | `/` mission split                 | child asleep in a hospital bed with a teddy            |
 
 ## Deliberately NOT used
 

@@ -117,6 +117,17 @@ body {
   }
 }
 
+/* Hero left column (app/page.tsx). A load-time cascade, not a scroll reveal:
+   the hero is above the fold, so it needs no observer — the pieces rise in
+   sequence the moment the page paints, which is the first second the previous
+   hero left completely still. Motion-safe; static under reduced motion. */
+@keyframes heroRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
 /* Off-canvas mobile drawer (components/nav/main-nav.tsx). The scrim fades, the
    panel slides in from the inline-end edge, and the nav items stagger up to
    meet it — so it opens rather than simply appearing. Motion-safe only; under
