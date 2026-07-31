@@ -211,7 +211,7 @@ export function CalculatorsIndex({
                   <li key={s.slug} className="flex items-stretch gap-2">
                     <Link
                       href={`/calculators/${s.slug}`}
-                      className="group flex flex-1 flex-col justify-between gap-3 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_18px_36px_-24px_rgba(207,31,61,0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="group flex flex-1 flex-col justify-between gap-3 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate,box-shadow] duration-200 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_18px_36px_-24px_rgba(207,31,61,0.5)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       <span className="font-display text-[15px] font-medium text-ink-strong">
                         {s.name}

@@ -182,11 +182,11 @@ export default function HomePage() {
                   data-shown — so the rule below draws itself from CSS when the
                   card enters view, with no second observer and no extra JS. */}
               <Reveal className="group h-full">
-                <div className="relative h-full overflow-hidden rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-transform duration-200 hover:-translate-y-2">
+                <div className="relative h-full overflow-hidden rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-[translate] duration-200 hover:-translate-y-2">
                   <span
                     aria-hidden="true"
                     data-rule
-                    className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-accent transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[shown]:scale-x-100 motion-reduce:scale-x-100 motion-reduce:transition-none"
+                    className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-accent transition-[scale] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[shown]:scale-x-100 motion-reduce:scale-x-100 motion-reduce:transition-none"
                   />
                   <span
                     aria-hidden="true"
@@ -339,7 +339,7 @@ export default function HomePage() {
                 <Reveal className="group/reveal h-full">
                   <Link
                     href={p.href}
-                    className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[transform,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[0_34px_66px_-28px_rgba(207,31,61,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[translate,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[0_34px_66px_-28px_rgba(207,31,61,0.45)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     {/* Named group so the rule keys off the Reveal wrapper
                         rather than the card's own hover group — the two are
@@ -348,7 +348,7 @@ export default function HomePage() {
                     <span
                       aria-hidden="true"
                       data-rule
-                      className="absolute inset-x-0 top-0 z-10 h-0.5 origin-left scale-x-0 bg-gradient-accent transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[shown]/reveal:scale-x-100 motion-reduce:scale-x-100 motion-reduce:transition-none"
+                      className="absolute inset-x-0 top-0 z-10 h-0.5 origin-left scale-x-0 bg-gradient-accent transition-[scale] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[shown]/reveal:scale-x-100 motion-reduce:scale-x-100 motion-reduce:transition-none"
                     />
                     <span
                       aria-hidden="true"
@@ -387,7 +387,7 @@ export default function HomePage() {
                           viewBox="0 0 16 16"
                           fill="none"
                           aria-hidden="true"
-                          className="size-3.5 transition-transform duration-200 group-hover:translate-x-1"
+                          className="size-3.5 transition-[translate] duration-200 group-hover:translate-x-1"
                         >
                           <path
                             d="M2 8h11M9 4l4 4-4 4"
@@ -559,7 +559,7 @@ function PillarIcon({ href }: { href: string }) {
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"
-      className="size-14 text-white/95 transition-transform duration-300 group-hover:scale-110"
+      className="size-14 text-white/95 transition-[scale] duration-300 group-hover:scale-110"
     >
       {paths[href]}
     </svg>

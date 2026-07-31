@@ -218,7 +218,7 @@ export default async function CalculatorDetailPage({
                   <li key={r.slug}>
                     <Link
                       href={`/calculators/${r.slug}`}
-                      className="group flex h-full flex-col justify-between gap-2 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,transform] duration-200 hover:-translate-y-1 hover:border-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="group flex h-full flex-col justify-between gap-2 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate] duration-200 hover:-translate-y-1 hover:border-accent/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       <span className="font-display text-[15px] font-medium text-ink-strong">
                         {r.name}

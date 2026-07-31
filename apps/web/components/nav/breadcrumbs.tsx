@@ -24,7 +24,13 @@ export function Breadcrumbs({ trail }: { trail: Crumb[] }) {
           const last = i === trail.length - 1;
           return (
             <li key={crumb.label} className="flex items-center gap-2">
-              <span aria-hidden="true" className="text-edge">
+              {/* `text-edge` was here and was dead: --color-edge does not exist,
+                  so the class emitted nothing and the slash simply inherited
+                  ink-muted from the list. Naming the token it was already
+                  rendering as costs no visual change and removes a class that
+                  looked deliberate while doing nothing — the same shape of
+                  defect as the border-token bug tokens.css:49 records. */}
+              <span aria-hidden="true" className="text-ink-muted">
                 /
               </span>
               {last || !crumb.href ? (
