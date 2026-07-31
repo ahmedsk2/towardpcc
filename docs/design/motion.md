@@ -59,3 +59,50 @@ same guards.
    only (relevant from P4).
 7. **Motion must be motivated** — hierarchy, feedback, or state change.
    If the reason can't be said in one sentence, cut the animation.
+
+---
+
+## Revision 4 — 2026-07-31: dial 3 → 7
+
+The founder found the site boring and asked for it to feel alive: hover effects
+on menus and buttons, animation "here and there", and better text presentation.
+Two commodity templates were offered as references. The dial moves from 3 to 7
+and the register splits.
+
+**What changes.** Rule 4 above said hover may transition "color/border only" and
+"nothing else moves". That is now too narrow and is superseded for MARKETING
+surfaces. Permitted there:
+
+- Compound hover choreography: a card may lift, its shadow bloom, an icon
+  travel, and a hidden affordance reveal — as one coordinated gesture.
+- Staggered entrance: list and grid children may arrive in sequence,
+  30–50ms apart, capped so the last item is never more than ~300ms behind the
+  first. Still one-time, still `unobserve` after firing.
+- Ambient decorative motion on non-content elements, slow enough not to pull
+  the eye during reading.
+- Shaped section transitions and ground changes.
+
+**What does NOT change, and is not negotiable:**
+
+1. **Reduced motion is still absolute.** Every addition collapses to static.
+2. **`transition: all` is still banned.** Name the properties. A hover that
+   promises to watch every animatable property is unreadable and slow.
+3. **One easing voice** and durations from tokens. Interactions stay at 150ms.
+4. **Still banned:** preloaders, marquees, parallax on content, scroll-hijack,
+   infinite loops on interactive elements, attention pulses, replaying reveals.
+5. **`transform`/`opacity` only.** Nothing that triggers layout.
+
+**The calm boundary — the reason this revision is safe.** The dial is 7 on
+marketing surfaces and stays at 3 on clinical ones. Specifically: a calculator's
+input controls, its result panel, and any computed value get no motion beyond
+the 150ms colour transition already there. Motion around a mortality figure
+teaches the eye that the number is decorative, which is the precise opposite of
+what a score must communicate — the same reasoning that narrowed count-up in
+revision 3. Chrome, catalogue cards and reference panels around the calculator
+may move. The number may not.
+
+**No animation library.** Route JS is 146.5–156.7 KB against a 170 KB gate, so
+every addition here is CSS keyframes and transitions plus, at most, the existing
+one-shot `IntersectionObserver`. This is a constraint that happens to be the
+right answer anyway: the templates that prompted this ship ~180 KB of GSAP, AOS
+and jQuery to move a card 5px.

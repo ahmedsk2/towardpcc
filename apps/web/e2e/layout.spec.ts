@@ -10,6 +10,11 @@ import { expect, test } from "@playwright/test";
  * rather than eyeballed.
  */
 const WIDTHS = [
+  // 320 is the real floor and the one that actually catches things: it is the
+  // narrowest viewport still in use (iPhone SE first generation, and any phone
+  // at 200% zoom, which WCAG 1.4.10 requires to reflow without a second
+  // scrollbar). 375 passes for plenty of layouts that break 55px earlier.
+  { name: "small phone", width: 320, height: 568 },
   { name: "mobile", width: 375, height: 812 },
   { name: "tablet", width: 768, height: 1024 },
   { name: "desktop", width: 1440, height: 900 },

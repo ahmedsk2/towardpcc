@@ -114,15 +114,30 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Entry reveal (components/reveal.tsx): 12px rise + fade, once, on scroll-in.
+/* Entry reveal (components/reveal.tsx): rise + fade, once, on scroll-in.
    Hidden until the component adds data-shown; CSS-only so no animation library
-   ships in the first-load bundle. Reduced motion shows content immediately. */
+   ships in the first-load bundle. Reduced motion shows content immediately.
+
+   `--reveal-delay` is how staggering works: the component sets it inline per
+   item, so a twelve-card grid costs zero timers. Capped by convention at
+   ~300ms total spread — past that the last card reads as broken rather than
+   choreographed. */
 [data-reveal] {
   opacity: 0;
   transform: translateY(12px);
   transition:
-    opacity var(--motion-duration-slow) var(--motion-ease),
-    transform var(--motion-duration-slow) var(--motion-ease);
+    opacity var(--motion-duration-reveal) var(--motion-ease),
+    transform var(--motion-duration-reveal) var(--motion-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal="left"] {
+  transform: translateX(-18px);
+}
+[data-reveal="right"] {
+  transform: translateX(18px);
+}
+[data-reveal="scale"] {
+  transform: scale(0.96);
 }
 [data-reveal][data-shown] {
   opacity: 1;
@@ -133,6 +148,9 @@ body {
     opacity: 1;
     transform: none;
     transition: none;
+    /* Zero the delay too. Without this a staggered grid under reduced motion
+       still waits out its cascade before appearing — static, but late. */
+    transition-delay: 0ms;
   }
 }
 
