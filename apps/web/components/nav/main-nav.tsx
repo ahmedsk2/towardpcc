@@ -246,11 +246,11 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
             type="button"
             aria-label={site.nav.closeMenuLabel}
             onClick={() => setDrawer(false)}
-            className="absolute inset-0 h-full w-full cursor-zoom-out bg-black/50"
+            className="absolute inset-0 h-full w-full cursor-zoom-out bg-black/50 motion-safe:animate-[drawerScrimIn_200ms_var(--motion-ease)_both]"
           />
           <div
             id="nav-drawer"
-            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-lg"
+            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-2xl motion-safe:animate-[drawerIn_260ms_var(--motion-ease)_both]"
           >
             <div className="mb-6 flex items-center justify-between">
               <span className="font-display text-lg font-bold text-ink-strong">
@@ -273,8 +273,12 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
               </button>
             </div>
             <ul className="flex flex-col gap-1">
-              {links.map(({ href, label }) => (
-                <li key={href}>
+              {links.map(({ href, label }, i) => (
+                <li
+                  key={href}
+                  className="motion-safe:animate-[drawerItemIn_260ms_var(--motion-ease)_both]"
+                  style={{ animationDelay: `${80 + i * 35}ms` }}
+                >
                   <Link
                     href={href}
                     aria-current={isActive(href) ? "page" : undefined}

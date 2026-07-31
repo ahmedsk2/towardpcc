@@ -117,6 +117,28 @@ body {
   }
 }
 
+/* Off-canvas mobile drawer (components/nav/main-nav.tsx). The scrim fades, the
+   panel slides in from the inline-end edge, and the nav items stagger up to
+   meet it — so it opens rather than simply appearing. Motion-safe only; under
+   reduced motion all three are static, which is correct for a nav surface.
+   Single-direction translateX (no RTL variant): the site ships no dir="rtl". */
+@keyframes drawerScrimIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes drawerIn {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes drawerItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 /* Hero organ stack (components/home/organ-stack.tsx). A drift, not a spin: a
    full rotation would put every label edge-on twice a revolution, and a label
    you have to wait for is worse than no label. 20s alternation, ±16°, slow

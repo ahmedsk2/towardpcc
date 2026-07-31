@@ -16,14 +16,22 @@ const siteLinks = [
   { href: "/install", label: site.pwa.installTitle },
 ];
 
+// A coral rule that wipes in under a link on hover, out through the other edge
+// on leave — the footer/utility-bar counterpart to the nav trace. `w-fit` keeps
+// the hit area on the text; `inline-flex` gives the absolute rule a context.
+// `transition-[scale]` because scale-x-* compiles to the `scale` property.
+const coralRule =
+  "pointer-events-none absolute inset-x-0 -bottom-0.5 h-px origin-right scale-x-0 bg-coral transition-[scale] duration-150 ease-[var(--motion-ease)] group-hover:origin-left group-hover:scale-x-100 group-focus-visible:origin-left group-focus-visible:scale-x-100 motion-reduce:transition-none";
+
 function FooterLink({ href, label }: { href: string; label: string }) {
   return (
     <li>
       <Link
         href={href}
-        className="rounded-sm text-sm text-ink-on-dark/75 transition-colors duration-150 hover:text-ink-on-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
+        className="group relative inline-flex w-fit rounded-sm text-sm text-ink-on-dark/75 transition-colors duration-150 hover:text-ink-on-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
       >
         {label}
+        <span aria-hidden="true" className={coralRule} />
       </Link>
     </li>
   );
