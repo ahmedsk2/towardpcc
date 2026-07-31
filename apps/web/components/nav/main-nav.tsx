@@ -152,7 +152,11 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                     id="mega-calculators"
                     className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-2xl motion-safe:animate-[megaIn_180ms_var(--motion-ease)_both]"
                   >
-                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3">
+                    {/* The panel drops 6px (megaIn) while its contents rise 6px
+                        to meet it. Four beats, not sixty: a per-link stagger at
+                        any readable step would still be arriving two seconds
+                        after the menu opened. */}
+                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3 motion-safe:animate-[megaColIn_220ms_var(--motion-ease)_both]">
                       <p className="m-0 text-sm text-ink-muted">
                         <strong className="font-semibold text-ink-strong">
                           {groups.reduce((n, g) => n + g.items.length, 0)} calculators
@@ -168,7 +172,11 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                     </div>
 
                     {[0, 1, 2].map((col) => (
-                      <div key={col}>
+                      <div
+                        key={col}
+                        className="motion-safe:animate-[megaColIn_220ms_var(--motion-ease)_both]"
+                        style={{ animationDelay: `${60 + col * 55}ms` }}
+                      >
                         {groups
                           .filter((_, i) => i % 3 === col)
                           .map((g) => (
@@ -184,8 +192,14 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                                   // at once — that is real bandwidth on hospital
                                   // wifi for pages the user probably won't open.
                                   prefetch={false}
-                                  className="block rounded-md px-2 py-1.5 text-sm font-medium text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                                  className="group relative block rounded-md px-2 py-1.5 ps-3 text-sm font-medium text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                                 >
+                                  {/* accent-tint alone is 1.09:1 on white, so the
+                                      fill cannot be the cue in a 22-row grid. */}
+                                  <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute inset-y-1 start-0 w-[3px] origin-bottom scale-y-0 rounded-full bg-accent transition-[scale] duration-150 ease-[var(--motion-ease)] group-hover:origin-top group-hover:scale-y-100 group-focus-visible:origin-top group-focus-visible:scale-y-100 motion-reduce:transition-none"
+                                  />
                                   {it.name}
                                   <span className="block font-numeric text-[11px] font-normal text-ink-muted">
                                     {it.meta}

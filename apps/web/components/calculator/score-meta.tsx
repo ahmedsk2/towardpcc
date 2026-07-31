@@ -36,27 +36,48 @@ export function TrustStrip({ score }: { score: ScoreDefinition }) {
   const latest = [...score.changelog].sort((a, b) => b.date.localeCompare(a.date))[0];
   const validated = score.validators.every((v) => v.status === "assigned");
 
-  const chip = "rounded-full border px-3 py-1 font-numeric text-[11.5px] tracking-[0.03em]";
+  /**
+   * A labelled instrument row rather than four identical grey pills.
+   *
+   * These four facts carry the page's credibility — what kind of score it is,
+   * which version, when it was last reviewed, and whether anyone independent
+   * has checked it — and they were rendered as interchangeable capsules with no
+   * indication of which was which. A reader had to infer that "v1.0.0" was a
+   * version and "Reviewed 2026-07-31" a date from the values alone.
+   *
+   * Static, deliberately. This sits directly above the calculator, and
+   * motion.md revision 4 keeps that zone calm; the improvement here is
+   * legibility and hierarchy, not movement.
+   */
+  const cell =
+    "flex flex-col gap-0.5 border-s border-border-subtle px-4 first:border-s-0 first:ps-0";
+  const key = "font-numeric text-[10px] font-semibold tracking-[0.1em] text-ink-muted uppercase";
+  const val = "font-numeric text-[12.5px] tracking-[0.02em] text-ink-strong";
 
   return (
-    <ul className="mt-4 flex list-none flex-wrap items-center gap-2">
-      <li className={`${chip} border-border bg-surface-sunken text-ink-body`}>
-        {c.categoryLabels[score.category]}
+    <ul className="mt-5 flex list-none flex-wrap items-stretch gap-y-3 border-y border-border-subtle py-3">
+      <li className={cell}>
+        <span className={key}>Category</span>
+        <span className={val}>{c.categoryLabels[score.category]}</span>
       </li>
-      <li className={`${chip} border-border bg-surface-sunken text-ink-body`}>v{score.version}</li>
+      <li className={cell}>
+        <span className={key}>Version</span>
+        <span className={val}>v{score.version}</span>
+      </li>
       {latest ? (
-        <li className={`${chip} border-border bg-surface-sunken text-ink-body`}>
-          Reviewed {latest.date}
+        <li className={cell}>
+          <span className={key}>Reviewed</span>
+          <span className={`${val} tabular-nums`}>{latest.date}</span>
         </li>
       ) : null}
-      <li
-        className={
-          validated
-            ? `${chip} border-success-text/30 bg-success-bg text-success-text`
-            : `${chip} border-border bg-surface-sunken text-ink-muted`
-        }
-      >
-        {validated ? c.validatedByPrefix.replace(/[:\s]+$/, "") : c.validationPending}
+      <li className={cell}>
+        <span className={key}>Validation</span>
+        {/* Crimson never means a problem on this site, so a pending state is
+            ink-muted and a confirmed one is the semantic green — never the
+            brand accent in either direction. */}
+        <span className={validated ? `${val} text-success-text` : `${val} text-ink-muted`}>
+          {validated ? c.validatedByPrefix.replace(/[:\s]+$/, "") : c.validationPending}
+        </span>
       </li>
     </ul>
   );

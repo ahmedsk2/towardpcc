@@ -103,12 +103,13 @@ export function PillarPage({
       {/* Stats — overlapping the hero, as on the home page */}
       <div className="relative z-20 mx-auto -mt-16 max-w-[1280px] px-6">
         <dl className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className="rounded-lg border border-border bg-surface-raised p-7 shadow-xl"
-            >
-              {/* Final value at first paint — deliberately NOT <Counter>.
+          {stats.map((s, i) => (
+            // Sequenced at 70ms and given the site's card hover. This band is
+            // the first thing below the hero on all four pillar pages and it
+            // arrived as four static slabs, all at once.
+            <Reveal key={s.label} delay={i * 70} from="up">
+              <div className="h-full rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-[translate,box-shadow,border-color] duration-200 ease-[var(--motion-ease)] hover:border-accent/40 hover:shadow-[var(--shadow-accent)] motion-safe:hover:-translate-y-1">
+                {/* Final value at first paint — deliberately NOT <Counter>.
                   This band sits above the fold (top ~636px at 1280x900), so a
                   count-up fired at load and the server-rendered 0 was on screen
                   while the copy beside it said otherwise: "0 Pilot unit" under
@@ -116,13 +117,14 @@ export function PillarPage({
                   "Three kinds of help." The values in site.ts were always
                   right; the animation was reading them out loud from zero.
                   Count-up is now home-band only (docs/design/motion.md). */}
-              <dd className="m-0 font-numeric text-3xl font-semibold text-accent tabular-nums">
-                {s.prefix ?? ""}
-                {s.value}
-                {s.suffix ?? ""}
-              </dd>
-              <dt className="mt-2 text-sm text-ink-muted">{s.label}</dt>
-            </div>
+                <dd className="m-0 font-numeric text-3xl font-semibold text-accent tabular-nums">
+                  {s.prefix ?? ""}
+                  {s.value}
+                  {s.suffix ?? ""}
+                </dd>
+                <dt className="mt-2 text-sm text-ink-muted">{s.label}</dt>
+              </div>
+            </Reveal>
           ))}
         </dl>
       </div>

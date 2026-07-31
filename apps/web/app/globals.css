@@ -108,6 +108,15 @@ body {
   }
 }
 
+/* Mega-menu contents. The panel drops 6px (megaIn) while its columns rise 6px
+   to meet it — the two gestures converge rather than both falling. */
+@keyframes megaColIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 /* Hero organ stack (components/home/organ-stack.tsx). A drift, not a spin: a
    full rotation would put every label edge-on twice a revolution, and a label
    you have to wait for is worse than no label. 20s alternation, ±16°, slow
