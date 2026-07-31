@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 
 const e = site.home.evidence;
@@ -96,9 +97,15 @@ export function EvidenceCarousel() {
         {e.items.map((item) => (
           <li
             key={item.source}
-            className="flex w-[min(26rem,82vw)] shrink-0 snap-start flex-col gap-4 rounded-lg border border-border bg-surface-page p-8"
+            className="group flex w-[min(26rem,82vw)] shrink-0 snap-start flex-col gap-4 rounded-lg border border-border bg-surface-raised p-8 transition-[translate,box-shadow,border-color] duration-300 ease-[var(--motion-ease)] hover:border-accent hover:shadow-lg motion-safe:hover:-translate-y-1"
           >
-            <span aria-hidden="true" className="font-display text-5xl leading-[0.4] text-peach">
+            {/* Stays peach. Coral on a light ground is 2.55:1 and tokens.css
+                pins it dark-surface-only; this is decorative and aria-hidden,
+                which is the only reason a 1.9:1 mark is legal here at all. */}
+            <span
+              aria-hidden="true"
+              className="font-display text-5xl leading-[0.4] text-peach transition-[scale] duration-300 ease-[var(--motion-ease)] motion-safe:group-hover:scale-110"
+            >
               &ldquo;
             </span>
             <blockquote className="font-display text-lg leading-snug font-medium text-ink-strong">
@@ -150,11 +157,15 @@ export function EvidenceCarousel() {
               >
                 <span
                   aria-hidden="true"
-                  className={
-                    pos.index === i
-                      ? "block h-1.5 w-5 rounded-full bg-accent transition-all duration-200"
-                      : "block size-1.5 rounded-full bg-border-strong/50 transition-all duration-200"
-                  }
+                  // One fixed 20x6 box in both states; only `scale` and colour
+                  // move. The previous pair swapped width and height under
+                  // `transition-all`, which animates layout — banned by
+                  // motion.md revision 4, and it forced a reflow of the whole
+                  // indicator row on every slide change.
+                  className={cn(
+                    "block h-1.5 w-5 origin-center rounded-full transition-[scale,background-color] duration-200 ease-[var(--motion-ease)] motion-reduce:transition-none",
+                    pos.index === i ? "scale-100 bg-accent" : "scale-x-[0.3] bg-border-strong/50",
+                  )}
                 />
               </button>
             </li>

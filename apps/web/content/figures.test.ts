@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { listScores, registry } from "@towardpcc/scoring-engine";
 import { site } from "./site";
 
@@ -40,6 +42,68 @@ describe("public figures match the registry", () => {
   it("proof band: referenced calculators", () => {
     const stat = site.home.counters.find((c) => /referenced calculators/i.test(c.label));
     expect(stat!.value).toBe(truth.scores);
+  });
+
+  /**
+   * The home page's pillar cards, which lived outside every guard above.
+   *
+   * Those assertions all read `site.ts`. The pillar array is declared in
+   * `app/page.tsx` instead, and carried "Twenty-two Tier-A PICU scores" with
+   * stats 22 and 87 while the registry held 23 and 91 — with a comment above it
+   * claiming it was "pinned to the registry by content/figures.test.ts", which
+   * it was not. The claim of coverage is what made it invisible.
+   *
+   * Read as source text rather than imported: the module is a server component
+   * that pulls in half the app, and the figures are literals in a const array,
+   * so the text is exactly what a reader sees.
+   */
+  it("home pillar cards: the typed figures match the registry", () => {
+    const src = readFileSync(fileURLToPath(new URL("../app/page.tsx", import.meta.url)), "utf8");
+
+    const scores = src.match(/\{ label: "Scores", value: "(\d+)" \}/);
+    expect(scores, "the calculators pillar should still carry a score count").not.toBeNull();
+    expect(Number(scores![1])).toBe(truth.scores);
+
+    const cites = src.match(/\{ label: "Citations", value: "(\d+)" \}/);
+    expect(cites, "the calculators pillar should still carry a citation count").not.toBeNull();
+    expect(Number(cites![1])).toBe(truth.citations);
+
+    // And the sentence above them, which spells the same number in words and so
+    // slipped past every numeral-watching guard this file already had.
+    const words = [
+      "",
+      "One",
+      "Two",
+      "Three",
+      "Four",
+      "Five",
+      "Six",
+      "Seven",
+      "Eight",
+      "Nine",
+      "Ten",
+      "Eleven",
+      "Twelve",
+      "Thirteen",
+      "Fourteen",
+      "Fifteen",
+      "Sixteen",
+      "Seventeen",
+      "Eighteen",
+      "Nineteen",
+      "Twenty",
+      "Twenty-one",
+      "Twenty-two",
+      "Twenty-three",
+      "Twenty-four",
+      "Twenty-five",
+    ];
+    const spelled = words[truth.scores];
+    expect(spelled, `add a word for ${truth.scores} to this table`).toBeDefined();
+    expect(
+      src,
+      `the pillar body should read "${spelled} Tier-A PICU scores" — the registry holds ${truth.scores}`,
+    ).toContain(`${spelled} Tier-A PICU scores`);
   });
 
   it("no figure in the copy is typed as a literal that could drift", () => {

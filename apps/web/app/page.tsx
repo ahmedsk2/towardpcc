@@ -15,15 +15,17 @@ const pillars = [
   {
     href: "/calculators",
     title: site.pillars.calculators.title,
-    body: "Twenty-two Tier-A PICU scores. Every computation runs in your browser, proven by an automated zero-network test on every release.",
+    body: "Twenty-three Tier-A PICU scores. Every computation runs in your browser, proven by an automated zero-network test on every release.",
     chip: "Live now",
     chipTone: "live" as const,
     media: "from-accent-deep via-accent to-coral",
     stats: [
-      { label: "Scores", value: "22" },
-      // Pinned to the registry by content/figures.test.ts, not derived here —
-      // importing the engine for one number cost 45 KB of route JS.
-      { label: "Citations", value: "87" },
+      { label: "Scores", value: "23" },
+      // Typed, not derived: importing the engine for one number cost 45 KB of
+      // route JS. figures.test.ts pins BOTH of these against the registry — it
+      // did not until 2026-07-31, and these three figures sat at 22/22/87
+      // against a real 23/23/91 for exactly as long as that gap existed.
+      { label: "Citations", value: "91" },
       { label: "Coverage", value: "100%" },
     ],
     cta: "Open the calculators",
@@ -273,11 +275,28 @@ export default function HomePage() {
       {/* ── COUNTERS ────────────────────────────────────────────────── */}
       <section
         aria-labelledby="counters-heading"
-        className="relative overflow-hidden bg-gradient-hero text-white"
+        // A deep SOLID ground, not the hero's gradient. This band used
+        // bg-gradient-hero plus two coral radials — the same construction as
+        // the hero, so on scroll the page appeared to return to where it
+        // started. Solid reads as a different room.
+        className="relative overflow-hidden bg-surface-hero text-white"
       >
+        {/* Same curve as the hero divider, mirrored: one wave on the site, not
+            three. Fills with surface-page because that is the ground above. */}
+        <svg
+          viewBox="0 0 1440 110"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          className="relative z-10 block h-12 w-full rotate-180 md:h-20"
+        >
+          <path
+            d="M0,58 C130,96 220,16 360,44 C500,72 580,14 720,46 C860,78 940,20 1080,48 C1200,72 1320,84 1440,64 L1440,110 L0,110 Z"
+            fill="var(--color-surface-page)"
+          />
+        </svg>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(700px_400px_at_20%_0%,rgba(255,122,107,0.28),transparent_70%),radial-gradient(600px_400px_at_80%_100%,rgba(234,58,87,0.3),transparent_70%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_420px_at_50%_-5%,rgba(255,122,107,0.2),transparent_70%)]"
         />
         {/* One band, four figures.
             This was two <dl>s stacked in a single section under an sr-only
@@ -301,17 +320,47 @@ export default function HomePage() {
           <p className="mx-auto mt-3 max-w-[52ch] text-center text-ink-on-dark/75">
             {h.countersLede}
           </p>
-          <dl className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {h.counters.map((c) => (
-              <div key={c.label} className="text-center">
-                <dd className="m-0 font-numeric text-4xl font-semibold text-white tabular-nums md:text-5xl">
-                  <Counter value={c.value} suffix={c.suffix} prefix={c.prefix} />
-                </dd>
-                <dt className="mt-3 text-sm text-ink-on-dark/80">{c.label}</dt>
-              </div>
+          {/* A shared hairline the four figures hang from, instead of four
+              free-floating blocks. The vertical rules reset on every row's
+              first cell, which a bare `first:` cannot do once the grid wraps
+              to two columns. */}
+          <dl className="mt-12 grid grid-cols-2 gap-y-10 border-t border-white/15 lg:grid-cols-4">
+            {h.counters.map((c, i) => (
+              <Reveal
+                key={c.label}
+                delay={i * 70}
+                // No vertical rules. They were meant to divide the columns, but
+                // a grid that wraps from four to two needs the rule cleared on
+                // each ROW's first cell, and `first:` only knows about the
+                // first cell overall — measured, every cell kept its border at
+                // every width. The shared top hairline is the idea anyway: four
+                // figures hanging from one line. The rules were decoration that
+                // could only ever be right at one breakpoint.
+                className="px-2 pt-8 text-center sm:px-4 lg:px-6"
+              >
+                <div>
+                  <dd className="m-0 font-numeric text-4xl font-semibold text-white tabular-nums md:text-5xl">
+                    <Counter value={c.value} suffix={c.suffix} prefix={c.prefix} />
+                  </dd>
+                  <dt className="mt-3 text-sm text-ink-on-dark/80">{c.label}</dt>
+                </div>
+              </Reveal>
             ))}
           </dl>
         </div>
+        {/* Fills with surface-sunken, not surface-page: --gradient-soft below
+            starts at #fff2ee, and a surface-page fill leaves a visible seam. */}
+        <svg
+          viewBox="0 0 1440 110"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          className="relative z-10 block h-12 w-full md:h-20"
+        >
+          <path
+            d="M0,58 C130,96 220,16 360,44 C500,72 580,14 720,46 C860,78 940,20 1080,48 C1200,72 1320,84 1440,64 L1440,110 L0,110 Z"
+            fill="var(--color-surface-sunken)"
+          />
+        </svg>
       </section>
 
       {/* ── PILLARS ─────────────────────────────────────────────────── */}
@@ -405,7 +454,12 @@ export default function HomePage() {
       </section>
 
       {/* ── EVIDENCE ────────────────────────────────────────────────── */}
-      <section aria-labelledby="evidence-heading" className="bg-surface-raised">
+      {/* Blush ground, white cards — the inverse of what it was. The section
+          sat on surface-raised (#ffffff) while its cards sat on surface-page
+          (#fffaf7): a 1.01:1 difference, so the cards did not read as cards.
+          The light run down the page is now surface-page -> gradient-soft ->
+          surface-sunken, three grounds a reader can actually tell apart. */}
+      <section aria-labelledby="evidence-heading" className="bg-surface-sunken">
         <div className="mx-auto max-w-[1280px] px-6 py-24">
           <div className="mx-auto mb-12 max-w-[62ch] text-center">
             <Eyebrow>{h.evidence.eyebrow}</Eyebrow>
