@@ -114,6 +114,12 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
 .cps-frame {
   position: relative;
   aspect-ratio: ${SCENE.width} / ${SCENE.height};
+  /* A chest is portrait, so at full column width the figure ran past the fold
+     and cut the cardiac apex off — the one part of the picture a reader should
+     not have to scroll for. Capped against viewport height instead: the width
+     follows from the aspect ratio, so the whole thorax is always in view. */
+  max-width: min(100%, 46vh);
+  margin-inline: auto;
 }
 .cps-svg {
   position: absolute;
