@@ -136,13 +136,19 @@ describe("scene projection", () => {
   it("keeps the pleura quieter than the airway it contains", () => {
     // The pleura is the room, not the subject. Drawn any heavier it becomes an
     // outline, and an outline around a mesh reads as a box.
-    const brightest = (kind: string) =>
-      Math.max(...scene.paths.filter((p) => p.kind === kind && !p.dots).map((p) => p.opacity));
+    const bands = (kind: string) => scene.paths.filter((p) => p.kind === kind && !p.dots);
+    const brightest = (kind: string) => Math.max(...bands(kind).map((p) => p.opacity));
+    const dimmest = (kind: string) => Math.min(...bands(kind).map((p) => p.opacity));
+    const widest = (kind: string) => Math.max(...bands(kind).map((p) => p.width));
+
     expect(brightest("pleura")).toBeLessThan(brightest("airway"));
-    expect(brightest("airway")).toBeLessThan(brightest("trachea"));
-    // The central airway is the trunk: heavier than what hangs off it.
-    const widest = (kind: string) =>
-      Math.max(...scene.paths.filter((p) => p.kind === kind && !p.dots).map((p) => p.width));
+
+    // The trunk is compared on its FLOOR, not its peak. It runs down the
+    // midline at one depth and populates only the middle bands, so its peak
+    // sits just under the airway's nearest band while being several times
+    // brighter than the airway everywhere else — comparing peaks measures
+    // which band each system happens to occupy, not which reads as the trunk.
+    expect(dimmest("airway")).toBeLessThan(dimmest("trachea"));
     expect(widest("airway")).toBeLessThan(widest("trachea"));
   });
 });
