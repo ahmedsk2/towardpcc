@@ -122,7 +122,11 @@ ${legend(lines)}
 }
 
 const hull = cardiacHullExtentX();
-const treeX = Array.from({ length: tree.count }, (_, i) => tree.positions[i * 3]!);
+// Measured on the TREE, not the sampled particles — the same quantity the
+// assertion checks. Measuring the particles here reported 0.792 against an
+// assertion passing at 0.85 on identical geometry, because the particles are a
+// thinned draw and their extremes are a function of the budget.
+const treeX = Array.from({ length: tree.segments.length / 3 }, (_, i) => tree.segments[i * 3]!);
 const fillR = Math.abs(Math.min(...treeX)) / PLEURAL_LATERAL_EXTENT;
 const fillL = Math.max(...treeX) / PLEURAL_LATERAL_EXTENT;
 
