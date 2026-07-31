@@ -82,10 +82,15 @@ export function PillarPage({
           </p>
           {/* display-2, deliberately a step below the home hero: an inner page
               is a destination, not the argument. */}
-          <h1 className="max-w-[18ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-white">
+          <h1 className="max-w-[18ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-balance text-white">
             {heading}
           </h1>
-          <p className="mt-6 max-w-[58ch] text-lg leading-relaxed text-ink-on-dark/90">{lede}</p>
+          {/* text-pretty stops the lede orphaning a single word onto the last
+              line; the measure drops from 58ch (~70 chars in Inter, a touch
+              wide) to a calmer 52ch. */}
+          <p className="mt-6 max-w-[52ch] text-[19px] leading-relaxed text-pretty text-ink-on-dark/90">
+            {lede}
+          </p>
         </div>
         <svg
           viewBox="0 0 1440 110"
@@ -136,18 +141,26 @@ export function PillarPage({
             <div>
               <h2
                 id="capabilities"
-                className="font-display text-3xl font-bold tracking-tight text-ink-strong md:text-4xl"
+                className="font-display text-3xl font-bold tracking-tight text-balance text-ink-strong md:text-4xl"
               >
                 {capabilitiesHeading}
               </h2>
-              <ul className="mt-8 flex list-none flex-col gap-5">
+              {/* Rows gain a hover plate — a negative-margin highlight so it
+                  reads as lighting up the existing row rather than a box that
+                  was always there. This is the main content block on three of
+                  the four pillar pages and it had no interactivity at all.
+                  The check tile scales a touch to answer the hover. */}
+              <ul className="mt-8 flex list-none flex-col gap-2">
                 {capabilities.map((c) => (
-                  <li key={c.title} className="flex gap-4">
+                  <li
+                    key={c.title}
+                    className="group -mx-3 flex gap-4 rounded-lg border border-transparent p-3 transition-colors duration-150 ease-[var(--motion-ease)] hover:border-border-subtle hover:bg-surface-sunken/50"
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
                       aria-hidden="true"
-                      className="mt-0.5 size-6 shrink-0 text-accent"
+                      className="mt-0.5 size-6 shrink-0 text-accent transition-[scale] duration-150 ease-[var(--motion-ease)] motion-safe:group-hover:scale-110 motion-reduce:transition-none"
                     >
                       <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
                       <path
