@@ -2,7 +2,7 @@ import { BUDGET, DEFAULT_SEED, HEART_CENTRE, LUNG, THORAX } from "./anatomy";
 import { cardiacField, chamberLeftness } from "./heart";
 import { generateHeart } from "./heart";
 import { insideLung } from "./envelope";
-import { mulberry32 } from "./rng";
+import { fibonacciSphere } from "./rng";
 import { generateTree } from "./tree";
 
 /**
@@ -52,7 +52,7 @@ export interface Mesh {
 }
 
 /** How many neighbours each surface point is joined to. */
-const NEIGHBOURS = 3;
+const SURFACE_NEIGHBOURS = 4;
 /**
  * Longest edge worth drawing, in anatomy units.
  *
@@ -60,27 +60,15 @@ const NEIGHBOURS = 3;
  * lungs together, which draws a surface where there is a gap.
  */
 const MAX_EDGE = 0.11;
+/** The heart is denser, so its edges must be shorter or the mesh webs over. */
+const HEART_MAX_EDGE = 0.055;
 
-/** Latitude and longitude divisions of each lung's surface grid. */
-const PLEURA_RINGS = 22;
-const PLEURA_SEGMENTS = 30;
-/**
- * How far each grid direction is jittered, as a fraction of a cell.
- *
- * An unjittered lat/long grid is a perfect lattice, and a perfect lattice reads
- * as a wireframe balloon: the eye locks onto the rows and stops seeing a
- * surface. Displacing each direction by a fraction of a cell keeps the quads
- * connected while breaking the regularity, which is what makes a mesh read as
- * skin rather than as a net thrown over something.
- *
- * Seeded, so the surface is identical on every build.
- */
-const PLEURA_JITTER = 0.42;
-
+/** Directions swept over each lung's surface. */
+const PLEURA_DIRECTIONS = 640;
 /** The cardiac surface is swept finer: it is smaller and it is the subject. */
+const HEART_DIRECTIONS = 520;
+
 const HEART_MARCH_MAX = 0.42;
-const HEART_RINGS = 20;
-const HEART_SEGMENTS = 26;
 
 function knn(
   points: MeshPoint[],
@@ -176,148 +164,85 @@ export function buildMesh(preset: keyof typeof BUDGET = "desktop"): Mesh {
   // march works: step out until the field turns positive, bisect the crossing.
   // Vertices carry chamber laterality, so the right-to-left tint survives the
   // change of representation — the surface still knows which chambers it is.
-  const heartRng = mulberry32(DEFAULT_SEED ^ 0x1c0d);
-  const heartGrid: number[][] = [];
-  for (let iu = 0; iu <= HEART_RINGS; iu++) {
-    const v = (iu / HEART_RINGS) * 0.94 + 0.03;
-    const row: number[] = [];
-    for (let iv = 0; iv < HEART_SEGMENTS; iv++) {
-      const az = ((iv + (heartRng() - 0.5) * PLEURA_JITTER) / HEART_SEGMENTS) * Math.PI * 2;
-      const polar = v * Math.PI + ((heartRng() - 0.5) * PLEURA_JITTER * Math.PI) / HEART_RINGS;
-      const dx = Math.sin(polar) * Math.cos(az);
-      const dy = Math.cos(polar);
-      const dz = Math.sin(polar) * Math.sin(az);
-      // Scans the WHOLE range and keeps the outermost crossing. Breaking at
-      // the first exit returns the first shell, and neither of these solids is
-      // star-shaped: a ray leaving the ventricles can re-enter at the left
-      // atrium, which sits posteriorly and higher. Stopping early cut the top
-      // third off the heart — the mesh reached y -0.170 against a base at
-      // -0.030, so the great-vessel end simply was not there.
-      let inside = -1;
-      for (let r = 0.01; r <= HEART_MARCH_MAX; r += 0.006) {
-        const p = {
-          x: HEART_CENTRE.x + dx * r,
-          y: HEART_CENTRE.y + dy * r,
-          z: HEART_CENTRE.z + dz * r,
-        };
-        if (cardiacField(p.x, p.y, p.z) <= 0) inside = r;
+  const heartFrom = points.length;
+  const heartDirs = fibonacciSphere(HEART_DIRECTIONS, 1);
+  for (let i = 0; i < HEART_DIRECTIONS; i++) {
+    const dx = heartDirs[i * 3]!;
+    const dy = heartDirs[i * 3 + 1]!;
+    const dz = heartDirs[i * 3 + 2]!;
+    // Outermost crossing. A ray leaving the ventricles re-enters at the left
+    // atrium, which sits posteriorly and higher; stopping at the first exit
+    // cut the great-vessel end off the organ entirely.
+    let inside = -1;
+    for (let r = 0.01; r <= HEART_MARCH_MAX; r += 0.006) {
+      if (
+        cardiacField(HEART_CENTRE.x + dx * r, HEART_CENTRE.y + dy * r, HEART_CENTRE.z + dz * r) <= 0
+      ) {
+        inside = r;
       }
-      if (inside < 0) {
-        row.push(-1);
-        continue;
-      }
-      let lo = inside;
-      let hi = inside + 0.006;
-      for (let k = 0; k < 14; k++) {
-        const mid = (lo + hi) / 2;
-        const p = {
-          x: HEART_CENTRE.x + dx * mid,
-          y: HEART_CENTRE.y + dy * mid,
-          z: HEART_CENTRE.z + dz * mid,
-        };
-        if (cardiacField(p.x, p.y, p.z) <= 0) lo = mid;
-        else hi = mid;
-      }
-      const x = HEART_CENTRE.x + dx * lo;
-      const y = HEART_CENTRE.y + dy * lo;
-      const z = HEART_CENTRE.z + dz * lo;
-      row.push(points.length);
-      points.push({ x, y, z, kind: "heart", t: chamberLeftness(x, y, z) });
     }
-    heartGrid.push(row);
-  }
-  const joinHeart = (a: number, b: number) => {
-    if (a < 0 || b < 0) return;
-    const p = points[a]!;
-    const q = points[b]!;
-    const d = Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z);
-    if (d > MAX_EDGE) return;
-    edges.push({ a, b, kind: "heart", depth: Math.min(1, d / MAX_EDGE) });
-  };
-  for (let iu = 0; iu < heartGrid.length; iu++) {
-    for (let iv = 0; iv < HEART_SEGMENTS; iv++) {
-      joinHeart(heartGrid[iu]![iv]!, heartGrid[iu]![(iv + 1) % HEART_SEGMENTS]!);
-      if (iu + 1 < heartGrid.length) joinHeart(heartGrid[iu]![iv]!, heartGrid[iu + 1]![iv]!);
+    if (inside < 0) continue;
+    let lo = inside;
+    let hi = inside + 0.006;
+    for (let k = 0; k < 14; k++) {
+      const mid = (lo + hi) / 2;
+      const fx = HEART_CENTRE.x + dx * mid;
+      const fy = HEART_CENTRE.y + dy * mid;
+      const fz = HEART_CENTRE.z + dz * mid;
+      if (cardiacField(fx, fy, fz) <= 0) lo = mid;
+      else hi = mid;
     }
+    const x = HEART_CENTRE.x + dx * lo;
+    const y = HEART_CENTRE.y + dy * lo;
+    const z = HEART_CENTRE.z + dz * lo;
+    points.push({ x, y, z, kind: "heart", t: chamberLeftness(x, y, z) });
   }
+  edges.push(...knn(points, heartFrom, points.length, "heart", SURFACE_NEIGHBOURS, HEART_MAX_EDGE));
   void heart;
 
-  // ── Pleura: a STRUCTURED SURFACE GRID, ray-marched off insideLung ───────
+  // ── Pleura: a surface, swept on FIBONACCI DIRECTIONS and re-meshed ──────
   //
-  // Contour samples cannot make a surface. Three stacks of subsampled outlines
-  // gave the lungs no skin: the airways inside them read as volume and the
-  // lungs themselves read as a faint wire cage around it. A surface needs a
-  // grid whose neighbours are known, so that every quad is a facet.
+  // Directions come from a Fibonacci sphere rather than a latitude/longitude
+  // grid. A lat/long grid has poles, and the poles landed on the lung apex and
+  // the diaphragm — the two places a lung is most obviously a dome — where
+  // every meridian converges into a starburst. It also has rows, and the eye
+  // locks onto rows and stops seeing a surface. Fibonacci directions are
+  // evenly spaced with no pole and no preferred axis.
   //
-  // Each lung is swept on a latitude/longitude grid: for every direction, march
-  // outward from the lung's centre until insideLung stops being true, and that
-  // crossing is a vertex. Neighbours in both grid directions become edges, so
-  // the mesh is a shell rather than a cloud that happens to be hollow.
+  // The cost is that neighbours are no longer known from indices, so the shell
+  // is re-meshed by proximity afterwards. On a set of points that all lie ON a
+  // surface that is what a surface triangulation is, and unlike meshing a
+  // volume it cannot cut through the solid.
   //
   // Marched off insideLung itself, so the drawn skin cannot drift from the
   // surface the airways are contained by.
   const pleuraFrom = points.length;
-  const surfaceRng = mulberry32(DEFAULT_SEED ^ 0x5eed);
   for (const side of [-1, 1] as const) {
     const cx = side * (LUNG.medialX + LUNG.halfWidth);
     const cy = (THORAX.lungApexY + THORAX.costophrenicY) / 2;
-    const grid: number[][] = [];
-    for (let iu = 0; iu <= PLEURA_RINGS; iu++) {
-      // Latitude, apex to base. Endpoints are pulled just inside the poles:
-      // a ring of coincident vertices at each pole draws a starburst.
-      const v = (iu / PLEURA_RINGS) * 0.94 + 0.03;
-      const polar = v * Math.PI;
-      const row: number[] = [];
-      for (let iv = 0; iv < PLEURA_SEGMENTS; iv++) {
-        const az = ((iv + (surfaceRng() - 0.5) * PLEURA_JITTER) / PLEURA_SEGMENTS) * Math.PI * 2;
-        const jitteredPolar =
-          polar + ((surfaceRng() - 0.5) * PLEURA_JITTER * Math.PI) / PLEURA_RINGS;
-        const dx = Math.sin(jitteredPolar) * Math.cos(az);
-        const dy = Math.cos(jitteredPolar);
-        const dz = Math.sin(jitteredPolar) * Math.sin(az);
-        // March out, then bisect the last inside/outside pair.
-        // Outermost crossing, for the same reason as the heart: the cardiac
-        // notch makes a lung non-star-shaped, so a ray can leave and re-enter.
-        let inside = -1;
-        for (let r = 0.02; r <= 0.62; r += 0.01) {
-          if (insideLung(cx + dx * r, cy + dy * r, dz * r)) inside = r;
-        }
-        if (inside < 0) {
-          row.push(-1);
-          continue;
-        }
-        let lo = inside;
-        let hi = inside + 0.01;
-        for (let k = 0; k < 14; k++) {
-          const mid = (lo + hi) / 2;
-          if (insideLung(cx + dx * mid, cy + dy * mid, dz * mid)) lo = mid;
-          else hi = mid;
-        }
-        row.push(points.length);
-        points.push({ x: cx + dx * lo, y: cy + dy * lo, z: dz * lo, kind: "pleura", t: 0 });
+    const dirs = fibonacciSphere(PLEURA_DIRECTIONS, 1);
+    for (let i = 0; i < PLEURA_DIRECTIONS; i++) {
+      const dx = dirs[i * 3]!;
+      const dy = dirs[i * 3 + 1]!;
+      const dz = dirs[i * 3 + 2]!;
+      // Outermost crossing: the cardiac notch makes a lung non-star-shaped, so
+      // a ray can leave and re-enter and the first exit is not the surface.
+      let inside = -1;
+      for (let r = 0.02; r <= 0.62; r += 0.01) {
+        if (insideLung(cx + dx * r, cy + dy * r, dz * r)) inside = r;
       }
-      grid.push(row);
-    }
-
-    // Quad edges: along each ring, and between rings. Long edges are dropped —
-    // where the surface jumps, at the notch and the costophrenic angle, a
-    // connecting edge would bridge a real discontinuity.
-    const join = (a: number, b: number) => {
-      if (a < 0 || b < 0) return;
-      const p = points[a]!;
-      const q = points[b]!;
-      const d = Math.hypot(p.x - q.x, p.y - q.y, p.z - q.z);
-      if (d > MAX_EDGE) return;
-      edges.push({ a, b, kind: "pleura", depth: Math.min(1, d / MAX_EDGE) });
-    };
-    for (let iu = 0; iu < grid.length; iu++) {
-      for (let iv = 0; iv < PLEURA_SEGMENTS; iv++) {
-        join(grid[iu]![iv]!, grid[iu]![(iv + 1) % PLEURA_SEGMENTS]!);
-        if (iu + 1 < grid.length) join(grid[iu]![iv]!, grid[iu + 1]![iv]!);
+      if (inside < 0) continue;
+      let lo = inside;
+      let hi = inside + 0.01;
+      for (let k = 0; k < 14; k++) {
+        const mid = (lo + hi) / 2;
+        if (insideLung(cx + dx * mid, cy + dy * mid, dz * mid)) lo = mid;
+        else hi = mid;
       }
+      points.push({ x: cx + dx * lo, y: cy + dy * lo, z: dz * lo, kind: "pleura", t: 0 });
     }
   }
-  void pleuraFrom;
+  edges.push(...knn(points, pleuraFrom, points.length, "pleura", SURFACE_NEIGHBOURS, MAX_EDGE));
 
   return { points, edges, nodes };
 }
