@@ -114,10 +114,10 @@ export default function AboutPage() {
             {a.principlesHeading}
           </h2>
           <ul className="grid list-none gap-6 sm:grid-cols-2">
-            {a.principles.map((p) => (
+            {a.principles.map((p, i) => (
               <li key={p.title}>
-                <Reveal>
-                  <div className="h-full rounded-lg border border-border bg-surface-page p-7">
+                <Reveal delay={i * 60}>
+                  <div className="h-full rounded-lg border border-border bg-surface-page p-7 transition-colors duration-150 ease-[var(--motion-ease)] hover:border-accent/40">
                     <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {p.title}
                     </h3>
@@ -152,10 +152,10 @@ export default function AboutPage() {
             />
           </Reveal>
           <ul className="grid list-none gap-6 md:grid-cols-3">
-            {a.story.map((s) => (
+            {a.story.map((s, i) => (
               <li key={s.title}>
-                <Reveal>
-                  <div className="h-full rounded-lg border border-border bg-surface-raised p-7">
+                <Reveal delay={i * 60}>
+                  <div className="h-full rounded-lg border border-border bg-surface-raised p-7 transition-colors duration-150 ease-[var(--motion-ease)] hover:border-accent/40">
                     <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {s.title}
                     </h3>
