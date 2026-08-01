@@ -36,7 +36,7 @@ export function BackToTop() {
         })
       }
       className={cn(
-        "fixed end-6 z-[90] grid size-12 place-items-center rounded-full bg-gradient-accent text-white",
+        "fixed end-6 z-[90] grid size-12 place-items-center rounded-full bg-gradient-accent text-ink-on-accent",
         // `translate`, not `bottom`: bottom is a layout property, which
         // motion.md revision 4 forbids outright, and the compositor cannot
         // fast-path it. The button stays pinned at bottom-6 and slides out of

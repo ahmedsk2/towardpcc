@@ -73,7 +73,7 @@ export function PillarPage({
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_400px_at_20%_20%,rgba(255,122,107,0.28),transparent_70%),radial-gradient(600px_400px_at_85%_80%,rgba(234,58,87,0.3),transparent_70%)]"
         />
         <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-8 pb-24">
-          <div className="[&_a]:text-ink-on-dark/70 [&_[aria-current]]:text-white">
+          <div className="[&_a]:text-ink-on-dark/70 [&_[aria-current]]:text-ink-on-dark">
             <Breadcrumbs trail={[{ label: crumb }]} />
           </div>
           <p className="mt-8 mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-[13px] font-semibold">
@@ -82,7 +82,7 @@ export function PillarPage({
           </p>
           {/* display-2, deliberately a step below the home hero: an inner page
               is a destination, not the argument. */}
-          <h1 className="max-w-[18ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-balance text-white">
+          <h1 className="max-w-[18ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-balance text-ink-on-dark">
             {heading}
           </h1>
           {/* text-pretty stops the lede orphaning a single word onto the last
@@ -112,8 +112,8 @@ export function PillarPage({
             // Sequenced at 70ms and given the site's card hover. This band is
             // the first thing below the hero on all four pillar pages and it
             // arrived as four static slabs, all at once.
-            <Reveal key={s.label} delay={i * 70} from="up">
-              <div className="h-full rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-[translate,box-shadow,border-color] duration-200 ease-[var(--motion-ease)] hover:border-accent/40 hover:shadow-[var(--shadow-accent)] motion-safe:hover:-translate-y-1">
+            <Reveal key={s.label} delay={Math.min(i, 6) * 45} from="up">
+              <div className="h-full rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-[translate,box-shadow,border-color] duration-200 ease-[var(--motion-ease)] hover:border-border-strong hover:shadow-[var(--shadow-accent)] motion-safe:hover:-translate-y-1">
                 {/* Final value at first paint — deliberately NOT <Counter>.
                   This band sits above the fold (top ~636px at 1280x900), so a
                   count-up fired at load and the server-rendered 0 was on screen

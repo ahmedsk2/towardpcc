@@ -80,6 +80,12 @@
   --text-display-1: var(--text-display-1);
   --text-display-2: var(--text-display-2);
   --text-eyebrow: var(--text-eyebrow);
+
+  /* Spacing and shell, so `py-section`, `py-section-tight` and `max-w-shell`
+     compile. Tailwind derives padding/margin utilities from --spacing-*. */
+  --spacing-section: var(--space-section);
+  --spacing-section-tight: var(--space-section-tight);
+  --container-shell: var(--shell-max);
 }
 
 /* Gradient surfaces (ADR revision 2, 2026-07-27). Each sets a solid

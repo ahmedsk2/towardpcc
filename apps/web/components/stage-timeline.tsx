@@ -59,7 +59,7 @@ export function StageTimeline({
               )}
             >
               {done ? (
-                <svg viewBox="0 0 12 12" fill="none" className="size-3 text-white">
+                <svg viewBox="0 0 12 12" fill="none" className="size-3 text-ink-on-accent">
                   <path
                     d="M2.5 6.2 4.8 8.5 9.5 3.6"
                     stroke="currentColor"

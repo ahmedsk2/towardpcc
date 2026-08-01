@@ -21,13 +21,13 @@ export default function AboutPage() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_400px_at_20%_20%,rgba(255,122,107,0.28),transparent_70%),radial-gradient(600px_400px_at_85%_80%,rgba(234,58,87,0.3),transparent_70%)]"
         />
         <div className="relative z-10 mx-auto max-w-[1280px] px-6 pt-8 pb-24">
-          <div className="[&_a]:text-ink-on-dark/70 [&_[aria-current]]:text-white">
+          <div className="[&_a]:text-ink-on-dark/70 [&_[aria-current]]:text-ink-on-dark">
             <Breadcrumbs trail={[{ label: site.nav.about }]} />
           </div>
           <p className="mt-8 mb-4 font-numeric text-[12px] tracking-[0.14em] text-coral uppercase">
             {a.visionHeading}
           </p>
-          <h1 className="max-w-[22ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-white">
+          <h1 className="max-w-[22ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-ink-on-dark">
             {site.footer.vision}
           </h1>
           <p className="mt-6 max-w-[58ch] text-lg leading-relaxed text-ink-on-dark/90">
@@ -117,7 +117,7 @@ export default function AboutPage() {
             {a.principles.map((p, i) => (
               <li key={p.title}>
                 <Reveal delay={i * 60}>
-                  <div className="h-full rounded-lg border border-border bg-surface-page p-7 transition-colors duration-150 ease-[var(--motion-ease)] hover:border-accent/40">
+                  <div className="h-full rounded-lg border border-border bg-surface-page p-7 transition-colors duration-150 ease-[var(--motion-ease)] hover:border-border-strong">
                     <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {p.title}
                     </h3>
@@ -155,7 +155,7 @@ export default function AboutPage() {
             {a.story.map((s, i) => (
               <li key={s.title}>
                 <Reveal delay={i * 60}>
-                  <div className="h-full rounded-lg border border-border bg-surface-raised p-7 transition-colors duration-150 ease-[var(--motion-ease)] hover:border-accent/40">
+                  <div className="h-full rounded-lg border border-border bg-surface-raised p-7 transition-colors duration-150 ease-[var(--motion-ease)] hover:border-border-strong">
                     <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {s.title}
                     </h3>

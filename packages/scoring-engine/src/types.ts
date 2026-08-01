@@ -19,6 +19,20 @@ interface InputBase {
   readonly label: LocalizedText;
   readonly required: boolean;
   readonly helpText?: LocalizedText;
+  /**
+   * Section heading, for scores long enough that declaration order stops being
+   * navigable.
+   *
+   * PRISM has 26 inputs and renders as one undifferentiated column with no
+   * landmark and no sense of progress — while the structure is right there in
+   * the data: neurological, haemodynamic, acid-base, chemistry, haematology.
+   * Grouping also puts the min/max worst-value pairs next to each other instead
+   * of eight rows apart, which is how they are collected at the bedside.
+   *
+   * OPTIONAL, and ungrouped inputs render as one implicit leading section, so
+   * annotating a score is additive and can never break one that is not.
+   */
+  readonly group?: LocalizedText;
 }
 
 export interface NumericInput extends InputBase {
@@ -205,6 +219,36 @@ export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonl
    * "normal" values.
    */
   readonly missingAsNormal?: boolean;
+  /**
+   * Result-invalidating caveats, rendered BESIDE the number rather than in the
+   * prose below it.
+   *
+   * `missingAsNormal` above names the gap this closes: a score whose notes
+   * carry a caveat that can make the number wrong belongs in the page's
+   * cautions treatment, not only in a Limitations tab a reader has to open.
+   * PELOD-2 is the case — it rejects blanks, correctly, but its notes instruct
+   * the caller to supply a normal value for anything unmeasured, so a falsely
+   * low score is still reachable by the clinician's hand.
+   *
+   * Rendered amber with a non-colour marker, never crimson: in this palette
+   * crimson is the brand and must never mean error.
+   */
+  readonly cautions?: readonly LocalizedText[];
+  /**
+   * Why this score has no interpretation bands.
+   *
+   * Thirteen of the shipped scores declare `interpretation: []` and render
+   * identical silence. For BSA, ideal body weight and ETT size that silence is
+   * correct — they are estimators and a band would be an invention. For PIM3,
+   * PRISM and PELOD-2 it is a content gap. Rendering the same nothing for both
+   * tells the reader the same thing about two different situations, and one of
+   * those things is untrue.
+   *
+   * Defaults to "not-applicable", so a score that says nothing is claiming the
+   * estimator case — which is right for the majority and wrong only where it
+   * has been explicitly corrected to "pending".
+   */
+  readonly interpretationStatus?: "not-applicable" | "pending";
   /** Clinical limitations, caveats, and any [NEEDS SOURCE] gaps. */
   readonly notes: LocalizedText;
 }

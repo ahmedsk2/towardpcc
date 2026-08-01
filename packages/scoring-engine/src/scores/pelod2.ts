@@ -108,6 +108,7 @@ export const pelod2 = defineScore({
   inputs: [
     {
       id: "age_months",
+      group: defineText("pelod2.group.patient", "Patient"),
       label: defineText("pelod2.age", "Patient age"),
       required: true,
       type: "numeric",
@@ -123,6 +124,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "gcs",
+      group: defineText("pelod2.group.neurological", "Neurological"),
       label: defineText("pelod2.gcs", "Glasgow Coma Scale (lowest)"),
       required: true,
       type: "numeric",
@@ -138,6 +140,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "pupils",
+      group: defineText("pelod2.group.neurological", "Neurological"),
       label: defineText("pelod2.pupils", "Pupillary reaction"),
       required: true,
       type: "categorical",
@@ -152,6 +155,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "lactate",
+      group: defineText("pelod2.group.cardiovascular", "Cardiovascular"),
       label: defineText("pelod2.lactate", "Lactatemia"),
       required: true,
       type: "numeric",
@@ -163,6 +167,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "map",
+      group: defineText("pelod2.group.cardiovascular", "Cardiovascular"),
       label: defineText("pelod2.map", "Mean arterial pressure"),
       required: true,
       type: "numeric",
@@ -177,6 +182,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "creatinine",
+      group: defineText("pelod2.group.renal", "Renal"),
       label: defineText("pelod2.creatinine", "Serum creatinine"),
       required: true,
       type: "numeric",
@@ -191,6 +197,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "pao2_fio2",
+      group: defineText("pelod2.group.respiratory", "Respiratory"),
       label: defineText("pelod2.pf", "PaO₂/FiO₂ ratio"),
       required: true,
       type: "numeric",
@@ -205,6 +212,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "paco2",
+      group: defineText("pelod2.group.respiratory", "Respiratory"),
       label: defineText("pelod2.paco2", "PaCO₂"),
       required: true,
       type: "numeric",
@@ -219,6 +227,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "invasive_vent",
+      group: defineText("pelod2.group.respiratory", "Respiratory"),
       label: defineText("pelod2.vent", "Invasive mechanical ventilation"),
       required: true,
       type: "boolean",
@@ -226,6 +235,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "wbc",
+      group: defineText("pelod2.group.haematological", "Haematological"),
       label: defineText("pelod2.wbc", "White blood cell count"),
       required: true,
       type: "numeric",
@@ -237,6 +247,7 @@ export const pelod2 = defineScore({
     },
     {
       id: "platelets",
+      group: defineText("pelod2.group.haematological", "Haematological"),
       label: defineText("pelod2.platelets", "Platelet count"),
       required: true,
       type: "numeric",
@@ -248,6 +259,10 @@ export const pelod2 = defineScore({
     },
   ] as const,
   interpretation: [],
+  // Bands are a CONTENT GAP here, not an absence by design: this score has
+  // published mortality strata and they have not been authored yet. Saying so
+  // is the difference between "no band applies" and "we have not written one".
+  interpretationStatus: "pending",
   references: [
     {
       citation:
@@ -281,6 +296,21 @@ export const pelod2 = defineScore({
     "pelod2.formula",
     "PELOD-2 total = sum of 10 organ-dysfunction items, range 0–33. Neurologic: Glasgow Coma Scale ≥ 11 → 0, 5–10 → 1, 3–4 → 4; pupils both fixed → 5 (both reactive → 0). Cardiovascular: lactate < 5 mmol/L → 0, 5–10.9 → 1, ≥ 11 → 4; mean arterial pressure (mmHg) is scored 0 / 2 / 3 / 6 against age-banded cutoffs (a descending cascade: ≥ the 0-point cutoff → 0, else ≥ the 2-point cutoff → 2, else ≥ the 3-point cutoff → 3, else → 6) for the six age bands 0–<1, 1–11, 12–23, 24–59, 60–143 and ≥ 144 months. Renal: serum creatinine (µmol/L) ≥ the age-band threshold → 2, else 0. Respiratory: PaO₂/FiO₂ ≤ 60 → 2 (> 60 → 0); PaCO₂ ≤ 58 mmHg → 0, 59–94 → 1, ≥ 95 → 3; invasive mechanical ventilation → 3 (none → 0). Hematologic: white-cell count ≤ 2 ×10⁹/L → 2 (> 2 → 0); platelets ≥ 142 ×10⁹/L → 0, 77–141 → 1, ≤ 76 → 2. All age-banded MAP and creatinine cutoffs are transcribed from Leteurtre 2013 (Table 6). A second output reports predicted in-hospital mortality = 1 ÷ (1 + e^−logit) × 100%, with logit = −6.61 + 0.47 × total (Leteurtre 2013).",
   ),
+  // BESIDE THE NUMBER, not only in the prose below it.
+  //
+  // The hazard is stated in `notes` and rendered in a Limitations tab a reader
+  // has to open. But it is result-invalidating: the source scores an unmeasured
+  // variable as normal, this implementation rejects blanks outright — correctly
+  // — and so the caller is instructed to enter a normal value for anything not
+  // measured. A falsely low total therefore stays reachable, by the clinician's
+  // hand rather than by the engine's, and `missingAsNormal` cannot flag it
+  // because its predicate ("a blank NON-REQUIRED input") is vacuous here.
+  cautions: [
+    defineText(
+      "pelod2.caution.unmeasured",
+      "Every item is required, and an unmeasured variable must be entered as normal — as the source specifies. A dataset with unmeasured items therefore understates the score, and the total should not be read as complete unless every item was actually measured.",
+    ),
+  ],
   notes: defineText(
     "pelod2.notes",
     "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25.",

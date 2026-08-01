@@ -92,6 +92,7 @@ export const psofa = defineScore({
   inputs: [
     {
       id: "age_months",
+      group: defineText("psofa.group.patient", "Patient"),
       label: defineText("psofa.age", "Patient age"),
       required: true,
       type: "numeric",
@@ -107,6 +108,7 @@ export const psofa = defineScore({
     },
     {
       id: "pao2",
+      group: defineText("psofa.group.respiratory", "Respiratory"),
       label: defineText("psofa.pao2", "Arterial PaO₂"),
       required: false,
       type: "numeric",
@@ -121,6 +123,7 @@ export const psofa = defineScore({
     },
     {
       id: "spo2",
+      group: defineText("psofa.group.respiratory", "Respiratory"),
       label: defineText("psofa.spo2", "Pulse-oximetry SpO₂"),
       required: false,
       type: "numeric",
@@ -134,6 +137,7 @@ export const psofa = defineScore({
     },
     {
       id: "fio2",
+      group: defineText("psofa.group.respiratory", "Respiratory"),
       label: defineText("psofa.fio2", "Fraction of inspired oxygen (FiO₂)"),
       required: true,
       type: "numeric",
@@ -147,6 +151,7 @@ export const psofa = defineScore({
     },
     {
       id: "resp_support",
+      group: defineText("psofa.group.respiratory", "Respiratory"),
       label: defineText("psofa.resp_support", "On respiratory support"),
       required: true,
       type: "boolean",
@@ -157,6 +162,7 @@ export const psofa = defineScore({
     },
     {
       id: "platelets",
+      group: defineText("psofa.group.coagulation", "Coagulation"),
       label: defineText("psofa.platelets", "Platelet count"),
       required: true,
       type: "numeric",
@@ -168,6 +174,7 @@ export const psofa = defineScore({
     },
     {
       id: "bilirubin",
+      group: defineText("psofa.group.hepatic", "Hepatic"),
       label: defineText("psofa.bilirubin", "Total bilirubin"),
       required: true,
       type: "numeric",
@@ -179,6 +186,7 @@ export const psofa = defineScore({
     },
     {
       id: "map",
+      group: defineText("psofa.group.cardiovascular", "Cardiovascular"),
       label: defineText("psofa.map", "Mean arterial pressure"),
       required: false,
       type: "numeric",
@@ -193,6 +201,7 @@ export const psofa = defineScore({
     },
     {
       id: "dopamine",
+      group: defineText("psofa.group.cardiovascular", "Cardiovascular"),
       label: defineText("psofa.dopamine", "Dopamine infusion rate"),
       required: false,
       type: "numeric",
@@ -203,6 +212,7 @@ export const psofa = defineScore({
     },
     {
       id: "dobutamine",
+      group: defineText("psofa.group.cardiovascular", "Cardiovascular"),
       label: defineText("psofa.dobutamine", "Dobutamine infusion rate"),
       required: false,
       type: "numeric",
@@ -216,6 +226,7 @@ export const psofa = defineScore({
     },
     {
       id: "epinephrine",
+      group: defineText("psofa.group.cardiovascular", "Cardiovascular"),
       label: defineText("psofa.epinephrine", "Epinephrine infusion rate"),
       required: false,
       type: "numeric",
@@ -229,6 +240,7 @@ export const psofa = defineScore({
     },
     {
       id: "norepinephrine",
+      group: defineText("psofa.group.cardiovascular", "Cardiovascular"),
       label: defineText("psofa.norepinephrine", "Norepinephrine infusion rate"),
       required: false,
       type: "numeric",
@@ -242,6 +254,7 @@ export const psofa = defineScore({
     },
     {
       id: "gcs",
+      group: defineText("psofa.group.neurological", "Neurological"),
       label: defineText("psofa.gcs", "Glasgow Coma Scale total"),
       required: true,
       type: "numeric",
@@ -257,6 +270,7 @@ export const psofa = defineScore({
     },
     {
       id: "creatinine",
+      group: defineText("psofa.group.renal", "Renal"),
       label: defineText("psofa.creatinine", "Serum creatinine"),
       required: true,
       type: "numeric",

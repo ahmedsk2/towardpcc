@@ -165,6 +165,25 @@
   --radius-lg: 1.25rem;
   --radius-pill: 999px;
 
+  /* Vertical rhythm, shell width and measure — a NAMING of what already ships,
+     not a new proposal.
+     There was no spacing layer at all, so a request to "increase breathing
+     room" had no vocabulary to land in. Measured across the app: section
+     padding is py-24 (13 sites), py-16 (5), py-20 (3); shell width is
+     max-w-[1280px] (20 sites) against an ADR that says 1400px; and the prose
+     cap comes in five flavours — 58ch (16), 62ch (10), 52ch (5), 60ch (4),
+     70ch (2) — against an ADR that says 65ch.
+     Two steps, not a ladder. The reference template runs 120/90/60/30 from two
+     variables plus a calc offset; the structure is right and the magnitude is
+     marketing-scale. A clinical page wants more on screen.
+     THE 1280 IS RATIFIED, not migrated: it is what shipped, what the layout was
+     tuned against, and the better measure for a page carrying a 22rem sticky
+     rail. All rem/ch, so everything scales with user text size. */
+  --space-section: 6rem;
+  --space-section-tight: 4rem;
+  --shell-max: 80rem;
+  --measure: 62ch;
+
   /* Motion — single easing voice; all animation honors reduced-motion.
      Interactions stay at 150ms: half a second on a control reads as lag.
 

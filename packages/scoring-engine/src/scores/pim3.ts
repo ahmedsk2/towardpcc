@@ -179,6 +179,10 @@ export const pim3 = defineScore({
   // The derivation paper defines NO diagnostic cut-points or risk bands for
   // individual patients; PIM3 output is used in aggregate (SMR). No bands.
   interpretation: [],
+  // Bands are a CONTENT GAP here, not an absence by design: this score has
+  // published mortality strata and they have not been authored yet. Saying so
+  // is the difference between "no band applies" and "we have not written one".
+  interpretationStatus: "pending",
   references: [
     {
       citation:

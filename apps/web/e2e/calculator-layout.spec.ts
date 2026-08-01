@@ -32,6 +32,21 @@ async function resultVisibleAfterScrolling(
   const panel = page.locator('[data-print="result"]');
   await expect(panel).toBeVisible();
 
+  /**
+   * WAIT FOR THE WEBFONTS, not for the height poll to notice them.
+   *
+   * The poll below asks for two consecutive equal `scrollHeight` readings, and
+   * three self-hosted families swapping in is exactly the kind of late reflow
+   * that lands BETWEEN two readings and restarts it. On a fast machine both
+   * readings happen after the swap and it never fires; under full suite load it
+   * fires about one run in five — the same signature the poll itself was
+   * written to fix, one layer further out.
+   *
+   * `document.fonts.ready` is the event the reflow actually comes from, so this
+   * removes the cause rather than widening the timeout that was catching it.
+   */
+  await page.evaluate(() => document.fonts.ready);
+
   // Let the LAYOUT settle before measuring it.
   //
   // This is the second race in this helper and it sits upstream of the first.

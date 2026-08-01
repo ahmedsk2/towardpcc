@@ -174,6 +174,7 @@ export const prism = defineScore({
   inputs: [
     {
       id: "collection_window",
+      group: defineText("prism.group.assessment", "Assessment"),
       label: defineText("prism.window", "Data collection window"),
       required: true,
       type: "categorical",
@@ -198,6 +199,7 @@ export const prism = defineScore({
     },
     {
       id: "age",
+      group: defineText("prism.group.assessment", "Assessment"),
       label: defineText("prism.age", "Age"),
       required: true,
       type: "numeric",
@@ -211,6 +213,7 @@ export const prism = defineScore({
     },
     {
       id: "sbp_min",
+      group: defineText("prism.group.cardiovascular", "Cardiovascular"),
       label: defineText("prism.sbp", "Systolic blood pressure (lowest)"),
       required: false,
       type: "numeric",
@@ -221,6 +224,7 @@ export const prism = defineScore({
     },
     {
       id: "temp_min",
+      group: defineText("prism.group.cardiovascular", "Cardiovascular"),
       label: defineText("prism.tempmin", "Temperature (lowest)"),
       required: false,
       type: "numeric",
@@ -234,6 +238,7 @@ export const prism = defineScore({
     },
     {
       id: "temp_max",
+      group: defineText("prism.group.cardiovascular", "Cardiovascular"),
       label: defineText("prism.tempmax", "Temperature (highest)"),
       required: false,
       type: "numeric",
@@ -244,6 +249,7 @@ export const prism = defineScore({
     },
     {
       id: "mental_status_gcs",
+      group: defineText("prism.group.neurological", "Neurological"),
       label: defineText("prism.mental", "Glasgow Coma Scale (lowest)"),
       required: false,
       type: "numeric",
@@ -257,6 +263,7 @@ export const prism = defineScore({
     },
     {
       id: "pupils",
+      group: defineText("prism.group.neurological", "Neurological"),
       label: defineText("prism.pupils", "Pupillary reflexes"),
       required: true,
       type: "categorical",
@@ -272,6 +279,7 @@ export const prism = defineScore({
     },
     {
       id: "hr_max",
+      group: defineText("prism.group.cardiovascular", "Cardiovascular"),
       label: defineText("prism.hr", "Heart rate (highest)"),
       required: false,
       type: "numeric",
@@ -285,6 +293,7 @@ export const prism = defineScore({
     },
     {
       id: "ph_min",
+      group: defineText("prism.group.acid-base-and-blood-gas", "Acid–base and blood gas"),
       label: defineText("prism.phmin", "pH (lowest)"),
       required: false,
       type: "numeric",
@@ -298,6 +307,7 @@ export const prism = defineScore({
     },
     {
       id: "ph_max",
+      group: defineText("prism.group.acid-base-and-blood-gas", "Acid–base and blood gas"),
       label: defineText("prism.phmax", "pH (highest)"),
       required: false,
       type: "numeric",
@@ -311,6 +321,7 @@ export const prism = defineScore({
     },
     {
       id: "tco2_min",
+      group: defineText("prism.group.acid-base-and-blood-gas", "Acid–base and blood gas"),
       label: defineText("prism.tco2min", "Total CO₂ (lowest)"),
       required: false,
       type: "numeric",
@@ -324,6 +335,7 @@ export const prism = defineScore({
     },
     {
       id: "tco2_max",
+      group: defineText("prism.group.acid-base-and-blood-gas", "Acid–base and blood gas"),
       label: defineText("prism.tco2max", "Total CO₂ (highest)"),
       required: false,
       type: "numeric",
@@ -337,6 +349,7 @@ export const prism = defineScore({
     },
     {
       id: "pco2_max",
+      group: defineText("prism.group.acid-base-and-blood-gas", "Acid–base and blood gas"),
       label: defineText("prism.pco2", "PCO₂ (highest)"),
       required: false,
       type: "numeric",
@@ -347,6 +360,7 @@ export const prism = defineScore({
     },
     {
       id: "pao2_min",
+      group: defineText("prism.group.acid-base-and-blood-gas", "Acid–base and blood gas"),
       label: defineText("prism.pao2", "PaO₂ (lowest)"),
       required: false,
       type: "numeric",
@@ -357,6 +371,7 @@ export const prism = defineScore({
     },
     {
       id: "glucose_max",
+      group: defineText("prism.group.chemistry", "Chemistry"),
       label: defineText("prism.glucose", "Glucose (highest)"),
       required: false,
       type: "numeric",
@@ -370,6 +385,7 @@ export const prism = defineScore({
     },
     {
       id: "potassium_max",
+      group: defineText("prism.group.chemistry", "Chemistry"),
       label: defineText("prism.k", "Potassium (highest)"),
       required: false,
       type: "numeric",
@@ -383,6 +399,7 @@ export const prism = defineScore({
     },
     {
       id: "creatinine_max",
+      group: defineText("prism.group.chemistry", "Chemistry"),
       label: defineText("prism.creat", "Creatinine (highest)"),
       required: false,
       type: "numeric",
@@ -393,6 +410,7 @@ export const prism = defineScore({
     },
     {
       id: "bun_max",
+      group: defineText("prism.group.chemistry", "Chemistry"),
       label: defineText("prism.bun", "Blood urea nitrogen (highest)"),
       required: false,
       type: "numeric",
@@ -406,6 +424,7 @@ export const prism = defineScore({
     },
     {
       id: "wbc_min",
+      group: defineText("prism.group.haematology", "Haematology"),
       label: defineText("prism.wbc", "White blood cell count (lowest)"),
       required: false,
       type: "numeric",
@@ -419,6 +438,7 @@ export const prism = defineScore({
     },
     {
       id: "platelets_min",
+      group: defineText("prism.group.haematology", "Haematology"),
       label: defineText("prism.plt", "Platelet count (lowest)"),
       required: false,
       type: "numeric",
@@ -432,6 +452,7 @@ export const prism = defineScore({
     },
     {
       id: "pt_max",
+      group: defineText("prism.group.haematology", "Haematology"),
       label: defineText("prism.pt", "Prothrombin time (highest)"),
       required: false,
       type: "numeric",
@@ -445,6 +466,7 @@ export const prism = defineScore({
     },
     {
       id: "ptt_max",
+      group: defineText("prism.group.haematology", "Haematology"),
       label: defineText("prism.ptt", "Partial thromboplastin time (highest)"),
       required: false,
       type: "numeric",
@@ -458,6 +480,7 @@ export const prism = defineScore({
     },
     {
       id: "admission_source",
+      group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.source", "Admission source"),
       required: false,
       type: "categorical",
@@ -480,6 +503,7 @@ export const prism = defineScore({
     },
     {
       id: "cpr_24h",
+      group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.cpr", "CPR within 24 hours before admission"),
       required: false,
       type: "boolean",
@@ -490,6 +514,7 @@ export const prism = defineScore({
     },
     {
       id: "cancer",
+      group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.cancer", "Cancer, acute or chronic"),
       required: false,
       type: "boolean",
@@ -497,6 +522,7 @@ export const prism = defineScore({
     },
     {
       id: "low_risk_system",
+      group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.lowrisk", "Low-risk system of primary dysfunction"),
       required: false,
       type: "boolean",
@@ -507,6 +533,10 @@ export const prism = defineScore({
     },
   ],
   interpretation: [],
+  // Bands are a CONTENT GAP here, not an absence by design: this score has
+  // published mortality strata and they have not been authored yet. Saying so
+  // is the difference between "no band applies" and "we have not written one".
+  interpretationStatus: "pending",
   /**
    * The patent is expired and PRISM IV was placed in the public domain by its
    * authors, both verified rather than assumed — see the header and

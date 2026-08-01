@@ -69,6 +69,7 @@ export const phoenix = defineScore({
   inputs: [
     {
       id: "age_months",
+      group: defineText("phoenix.group.patient", "Patient"),
       label: defineText("phoenix.age", "Age"),
       required: true,
       type: "numeric",
@@ -84,6 +85,7 @@ export const phoenix = defineScore({
     },
     {
       id: "suspected_infection",
+      group: defineText("phoenix.group.patient", "Patient"),
       label: defineText("phoenix.infection", "Suspected or confirmed infection"),
       required: true,
       type: "boolean",
@@ -94,6 +96,7 @@ export const phoenix = defineScore({
     },
     {
       id: "resp_support",
+      group: defineText("phoenix.group.respiratory", "Respiratory"),
       label: defineText("phoenix.resp_support", "Respiratory support"),
       required: false,
       type: "categorical",
@@ -118,6 +121,7 @@ export const phoenix = defineScore({
     },
     {
       id: "pao2",
+      group: defineText("phoenix.group.respiratory", "Respiratory"),
       label: defineText("phoenix.pao2", "Arterial PaO₂"),
       required: false,
       type: "numeric",
@@ -134,6 +138,7 @@ export const phoenix = defineScore({
     },
     {
       id: "fio2",
+      group: defineText("phoenix.group.respiratory", "Respiratory"),
       label: defineText("phoenix.fio2", "Fraction of inspired oxygen (FiO₂)"),
       required: false,
       type: "numeric",
@@ -147,6 +152,7 @@ export const phoenix = defineScore({
     },
     {
       id: "spo2",
+      group: defineText("phoenix.group.respiratory", "Respiratory"),
       label: defineText("phoenix.spo2", "Pulse-oximeter oxygen saturation (SpO₂)"),
       required: false,
       type: "numeric",
@@ -163,6 +169,7 @@ export const phoenix = defineScore({
     },
     {
       id: "n_vasoactives",
+      group: defineText("phoenix.group.cardiovascular", "Cardiovascular"),
       label: defineText("phoenix.n_vasoactives", "Number of distinct vasoactive agents"),
       required: false,
       type: "numeric",
@@ -177,6 +184,7 @@ export const phoenix = defineScore({
     },
     {
       id: "lactate",
+      group: defineText("phoenix.group.cardiovascular", "Cardiovascular"),
       label: defineText("phoenix.lactate", "Blood lactate"),
       required: false,
       type: "numeric",
@@ -191,6 +199,7 @@ export const phoenix = defineScore({
     },
     {
       id: "map",
+      group: defineText("phoenix.group.cardiovascular", "Cardiovascular"),
       label: defineText("phoenix.map", "Mean arterial pressure (MAP)"),
       required: false,
       type: "numeric",
@@ -207,6 +216,7 @@ export const phoenix = defineScore({
     },
     {
       id: "platelets",
+      group: defineText("phoenix.group.coagulation", "Coagulation"),
       label: defineText("phoenix.platelets", "Platelet count"),
       required: false,
       type: "numeric",
@@ -221,6 +231,7 @@ export const phoenix = defineScore({
     },
     {
       id: "inr",
+      group: defineText("phoenix.group.coagulation", "Coagulation"),
       label: defineText("phoenix.inr", "INR"),
       required: false,
       type: "numeric",
@@ -235,6 +246,7 @@ export const phoenix = defineScore({
     },
     {
       id: "ddimer",
+      group: defineText("phoenix.group.coagulation", "Coagulation"),
       label: defineText("phoenix.ddimer", "D-dimer"),
       required: false,
       type: "numeric",
@@ -249,6 +261,7 @@ export const phoenix = defineScore({
     },
     {
       id: "fibrinogen",
+      group: defineText("phoenix.group.coagulation", "Coagulation"),
       label: defineText("phoenix.fibrinogen", "Fibrinogen"),
       required: false,
       type: "numeric",
@@ -263,6 +276,7 @@ export const phoenix = defineScore({
     },
     {
       id: "gcs_total",
+      group: defineText("phoenix.group.neurological", "Neurological"),
       label: defineText("phoenix.gcs", "Glasgow Coma Scale (total)"),
       required: false,
       type: "numeric",
@@ -277,6 +291,7 @@ export const phoenix = defineScore({
     },
     {
       id: "fixed_pupils",
+      group: defineText("phoenix.group.neurological", "Neurological"),
       label: defineText("phoenix.fixed_pupils", "Bilaterally fixed pupils"),
       required: false,
       type: "boolean",

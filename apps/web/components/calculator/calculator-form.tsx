@@ -10,6 +10,8 @@ import type {
 import { getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { formatBand, shortCite } from "./format";
+import { useCarriedValues, type CarriedValue } from "./use-carried-values";
 
 const c = site.calculators;
 
@@ -93,6 +95,32 @@ function anyEntered(inputs: readonly ScoreInput[], state: FieldState): boolean {
 }
 
 /**
+ * Inputs in declaration order, partitioned into their sections.
+ *
+ * DECLARATION ORDER IS PRESERVED WITHIN AND BETWEEN GROUPS — a section is
+ * opened the first time its label appears and inputs are appended to it, so a
+ * score's author still controls the sequence and the grouping cannot silently
+ * reorder a form that was ordered for a reason. An input with no group joins
+ * the run it sits in, which is why an un-annotated score yields exactly one
+ * unlabelled section and renders as it always did.
+ */
+function groupInputs(inputs: readonly ScoreInput[]): [string | null, ScoreInput[]][] {
+  const out: [string | null, ScoreInput[]][] = [];
+  const index = new Map<string | null, ScoreInput[]>();
+  for (const input of inputs) {
+    const key = input.group?.en ?? null;
+    let bucket = index.get(key);
+    if (!bucket) {
+      bucket = [];
+      index.set(key, bucket);
+      out.push([key, bucket]);
+    }
+    bucket.push(input);
+  }
+  return out;
+}
+
+/**
  * Client-side calculator. Takes only the slug (a string) and resolves the
  * score itself, so the compute function and unit conversions live in the
  * browser — never serialized across the RSC boundary, and never sent to the
@@ -115,6 +143,7 @@ function CalculatorFormInner({
   const { inputs } = definition;
   const [state, setState] = useState<FieldState>(() => initialState(inputs));
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Hydrate from the URL fragment once on mount. Reading the hash in the
   // state initializer would diverge from the server render (no window there)
@@ -205,10 +234,38 @@ function CalculatorFormInner({
     return inputs.some((i) => !i.required && (state[i.id]?.raw ?? "") === "");
   }, [definition.missingAsNormal, outcome, inputs, state]);
 
+  /**
+   * The copied summary carries the INPUTS and a timestamp.
+   *
+   * Pasted into a handover note, the old one was unreproducible: a reader could
+   * not tell which creatinine produced pSOFA 9, and a version number without a
+   * date does not fix that. A clinical record that cannot be checked against
+   * its own inputs is a number with a name on it.
+   *
+   * No privacy implication — the clinician is choosing to copy. The shareable
+   * LINK is a separate, separately-labelled action below, because it has the
+   * opposite privacy character.
+   */
   const copySummary = useCallback(() => {
     if (!outcome || !outcome.ok) return;
+    const entered = inputs
+      .flatMap((i) => {
+        const raw = state[i.id]?.raw ?? "";
+        if (raw === "") return [];
+        if (i.type === "numeric") {
+          const unit = state[i.id]?.unit ?? i.unit.canonical;
+          return [`${i.label.en} ${raw}${unit ? ` ${unit}` : ""}`];
+        }
+        if (i.type === "categorical") {
+          const opt = i.options.find((o) => o.value === raw);
+          return [`${i.label.en} ${opt?.label.en ?? raw}`];
+        }
+        return [`${i.label.en} ${raw === "true" ? c.booleanYes : c.booleanNo}`];
+      })
+      .join(" · ");
     const lines = [
-      definition.name,
+      `${definition.name} — ${new Date().toISOString().slice(0, 16)}Z`,
+      ...(entered ? [`${c.copyInputsLabel}: ${entered}`] : []),
       ...outcome.result.values.map((v) => {
         const band = matchInterpretationBand(definition, v.id, v.value);
         const num = `${v.label.en}: ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
@@ -225,7 +282,77 @@ function CalculatorFormInner({
         setTimeout(() => setCopied(false), 2000);
       })
       .catch(() => {});
-  }, [definition, outcome]);
+  }, [definition, outcome, inputs, state]);
+
+  /**
+   * CLEAR ALL — and it clears the fragment too.
+   *
+   * There was no reset anywhere on the page: emptying a 26-field PRISM meant
+   * clearing each field by hand or reloading without the fragment. Radio groups
+   * already had a Clear, because a native radio cannot be unchecked; numeric
+   * fields were simply left asymmetric.
+   *
+   * `type="button"`, never `type="reset"`: native reset restores the
+   * SERVER-RENDERED defaults, not our fragment-hydrated state, so on a shared
+   * link it would restore the shared values rather than empty the form.
+   */
+  const { offered, remember, dismiss: dismissCarried } = useCarriedValues(inputs);
+
+  // Remembered only once the score COMPUTES. A half-typed weight is not a
+  // patient's weight, and offering one to the next calculator would carry a
+  // typo forward.
+  useEffect(() => {
+    if (!outcome?.ok) return;
+    remember(
+      inputs.flatMap((i) => {
+        const raw = state[i.id]?.raw ?? "";
+        if (i.type !== "numeric" || raw === "") return [];
+        return [
+          {
+            id: i.id,
+            raw,
+            unit: state[i.id]?.unit ?? i.unit.canonical,
+            label: i.label.en,
+          } satisfies CarriedValue,
+        ];
+      }),
+    );
+  }, [outcome, inputs, state, remember]);
+
+  const applyCarried = useCallback(
+    (v: CarriedValue) => {
+      setField(v.id, { raw: v.raw, unit: v.unit });
+      dismissCarried();
+    },
+    [setField, dismissCarried],
+  );
+
+  const clearAll = useCallback(() => {
+    setState(initialState(inputs));
+    setBlurred(new Set());
+    setCopied(false);
+    dismissCarried();
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [inputs, dismissCarried]);
+
+  /**
+   * Copying the link is DELIBERATE, and says what it contains.
+   *
+   * The capability already existed and was invisible: state is mirrored into
+   * the fragment on every keystroke, so the address bar has always been
+   * shareable. Naming the action is what turns an accident into a choice — and
+   * the privacy line now says the same thing, because "nothing is transmitted"
+   * was architecturally true while the values sat in plain sight in the URL.
+   */
+  const copyLink = useCallback(() => {
+    void navigator.clipboard
+      .writeText(window.location.href)
+      .then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     /**
@@ -258,17 +385,86 @@ function CalculatorFormInner({
         noValidate
         aria-label={definition.name}
       >
-        {inputs.map((input) => (
-          <InputField
-            key={input.id}
-            input={input}
-            field={state[input.id] ?? { raw: "" }}
-            error={errorsById.get(input.id)}
-            onChange={(patch) => setField(input.id, patch)}
-            onCommit={() => markBlurred(input.id)}
-            missingAsNormal={Boolean(definition.missingAsNormal)}
-          />
+        {/* AN OFFER, NEVER A PRE-FILL. See use-carried-values.ts: this is the
+            one thing on the page that could put a number into a form nobody
+            typed, so it asks. Hidden the moment anything is entered — an offer
+            to fill a field you are already filling is just clutter. */}
+        {offered.length > 0 && !anyEntered(inputs, state) ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border-subtle bg-surface-sunken px-4 py-3">
+            <span className="text-sm text-ink-muted">{c.carriedLabel}</span>
+            {offered.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => applyCarried(v)}
+                className="numeric inline-flex min-h-11 items-center rounded-pill border border-border-strong bg-surface-raised px-3.5 text-sm font-medium text-ink-strong transition-colors duration-[var(--motion-duration-fast)] hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {v.label} {v.raw} {v.unit}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={dismissCarried}
+              className="min-h-11 rounded-sm px-1 text-sm text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {c.carriedDismiss}
+            </button>
+          </div>
+        ) : null}
+
+        {/* GROUPED, where the score is long enough for declaration order to
+            stop being navigable. PRISM's 26 inputs were one undifferentiated
+            column with no landmark and no sense of progress, while the
+            structure sat in the data all along — and grouping puts the min/max
+            worst-value pairs next to each other instead of eight rows apart,
+            which is how they are collected at the bedside.
+            Separation is a hairline plus the existing rhythm, not a card: the
+            "rules inside a card" border tier, exactly as the ADR intends. A
+            tinted band per organ system inside a form would read as six cards.
+            A score with no groups yields one unlabelled section, so nothing
+            that was not annotated changes at all. */}
+        {groupInputs(inputs).map(([group, items]) => (
+          <fieldset
+            key={group ?? "_"}
+            className="flex min-w-0 flex-col gap-5 border-t border-border-subtle pt-6 first:border-t-0 first:pt-0"
+          >
+            {group ? (
+              /* `mb-1` rather than relying on the fieldset's `gap-5`. A <legend>
+                 is not a flex item — browsers render it in the fieldset's
+                 border area — so the gap does not apply to it, and on the first
+                 section (which has no top rule to sit in) the heading landed
+                 6px above its first field. */
+              <legend className="mb-2 font-numeric text-eyebrow font-semibold tracking-[0.1em] text-ink-muted uppercase">
+                {group}
+              </legend>
+            ) : null}
+            {items.map((input) => (
+              <InputField
+                key={input.id}
+                input={input}
+                field={state[input.id] ?? { raw: "" }}
+                error={errorsById.get(input.id)}
+                onChange={(patch) => setField(input.id, patch)}
+                onCommit={() => markBlurred(input.id)}
+                missingAsNormal={Boolean(definition.missingAsNormal)}
+              />
+            ))}
+          </fieldset>
         ))}
+
+        {/* Only once something is entered. On an untouched form a reset is an
+            offer to undo nothing, and it would be the first control a reader
+            meets under a 26-field score. */}
+        {anyEntered(inputs, state) ? (
+          <button
+            type="button"
+            data-print="hide"
+            onClick={clearAll}
+            className="min-h-11 self-start rounded-sm text-sm font-medium text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {c.clearAllLabel}
+          </button>
+        ) : null}
       </form>
 
       <ResultPanel
@@ -276,7 +472,9 @@ function CalculatorFormInner({
         outcome={outcome}
         blocking={blocking}
         copied={copied}
+        linkCopied={linkCopied}
         onCopy={copySummary}
+        onCopyLink={copyLink}
         showPartialCue={showPartialCue}
         className="lg:col-start-2 lg:row-start-1 lg:row-span-2"
       />
@@ -633,7 +831,9 @@ function ResultPanel({
   outcome,
   blocking,
   copied,
+  linkCopied,
   onCopy,
+  onCopyLink,
   showPartialCue,
   className,
 }: {
@@ -641,18 +841,43 @@ function ResultPanel({
   outcome: ComputeResult | null;
   blocking: readonly BlockingField[];
   copied: boolean;
+  linkCopied: boolean;
   onCopy: () => void;
+  onCopyLink: () => void;
   showPartialCue: boolean;
   className?: string;
 }) {
   const ok = outcome?.ok ? outcome : null;
-  // One output → a single dominant headline. Several outputs → an equal-weight
-  // list, so the panel stays scannable without implying one value is "the"
-  // answer (e.g. IBW deliberately shows every method and chooses none).
   const multi = (ok?.result.values.length ?? 0) > 1;
+
+  /**
+   * The value that IS the score, when a score returns several.
+   *
+   * Every value used to render at the same size in the multi branch. That is
+   * right for ideal body weight, which deliberately offers four methods and
+   * chooses none — and wrong for pSOFA, which returns a 0–24 total plus six
+   * organ subscores, where one number is the answer and six are its working.
+   *
+   * DERIVED, not declared: the primary value is the one carrying interpretation
+   * bands, which the engine already knows. IBW declares none, so `primaryId`
+   * stays undefined there and its equal-weight treatment is preserved exactly.
+   */
+  const bandedIds = useMemo(
+    () => new Set(definition.interpretation.map((b) => b.appliesTo)),
+    [definition.interpretation],
+  );
+  const primaryId = ok?.result.values.find((v) => bandedIds.has(v.id))?.id;
+  const bandsFor = useCallback(
+    (valueId: string) => definition.interpretation.filter((b) => b.appliesTo === valueId),
+    [definition.interpretation],
+  );
+  const source = definition.references[0];
+  // Omitted rather than degraded where the reference has no author to shorten
+  // to — see shortCite. A missing line is recoverable; an unreadable one is not.
+  const shortSource = source ? shortCite(source.citation) : null;
+
   return (
     <aside
-      aria-live="polite"
       data-print="result"
       // top-24 clears the sticky header (84px, shrinking to 64px on scroll)
       // rather than tucking underneath it.
@@ -700,13 +925,28 @@ function ResultPanel({
         )
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
+          {/* THE LIVE REGION IS THE ANSWER, not the panel.
+              `aria-live` used to sit on the whole <aside>, so it wrapped the
+              heading, the buttons and the standing privacy callout — and
+              compute is synchronous per keystroke, so typing "140" re-announced
+              every one of them three times. Narrowed to the values and their
+              interpretation, which is the only part that changed.
+              The blocking summary above is deliberately NOT live: it changes on
+              every keystroke too, and the per-field message already announces
+              itself on blur, so announcing both would rebuild the noise this
+              removes. */}
+          <div
+            aria-live="polite"
+            aria-atomic="false"
+            className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}
+          >
             {ok.result.values.map((v) => {
               const band: InterpretationBand | undefined = matchInterpretationBand(
                 definition,
                 v.id,
                 v.value,
               );
+              const bands = bandsFor(v.id);
               return (
                 <div
                   key={v.id}
@@ -720,12 +960,17 @@ function ResultPanel({
                   <p
                     className={cn(
                       "numeric font-medium tabular-nums text-ink-strong",
-                      multi ? "text-2xl" : "text-4xl",
+                      !multi || v.id === primaryId ? "text-4xl" : "text-2xl",
                     )}
                   >
                     {v.value.toFixed(v.precision)}
                     {v.unit ? (
-                      <span className={cn("ml-1 text-ink-muted", multi ? "text-base" : "text-xl")}>
+                      <span
+                        className={cn(
+                          "ml-1 text-ink-muted",
+                          !multi || v.id === primaryId ? "text-xl" : "text-base",
+                        )}
+                      >
                         {v.unit}
                       </span>
                     ) : null}
@@ -736,10 +981,68 @@ function ResultPanel({
                       {band.label.en} — {band.description.en}
                     </p>
                   )}
+                  {band && bands.length > 1 ? (
+                    <>
+                      {/* WHERE THE NUMBER SITS, not only what it is called.
+                          The cutpoints lived one tab-click away and below the
+                          fold; a clinician reading pSOFA 9 wants to see that
+                          the threshold is >8 and that they are one point over
+                          it. Proximity to a threshold IS the clinical
+                          information, and a sentence cannot carry it.
+
+                          EQUAL-WIDTH SEGMENTS, deliberately. Bands are often
+                          open-ended, so proportional widths would draw a
+                          magnitude the score does not have. Position says
+                          WHICH band; the number itself says how much.
+
+                          Crimson marks "you are here", never "this is bad" —
+                          there is no green-amber-red ramp. Severity is carried
+                          by the band's own ordinal label and by where the mark
+                          sits in the sequence, which is also what makes this
+                          legible without colour. */}
+                      <ol aria-hidden="true" className="mt-2 flex list-none gap-0.5 p-0">
+                        {bands.map((b) => (
+                          <li
+                            key={b.id}
+                            className={cn(
+                              "h-1.5 flex-1 rounded-pill",
+                              b.id === band.id ? "bg-accent" : "bg-border-subtle",
+                            )}
+                          />
+                        ))}
+                      </ol>
+                      <p
+                        aria-hidden="true"
+                        className="numeric mt-1 text-[11px] tracking-[0.02em] text-ink-muted"
+                      >
+                        {bands.map((b) => formatBand(b)).join(" · ")}
+                      </p>
+                    </>
+                  ) : null}
+                  {band && shortSource ? (
+                    /* PROVENANCE BESIDE THE NUMBER. The site's whole claim is
+                       "every one referenced", and the panel showed a band
+                       description with no visible source at all.
+                       PLAIN TEXT, NOT A LINK: the URL fragment belongs to field
+                       state, so an href="#evidence" would wipe everything the
+                       clinician had entered. */
+                    <p className="mt-1 text-[13px] text-ink-muted">
+                      {c.sourceLabel}: {shortSource} — {c.sourceSuffix}.
+                    </p>
+                  ) : null}
                 </div>
               );
             })}
           </div>
+
+          {/* BESIDE THE NUMBER. A result-invalidating caveat that only appears
+              in a Limitations tab is a caveat most readers will never meet.
+              Amber with a non-colour marker, never crimson. */}
+          {definition.cautions?.map((caution) => (
+            <Callout key={caution.key} tone="alert" className="text-[13px]">
+              {caution.en}
+            </Callout>
+          ))}
 
           {showPartialCue && (
             <Callout tone="note" className="text-[13px]" data-print="hide">
@@ -764,6 +1067,16 @@ function ResultPanel({
               )}
             >
               {copied ? c.copied : c.copyResult}
+            </button>
+            <button
+              type="button"
+              onClick={onCopyLink}
+              className={cn(
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
+                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              )}
+            >
+              {linkCopied ? c.copied : c.copyLinkLabel}
             </button>
             <button
               type="button"

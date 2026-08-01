@@ -62,7 +62,12 @@ export function SiteHeader() {
               nothing is worse than no hover, and plain `hover:` is the form
               every working hover on this site already uses. */}
           <span className="grid size-9 place-items-center rounded-[11px] bg-gradient-accent shadow-[0_6px_16px_-6px_rgba(207,31,61,0.6)]">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-5 text-white">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              className="size-5 text-ink-on-accent"
+            >
               <path
                 d="M2 13h4l2-6 4 12 3-9 2 3h5"
                 stroke="currentColor"
