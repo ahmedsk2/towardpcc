@@ -249,3 +249,26 @@ Independent verification pass performed 2026-07-25. Method: re-fetched the prima
 - **Scale-item wording is functional/trivial and not copyrightable:** "Both reactive"/"Both fixed", "No"/"Yes" (invasive ventilation) are non-expressive functional labels.
 - **External dependency — Glasgow Coma Scale (GCS).** PELOD-2 consumes a GCS _total-score band_ (3–4, 5–10, ≥11) but does **not** reproduce the GCS response descriptors. The GCS instrument itself (Teasdale & Jennett) has its own attribution/usage conventions; if the platform also renders a GCS _entry scale_ with verbatim response descriptors (e.g., "Obeys commands", "Localizes to pain"), that wording belongs to the GCS instrument and should be sourced/attributed separately — it is outside PELOD-2's own (public-domain) content. **Flag:** verify GCS descriptor wording provenance wherever a GCS input widget is built.
 - No PELOD-2-specific verbatim scale-item text in this document appears copyright-encumbered.
+
+---
+
+## Organ maxima
+
+The published maximum attainable points per organ system (Leteurtre 2013 **Table 7**), re-derived here **independently from the ten term-level branches transcribed above** rather than copied from Table 7 — so that the two are a genuine cross-check rather than one number written down twice. Each cell is the largest value its branch can return.
+
+| Organ system   | Constituent variables (max each)                                         | Organ max |
+| -------------- | ------------------------------------------------------------------------ | --------- |
+| Neurologic     | GCS 3–4 → **4**; pupils both fixed → **5**                               | **9**     |
+| Cardiovascular | lactate ≥ 11.0 → **4**; MAP below the age band's lowest cutoff → **6**   | **10**    |
+| Renal          | creatinine ≥ the age-band cutoff → **2**                                 | **2**     |
+| Respiratory    | PaO₂/FiO₂ ≤ 60 → **2**; PaCO₂ ≥ 95 → **3**; invasive ventilation → **3** | **8**     |
+| Hematologic    | WBC ≤ 2 → **2**; platelets ≤ 76 → **2**                                  | **4**     |
+| **Total**      |                                                                          | **33**    |
+
+9 + 10 + 2 + 8 + 4 = **33**, which reconciles exactly with (a) Table 7 as transcribed at the top of this file, (b) the paper's statement that the score "can take all integer values from 0 to 33", and (c) Worked example 3 above, whose maximum-dysfunction vector sums to 33 term by term. All three agree; no discrepancy.
+
+The age-banded terms (MAP, creatinine) reach their maxima in **every** age band — the bands move the thresholds, not the point values — so the organ maxima are age-independent and the total ceiling is 33 for any patient age.
+
+**Grouping is the published structure, not an implementation choice.** The five organ systems and the assignment of each variable to one of them are exactly as printed in Table 6; this file's "Formula / algorithm" section is organised by those same five headings. Nothing here regroups or reinterprets the source.
+
+**Machine-readable form.** `packages/scoring-engine/src/scores/pelod2.ts` declares this decomposition as its `composition` block, using the component ids `neurologic`, `cardiovascular`, `renal`, `respiratory` and `haematologic` with the maxima in the table above. The id `haematologic` uses the British spelling to match the score's existing `Haematological` input-group label; it denotes the organ system this section calls **Hematologic** (the US spelling used by the paper). A registry-wide gate asserts each declared id is actually emitted, and `pelod2.test.ts` asserts across several severity vectors that the five emitted subscores sum to the total and that none exceeds the max declared here.
