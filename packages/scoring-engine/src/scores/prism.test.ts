@@ -296,6 +296,48 @@ describe("PRISM threshold rows", () => {
     expect(at({ age: yrs(14), sbp_min: { value: 70, unit: "mmHg" } }).total).toBe(3);
   });
 
+  /**
+   * THE AGE BOUNDARIES, PINNED — because an external review tried to move them.
+   *
+   * A 2026-08-01 verification report called these bands the site's one
+   * launch-blocking defect: it claimed an 18-month-old with SBP 50 should score
+   * 3, not 7, on the strength of the age ranges printed in the prose on the
+   * CPCCRN calculator page.
+   *
+   * The patent settles it. US 5,809,477 states "Child = 12 months to <144
+   * months" and gives the child systolic row as "55-75 [3] / <55 [7]", so 50
+   * mmHg at 18 months is 7. The report's own quoted ranges also fail to tile
+   * the age axis — "Child (2-12 years)" beside "Adolescent (13 years and up)"
+   * leaves 12y0m-12y11m unassigned, which no scoring function can do — so it
+   * was reading page copy, not behaviour.
+   *
+   * Acting on that report would have UNDER-SCORED hypotension in toddlers. The
+   * bands were correct and untested at their edges; they are now tested, so the
+   * next person who is told to "fix" them gets a failure instead of a silent
+   * clinical regression.
+   */
+  it("holds the PRISM III age boundaries exactly where the patent puts them", () => {
+    const sbp50 = { sbp_min: { value: 50, unit: "mmHg" } };
+    // 12 months is the infant/child edge. Infant is 45-65 -> 3; child is
+    // <55 -> 7. One month either side of the boundary must differ.
+    expect(at({ age: mo(11.9), ...sbp50 }).total).toBe(3);
+    expect(at({ age: mo(12), ...sbp50 }).total).toBe(7);
+    // The disputed case itself.
+    expect(at({ age: mo(18), ...sbp50 }).total).toBe(7);
+
+    // 144 months (12 years) is the child/adolescent edge. SBP 50 does NOT
+    // discriminate it — it is below both the child and the adolescent floor,
+    // scoring 7 either side, which is why the first draft of this test passed
+    // the wrong assertion. 60 mmHg does: child 55-75 is in-band (3), while the
+    // adolescent floor is 65, so the same pressure becomes below-band (7).
+    const sbp60 = { sbp_min: { value: 60, unit: "mmHg" } };
+    expect(at({ age: mo(143.9), ...sbp60 }).total).toBe(3);
+    expect(at({ age: mo(144), ...sbp60 }).total).toBe(7);
+    // 12y0m must land in a band at all — precisely the gap the report's quoted
+    // ranges left open between "Child (2-12 years)" and "Adolescent (13+)".
+    expect(at({ age: yrs(12), ...sbp60 }).total).toBe(7);
+  });
+
   it("scores heart rate in every band", () => {
     expect(at({ age: mo(6), hr_max: { value: 226, unit: "bpm" } }).total).toBe(4);
     expect(at({ age: mo(6), hr_max: { value: 215, unit: "bpm" } }).total).toBe(3);
