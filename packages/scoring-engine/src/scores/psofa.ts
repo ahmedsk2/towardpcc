@@ -347,6 +347,17 @@ export const psofa = defineScore({
     "psofa.notes",
     "Each subscore is the worst qualifying value in the assessment window; the total is their sum (0–24). Several rules are implementation conventions rather than paper text and are flagged for clinical sign-off [NEEDS SOURCE]: (1) a PaO₂:FiO₂ or SpO₂:FiO₂ in a subscore-3/4 band without respiratory support is capped at 2 (highest non-support band); (2) at the published SpO₂:FiO₂ boundary overlap (264) the higher subscore is assigned. SpO₂:FiO₂ is used only when no PaO₂ is available and only for SpO₂ ≤97% (above that it saturates); an SpO₂ >97% with no PaO₂ scores respiratory 0. Missing oxygenation, MAP, or vasoactive data is treated as normal (0) for that organ, following the SOFA missing-as-normal convention. Physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP, and creatinine are not specified in the paper [NEEDS SOURCE]; the min/max here are input-validity windows, not clinical thresholds — prefer institutional analyzer limits. The >8 interpretation cut point is a single-center, statistically-derived threshold on the encounter maximum pSOFA and is descriptive, not directive. pSOFA is derived and validated in children beyond the neonatal period; do not over-extend to term neonates without separate evidence (e.g. nSOFA) [NEEDS SOURCE].",
   ),
+  composition: {
+    total: "total",
+    components: [
+      { id: "respiratory", max: 4 },
+      { id: "coagulation", max: 4 },
+      { id: "hepatic", max: 4 },
+      { id: "cardiovascular", max: 4 },
+      { id: "neurologic", max: 4 },
+      { id: "renal", max: 4 },
+    ],
+  },
   calculate: (values) => {
     const band = ageBand(values.age_months.value);
 

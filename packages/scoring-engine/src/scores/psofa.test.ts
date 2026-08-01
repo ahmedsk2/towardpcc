@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { psofa } from "./psofa";
 
@@ -473,4 +474,36 @@ describeScore(psofa, (ctx) => {
 
   // >8 cut point (Matics 2017): band switches at total = 9.
   ctx.interpretationBoundary("total", 9, "lower", "elevated");
+
+  /**
+   * The declared composition must stay true of the numbers the score actually
+   * emits. registry-gate checks the IDS exist; nothing checked the ARITHMETIC —
+   * that the six organ subscores really do sum to the total, and that none of
+   * them exceeds the 0–4 range the composition declares. A wrong `max` here
+   * would draw a bar of the wrong length on the result panel while every
+   * existing assertion still passed.
+   */
+  it("total equals the sum of its declared components, across the band sweep", () => {
+    const vectors = [
+      normal,
+      { ...normal, pao2: { value: 250, unit: "mmHg" } },
+      { ...normal, platelets: { value: 15, unit: "10^3/µL" } },
+      { ...normal, bilirubin: { value: 13, unit: "mg/dL" } },
+      { ...normal, gcs: { value: 5, unit: "" } },
+      { ...normal, creatinine: { value: 3.0, unit: "mg/dL" } },
+      { ...normal, age_months: { value: 0.5, unit: "months" }, map: { value: 20, unit: "mmHg" } },
+    ];
+    for (const v of vectors) {
+      const outcome = psofa.compute(v as never);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) continue;
+      const get = (id: string) => outcome.result.values.find((x) => x.id === id)!.value;
+      const sum = psofa.composition!.components.reduce((n, c) => n + get(c.id), 0);
+      expect(sum, `components must sum to the total`).toBe(get(psofa.composition!.total));
+      for (const c of psofa.composition!.components) {
+        expect(get(c.id), `${c.id} above declared max`).toBeLessThanOrEqual(c.max);
+        expect(get(c.id), `${c.id} below declared min`).toBeGreaterThanOrEqual(c.min ?? 0);
+      }
+    }
+  });
 });
