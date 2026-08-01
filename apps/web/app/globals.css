@@ -1,6 +1,28 @@
 @import "tailwindcss";
 @import "@towardpcc/ui/tokens.css";
 
+/**
+ * Hover, WITHOUT the pointer-capability media query.
+ *
+ * Tailwind v4 compiles `hover:` to `@media (hover: hover) { &:hover { … } }`.
+ * That is a reasonable default for phones, and it silently kills every hover on
+ * a TOUCHSCREEN LAPTOP: Windows reports maxTouchPoints 10 and Chrome answers
+ * `(hover: hover)` with false even when a mouse is attached, so the query never
+ * matches and the rules never apply.
+ *
+ * Measured on the owner's machine: `(hover: hover)` false, `(any-hover: hover)`
+ * false, `(pointer: fine)` false, maxTouchPoints 10. Four such guards existed in
+ * the compiled sheet, wrapping all seven `group-hover:` rules — which is exactly
+ * how card and menu-item hovers are built, and exactly what was reported as
+ * missing. It reproduced as "no hover anywhere" on hardware that has a mouse.
+ *
+ * Dropping the guard costs nothing on a true touch device: with no pointer there
+ * is no hover to trigger, so the rules simply never fire. Every interactive
+ * element keeps a `focus-visible` style regardless, which is what carries
+ * keyboard and assistive navigation.
+ */
+@custom-variant hover (&:hover);
+
 /* Tailwind must scan the UI package sources for class usage. */
 @source "../../../packages/ui/src";
 
