@@ -698,18 +698,21 @@ ambiguity, so a matched candidate is a certain re-identification.
 32-bit preimage space and is why this was originally rated low. Hashes written
 before 2026-08-01 remain under the old, exposed salt until the 24-month purge.
 
-- [ ] **Cloudflare Web Analytics is injecting a beacon into calculator pages.**
-      Founder action: these are zone _settings_, reachable from neither the repo
-      nor the host, and the Cloudflare API token available here carries only
-      `#dns_records:edit` / `#zone:read`.
-      Found 2026-08-01 by the integrity canary, the first run in which it could
-      reach the site. `static.cloudflareinsights.com/beacon.min.js` is in the
-      HTML of every calculator page. CSP blocks it, so no request is made and
-      nothing has been collected — but it is a third-party script tag on the
-      pages whose promise is that nothing is transmitted. Turn Web Analytics off
-      in the dashboard. While there: Email Address Obfuscation (Scrape Shield)
-      injects `/cdn-cgi/scripts/.../email-decode.min.js`, which is same-origin,
-      CSP-permitted and **does execute**. Neither is needed.
+- [x] **Cloudflare edge injection — FOUND AND REMOVED 2026-08-01.** Two
+      injections were live on every calculator page:
+      `static.cloudflareinsights.com/beacon.min.js` (Real User Measurements,
+      third-party, blocked by `script-src 'self'` so it had never collected
+      anything) and `/cdn-cgi/scripts/.../email-decode.min.js` (Email Address
+      Obfuscation / Scrape Shield, same-origin, CSP-permitted, and it **did**
+      execute). Both disabled in the dashboard — zone _settings_, so founder
+      action: the Cloudflare token available to tooling carries only
+      `#dns_records:edit` / `#zone:read`. Verified from the outside with
+      cache-busted requests, and the canary's edge-script allowlist is now
+      **empty**, so anything the edge injects from here fails the check.
+      Found by the integrity canary on the first run in which it could reach
+      the site at all — which is the argument for fixing a broken monitor
+      promptly rather than muting it. It had been red for two days for an
+      unrelated reason, and this was sitting underneath.
 
 ### The daily production check had been red for the wrong reason
 
