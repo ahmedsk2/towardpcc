@@ -146,6 +146,62 @@ Coolify keeps previous deployments: the app → Deployments → pick the last go
 one → Redeploy. Because the rolling update gates on the healthcheck, a bad build
 never replaces a healthy container.
 
+## Rotating a secret
+
+Coolify stores each variable **twice** — once for production (`is_preview=false`)
+and once for its preview-deployments feature (`is_preview=true`). Rotating only
+the first leaves a stale copy that a preview deployment would pick up, so rotate
+both, and give them **different** values.
+
+A container restart is not enough. Docker fixes the environment at container
+_creation_, so `docker restart` leaves the old values in place — measured, and
+the fingerprints did not move. Use a `restart_only` deployment, which recreates
+the container from the existing image:
+
+```bash
+TOKEN=$(cat ~/.coolify-token)
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:8000/api/v1/applications/gpsokvxzncr7ks1vzqz7wkr4/restart"
+```
+
+Prefer this over a full deploy when the goal is a secret change: a redeploy
+rebuilds from `main`, which ships whatever code has landed since the running
+image — an unrelated change riding along on a security fix.
+
+Verify by fingerprint, never by reading the value back:
+
+```bash
+CID=$(sudo docker ps --format '{{.Names}}' | grep ^gpsokvxzncr7ks1vzqz7wkr4)
+sudo docker exec "$CID" sh -c 'printenv AUTH_SECRET | sha256sum | cut -c1-8'
+```
+
+`AUTH_SECRET` and `SUBMISSION_IP_SALT` are safe to rotate this way —
+respectively, everyone logs in again, and old abuse hashes stop correlating
+with new ones.
+
+### TOTP_ENC_KEY is not safe to rotate this way
+
+It seals admin TOTP secrets **and** the stored SMTP settings, and
+`apps/web/auth.ts` decrypts the TOTP secret _before_ it considers a recovery
+code — so a swapped key throws inside `authorize()` and login dies before the
+recovery branch runs. **Recovery codes do not get you back in.**
+
+Re-encrypt first, then change the variable:
+
+```bash
+node packages/db/scripts/rotate-totp-enc-key.mjs --self-test   # no database
+TOTP_ENC_KEY_OLD=<old> TOTP_ENC_KEY_NEW=<new> \
+  node --env-file=.env.local packages/db/scripts/rotate-totp-enc-key.mjs
+```
+
+The second command is a dry run: it decrypts, re-encrypts and verifies every row
+and writes nothing. Add `--commit` to apply (one transaction, re-runnable), then
+set `TOTP_ENC_KEY` to the new value and restart as above. Between the commit and
+the restart the running app still holds the old key, so keep that window short.
+
+`DATABASE_URL` is a separate exercise: it means coordinating the app role and
+`towardpcc_owner`, and re-running the restore drill afterwards.
+
 ## Backups (configured + drill passed 2026-07-26)
 
 `towardpcc` is in the shared-postgres nightly job (Coolify scheduled backup id 1,

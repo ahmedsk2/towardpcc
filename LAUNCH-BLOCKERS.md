@@ -641,14 +641,21 @@ Done, verified against the running system:
 
 Still outstanding, and both need care rather than speed:
 
-- [ ] **`TOTP_ENC_KEY`.** Cannot be rotated on its own: it seals admin TOTP
-      secrets **and** the stored SMTP settings, and `auth.ts:123` calls
-      `decryptSecret(user.totpSecret)` _before_ the recovery-code branch on
-      line 124 — so a rotated key throws inside `authorize()` and login dies
-      before recovery codes are ever consulted. **Recovery codes would not get
-      you back in.** Needs a re-encryption pass (read with the old key, rewrite
-      with the new) plus a fix making one failed decrypt fail that attempt
-      rather than the whole login path.
+- [x] **`TOTP_ENC_KEY` — tooling built and tested; the rotation itself is not
+      yet run.** It seals admin TOTP secrets **and** the stored SMTP settings,
+      so it can never be swapped in the environment alone.
+      `packages/db/scripts/rotate-totp-enc-key.mjs` re-encrypts both in one
+      transaction: `--self-test` proves the crypto with no database, the
+      default is a dry run, `--commit` applies, and it is re-runnable after an
+      interrupted attempt. Procedure in `docs/runbooks/deploy-production.md`.
+      A vitest interop test seals with the app and opens with the script in
+      both directions, because duplicated crypto that is merely believed to
+      match is how a rotation becomes an unrecoverable outage.
+      **Fixed alongside it:** `auth.ts` decrypted the TOTP secret _before_
+      considering a recovery code, so a wrong key threw inside `authorize()`
+      and killed the whole login path — taking down recovery codes, which are
+      hashed and do not depend on that key at all. A failed decrypt now fails
+      that attempt and logs at error.
 - [ ] **`DATABASE_URL`.** The preview held production database credentials.
       Rotating means coordinating the app role and `towardpcc_owner`, then
       re-running the restore drill.

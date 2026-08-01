@@ -120,7 +120,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         let totpStep: number | null = null;
         let recoveryHash: string | null = null;
         if (user) {
-          totpStep = verifyTotpStep(decryptSecret(user.totpSecret), token);
+          /**
+           * A sealed secret that will not open must fail THIS attempt, not the
+           * whole login path.
+           *
+           * `decryptSecret` threw straight out of `authorize()` before, and the
+           * consequence was specific and bad: `TOTP_ENC_KEY` is the key for the
+           * TOTP secret but NOT for the recovery codes, which are hashed. So a
+           * rotated or mis-provisioned key took down the one credential that
+           * could still have worked, because the throw happened on the line
+           * above the recovery-code branch. That turned a recoverable
+           * misconfiguration into a total lockout with no way back except
+           * direct database access.
+           *
+           * Logged at error, not warn: a box that will not open is an
+           * operational fault, never a wrong password.
+           */
+          try {
+            totpStep = verifyTotpStep(decryptSecret(user.totpSecret), token);
+          } catch {
+            totpStep = null;
+            logger.error(
+              "totp secret failed to decrypt — check TOTP_ENC_KEY; recovery codes still work",
+            );
+          }
           if (totpStep === null && matchRecoveryCode(token, user.totpRecoveryCodes) >= 0) {
             recoveryHash = hashRecoveryCode(token);
           }
