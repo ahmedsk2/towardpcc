@@ -25,16 +25,43 @@
      the scene and one per group. Particle transforms are set once at mount and
      never touched again. -->
 <style>
-  body { margin: 0; background: #260e1a; color: #ffd9cc; font: 13px/1.5 monospace; }
-  #scene { position: fixed; inset: 0; perspective: 900px; }
-  #world { position: absolute; left: 50%; top: 50%; transform-style: preserve-3d; }
-  .grp { position: absolute; transform-style: preserve-3d; }
+  body {
+    margin: 0;
+    background: #260e1a;
+    color: #ffd9cc;
+    font: 13px/1.5 monospace;
+  }
+  #scene {
+    position: fixed;
+    inset: 0;
+    perspective: 900px;
+  }
+  #world {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-style: preserve-3d;
+  }
+  .grp {
+    position: absolute;
+    transform-style: preserve-3d;
+  }
   .p {
-    position: absolute; width: 6px; height: 6px; margin: -3px;
-    border-radius: 50%; background: radial-gradient(circle, #ea3a57, transparent 70%);
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    margin: -3px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ea3a57, transparent 70%);
     will-change: transform;
   }
-  #out { position: fixed; left: 8px; top: 8px; z-index: 9; white-space: pre; }
+  #out {
+    position: fixed;
+    left: 8px;
+    top: 8px;
+    z-index: 9;
+    white-space: pre;
+  }
 </style>
 <div id="scene"><div id="world"></div></div>
 <pre id="out">running…</pre>
@@ -59,8 +86,13 @@
       const a = i * 2.399963;
       const r = 180 * Math.sqrt(t);
       el.style.transform =
-        "translate3d(" + Math.cos(a) * r + "px," + Math.sin(a) * r * 0.9 +
-        "px," + (t - 0.5) * 260 + "px)";
+        "translate3d(" +
+        Math.cos(a) * r +
+        "px," +
+        Math.sin(a) * r * 0.9 +
+        "px," +
+        (t - 0.5) * 260 +
+        "px)";
       gs[i % groups].appendChild(el);
     }
     return gs;
@@ -102,8 +134,10 @@
   }
 
   const line = (x) =>
-    String(x.n).padStart(9) + String(x.groups).padStart(8) +
-    x.buildMs.toFixed(1).padStart(8) + x.p50.toFixed(3).padStart(9) +
+    String(x.n).padStart(9) +
+    String(x.groups).padStart(8) +
+    x.buildMs.toFixed(1).padStart(8) +
+    x.p50.toFixed(3).padStart(9) +
     x.p95.toFixed(3).padStart(9);
 
   const head = "particles  groups   build   p50 ms   p95 ms   (400 batches, main thread only)";
@@ -114,7 +148,12 @@
   const byGroups = [6, 25, 50, 60, 100, 200].map((g) => measure(550, g));
 
   out.textContent =
-    head + "\n" + byParticles.map(line).join("\n") +
-    "\n" + "-".repeat(head.length) + "\n" + byGroups.map(line).join("\n") +
+    head +
+    "\n" +
+    byParticles.map(line).join("\n") +
+    "\n" +
+    "-".repeat(head.length) +
+    "\n" +
+    byGroups.map(line).join("\n") +
     "\n\nDONE — top block should be flat in n; bottom block should rise with groups.";
 </script>
