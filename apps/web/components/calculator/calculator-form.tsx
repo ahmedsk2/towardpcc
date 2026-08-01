@@ -1105,7 +1105,15 @@ function ResultPanel({
         )
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
+          {/* `data-result-values` is a test hook, and it earns its keep: the
+              double-rendering regression it guards is only visible in the LABELS
+              when `multi` is true, so a text-based assertion silently stops
+              catching it the moment a composite drops to one flat value. Counting
+              the rendered blocks catches it either way. */}
+          <div
+            data-result-values={flatValues.length}
+            className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}
+          >
             {flatValues.map((v) => {
               const band: InterpretationBand | undefined = matchInterpretationBand(
                 definition,
