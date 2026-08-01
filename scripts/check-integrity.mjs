@@ -27,8 +27,23 @@ const HOST = process.env.INTEGRITY_HOST ?? "https://www.towardpcc.com";
 const results = [];
 const record = (name, ok, detail, why) => results.push({ name, ok, detail, why });
 
+/**
+ * A named User-Agent, because the default one gets this check blocked.
+ *
+ * Node's `fetch` sends no browser UA, and Cloudflare's bot protection answers
+ * it with 403 from GitHub's runners — which is what turned this job red on
+ * 2026-07-31 and 2026-08-01 while the site was serving 200 to every real
+ * visitor throughout. Identifying the canary honestly is the fix; spoofing a
+ * browser string would be the wrong one, since the point is to be allowed
+ * deliberately rather than to sneak past.
+ */
+const UA = "TowardPCC-integrity-canary (+https://github.com/ahmedsk2/towardpcc)";
+
 async function get(path) {
-  const res = await fetch(`${HOST}${path}`, { redirect: "manual" });
+  const res = await fetch(`${HOST}${path}`, {
+    redirect: "manual",
+    headers: { "user-agent": UA, accept: "text/html,*/*" },
+  });
   return { status: res.status, headers: res.headers, body: await res.text() };
 }
 
@@ -108,6 +123,49 @@ async function checkNoForeignScripts() {
 }
 
 /**
+ * What the EDGE injects, pinned rather than merely tolerated.
+ *
+ * `checkNoForeignScripts` above deliberately judges by origin, because
+ * Cloudflare serves its injected scripts from `/cdn-cgi/` on our own hostname —
+ * so they are same-origin and sail past an origin test while still being code
+ * this repository never wrote, running on the one page whose promise is that
+ * nothing it touches leaves the browser.
+ *
+ * Tolerating that as an open-ended exemption means Cloudflare can switch on a
+ * new feature — Rocket Loader, Automatic Platform Optimization, a challenge
+ * script — and nothing here would notice. So the exemption is pinned to the
+ * exact filenames known to be enabled, and anything new fails.
+ *
+ * The RIGHT end state is an empty list. `email-decode.min.js` is Cloudflare's
+ * Email Address Obfuscation (Scrape Shield), switched on in the dashboard and
+ * not required by anything this site does; turning it off removes the last
+ * non-first-party script from the calculators. The list should also empty
+ * itself at the DNS cutover, when Cloudflare stops fronting the site.
+ */
+const EDGE_SCRIPTS_ALLOWED = new Set(["email-decode.min.js"]);
+
+async function checkEdgeInjectedScripts() {
+  const { body } = await get("/calculators/pim3");
+  const injected = [...body.matchAll(/<script[^>]+src="(\/cdn-cgi\/[^"]+)"/g)]
+    // The path carries a rotating cache-busting segment, so compare filenames.
+    .map((m) => m[1].split("/").pop())
+    .filter(Boolean);
+  const unexpected = [...new Set(injected)].filter((f) => !EDGE_SCRIPTS_ALLOWED.has(f));
+  record(
+    "no unexpected edge-injected scripts",
+    unexpected.length === 0,
+    unexpected.length
+      ? `unexpected: ${unexpected.join(", ")}`
+      : injected.length
+        ? `only the pinned set (${[...new Set(injected)].join(", ")})`
+        : "none — the edge injects nothing",
+    unexpected.length
+      ? "The CDN is injecting a script this repository does not know about. It is same-origin, so CSP permits it and the foreign-origin check cannot see it — establish what enabled it before trusting the page."
+      : "Pinned, so a newly enabled CDN feature would fail this.",
+  );
+}
+
+/**
  * The API surface.
  *
  * ADR-0005 says /api/v1 never accepts calculator inputs and never returns a
@@ -127,17 +185,24 @@ async function checkApiSurface() {
       "The two endpoints that are meant to exist.",
     );
   }
-  // Paths that must NOT exist. A 404 or 405 is the pass; a 200 means someone
-  // built the thing ADR-0005 forbids.
+  // Paths that must NOT exist. Only the statuses that actually mean "no such
+  // route" count as the pass.
+  //
+  // This was `status >= 400`, which let an edge block stand in for evidence of
+  // absence: on 2026-08-01 Cloudflare answered every path with 403 and these
+  // three checks reported PASS while the rest of the file reported FAIL. A
+  // check that passes because nothing was reached is worse than one that fails,
+  // because it reads as a verified negative.
+  const ABSENT = new Set([404, 405, 410]);
   for (const path of ["/api/v1/score", "/api/v1/calculate", "/api/v1/submissions"]) {
     const { status } = await get(path);
     record(
       `api: ${path} does not exist`,
-      status >= 400,
+      ABSENT.has(status),
       `HTTP ${status}`,
       status < 400
         ? "An endpoint exists that ADR-0005 rules out. Score computation must never move server-side, on any platform."
-        : "Absent, as intended.",
+        : "Not a 404/405/410, so this run did not establish the route is absent.",
     );
   }
 }
@@ -164,31 +229,86 @@ const CHECKS = [
   checkCalculatorPages,
   checkPrivacyClaims,
   checkNoForeignScripts,
+  checkEdgeInjectedScripts,
   checkApiSurface,
   checkSecurityHeaders,
 ];
 
-for (const check of CHECKS) {
+/**
+ * Prove we can reach the origin BEFORE asserting anything about what it serves.
+ *
+ * Every check below reads a response body or a status code, so none of them can
+ * tell "the site changed" from "we never got to the site". On 2026-08-01 that
+ * distinction mattered: Cloudflare answered this runner with 403 on every path,
+ * and the report said four calculator pages had lost their names and /trust had
+ * stopped making its claims. All of it was false — the site was serving 200 to
+ * real visitors the whole time — and the three api-absence checks reported PASS
+ * off the same 403.
+ *
+ * A monitor that misreports its own blindness as a defacement gets muted, and a
+ * muted canary is worse than no canary. So it reports BLOCKED distinctly, with
+ * exit 2, and says plainly what it does not know.
+ *
+ * Returns false rather than calling `process.exit()`. The first version exited
+ * inline and, measured on Windows, aborted with a libuv assertion and exit 127
+ * instead of 2 — killing the process while a socket was still open, so the
+ * distinct code this exists to provide was the one thing that did not survive.
+ */
+async function preflight() {
+  let status, headers;
   try {
-    await check();
+    ({ status, headers } = await get("/"));
   } catch (error) {
-    record(check.name, false, `check failed: ${String(error)}`, "Could not be evaluated.");
+    console.error(`\nIntegrity canary — ${HOST}\n`);
+    console.error(`  [BLOCKED] the origin could not be reached at all: ${String(error)}`);
+    console.error("\n  This run proves NOTHING about the site's integrity.\n");
+    return false;
   }
-}
+  if (status === 200) return true;
 
-let failures = 0;
-console.log(`\nIntegrity canary — ${HOST}\n`);
-for (const r of results) {
-  if (!r.ok) failures++;
-  console.log(`  [${r.ok ? "PASS" : "FAIL"}] ${r.name}`);
-  console.log(`         ${r.detail}`);
-  if (!r.ok) console.log(`         ${r.why}`);
-}
-
-if (failures > 0) {
+  const viaEdge = headers.get("cf-ray") ?? headers.get("server") ?? "";
+  console.error(`\nIntegrity canary — ${HOST}\n`);
+  console.error(`  [BLOCKED] GET / returned HTTP ${status}, so nothing below was measurable.`);
+  if (viaEdge) console.error(`            answered by an edge (${viaEdge}), not the application`);
   console.error(
-    `\n${failures} integrity check(s) failed. Treat this as "the live site may not be the site we built" until you have established otherwise — start by comparing the running image digest against the last successful deploy.`,
+    "\n  This run proves NOTHING about the site's integrity — it did not reach it.\n" +
+      "  If the site is up for real visitors, the checker is being blocked: allow\n" +
+      `  its User-Agent (${UA}) through the WAF or bot rules.\n`,
   );
-  process.exit(1);
+  return false;
 }
-console.log("\nThe live site matches what it should be.\n");
+
+if (!(await preflight())) {
+  process.exitCode = 2;
+} else {
+  for (const check of CHECKS) {
+    try {
+      await check();
+    } catch (error) {
+      record(check.name, false, `check failed: ${String(error)}`, "Could not be evaluated.");
+    }
+  }
+  report();
+}
+
+function report() {
+  let failures = 0;
+  console.log(`\nIntegrity canary — ${HOST}\n`);
+  for (const r of results) {
+    if (!r.ok) failures++;
+    console.log(`  [${r.ok ? "PASS" : "FAIL"}] ${r.name}`);
+    console.log(`         ${r.detail}`);
+    if (!r.ok) console.log(`         ${r.why}`);
+  }
+
+  if (failures > 0) {
+    console.error(
+      `\n${failures} integrity check(s) failed. Treat this as "the live site may not be the site we built" until you have established otherwise — start by comparing the running image digest against the last successful deploy.`,
+    );
+    // exitCode, not exit(): same reason as preflight — an abrupt exit with a
+    // socket still open aborts on Windows and loses the code.
+    process.exitCode = 1;
+    return;
+  }
+  console.log("\nThe live site matches what it should be.\n");
+}
