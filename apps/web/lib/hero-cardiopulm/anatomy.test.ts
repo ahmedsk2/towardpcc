@@ -6,12 +6,16 @@ import {
   DEFAULT_SEED,
   ENVELOPE,
   HEART,
+  HEART_CENTRE,
   LOBE_SHARES,
   RUL_TAKEOFF,
   THORAX,
+  VESSELS,
   type Preset,
 } from "./anatomy";
 import { cardiacApex, cardiacField, cardiacHullExtentX, generateHeart } from "./heart";
+import { buildMesh } from "./mesh";
+import { generateVessels } from "./vessels";
 import { generateTree, LOBES, MAIN_BRONCHI } from "./tree";
 import {
   insideLung,
@@ -687,12 +691,155 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
   });
 });
 
+/**
+ * THE PULMONARY CIRCULATION.
+ *
+ * Kept outside the per-preset block on purpose: the vessels are generated from
+ * the desktop tree and are identical at every budget, so running them twice
+ * would double a two-hundred-millisecond build to assert the same numbers.
+ *
+ * What is asserted here is not "vessels exist" — it is the handful of
+ * relationships a reader who knows one thing about a hilum knows, and which a
+ * figure is better off without than wrong about.
+ */
+describe("pulmonary vessels", () => {
+  const tree = generateTree(BUDGET.desktop.airways, BUDGET.desktop.generations, DEFAULT_SEED);
+  const vessels = generateVessels(tree, DEFAULT_SEED);
+
+  /** Where a waypoint chain sits at a given x, by linear interpolation. */
+  const atX = (chain: readonly { x: number; y: number; z: number }[], x: number) => {
+    for (let i = 0; i + 1 < chain.length; i++) {
+      const a = chain[i]!;
+      const b = chain[i + 1]!;
+      if ((a.x - x) * (b.x - x) <= 0 && a.x !== b.x) {
+        const t = (x - a.x) / (b.x - a.x);
+        return { y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t };
+      }
+    }
+    return null;
+  };
+  /** A main bronchus runs straight from the carina to its hilum. */
+  const bronchusAt = (side: "right" | "left", x: number) =>
+    (x / BRONCHI[side].hilum.x) * BRONCHI[side].hilum.y;
+
+  it("makes the right hilum EPARTERIAL", () => {
+    // The right upper lobe bronchus is the only lobar bronchus in the body
+    // above its artery, and it is why RUL_TAKEOFF is an explicit branch.
+    const x = BRONCHI.right.hilum.x * RUL_TAKEOFF.alongRightMain;
+    const rpa = atX([VESSELS.mpaBifurcation, ...VESSELS.rpa], x);
+    expect(rpa).not.toBeNull();
+    expect(bronchusAt("right", x)).toBeGreaterThan(rpa!.y);
+
+    // And the artery passes ANTERIOR to the bronchus, which runs at z = 0.
+    for (const p of VESSELS.rpa) expect(p.z).toBeGreaterThan(0);
+  });
+
+  it("makes the left hilum HYPARTERIAL, by arching over the bronchus", () => {
+    const summit = VESSELS.lpa[0]!;
+    const lpa = atX([VESSELS.mpaBifurcation, ...VESSELS.lpa], summit.x);
+    expect(lpa).not.toBeNull();
+    // Above the left main bronchus where it crosses it: every left lobar
+    // bronchus is therefore below its artery.
+    expect(lpa!.y).toBeGreaterThan(bronchusAt("left", summit.x));
+
+    // THE ARCH ITSELF: the vessel starts anterior at the bifurcation and ends
+    // posterior, so it must cross the plane of the bronchus on its way over.
+    // Two straight limbs meeting at a summit would satisfy the height test
+    // above and still not be an arch; this is what makes it one.
+    expect(VESSELS.mpaBifurcation.z).toBeGreaterThan(0);
+    expect(VESSELS.lpa[VESSELS.lpa.length - 1]!.z).toBeLessThan(0);
+  });
+
+  it("roots the trunk in the right ventricle and the veins in the left atrium", () => {
+    // Buried inside the chambers deliberately — it is what keeps the vessels
+    // joined to the heart when the lungs breathe. See VESSELS.mpaRoot.
+    const { mpaRoot, ostia } = VESSELS;
+    expect(cardiacField(mpaRoot.x, mpaRoot.y, mpaRoot.z)).toBeLessThan(0);
+    for (const [name, o] of Object.entries(ostia)) {
+      expect(cardiacField(o.x, o.y, o.z), `${name} must open into the heart`).toBeLessThan(0);
+      // POSTERIOR to the chamber's centre: the veins enter the back of the
+      // atrium, which is the reason the atrium is the posterior chamber.
+      expect(o.z, `${name} must enter posteriorly`).toBeLessThan(HEART_CENTRE.z);
+    }
+  });
+
+  it("keeps every artery in its bronchovascular bundle", () => {
+    // The definition of a bundle: the artery never leaves its bronchus. The
+    // mean must land at the offset it was built with, not merely near it.
+    const offset = Math.hypot(VESSELS.bundleOffset.right.y, VESSELS.bundleOffset.right.z);
+    expect(vessels.stats.arteryToAirway).toBeLessThanOrEqual(offset * 1.2);
+  });
+
+  it("runs every vein in the intersegmental septa, not the bundles", () => {
+    // The one property that makes the veins a second SYSTEM rather than a
+    // second copy of the first. It cannot pass unless the septal sampler is
+    // doing its job.
+    expect(vessels.stats.veinToAirway).toBeGreaterThan(vessels.stats.arteryToAirway * 2);
+  });
+
+  it("drains both lungs, not one", () => {
+    // THE FAILURE THIS SHIPPED ONCE. An absolute clearance threshold starved
+    // the right lung — whose airway is deliberately denser — and the measured
+    // growth was rspv 1, ripv 1, lspv 219, lipv 1: a chest with veins down one
+    // side, invisible in the composite render and obvious the moment the veins
+    // were drawn alone.
+    const counts = Object.values(vessels.stats.perVein);
+    expect(Math.min(...counts)).toBeGreaterThan(Math.max(...counts) * 0.4);
+  });
+
+  it("contains every intrapulmonary vessel inside a lung", () => {
+    // EXACT, not lenient: the mediastinal runs are flagged structurally, so
+    // this can demand zero rather than tolerating a handful and thereby never
+    // catching a real leak.
+    const escaped = [...vessels.arteries, ...vessels.veins].filter(
+      (s) => !s.mediastinal && !insideLung(s.to.x, s.to.y, s.to.z),
+    );
+    expect(escaped).toHaveLength(0);
+  });
+});
+
+describe("cardiac surface", () => {
+  const mesh = buildMesh();
+
+  it("draws a heart that reaches its base and its apex", () => {
+    /**
+     * THE BALL. The cardiac surface was swept by rays from a centre and then
+     * re-meshed by proximity, which starves an elongated body at its ends:
+     * angular sampling puts no more points on the apex than on the nearest
+     * face, so the points there fell further apart than the edge ceiling and
+     * were simply not joined. The geometry measured correct the whole time —
+     * y from -0.002 to -0.460, exactly base and apex — while the DRAWN surface
+     * stopped at -0.16 and read as a ball.
+     *
+     * So this measures the CONNECTED surface, not the point cloud. A vertex
+     * with no edge is not part of a mesh.
+     */
+    const connected = new Set<number>();
+    for (const e of mesh.edges) {
+      if (e.kind !== "heart") continue;
+      connected.add(e.a);
+      connected.add(e.b);
+    }
+    const ys = [...connected].map((i) => mesh.points[i]!.y);
+    expect(Math.max(...ys)).toBeGreaterThanOrEqual(HEART.baseY);
+    expect(Math.min(...ys)).toBeLessThanOrEqual(HEART.apex.y);
+
+    // And no hole across the mitral annulus. The left heart was two solids
+    // with a gap of 0.020 between atrium and ventricle; at that height the
+    // surface existed only on the right, from x -0.120 to -0.067.
+    const annulus = [...connected]
+      .map((i) => mesh.points[i]!)
+      .filter((p) => p.y < -0.12 && p.y > -0.16);
+    expect(Math.max(...annulus.map((p) => p.x))).toBeGreaterThan(0);
+  });
+});
+
 describe("source hygiene", () => {
   /**
    * Every generator. shells.ts was omitted from this list when it was added,
    * and immediately drifted — it carried its own copy of the lung half-width.
    */
-  const GENERATORS = ["tree.ts", "heart.ts", "envelope.ts", "shells.ts"];
+  const GENERATORS = ["tree.ts", "heart.ts", "envelope.ts", "shells.ts", "vessels.ts"];
 
   const read = async (f: string) => {
     const { readFileSync } = await import("node:fs");

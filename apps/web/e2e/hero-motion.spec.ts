@@ -46,6 +46,8 @@ test.describe("hero figure", () => {
         tracheaBands: frame.querySelectorAll("path.cps-trachea").length,
         heartBands: frame.querySelectorAll("path.cps-heart").length,
         pleuraBands: frame.querySelectorAll("path.cps-pleura").length,
+        arteryBands: frame.querySelectorAll("path.cps-artery").length,
+        veinBands: frame.querySelectorAll("path.cps-vein").length,
         clusters: frame.querySelectorAll(".cps-clusters circle").length,
         bandGroups: frame.querySelectorAll(".cps-band").length,
         distinctOpacities: opacities.size,
@@ -70,12 +72,22 @@ test.describe("hero figure", () => {
     expect(scene!.tracheaBands, "the central airway is not drawn").toBeGreaterThanOrEqual(1);
     expect(scene!.heartBands).toBeGreaterThan(2);
     expect(scene!.pleuraBands).toBeGreaterThan(2);
+    // The pulmonary circulation: an artery beside every proximal bronchus and a
+    // vein running between the bundles. Without these the hila are places where
+    // bronchi stop, and nothing explains why the left atrium is posterior.
+    expect(scene!.arteryBands, "the pulmonary arteries are not drawn").toBeGreaterThan(2);
+    expect(scene!.veinBands, "the pulmonary veins are not drawn").toBeGreaterThan(2);
     expect(scene!.clusters, "no alveolar clusters").toBeGreaterThan(20);
 
     // Parallax nests outside breath and beat rather than concatenating into
     // one transform string, so each band needs its own group.
+    //
+    // The ceiling is SIX SYSTEMS times five bands, raised from twenty when the
+    // arteries and veins arrived. It is a real budget, not a formality — every
+    // group is a transform recalculated on each frame of the sway — so it moves
+    // when a system is added and not otherwise.
     expect(scene!.bandGroups, "depth bands are not grouped for parallax").toBeGreaterThan(14);
-    expect(scene!.bandGroups).toBeLessThanOrEqual(20);
+    expect(scene!.bandGroups).toBeLessThanOrEqual(30);
 
     // The heart carries itself as a surface. It used to need a few hundred
     // vertex dots because it was a proximity web with no facets; the mesh

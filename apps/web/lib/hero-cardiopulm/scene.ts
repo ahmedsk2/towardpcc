@@ -113,7 +113,10 @@ function project(p: { x: number; y: number; z: number }, yaw: number, pitch: num
  * near band now reaches full opacity, and the inks below shift toward peach so
  * the figure separates by VALUE from a ground it cannot separate from by hue.
  */
-const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: number }> = {
+const STYLE: Record<
+  MeshKind,
+  { far: number; near: number; wFar: number; wNear: number; dots?: boolean }
+> = {
   /**
    * The central airway: the brightest and heaviest thing after the heart.
    *
@@ -131,23 +134,61 @@ const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: 
    * read as an overlay drawn ON the figure rather than as its trunk: the
    * inverted Y was unmistakable and belonged to a different picture.
    */
-  trachea: { far: 0.8, near: 1, wFar: 1.4, wNear: 2.1 },
+  trachea: { far: 0.8, near: 1, wFar: 1.4, wNear: 2.1, dots: true },
   /** The structure the eye should follow first. */
-  airway: { far: 0.3, near: 1, wFar: 0.6, wNear: 1.55 },
+  airway: { far: 0.3, near: 1, wFar: 0.6, wNear: 1.55, dots: true },
+  /**
+   * The pulmonary artery: HEAVIER than the bronchus it accompanies.
+   *
+   * True of the vessels themselves — a pulmonary artery is wider than its
+   * bronchus, and a bronchoarterial ratio above 1 is how bronchiectasis is read
+   * on a CT — and it is also what lets the bundle be seen as two structures
+   * rather than as one thick line.
+   *
+   * NO CALIBRE TAPER, and that is a deliberate limit of this architecture. A
+   * band is one path with one stroke width, and bands are cut by DEPTH because
+   * depth is what carries the parallax; a vessel's calibre would need its own
+   * banding, which means its own kinds, which means twenty more elements to
+   * express something the depth ramp already half expresses. The trunk is the
+   * most anterior vessel in the scene, so it lands in the near bands and comes
+   * out thickest anyway — and the left artery, which arches posteriorly, comes
+   * out thinner and dimmer than the right, which is exactly right.
+   */
+  artery: { far: 0.32, near: 1, wFar: 0.7, wNear: 1.85, dots: false },
+  /**
+   * The pulmonary vein: finer, paler and dimmer than everything it runs
+   * between — the system a reader notices second, after the bundle, which is
+   * roughly the order the two become legible on a CT.
+   */
+  vein: { far: 0.13, near: 0.62, wFar: 0.45, wNear: 1.05, dots: false },
   /** The subject: brightest, and drawn last. */
-  heart: { far: 0.34, near: 1, wFar: 0.62, wNear: 1.35 },
+  heart: { far: 0.34, near: 1, wFar: 0.62, wNear: 1.35, dots: true },
   /**
    * The room, not the subject. Barely there on purpose — drawn any heavier it
    * becomes an outline, and an outline around a mesh reads as a box the scene
    * has been placed inside.
    */
-  pleura: { far: 0.1, near: 0.44, wFar: 0.45, wNear: 0.8 },
+  /**
+   * NO VERTEX DOTS. They were beading the back wall of a closed surface —
+   * a thousand pale discs seen THROUGH the lung, which is most of what made
+   * the pleura read as a cage rather than as a room.
+   */
+  pleura: { far: 0.07, near: 0.44, wFar: 0.45, wNear: 0.85, dots: false },
 };
 
 /** Vertices sit a little brighter than their edges, or they vanish into them. */
 const DOT_LIFT = 1.35;
 
-const KIND_ORDER: MeshKind[] = ["pleura", "airway", "trachea", "heart"];
+/**
+ * Paint order, back to front by role rather than by depth — depth is handled
+ * inside each system by its bands.
+ *
+ * Veins first: they run in the septa, behind and between everything, and they
+ * are the one system that should never sit on top of another. Arteries after
+ * the airway, because the bundle reads as artery-in-front-of-bronchus at the
+ * right hilum, which is the relationship the whole vessel work exists to show.
+ */
+const KIND_ORDER: MeshKind[] = ["pleura", "vein", "airway", "artery", "trachea", "heart"];
 
 let cached: SceneModel | null = null;
 
@@ -197,7 +238,11 @@ export function buildScene(): SceneModel {
       });
     });
 
-    // Vertices, in the same bands.
+    // Vertices, in the same bands. Suppressed for the vessels: a bronchial tree
+    // drawn with its vertices reads as sampled structure, but a vessel is a
+    // TUBE, and beading one along its length reads as a string of nodes rather
+    // than as a continuous lumen.
+    if (!style.dots) continue;
     const dotBuckets: string[][] = Array.from({ length: BANDS }, () => []);
     mesh.points.forEach((p, i) => {
       if (p.kind !== kind) return;

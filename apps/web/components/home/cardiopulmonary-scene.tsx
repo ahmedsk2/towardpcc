@@ -69,8 +69,32 @@ const bands = (() => {
  * warmest thing in the frame.
  */
 const INK = {
-  trachea: "color-mix(in oklab, var(--color-peach), white 22%)",
+  /**
+   * Peach, barely lifted. It was peach + 22% white, which on this ground is
+   * near enough to white that the inverted Y read as a line drawn ON the
+   * figure in a different medium — the same failure its stroke weight had
+   * already been pulled back from once. The airway is warm; its trunk should
+   * be the brightest warm thing, not a cold one.
+   */
+  trachea: "color-mix(in oklab, var(--color-peach), white 8%)",
   airway: "color-mix(in oklab, var(--color-coral), var(--color-peach) 62%)",
+  /**
+   * The artery is nearly the heart's own ink, one step softer.
+   *
+   * Continuity is the correct relationship, not a decorative one: the pulmonary
+   * trunk IS the right ventricle's outflow, and a reader should be able to
+   * follow the colour out of the heart and into the lungs without the eye
+   * having to cross a boundary that anatomy does not have.
+   *
+   * Not blue, and never will be. The convention that colours a pulmonary artery
+   * blue is a textbook convention about oxygen saturation, and this palette
+   * reserves the whole range to crimson and its warm neighbours. Artery and
+   * vein are separated by SATURATION and WEIGHT instead, which is a difference
+   * that survives at a stroke width of one and a half pixels.
+   */
+  artery: "color-mix(in oklab, var(--color-accent-bright), var(--color-peach) 26%)",
+  /** The return: the palest, finest system, running where the bundle is not. */
+  vein: "color-mix(in oklab, var(--color-peach), var(--color-coral) 16%)",
   heart: "color-mix(in oklab, var(--color-accent-bright), var(--color-peach) 10%)",
   pleura: "color-mix(in oklab, var(--color-peach), white 12%)",
 } as const;
@@ -294,24 +318,32 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
     translate: 0 0;
   }
 }
-/* Anchored OUTSIDE the thoracic silhouette. Never over the heart mesh. */
+/* A STRIP ABOVE THE FIGURE, and a note below it. Nothing over the mesh —
+   which is the one placement rule the review set, and which the corners could
+   not actually satisfy.
+   Measured rather than judged: the lung apex sits ${((BREATH_ANCHOR_Y / SCENE.height) * 100).toFixed(1)}% down the frame, so
+   the band above it is genuinely empty and the top corners are not. At 12% the
+   silhouette already reaches in to 16% of the width, and both labels ran into
+   it — RR's capnograph overlapped the right upper lobe and HR's key sat on the
+   left apex. */
 .cps-label-rr {
-  top: 12%;
+  top: 0;
   left: 0;
 }
 .cps-label-hr {
-  /* TOP-right, not bottom-right. At the bottom it lay across the lung mesh,
-     which is unreadable and is the one placement rule the review set. The
-     silhouette narrows toward the apices, so the corners are the only clear
-     ground inside the frame. */
-  top: 12%;
+  top: 0;
   right: 0;
   justify-content: flex-end;
 }
 .cps-label-ie {
-  top: 27%;
+  /* Centred between them, on the same line. Full-width and centred rather than
+     translated, so it cannot drift into either neighbour as the figure
+     resizes — the three occupy the left, middle and right thirds by
+     construction. */
+  top: 0;
+  left: 0;
   right: 0;
-  justify-content: flex-end;
+  justify-content: center;
 }
 .cps-label-rsa {
   bottom: 1%;
@@ -419,8 +451,15 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
    relative to anything else. A child breathes mostly with the diaphragm — the
    apex barely moves and the bases descend — so the expansion is mostly
    vertical, about the top of the lung, with a small lateral term for the ribs. */
+/* The vessels breathe WITH the lung, including the trunk and the hilar runs.
+   The bundle demands it — an artery that stayed put while its bronchus moved
+   would tear the two apart along their whole length — and the mediastinal ends
+   are kept joined at the other side by the cardiac descent below rather than by
+   being pinned to it. */
 .cps-airway,
 .cps-trachea,
+.cps-artery,
+.cps-vein,
 .cps-pleura,
 .cps-clusters {
   transform: scale(
@@ -440,9 +479,19 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
 /* The heart PERFUSES: brightness crosses it, and volume changes by at most
    ${(RHYTHM.maxVolumetricChange * 100).toFixed(0)}%. A visibly contracting organ at 81 bpm reads frantic and
    slightly grotesque. */
+/* AND THE HEART DESCENDS ON INSPIRATION. It rests on the diaphragm and is
+   tethered above by the great vessels, so it travels down as the bases do —
+   which is why a chest film is taken at full inspiration and why the cardiac
+   silhouette looks larger on an expiratory one.
+   It was added because the vessels needed it: the trunk leaves the right
+   ventricle and four veins enter the left atrium, so a stationary heart beside
+   hila that rise and fall by ten pixels tore the vessels apart at both ends.
+   ${(RHYTHM.breathCardiacDescent * SCENE.scale).toFixed(0)}px lands within about two of where the breath scale carries the
+   hilum, so the two systems agree rather than one being pinned to the other. */
 .cps-heart,
 .cps-heart-nodes {
-  transform: scale(var(--beat));
+  transform: translateY(calc(${(RHYTHM.breathCardiacDescent * SCENE.scale).toFixed(2)}px * var(--breath)))
+    scale(var(--beat));
   transform-origin: ${SCENE.originX}px ${(SCENE.originY + 100).toFixed(0)}px;
   transform-box: view-box;
 }

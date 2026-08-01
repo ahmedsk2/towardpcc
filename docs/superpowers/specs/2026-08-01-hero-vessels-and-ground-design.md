@@ -83,3 +83,63 @@ figure crosses ~75 KB gzipped, decimate rather than ship it.
 
 Rotation. Ribs. Annotations beyond physiology — no lobe names, no chamber
 names, and never the CTR, which is a test assertion and not a claim to a reader.
+
+---
+
+## What shipped, and where it diverged
+
+Recorded after the fact, because two of the numbers above turned out to be
+wrong about the problem rather than about the answer.
+
+**Delivered:** items 1, 2 and 5. Both hilar relationships are drawn and
+asserted — the right is eparterial, the left arches over its bronchus — the
+bundle offset makes the arteries genuinely accompany the bronchi, and the four
+veins grow in the septa and converge on the posterior left atrium. The card is
+gone and the annotations stand.
+
+**Not delivered:** item 3, the drawn diaphragm. Held back deliberately: the
+work below changed how every surface in the scene is meshed, and adding a third
+surface on top of an unverified change would have made both hard to judge.
+
+**Item 4 was the wrong target.** The edge budget went to 6,303, not 9,000, and
+the figure is better for it. Two discoveries inverted the assumption that more
+edges meant more anatomy:
+
+- The cardiac and pleural surfaces were meshed by proximity between sampled
+  points, which starves an elongated body at its ends. The heart's geometry
+  measured correct throughout — reaching the documented base, both borders and
+  the apex — while the drawn surface stopped a third of the way down and read
+  as a ball, because the points at the apex fell further apart than the maximum
+  edge length and were never joined. Meshing by DIRECTION adjacency instead is
+  exact, and fixed the shape without adding a single sample.
+- With clean quads, the pleura described the same surface at 400 sweep
+  directions that had taken 640, and its back wall stopped being drawn as a
+  cage of dots through the front.
+
+Net: two whole vessel systems added, 1,612 edges of pleural cage removed, and
+**path data fell from 202,103 to 192,863 bytes** — more anatomy in less weight.
+Route JS unchanged at 156.5 KB. The home page gzips to 133 KB, well inside the
+75 KB-of-figure ceiling this document set.
+
+**Three defects the vessel work exposed**, all pre-existing and none visible
+before something was attached to them:
+
+1. The left atrium and left ventricle were not joined. A gap of 0.020 across
+   the mitral annulus meant the left heart was two solids; the slice at
+   y = −0.12 contained only right-atrial surface. Fixed by growing the atrium
+   down to the annulus, leaving its roof at the carina where the assertion pins
+   it.
+2. The pleural sweep used a global containment predicate, so a ray leaving one
+   lung's centre could take its outermost crossing inside the OTHER lung. Ten
+   vertices sat on the wrong side of the chest. The existing "never bridges the
+   mediastinum" assertion caught it the moment the edge ceiling stopped masking
+   it — which is the case for keeping assertions that seem to pass for free.
+3. The heart did not move with the breath. Nothing had connected it to the
+   lungs before, so nothing contradicted it; a trunk leaving the right
+   ventricle and four veins entering the left atrium did. The heart now
+   descends 0.025 on inspiration, which is both the fix and a fact.
+
+**Deferred to a decision, not to a backlog:** the right main bronchus ends
+inside the modelled right atrium, and the right middle lobe bronchus runs
+through it. The chambers are reviewed geometry with their own assertions, so
+correcting the atrium's depth is not a change to make in passing.

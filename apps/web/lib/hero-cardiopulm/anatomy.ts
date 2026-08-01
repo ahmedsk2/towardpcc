@@ -172,8 +172,25 @@ export const CHAMBERS = [
     id: "la",
     label: "left atrium",
     side: "left",
-    centroid: { x: 0.055, y: -0.075, z: -0.09 },
-    radii: { x: 0.085, y: 0.075, z: 0.07 },
+    // TALLER, and lowered to match: -0.075 ± 0.075 became -0.085 ± 0.085.
+    //
+    // THE MITRAL ANNULUS DID NOT EXIST. The atrium's floor sat at -0.150 and
+    // the ventricle's roof at -0.170, so the left heart was two solids with a
+    // gap of 0.020 between them that the chamber blend never crossed. Measured
+    // on the shipped mesh, the slice at y = -0.12 spanned x -0.120 to -0.067 —
+    // the right atrium alone, nothing on the left at any depth — and the heart
+    // rendered as a faint atrial cap floating above a dense ventricular ball,
+    // which is most of why it read as a ball at all. A heart detached at the
+    // mitral valve is not a stylistic problem.
+    //
+    // The floor now lands exactly on the ventricular roof, so the two fuse
+    // through the soft-min rather than merely approaching. The ROOF does not
+    // move: it stays at the carina, which is the landmark the assertion pins
+    // and the reason left-atrial enlargement splays the carinal angle. Growing
+    // downward is also the honest direction — a left atrium runs from the
+    // carina to the annulus, and 0.150 was simply short of it.
+    centroid: { x: 0.055, y: -0.085, z: -0.09 },
+    radii: { x: 0.085, y: 0.085, z: 0.07 },
     share: 0.18,
   },
 ] as const;
@@ -505,6 +522,258 @@ export const BRANCHING = {
 } as const;
 
 /**
+ * THE PULMONARY CIRCULATION — the reason the two organs are one figure.
+ *
+ * Without it the scene is a heart and a pair of lungs that happen to be drawn
+ * near each other. The hila read as places where bronchi stop rather than as
+ * hila, and the left atrium's posterior position — the single most deliberate
+ * fact in CHAMBERS above — is unexplained, because nothing arrives there.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * THE TWO HILAR RELATIONSHIPS, which are the whole point of drawing this
+ *
+ * RIGHT — EPARTERIAL. The right pulmonary artery passes ANTERIOR to the right
+ * main bronchus, and the right upper lobe bronchus leaves ABOVE it. The RUL is
+ * the only lobar bronchus in the body superior to its artery, which is why
+ * RUL_TAKEOFF exists as an explicit branch rather than as generic recursion.
+ *
+ * LEFT — HYPARTERIAL. The left pulmonary artery ARCHES OVER the left main
+ * bronchus, crossing from anterior to posterior as it goes, so every left lobar
+ * bronchus is below its artery.
+ *
+ * Both are asserted against the bronchi in anatomy.test.ts rather than merely
+ * commented, because a reader who knows one thing about a hilum knows this one,
+ * and a figure that gets it backwards is worse than a figure without vessels.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * THE VEINS RUN SOMEWHERE ELSE, and that is not a stylistic choice
+ *
+ * Arteries travel WITH the bronchi — the bronchovascular bundle — so the
+ * arterial tree is the airway tree offset by a small vector, which is what a
+ * bundle is. Veins run in the INTERSEGMENTAL SEPTA, in the gaps between
+ * bundles, and are grown toward attractors chosen for being far from any
+ * airway. That is a real property of the drawn geometry, asserted, not a look.
+ *
+ * Four veins, converging on the posterior left atrium: right superior (upper +
+ * middle lobes), right inferior (lower), left superior (upper), left inferior
+ * (lower).
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * WHAT IS SIMPLIFIED, said out loud
+ *
+ * The superior veins are drawn passing anterior to the artery at the hilum and
+ * swinging posteromedially to the atrium, through the interatrial groove, which
+ * is their real course. The inferior veins run posteriorly throughout, which is
+ * also real. What is NOT modelled is the segmental-level interleaving: at 400 px
+ * per unit H, the few millimetres separating a segmental vein from its
+ * neighbouring artery is a fraction of a stroke width.
+ */
+export const VESSELS = {
+  /**
+   * The pulmonary valve — the arterial trunk's root, placed INSIDE the right
+   * ventricular outflow tract.
+   *
+   * Inside deliberately. The trunk's first centimetre is then buried in the
+   * cardiac mesh, so the arterial tree and the heart cannot visibly separate
+   * when the lungs breathe and the heart does not. Geometry solving a
+   * compositing problem, rather than a transform hack solving it.
+   */
+  mpaRoot: { x: 0.02, y: -0.185, z: 0.095 },
+  /** Ascending, leftward, and posteriorly — the trunk runs UP AND BACK. */
+  mpaMid: { x: 0.04, y: -0.11, z: 0.06 },
+  /**
+   * Where the trunk divides: below the aortic arch, just below the carina, and
+   * ANTERIOR to the left atrium. Asserted against both.
+   */
+  mpaBifurcation: { x: 0.058, y: -0.038, z: 0.014 },
+  /**
+   * Right pulmonary artery, as waypoints from the bifurcation.
+   *
+   * Long and near-horizontal — it has the whole mediastinum to cross, which is
+   * why the right main bronchus can be short and steep and the left cannot.
+   * Every z is POSITIVE: the RPA passes in front of the right main bronchus,
+   * which sits at z = 0.
+   */
+  rpa: [
+    { x: -0.005, y: -0.062, z: 0.034 },
+    { x: -0.052, y: -0.088, z: 0.038 },
+    /** The interlobar (descending) artery, alongside the bronchus intermedius. */
+    { x: -0.098, y: -0.148, z: 0.024 },
+  ],
+  /**
+   * Left pulmonary artery — THE ARCH. Shorter, higher, and it crosses.
+   *
+   * The summit sits above the left main bronchus and the descent is posterior
+   * to it, so the sign of z flips between the first waypoint and the last.
+   * That flip is the arch, and it is what makes every left lobar bronchus
+   * hyparterial.
+   */
+  lpa: [
+    { x: 0.092, y: -0.028, z: -0.01 },
+    { x: 0.132, y: -0.082, z: -0.052 },
+    { x: 0.152, y: -0.15, z: -0.045 },
+  ],
+  /**
+   * The four venous ostia, INSIDE the left atrium for the same reason the
+   * arterial root is inside the right ventricle.
+   *
+   * Their spread is the atrium's own: two right, two left, two upper, two
+   * lower, all on its posterior aspect. This is what the LA's z of -0.09 has
+   * been waiting for.
+   */
+  ostia: {
+    rspv: { x: -0.01, y: -0.048, z: -0.118 },
+    ripv: { x: -0.01, y: -0.102, z: -0.118 },
+    lspv: { x: 0.12, y: -0.048, z: -0.118 },
+    lipv: { x: 0.12, y: -0.102, z: -0.118 },
+  },
+  /**
+   * Hilar stems: ostium → mediastinum → first point inside the lung, per vein.
+   *
+   * Explicit rather than grown, because a tip starting inside the atrium has
+   * nowhere to grow — every direction out of it is mediastinum, which is not
+   * lung, and the containment test would refuse the first step. The stems are
+   * also where the anterior/posterior difference between the superior and
+   * inferior veins lives, which no growth rule would produce.
+   *
+   * The SUPERIOR veins pass anterior to their artery at the hilum and thread
+   * back through the interatrial groove — between the right atrium and the
+   * left — which is their real course and is why the middle waypoint exists.
+   * The INFERIOR veins are posterior the whole way, and need no such detour.
+   */
+  stems: {
+    // The tip is LATERAL to the right atrium, not medial to it. At x = -0.052
+    // it sat inside the atrial ellipsoid — measured, the cardiac field there is
+    // 0.758 of the RA's radius, comfortably within — so the right superior
+    // vein's growth seed was buried in the heart, every step out of it was
+    // refused by containment, and the vein grew nothing at all.
+    rspv: [
+      { x: -0.035, y: -0.055, z: -0.035 },
+      { x: -0.125, y: -0.08, z: 0.06 },
+    ],
+    // Lateral to the right atrium as well, and for the same reason as the
+    // superior vein above. At x = -0.078 the tip sat in the pocket immediately
+    // behind the atrium: not inside it, but with the chamber filling every
+    // direction the vein needed to grow, so it advanced two steps and wedged.
+    ripv: [
+      { x: -0.055, y: -0.13, z: -0.095 },
+      { x: -0.13, y: -0.185, z: -0.08 },
+    ],
+    lspv: [
+      { x: 0.135, y: -0.055, z: -0.05 },
+      { x: 0.14, y: -0.062, z: 0.01 },
+    ],
+    lipv: [
+      { x: 0.148, y: -0.128, z: -0.092 },
+      { x: 0.17, y: -0.16, z: -0.075 },
+    ],
+  },
+  /** Which lobes drain to which vein. The right superior takes two. */
+  venousTerritory: {
+    rspv: ["rul", "rml"],
+    ripv: ["rll"],
+    lspv: ["lul"],
+    lipv: ["lll"],
+  },
+  /**
+   * How far the artery sits from the bronchus it accompanies, per side.
+   *
+   * Mirrors the hilar relationship outward: anterior and slightly inferior on
+   * the right, posterior and slightly superior on the left. Constant, because
+   * a bundle IS two structures a fixed small distance apart — and because a
+   * varying offset makes the arterial tree wander off its bronchus, which is
+   * the one thing a bronchovascular bundle never does.
+   *
+   * 0.016 units is 6.4 scene pixels against strokes of 1.5 to 1.9: far enough
+   * apart to read as two vessels, close enough to read as one bundle.
+   */
+  bundleOffset: {
+    right: { x: 0, y: -0.008, z: 0.014 },
+    left: { x: 0, y: 0.008, z: -0.014 },
+  },
+  /**
+   * Fractions of the offset to try when the full one would leave the lung.
+   *
+   * A bronchus already against the pleura has nowhere to put a vessel outside
+   * it. Shrinking keeps the arterial tree connected where dropping the segment
+   * would leave its children floating, and it is what happens anyway: bronchus
+   * and artery converge as the bundle runs out of room. The final 0 is the
+   * degenerate case — the artery drawn on top of its bronchus.
+   */
+  bundleFallbacks: [1, 0.5, 0.25, 0],
+  /**
+   * Deepest airway generation an artery is drawn alongside.
+   *
+   * Not anatomy — arteries accompany bronchi to the terminal bronchiole. It is
+   * a legibility ceiling, and the same one the trachea/airway split answers:
+   * drawn to the full depth the arterial tree is a translated copy of the
+   * airway, which at 6 px of offset reads as a drop shadow rather than as a
+   * second system. Through generation 10 it covers 729 of 1,597 segments —
+   * the whole proximal half, where a pulmonary artery has a name.
+   */
+  arteryMaxGeneration: 10,
+  /**
+   * THE INTERSEGMENTAL SEPTA, operationally: candidates are scattered through
+   * each vein's territory and only the furthest-from-any-bronchus survive.
+   *
+   * RANKED, NOT THRESHOLDED, and the difference was visible. An absolute
+   * clearance sounds like the same thing and is not, because the two lungs are
+   * not equally full: the right tree runs a generation deeper and decays more
+   * slowly — deliberately, see LENGTH_DECAY_BY_SIDE — so almost nowhere in the
+   * right upper lobe cleared a fixed 0.052, and the right superior vein grew
+   * about six segments while the left grew two hundred. Rendered, the chest had
+   * veins down one side only.
+   *
+   * A septum is not a fixed distance from a bronchus. It is wherever is
+   * furthest from the bundles AROUND IT, and how far that is depends on how
+   * closely those bundles are spaced. Keeping the top fraction says exactly
+   * that, and it balances the two sides by construction rather than by a
+   * constant tuned until they matched.
+   */
+  candidatesPerVein: 900,
+  /**
+   * The calibre ramp, 0 at a trunk and 1 at the finest twig.
+   *
+   * Carried on every segment and not currently rendered — see MeshEdge.depth
+   * for why a depth band can only have one stroke width. It lives here rather
+   * than in vessels.ts because it is a property of the vessels, and this file
+   * is the only place such numbers may live.
+   */
+  taper: {
+    /** End of the pulmonary trunk, where it divides. */
+    hilar: 0.08,
+    /** End of the hilar arteries, and the calibre every lobar artery starts at. */
+    lobar: 0.25,
+    /** End of the venous stems, where the grown tree takes over. */
+    stem: 0.2,
+    /** Added per venous generation beyond the stem. */
+    perVenousGeneration: 0.06,
+  },
+  /** Fraction of candidates kept — the most septal quarter of each territory. */
+  septalFraction: 0.26,
+  /**
+   * Growth parameters. Coarser than the airway's, deliberately.
+   *
+   * A venous tree drawn at bronchial density would double the visual noise of
+   * each lobe for no gain — the veins are there to be READ as a second system
+   * running in the gaps, and a second system as fine as the first reads as one
+   * system twice as dense. Longer steps and a wider kill radius give a sparser,
+   * straighter tree, which is also closer to what a pulmonary vein looks like:
+   * fewer, larger tributaries than the bronchus beside it.
+   */
+  growth: {
+    // LOCAL. At 0.17 a tip could see most of its lobe, so it grew one long
+    // snake toward the far side instead of branching into the territory
+    // beside it, and the veins rendered as strands rather than as trees.
+    influenceRadius: 0.11,
+    killRadius: 0.045,
+    stepLength: 0.034,
+    maxIterations: 70,
+    parentInertia: 0.5,
+  },
+} as const;
+
+/**
  * Pleural envelope (ANATOMY.md §5) — a sparse shell, surfaces only. Without it
  * the heart floats between two bare trees and "between the lungs" is a claim
  * the picture contradicts.
@@ -684,6 +953,28 @@ export const RHYTHM = {
    */
   breathScaleVertical: 0.055,
   breathScaleLateral: 0.018,
+  /**
+   * How far the heart DESCENDS on inspiration, in anatomy units.
+   *
+   * The heart used to be the one system the breath did not touch, and nothing
+   * on screen contradicted that because nothing visibly joined it to the lungs.
+   * The pulmonary vessels do: the trunk leaves the right ventricle and the four
+   * veins enter the left atrium, so a stationary heart beside a chest whose
+   * hila rise and fall by ten pixels tears the vessels apart at both ends.
+   *
+   * The honest fix is not to pin the vessels — it is that A HEART MOVES WITH
+   * THE BREATH. It rests on the diaphragm and is tethered above by the great
+   * vessels, so inspiration carries it down; the change in cardiac silhouette
+   * between an inspiratory and an expiratory film is the everyday evidence,
+   * and it is why a chest X-ray is taken at full inspiration.
+   *
+   * 0.025 is ~5 mm at this scale (unit H ≈ 20 cm in a school-age child) and is
+   * the excursion of quiet tidal breathing, not of a deep breath. It also lands
+   * within about two pixels of where the breath scale carries the hilum, so the
+   * vessels stay joined at both ends without either end being pinned to the
+   * other — the geometry agrees rather than being made to agree.
+   */
+  breathCardiacDescent: 0.025,
   /** Alveolar clusters additionally scale about their own centroids. */
   breathScaleCluster: 0.18,
   /** Recruitment glow at end-inspiration. */
