@@ -136,13 +136,24 @@ async function checkNoForeignScripts() {
  * script — and nothing here would notice. So the exemption is pinned to the
  * exact filenames known to be enabled, and anything new fails.
  *
- * The RIGHT end state is an empty list. `email-decode.min.js` is Cloudflare's
- * Email Address Obfuscation (Scrape Shield), switched on in the dashboard and
- * not required by anything this site does; turning it off removes the last
- * non-first-party script from the calculators. The list should also empty
- * itself at the DNS cutover, when Cloudflare stops fronting the site.
+ * THE LIST IS NOW EMPTY, and that is the point of it.
+ *
+ * It briefly held `email-decode.min.js` — Cloudflare's Email Address
+ * Obfuscation, switched on in the dashboard and required by nothing this site
+ * does. Scrape Shield was turned off on 2026-08-01, along with Real User
+ * Measurements, which had been injecting `static.cloudflareinsights.com` into
+ * every calculator page. Neither had ever collected anything: the CSP
+ * (`script-src 'self'`) blocked the third-party beacon outright.
+ *
+ * So the exemption exists only to be empty. Anything the edge injects from here
+ * fails this check, which is the correct posture for pages whose promise is
+ * that nothing they touch leaves the browser — and it stays correct through the
+ * DNS cutover, when Cloudflare stops fronting the site entirely.
+ *
+ * If a future edge feature is genuinely wanted, add its filename here
+ * deliberately, with a reason. Do not widen the pattern.
  */
-const EDGE_SCRIPTS_ALLOWED = new Set(["email-decode.min.js"]);
+const EDGE_SCRIPTS_ALLOWED = new Set([]);
 
 async function checkEdgeInjectedScripts() {
   const { body } = await get("/calculators/pim3");
