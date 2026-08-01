@@ -129,7 +129,7 @@ export function InstallPrompt() {
       aria-label={p.installPromptAriaLabel}
       className={cn(
         "fixed inset-x-3 bottom-3 z-50 rounded-lg border border-border bg-surface-raised p-4 shadow-md",
-        "motion-safe:animate-[installIn_240ms_var(--motion-ease)_both]",
+        "motion-safe:animate-[installIn_var(--motion-duration-panel)_var(--motion-ease)_both]",
       )}
     >
       <p className="font-display text-[15px] font-medium text-ink-strong">

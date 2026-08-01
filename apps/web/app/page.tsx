@@ -104,7 +104,7 @@ export default function HomePage() {
         <div className="relative z-10 mx-auto grid max-w-[1280px] items-center gap-12 px-6 pt-20 pb-28 lg:grid-cols-[1.02fr_0.98fr]">
           <div>
             <p
-              className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-[13px] font-semibold motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-[13px] font-semibold motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "40ms" }}
             >
               <span
@@ -117,24 +117,27 @@ export default function HomePage() {
                 uses. Fluid rather than a 3rem→4rem jump at a single breakpoint,
                 which left every width in between with whichever size fit worst. */}
             <h1
-              className="max-w-[15ch] font-display text-display-1 leading-[1.03] font-bold tracking-[-0.02em] text-white motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="max-w-[15ch] font-display text-display-1 leading-[1.03] font-bold tracking-[-0.02em] text-white motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "120ms" }}
             >
               {h.heading}
             </h1>
             <p
-              className="mt-6 max-w-[46ch] text-lg leading-relaxed text-ink-on-dark/90 motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mt-6 max-w-[46ch] text-lg leading-relaxed text-ink-on-dark/90 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "220ms" }}
             >
               {h.promise}
             </p>
             <div
-              className="mt-9 flex flex-wrap gap-3.5 motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mt-9 flex flex-wrap gap-3.5 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "320ms" }}
             >
               <Link
                 href="/calculators"
-                className={cn(ctaBase, "bg-surface-raised text-accent hover:bg-accent-tint")}
+                className={cn(
+                  ctaBase,
+                  "bg-surface-raised text-accent hover:bg-accent-tint hover:text-accent-deep",
+                )}
               >
                 {h.ctaPrimary}
               </Link>
@@ -150,7 +153,7 @@ export default function HomePage() {
             </div>
 
             <dl
-              className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-white/20 pt-6 motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-white/20 pt-6 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "420ms" }}
             >
               {h.heroTrust.map((t) => (
@@ -524,7 +527,10 @@ export default function HomePage() {
           <p className="mx-auto mt-4 max-w-[52ch] text-lg text-white/90">{h.ctaBand.body}</p>
           <Link
             href="/calculators"
-            className={cn(ctaBase, "mt-8 bg-surface-raised text-accent hover:bg-accent-tint")}
+            className={cn(
+              ctaBase,
+              "mt-8 bg-surface-raised text-accent hover:bg-accent-tint hover:text-accent-deep",
+            )}
           >
             {h.ctaBand.cta}
           </Link>

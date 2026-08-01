@@ -145,11 +145,56 @@ function CalculatorFormInner({
     return definition.compute(toComputeInput(inputs, state) as never);
   }, [definition, inputs, state]);
 
+  /**
+   * Fields the user has actually left. Validation MESSAGES wait for this;
+   * compute does not.
+   *
+   * Typing one digit into any field of a 26-input score used to paint a
+   * "… is required." paragraph under every OTHER field and fire that many
+   * `role="alert"` announcements — the form shouting about work the user had
+   * not reached yet. Range messages had the same shape mid-typing: on the way
+   * to 140 the value passes through 1, and a field accepting 20–600 called it
+   * out of range while the clinician was still on the first keystroke.
+   *
+   * Blur is the natural commit point: it means "I have finished with this
+   * field", needs no timer, and cannot fire for a field nobody has visited.
+   */
+  const [blurred, setBlurred] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const markBlurred = useCallback((id: string) => {
+    setBlurred((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  }, []);
+
   const errorsById = useMemo(() => {
     const m = new Map<string, string>();
-    if (outcome && !outcome.ok) for (const e of outcome.errors) m.set(e.inputId, e.message);
+    if (outcome && !outcome.ok) {
+      for (const e of outcome.errors) {
+        // Not yet reached is not yet wrong.
+        if (!blurred.has(e.inputId)) continue;
+        m.set(e.inputId, e.message);
+      }
+    }
     return m;
-  }, [outcome]);
+  }, [outcome, blurred]);
+
+  /**
+   * What is standing between the entries so far and a result.
+   *
+   * The result rail is sticky and the blocking field can be a screen and a half
+   * below it, so a panel that says only "Enter values to compute." is telling a
+   * half-filled form the same thing it tells an empty one. Named, and linked.
+   *
+   * Un-gated by `blurred` on purpose: this is a SUMMARY of why there is no
+   * number, not a per-field accusation, and a summary that omitted the fields
+   * you have not visited would be a list of the wrong things.
+   */
+  const blocking = useMemo(() => {
+    if (!outcome || outcome.ok) return [];
+    const byId = new Map(inputs.map((i) => [i.id, i]));
+    return outcome.errors.flatMap((e) => {
+      const input = byId.get(e.inputId);
+      return input ? [{ id: input.id, label: input.label.en, message: e.message }] : [];
+    });
+  }, [outcome, inputs]);
 
   // Honest partial-result cue (PRD §6.4): additive composites (pSOFA, Phoenix,
   // VIS) score a blank component as normal, so a not-yet-complete entry can read
@@ -220,6 +265,7 @@ function CalculatorFormInner({
             field={state[input.id] ?? { raw: "" }}
             error={errorsById.get(input.id)}
             onChange={(patch) => setField(input.id, patch)}
+            onCommit={() => markBlurred(input.id)}
             missingAsNormal={Boolean(definition.missingAsNormal)}
           />
         ))}
@@ -228,6 +274,7 @@ function CalculatorFormInner({
       <ResultPanel
         definition={definition}
         outcome={outcome}
+        blocking={blocking}
         copied={copied}
         onCopy={copySummary}
         showPartialCue={showPartialCue}
@@ -265,16 +312,19 @@ function unitsFitASegmentedToggle(units: readonly string[]): boolean {
  * semantics are the browser's job rather than ours. `role="listbox"` would have
  * implied a popup and handed us every keyboard behaviour to reimplement.
  *
- * Selected state carries FOUR cues, because `accent-tint` is #fff2ee — 1.10:1
- * against white, and byte-identical to `surface-sunken`. It is invisible on its
- * own and cannot mean anything by itself (WCAG 1.4.1). So: the radio dot fills
- * (shape), the border goes crimson at a constant 2px (never 1px to 2px, which
- * would shift every row by 2px), the label goes medium weight, and the tint
- * arrives last as reinforcement rather than as the signal.
+ * Selected state carries FOUR cues. The original reason was that `accent-tint`
+ * was #fff2ee — 1.10:1 against white and byte-identical to `surface-sunken` —
+ * so the fill was invisible and could not carry meaning at all. The token is
+ * now #ffd9e0 and does separate, and the four cues stay regardless: WCAG 1.4.1
+ * is not satisfied by a fill that is merely visible, because colour must never
+ * be the only carrier. So the radio dot fills (shape), the border goes crimson
+ * at a constant 2px (never 1px to 2px, which would shift every row by 2px), the
+ * label goes medium weight, and the tint arrives last as reinforcement.
  *
- * Hover moves the BORDER, not the fill. `hover:bg-surface-sunken` would paint an
- * unselected row #fff2ee — the selected fill exactly — so hovering would read as
- * selecting.
+ * Hover moves the BORDER, not the fill. That was forced when the selected fill
+ * and `surface-sunken` were the same colour; it is still right, because a fill
+ * change on hover reads as selection on a control whose selected state is also
+ * a fill change.
  */
 function OptionControl({
   name,
@@ -381,12 +431,15 @@ function InputField({
   field,
   error,
   onChange,
+  onCommit,
   missingAsNormal,
 }: {
   input: ScoreInput;
   field: Field;
   error?: string | undefined;
   onChange: (patch: { raw?: string; unit?: string }) => void;
+  /** The user has finished with this field — see `blurred` above. */
+  onCommit: () => void;
   missingAsNormal: boolean;
 }) {
   const id = `field-${input.id}`;
@@ -450,6 +503,15 @@ function InputField({
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             onChange={(e) => onChange({ raw: e.target.value })}
+            onBlur={onCommit}
+            /* A FOCUSED type=number INCREMENTS ON WHEEL SCROLL in Chrome and
+               Safari. Fill weight, scroll down to the next field, and the
+               weight changes underneath you with no keystroke and no undo. On
+               a pediatric dose tool that is a patient-safety defect rather
+               than a nitpick, and blurring on wheel is the whole fix.
+               It costs keyboard users nothing: arrow keys still step the
+               value, which is the accessible increment path. */
+            onWheel={(e) => e.currentTarget.blur()}
             className="numeric h-11 w-full min-w-[8.5rem] flex-1 rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong tabular-nums placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
           />
           {units.length > 1 ? (
@@ -460,6 +522,7 @@ function InputField({
                 aria-label={`${input.label.en} ${c.unitLabel}`}
                 value={field.unit ?? units[0]}
                 onChange={(e) => onChange({ unit: e.target.value })}
+                onBlur={onCommit}
                 className="h-11 shrink-0 rounded-md border border-border-strong bg-surface-raised px-3 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
               >
                 {units.map((u) => (
@@ -509,6 +572,10 @@ function InputField({
       aria-describedby={describedBy}
       aria-invalid={error ? true : undefined}
       aria-required={input.required || undefined}
+      /* React's onBlur is focusout, which bubbles — so this fires when focus
+         leaves the GROUP rather than when it moves between its own radios,
+         which is exactly the commit point a radiogroup has. */
+      onBlur={onCommit}
       className="flex flex-col gap-2"
     >
       <legend id={`${id}-legend`} className="text-sm font-medium text-ink-strong">
@@ -555,9 +622,16 @@ function InputField({
   );
 }
 
+interface BlockingField {
+  id: string;
+  label: string;
+  message: string;
+}
+
 function ResultPanel({
   definition,
   outcome,
+  blocking,
   copied,
   onCopy,
   showPartialCue,
@@ -565,6 +639,7 @@ function ResultPanel({
 }: {
   definition: ScoreDefinition;
   outcome: ComputeResult | null;
+  blocking: readonly BlockingField[];
   copied: boolean;
   onCopy: () => void;
   showPartialCue: boolean;
@@ -588,7 +663,41 @@ function ResultPanel({
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
       {!ok ? (
-        <p className="mt-4 text-sm text-ink-muted">{c.resultPlaceholder}</p>
+        blocking.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-muted">{c.resultPlaceholder}</p>
+        ) : (
+          /* NAMED AND LINKED, not just "enter values". The reference this was
+             measured against fails here in the other direction — its incomplete
+             submit adds an `.error` class that has no CSS rule in any of its
+             stylesheets, so the user gets literally nothing — and arriving at
+             the same place by a different route would be no better.
+             Amber, never crimson: in this palette crimson is the brand and must
+             never mean error. */
+          <div className="mt-4 flex flex-col gap-2">
+            <p className="text-sm text-ink-muted">{c.resultBlockedHeading}</p>
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+              {blocking.map((b) => (
+                <li key={b.id} className="text-sm">
+                  <a
+                    href={`#field-${b.id}`}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-sm text-alert-text underline decoration-alert-text/40 underline-offset-2 hover:decoration-alert-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="numeric inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-alert-bg text-[11px] font-medium"
+                    >
+                      !
+                    </span>
+                    <span>
+                      {b.label}
+                      <span className="sr-only">{` — ${b.message}. ${c.resultBlockedJump}`}</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       ) : (
         <div className="mt-4 flex flex-col gap-4">
           <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
@@ -638,17 +747,35 @@ function ResultPanel({
             </Callout>
           )}
 
-          <button
-            type="button"
-            onClick={onCopy}
-            data-print="hide"
-            className={cn(
-              "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-              "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-            )}
-          >
-            {copied ? c.copied : c.copyResult}
-          </button>
+          {/* Two ways out of the page, because there are two things a
+              clinician does with a score: paste it into a note, or put it in
+              the record. The print stylesheet already existed and was already
+              careful — full-width result, chosen answers only, link targets
+              spelled out — and `printLabel` had been sitting in the copy file
+              with nothing rendering it, so the whole printable record was
+              reachable only by knowing the browser shortcut. */}
+          <div className="flex flex-wrap gap-2" data-print="hide">
+            <button
+              type="button"
+              onClick={onCopy}
+              className={cn(
+                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
+                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              )}
+            >
+              {copied ? c.copied : c.copyResult}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className={cn(
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
+                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              )}
+            >
+              {c.printLabel}
+            </button>
+          </div>
         </div>
       )}
       <Callout tone="note" className="mt-6 text-[13px]">

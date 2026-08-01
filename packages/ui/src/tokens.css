@@ -27,7 +27,24 @@
   --color-accent: #cf1f3d;
   --color-accent-bright: #ea3a57; /* gradient partner + hover */
   --color-accent-deep: #8f1728; /* 9.05:1 on white */
-  --color-accent-tint: #fff2ee; /* chip/selection backgrounds on light */
+  /* Chip and selection backgrounds on light.
+
+     WAS BYTE-IDENTICAL TO `--color-surface-sunken` (#fff2ee). Not a near-miss —
+     the same colour, so a chip on a sunken section painted nothing at all, and
+     on white it separated by 1.10:1. calculator-form.tsx had already noticed
+     and worked around it, giving the selected option four cues because "the
+     tint is invisible on its own"; the workaround is good practice and stays,
+     but it was standing in for a token that should have been fixed.
+
+     Moved toward the accent's own hue, so it reads as a tint OF the accent
+     rather than as the page's own sunken tone. Measured: 1.29:1 against white,
+     1.25:1 against the page, 1.18:1 against sunken — visible on all three.
+
+     THE CEILING IS THE TEXT, not the ground. Chip labels use `accent-deep`
+     (7.00:1 here). Plain `accent` reaches only 4.15:1 on this tint and must not
+     be used on it — that is why the one chip that did was moved to
+     `accent-deep`, which is the token that exists for exactly this. */
+  --color-accent-tint: #ffd9e0;
   --color-ink-on-accent: #ffffff; /* 5.36:1 on accent fills */
 
   /* Coral — the warm secondary. DARK SURFACES AND GRADIENTS ONLY.
@@ -149,8 +166,19 @@
   --radius-pill: 999px;
 
   /* Motion — single easing voice; all animation honors reduced-motion.
-     Interactions stay at 150ms: half a second on a control reads as lag. */
+     Interactions stay at 150ms: half a second on a control reads as lag.
+
+     THE SCALE WAS DEFINED AND NOT USED. Measured across the tracked source:
+     `-fast`, `-slow` and `-count` had zero consumers, `-reveal` had two, and
+     every one of the seven keyframes in globals.css was invoked with a
+     hand-typed duration — 180, 200, 220, 240, 260, 600, 700ms. A scale nobody
+     consumes is not a scale, it is a comment; and seven hand-typed values are
+     how a product ends up with motion that does not feel like one product.
+     `-enter` and `-panel` are added because the hand-typed values clustered
+     there: they are the two durations the site was already reaching for. */
   --motion-duration-fast: 150ms;
+  --motion-duration-enter: 200ms;
+  --motion-duration-panel: 260ms;
   --motion-duration-slow: 400ms;
   --motion-duration-reveal: 700ms;
   --motion-duration-count: 1500ms;

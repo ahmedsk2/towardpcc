@@ -27,12 +27,17 @@ export function PageHero({
           <Breadcrumbs trail={[{ label: crumb }]} />
         </div>
         {eyebrow ? (
-          <p className="mt-8 mb-3 font-numeric text-[12px] tracking-[0.14em] text-coral uppercase">
+          <p className="mt-8 mb-3 font-numeric text-eyebrow tracking-[0.14em] text-coral uppercase">
             {eyebrow}
           </p>
         ) : null}
+        {/* `text-display-2`, not `text-4xl md:text-5xl`. The token is a
+            clamp() — it scales continuously with the viewport instead of
+            snapping once at 768px — and it is the SAME scale the calculator
+            and pillar page titles already use, so a reader moving between
+            sections is not shown three different h1 sizes for the same rank. */}
         <h1
-          className={`${eyebrow ? "" : "mt-8"} max-w-[20ch] font-display text-4xl leading-[1.05] font-bold tracking-tight text-white md:text-5xl`}
+          className={`${eyebrow ? "" : "mt-8"} max-w-[20ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-white`}
         >
           {title}
         </h1>

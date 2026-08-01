@@ -123,6 +123,12 @@ export function ScoreTabs({ items }: { items: readonly ScoreTab[] }) {
           // no focusable content of its own.
           tabIndex={0}
           hidden={active !== i}
+          // Carried so the print stylesheet can title each panel once the tab
+          // strip is gone. Three of the four panels are `hidden` at any moment,
+          // so a printed record shipped with whichever tab happened to be open
+          // and silently dropped the formula, the limitations or the evidence
+          // that justified the number.
+          data-panel-title={item.label}
           className="pt-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           {item.content}

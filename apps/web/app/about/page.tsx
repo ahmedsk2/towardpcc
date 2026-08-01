@@ -27,7 +27,7 @@ export default function AboutPage() {
           <p className="mt-8 mb-4 font-numeric text-[12px] tracking-[0.14em] text-coral uppercase">
             {a.visionHeading}
           </p>
-          <h1 className="max-w-[22ch] font-display text-4xl leading-[1.05] font-bold tracking-tight text-white md:text-5xl">
+          <h1 className="max-w-[22ch] font-display text-display-2 leading-[1.05] font-bold tracking-tight text-white">
             {site.footer.vision}
           </h1>
           <p className="mt-6 max-w-[58ch] text-lg leading-relaxed text-ink-on-dark/90">
@@ -65,7 +65,7 @@ export default function AboutPage() {
           </Reveal>
           <Reveal>
             <div>
-              <p className="mb-4 inline-flex rounded-full bg-accent-tint px-4 py-1.5 font-numeric text-[12px] font-semibold tracking-[0.14em] text-accent uppercase">
+              <p className="mb-4 inline-flex rounded-full bg-accent-tint px-4 py-1.5 font-numeric text-eyebrow font-semibold tracking-[0.14em] text-accent-deep uppercase">
                 {f.eyebrow}
               </p>
               <h2

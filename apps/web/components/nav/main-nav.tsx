@@ -150,13 +150,13 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                 {mega && (
                   <div
                     id="mega-calculators"
-                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-2xl motion-safe:animate-[megaIn_180ms_var(--motion-ease)_both]"
+                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-2xl motion-safe:animate-[megaIn_var(--motion-duration-enter)_var(--motion-ease)_both]"
                   >
                     {/* The panel drops 6px (megaIn) while its contents rise 6px
                         to meet it. Four beats, not sixty: a per-link stagger at
                         any readable step would still be arriving two seconds
                         after the menu opened. */}
-                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3 motion-safe:animate-[megaColIn_220ms_var(--motion-ease)_both]">
+                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3 motion-safe:animate-[megaColIn_var(--motion-duration-enter)_var(--motion-ease)_both]">
                       <p className="m-0 text-sm text-ink-muted">
                         <strong className="font-semibold text-ink-strong">
                           {groups.reduce((n, g) => n + g.items.length, 0)} calculators
@@ -183,7 +183,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                     {[0, 1, 2].map((col) => (
                       <div
                         key={col}
-                        className="motion-safe:animate-[megaColIn_220ms_var(--motion-ease)_both]"
+                        className="motion-safe:animate-[megaColIn_var(--motion-duration-enter)_var(--motion-ease)_both]"
                         style={{ animationDelay: `${60 + col * 55}ms` }}
                       >
                         {groups
@@ -255,11 +255,11 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
             type="button"
             aria-label={site.nav.closeMenuLabel}
             onClick={() => setDrawer(false)}
-            className="absolute inset-0 h-full w-full cursor-zoom-out bg-black/50 motion-safe:animate-[drawerScrimIn_200ms_var(--motion-ease)_both]"
+            className="absolute inset-0 h-full w-full cursor-zoom-out bg-black/50 motion-safe:animate-[drawerScrimIn_var(--motion-duration-enter)_var(--motion-ease)_both]"
           />
           <div
             id="nav-drawer"
-            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-2xl motion-safe:animate-[drawerIn_260ms_var(--motion-ease)_both]"
+            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-2xl motion-safe:animate-[drawerIn_var(--motion-duration-panel)_var(--motion-ease)_both]"
           >
             <div className="mb-6 flex items-center justify-between">
               <span className="font-display text-lg font-bold text-ink-strong">
@@ -285,7 +285,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
               {links.map(({ href, label }, i) => (
                 <li
                   key={href}
-                  className="motion-safe:animate-[drawerItemIn_260ms_var(--motion-ease)_both]"
+                  className="motion-safe:animate-[drawerItemIn_var(--motion-duration-panel)_var(--motion-ease)_both]"
                   style={{ animationDelay: `${80 + i * 35}ms` }}
                 >
                   <Link
@@ -320,7 +320,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
 }
 
 const navLink =
-  "group relative inline-flex min-h-11 items-center gap-1.5 rounded-md px-3.5 py-2.5 text-[15px] font-semibold text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "group relative inline-flex min-h-11 items-center gap-1.5 rounded-md px-3.5 py-2.5 text-[15px] font-semibold text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const navLinkActive = "text-accent";
 
 /**

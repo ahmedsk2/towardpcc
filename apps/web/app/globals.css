@@ -279,4 +279,29 @@ body {
     border: 1px solid #000 !important;
     break-inside: avoid;
   }
+
+  /* THE WHOLE REFERENCE ZONE PRINTS, not whichever tab was open.
+     Formula, limitations, evidence and version history are four tabpanels and
+     three of them carry `hidden` at any moment, so a printed clinical record
+     shipped with one of them and silently dropped the other three — including,
+     depending on where the reader had clicked, the very evidence that
+     justifies the number on the page above it. The tab strip itself is
+     navigation and goes; each panel gets its tab's label back as a heading,
+     from the same `label` the button renders, so the two cannot disagree. */
+  [role="tablist"] {
+    display: none !important;
+  }
+  [data-score-panel] {
+    display: block !important;
+    padding-top: 0 !important;
+    break-inside: avoid;
+  }
+  [data-score-panel]::before {
+    content: attr(data-panel-title);
+    display: block;
+    margin: 1.25rem 0 0.4rem;
+    font-weight: 600;
+    border-bottom: 1px solid #000;
+    padding-bottom: 0.2rem;
+  }
 }

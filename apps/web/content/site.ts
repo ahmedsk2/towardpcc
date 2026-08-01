@@ -901,6 +901,12 @@ export const site = {
     backToIndex: "All calculators",
     resultHeading: "Result",
     resultPlaceholder: "Enter values to compute.",
+    // Shown once entry has STARTED but a result is still blocked. A sticky
+    // rail that says "Enter values to compute." to a half-filled form is
+    // telling it the same thing it tells an empty one, while the field
+    // actually standing in the way can be a screen and a half below.
+    resultBlockedHeading: "Waiting on",
+    resultBlockedJump: "Go to",
     interpretationLabel: "Interpretation",
     // Shown for additive composites (pSOFA, Phoenix, VIS) where a blank
     // component is scored as normal, so a partial entry is never mistaken

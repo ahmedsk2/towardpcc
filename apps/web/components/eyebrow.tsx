@@ -4,10 +4,16 @@ import { cn } from "@towardpcc/ui";
  * The small uppercase label above a section heading.
  *
  * It was built inline from the same six utilities in three places, and all
- * three drew a `bg-accent-tint` pill. That fill is #fff2ee — 1.09:1 against the
- * white and near-white grounds these sections sit on, and byte-identical to
- * `surface-sunken`. The pill was invisible: what actually read was uppercase
- * crimson text with unexplained padding around it.
+ * three drew a `bg-accent-tint` pill. At the time that fill was #fff2ee —
+ * 1.09:1 against the white and near-white grounds these sections sit on, and
+ * byte-identical to `surface-sunken`. The pill was invisible: what actually
+ * read was uppercase crimson text with unexplained padding around it.
+ *
+ * The token has since been corrected to #ffd9e0 and the pill would now be
+ * visible. The rule stays anyway. A pill and a rule are different devices, and
+ * the rule is the better one here: it works on any ground and gives the eye a
+ * consistent entry point down the page, which is the job the pill was meant to
+ * do and was failing at for reasons beyond its colour.
  *
  * A leading rule replaces it. It works on any ground, it does not pretend to be
  * a shape nobody can see, and it gives the eye a consistent entry point down
