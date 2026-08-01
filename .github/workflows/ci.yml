@@ -181,9 +181,27 @@ jobs:
         uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
         with:
           dockerfile: apps/web/Dockerfile
-          # DL3018 (pin apk versions) is not enforced: the base image is already
-          # pinned by digest, so the package set is reproducible without also
-          # pinning every apk, which would rot fast and block security updates.
+          # DL3018 (pin apk versions) is deliberately NOT enforced. The decision
+          # stands; the reason previously given here did not.
+          #
+          # It used to say the base image is digest-pinned "so the package set is
+          # reproducible". That is false. The digest pins the layers already IN
+          # the base image, while `apk add` resolves against the live Alpine
+          # index at build time — the installed dumb-init revision is exactly the
+          # thing the digest does not fix. Two tracking documents inherited that
+          # wrong rationale from this comment.
+          #
+          # The real reason to leave it unpinned: a pinned apk version is removed
+          # from the Alpine index when the branch moves on, so the pin turns a
+          # security update into a hard build failure at an unpredictable moment.
+          # dumb-init is a 30-year-old-problem PID-1 reaper with no network
+          # surface, run before the app drops to a non-root user — a supply-chain
+          # substitution there is not a threat this pin meaningfully changes.
+          #
+          # What DOES cover it: the image is scanned by Trivy on every code
+          # commit (below), which is where a compromised or vulnerable package
+          # would actually be caught. Recorded so the next reader meets the
+          # decision rather than re-litigating it. See LAUNCH-BLOCKERS SPC-CON-009.
           ignore: DL3018
           failure-threshold: warning
 

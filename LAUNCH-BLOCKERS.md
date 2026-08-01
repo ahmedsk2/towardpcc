@@ -816,19 +816,31 @@ any try/catch, so a missing `SUBMISSION_IP_SALT` would become **100% admin login
 failure** rather than a missing audit row. (The audit's `auth.ts:84` pin is
 stale — that is now the cookie block.)
 
-### SPC-CON-009 — the docs and CI disagree, and nobody wrote it down
+### SPC-CON-009 — decided and written down, 2026-08-01
 
-- [ ] Decide `dumb-init` pinning explicitly, then make the docs and CI agree.
+- [x] `dumb-init` stays unpinned. The decision is recorded at the suppression
+      itself in `.github/workflows/ci.yml`, so the next reader meets it there
+      rather than re-litigating it.
 
-`apps/web/Dockerfile:53` is unpinned — but `.github/workflows/ci.yml:184-187`
-suppresses hadolint `DL3018`, the rule that catches exactly this. CI encodes
-"won't fix" while two documents track it as open. Both justify inaction with
-"base is digest-pinned, therefore reproducible", which is **wrong**: the digest
-pins the layers already in the base image, while `apk add` resolves against the
-live Alpine index at build time. The audit's `Dockerfile:25` is stale (now 53).
+The item was never really "pin it or not" — CI had already decided by
+suppressing hadolint `DL3018`, the rule that catches exactly this, while two
+documents still tracked it as open. What was missing was a written reason, and
+the reason that WAS written was wrong: both said "base is digest-pinned,
+therefore reproducible". The digest pins the layers already in the base image;
+`apk add` resolves against the live Alpine index at build time, so the installed
+revision is precisely what the digest does not fix. That rationale originated in
+the CI comment and was inherited by the audit.
+
+The real reason to leave it unpinned: a pinned apk version is dropped from the
+index when the Alpine branch moves on, which turns a security update into a hard
+build failure at an unpredictable moment. `dumb-init` is a PID-1 reaper with no
+network surface, running before the image drops to the non-root `app` user. What
+actually covers it is the Trivy scan on every code commit, which is where a
+vulnerable or substituted package would be caught.
 
 Unlike `docker-compose.prod.yml`, this Dockerfile is genuinely in effect —
-Coolify builds from it.
+Coolify builds from it. The audit's `Dockerfile:25` locator is stale; it is
+line 53.
 
 ### SPC-SUP-002 — one third done, and signing would attest to the wrong artefact
 
