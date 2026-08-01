@@ -102,6 +102,17 @@ function project(p: { x: number; y: number; z: number }, yaw: number, pitch: num
 }
 
 /** Per-system band styling: opacity and stroke width at the far and near bands. */
+/**
+ * Lifted for an UNBOXED ground.
+ *
+ * The figure used to sit on a near-black panel, where a dim mesh read as
+ * luminous. On the hero's mid-crimson gradient it did not: mesh and ground
+ * share a hue, so there was no value separation and the lungs nearly vanished.
+ *
+ * Paid for by raising the mesh rather than by putting the panel back — every
+ * near band now reaches full opacity, and the inks below shift toward peach so
+ * the figure separates by VALUE from a ground it cannot separate from by hue.
+ */
 const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: number }> = {
   /**
    * The central airway: the brightest and heaviest thing after the heart.
@@ -120,17 +131,17 @@ const STYLE: Record<MeshKind, { far: number; near: number; wFar: number; wNear: 
    * read as an overlay drawn ON the figure rather than as its trunk: the
    * inverted Y was unmistakable and belonged to a different picture.
    */
-  trachea: { far: 0.72, near: 0.92, wFar: 1.25, wNear: 1.9 },
+  trachea: { far: 0.8, near: 1, wFar: 1.4, wNear: 2.1 },
   /** The structure the eye should follow first. */
-  airway: { far: 0.14, near: 0.8, wFar: 0.5, wNear: 1.4 },
+  airway: { far: 0.3, near: 1, wFar: 0.6, wNear: 1.55 },
   /** The subject: brightest, and drawn last. */
-  heart: { far: 0.22, near: 0.95, wFar: 0.55, wNear: 1.2 },
+  heart: { far: 0.34, near: 1, wFar: 0.62, wNear: 1.35 },
   /**
    * The room, not the subject. Barely there on purpose — drawn any heavier it
    * becomes an outline, and an outline around a mesh reads as a box the scene
    * has been placed inside.
    */
-  pleura: { far: 0.035, near: 0.17, wFar: 0.4, wNear: 0.65 },
+  pleura: { far: 0.1, near: 0.44, wFar: 0.45, wNear: 0.8 },
 };
 
 /** Vertices sit a little brighter than their edges, or they vanish into them. */

@@ -11,6 +11,7 @@ import {
   SCENE,
   VITALS,
 } from "@/lib/hero-cardiopulm/scene";
+import { capnograph, ieRatio, pulseTrace, rsaPercent } from "@/lib/hero-cardiopulm/waveforms";
 import { site } from "@/content/site";
 import { PulseDriver } from "./pulse-driver";
 
@@ -43,6 +44,10 @@ const scene = buildScene();
  * horizontal shift; the paths inside it carry breath and beat, each about its
  * own origin.
  */
+const capno = capnograph();
+const pulse = pulseTrace();
+const ie = ieRatio();
+
 const bands = (() => {
   const byBand = new Map<string, { kind: MeshKind; band: number; z: number; paths: ScenePath[] }>();
   for (const p of scene.paths) {
@@ -54,13 +59,20 @@ const bands = (() => {
   return [...byBand.values()];
 })();
 
+/**
+ * Shifted toward peach for the unboxed ground.
+ *
+ * Coral on a crimson gradient is the same hue at a similar value, which is why
+ * the airways washed out once the dark panel went. Separation has to come from
+ * VALUE here, so each ink moves toward the light end. The heart keeps the most
+ * saturation, because it is the one system that should still read as the
+ * warmest thing in the frame.
+ */
 const INK = {
-  // Between the airway and the pleura: unmistakably the trunk, still the
-  // same figure as the branches hanging off it.
-  trachea: "color-mix(in oklab, var(--color-coral), var(--color-peach) 55%)",
-  airway: "var(--color-coral)",
-  heart: "var(--color-accent-bright)",
-  pleura: "var(--color-peach)",
+  trachea: "color-mix(in oklab, var(--color-peach), white 22%)",
+  airway: "color-mix(in oklab, var(--color-coral), var(--color-peach) 62%)",
+  heart: "color-mix(in oklab, var(--color-accent-bright), var(--color-peach) 10%)",
+  pleura: "color-mix(in oklab, var(--color-peach), white 12%)",
 } as const;
 
 export function CardiopulmonaryScene({ className }: { className?: string }) {
@@ -167,15 +179,49 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
             <span className="cps-key">RR</span>
             <span className="cps-val">{VITALS.respiratoryRate}</span>
             <span className="cps-unit">/min</span>
+            {/* Capnography, from the breath curve itself. Square-shouldered
+                because a real trace is: near zero through inspiration, a steep
+                upstroke into the alveolar plateau, then a cliff at the next
+                breath. A smooth sine here would be recognisably wrong to
+                anyone who reads one at a bedside. */}
+            <svg
+              className="cps-trace"
+              viewBox={`0 0 ${capno.width} ${capno.height}`}
+              aria-hidden="true"
+              style={{ "--period": `${capno.periodMs}ms` } as CSSProperties}
+            >
+              <path d={capno.d} />
+            </svg>
+          </li>
+          <li className="cps-label cps-label-ie">
+            <span className="cps-key">I:E</span>
+            <span className="cps-val">{ie}</span>
           </li>
           <li className="cps-label cps-label-hr">
             <span className="cps-key">HR</span>
             <span className="cps-val">{VITALS.heartRate}</span>
             <span className="cps-unit">bpm</span>
+            {/* The arterial pulse, from the same perfusion curve that drives
+                the brightness crossing the chambers, so the trace peaks
+                exactly when the figure does. The dicrotic notch sits on the
+                downstroke; without it this reads as a sine, not a pulse. */}
+            <svg
+              className="cps-trace"
+              viewBox={`0 0 ${pulse.width} ${pulse.height}`}
+              aria-hidden="true"
+              style={{ "--period": `${pulse.periodMs}ms` } as CSSProperties}
+            >
+              <path d={pulse.d} />
+            </svg>
           </li>
           {/* The signature of the whole piece, and invisible to anyone who does
             not already know it is there. One line makes it legible. */}
-          <li className="cps-label cps-label-rsa">{site.home.heroSceneCoupling}</li>
+          <li className="cps-label cps-label-rsa">
+            <span className="cps-key">RSA</span>
+            <span className="cps-unit">
+              ±{rsaPercent}% · {site.home.heroSceneCoupling}
+            </span>
+          </li>
         </ul>
       </div>
 
@@ -217,11 +263,36 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
   font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--color-ink-on-dark);
-  opacity: 0;
-  transition:
-    opacity 180ms var(--motion-ease),
-    translate 180ms var(--motion-ease);
-  translate: 0 4px;
+  /* STANDING, not hover-gated. They were revealed on hover so the default
+     state stayed evocative; that also meant the scene's best idea was
+     invisible to everyone who never pointed at it — and invisible entirely on
+     touch. They earn their place because every value is one the animation is
+     actually running at. Held low enough not to compete with the headline. */
+  opacity: 0.72;
+  animation: cpsLabelIn 700ms var(--motion-ease) both;
+}
+/* Staggered, so the panel assembles rather than appearing. */
+.cps-label-rr {
+  animation-delay: 300ms;
+}
+.cps-label-ie {
+  animation-delay: 520ms;
+}
+.cps-label-hr {
+  animation-delay: 740ms;
+}
+.cps-label-rsa {
+  animation-delay: 960ms;
+}
+@keyframes cpsLabelIn {
+  from {
+    opacity: 0;
+    translate: 0 5px;
+  }
+  to {
+    opacity: 0.72;
+    translate: 0 0;
+  }
 }
 /* Anchored OUTSIDE the thoracic silhouette. Never over the heart mesh. */
 .cps-label-rr {
@@ -229,9 +300,18 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
   left: 0;
 }
 .cps-label-hr {
-  bottom: 20%;
+  /* TOP-right, not bottom-right. At the bottom it lay across the lung mesh,
+     which is unreadable and is the one placement rule the review set. The
+     silhouette narrows toward the apices, so the corners are the only clear
+     ground inside the frame. */
+  top: 12%;
   right: 0;
-  /* Right-ALIGNED, not reversed. row-reverse read out as "bpm 81 HR". */
+  justify-content: flex-end;
+}
+.cps-label-ie {
+  top: 27%;
+  right: 0;
+  justify-content: flex-end;
 }
 .cps-label-rsa {
   bottom: 1%;
@@ -239,8 +319,39 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
   right: 0;
   justify-content: center;
   font-size: 10.5px;
-  opacity: 0;
-  color: color-mix(in oklab, var(--color-ink-on-dark), transparent 30%);
+  color: color-mix(in oklab, var(--color-ink-on-dark), transparent 25%);
+}
+
+/* ── Traces ─────────────────────────────────────────────────────────────── */
+/* Scrolled by CSS, never by JavaScript. Each path holds two whole cycles and
+   translates by exactly one over exactly one period, so the loop is seamless
+   and the scroll rate IS the physiological rate by construction. */
+.cps-trace {
+  width: 46px;
+  height: 15px;
+  overflow: hidden;
+  margin-inline-start: 0.35em;
+  align-self: center;
+}
+.cps-trace path {
+  fill: none;
+  stroke: var(--color-coral);
+  stroke-width: 1.2;
+  stroke-opacity: 0.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: cpsScroll var(--period) linear infinite;
+}
+@keyframes cpsScroll {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: -50% 0;
+  }
+}
+.cps-label-hr .cps-trace path {
+  stroke: var(--color-accent-bright);
 }
 .cps-key {
   font-family: var(--font-numeric);
@@ -257,15 +368,10 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
   color: color-mix(in oklab, var(--color-ink-on-dark), transparent 45%);
 }
 
-/* Reveal on hover or keyboard focus. Default stays evocative. */
+/* Pointing at the figure lifts them the rest of the way. */
 .cps-stage:hover .cps-label,
 .cps-stage:focus-within .cps-label {
   opacity: 1;
-  translate: 0 0;
-}
-.cps-stage:hover .cps-label-rsa,
-.cps-stage:focus-within .cps-label-rsa {
-  opacity: 0.85;
 }
 
 /* No room on a phone, and a cramped label is worse than none. */
@@ -276,8 +382,14 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
 }
 @media (prefers-reduced-motion: reduce) {
   .cps-label {
-    transition: none;
+    animation: none;
+    opacity: 0.72;
     translate: 0 0;
+  }
+  /* A scrolling trace is motion for its own sake once motion is refused. It
+     holds one still cycle, which still shows the waveform's shape. */
+  .cps-trace path {
+    animation: none;
   }
 }
 .cps-svg {
