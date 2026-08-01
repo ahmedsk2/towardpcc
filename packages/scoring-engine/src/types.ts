@@ -175,6 +175,34 @@ export type IpStatus =
       readonly grantedDate: string;
     };
 
+/**
+ * How a composite total decomposes into named parts.
+ *
+ * The maxima live HERE, on the definition, rather than on the emitted
+ * `ScoreValue` — a pSOFA respiratory subscore is 0–4 because the instrument
+ * says so, not because of anything the patient's numbers did. Declaring it once
+ * keeps `calculate()` free of repeated constants and gives `registry-gate` a
+ * fixed thing to check every worked example against.
+ *
+ * `min` exists for the paediatric GCS, whose components are 1–4, 1–5 and 1–6
+ * and never 0. A proportion bar drawn from zero would render a motor score of 1
+ * as a sixth of its range when it is in fact the floor.
+ */
+export interface CompositionComponent {
+  /** Must match a `ScoreValue.id` the score emits. */
+  readonly id: string;
+  /** Instrument maximum for this component. */
+  readonly max: number;
+  /** Instrument minimum. Defaults to 0 when absent. */
+  readonly min?: number | undefined;
+}
+
+export interface Composition {
+  /** Must match the `ScoreValue.id` carrying the total. */
+  readonly total: string;
+  readonly components: readonly CompositionComponent[];
+}
+
 export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonly ScoreInput[]> {
   readonly id: string;
   readonly slug: string;
@@ -251,6 +279,11 @@ export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonl
   readonly interpretationStatus?: "not-applicable" | "pending";
   /** Clinical limitations, caveats, and any [NEEDS SOURCE] gaps. */
   readonly notes: LocalizedText;
+  /**
+   * Present only on scores whose total is the sum of named parts. Absent means
+   * "not a composite" — the result panel then renders exactly as it does today.
+   */
+  readonly composition?: Composition;
 }
 
 export interface ScoreSummary {

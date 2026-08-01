@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { psofa } from "./psofa";
 
@@ -473,4 +474,78 @@ describeScore(psofa, (ctx) => {
 
   // >8 cut point (Matics 2017): band switches at total = 9.
   ctx.interpretationBoundary("total", 9, "lower", "elevated");
+
+  /**
+   * The declared composition must stay true of the numbers the score actually
+   * emits. registry-gate checks the IDS exist; nothing checked the ARITHMETIC —
+   * that the six organ subscores really do sum to the total, and that none of
+   * them exceeds the 0–4 range the composition declares. A wrong `max` here
+   * would draw a bar of the wrong length on the result panel while every
+   * existing assertion still passed.
+   *
+   * A `value <= max` assertion is only half a test: it catches a max declared
+   * too LOW, never one declared too HIGH, because nothing ever attains the
+   * inflated ceiling and the comparison passes forever while the rendered bar
+   * stays silently short. The last vector is Worked example C's physiology —
+   * every one of the six organs at 4 at once, total 24 — so the attainment
+   * assertion below pins each declared max from both sides.
+   */
+  it("declared components sum to the total and pin their maxima, low to high", () => {
+    const vectors = [
+      normal,
+      { ...normal, pao2: { value: 250, unit: "mmHg" } },
+      { ...normal, platelets: { value: 15, unit: "10^3/µL" } },
+      { ...normal, bilirubin: { value: 13, unit: "mg/dL" } },
+      { ...normal, gcs: { value: 5, unit: "" } },
+      { ...normal, creatinine: { value: 3.0, unit: "mg/dL" } },
+      { ...normal, age_months: { value: 0.5, unit: "months" }, map: { value: 20, unit: "mmHg" } },
+      // The ceiling (Worked example C): all six organs at 4 simultaneously = 24.
+      {
+        age_months: { value: 168, unit: "months" },
+        pao2: { value: 90, unit: "mmHg" },
+        fio2: { value: 1.0, unit: "fraction" },
+        resp_support: { value: true },
+        platelets: { value: 15, unit: "10^3/µL" },
+        bilirubin: { value: 13, unit: "mg/dL" },
+        epinephrine: { value: 0.2, unit: "µg/kg/min" },
+        gcs: { value: 5, unit: "" },
+        creatinine: { value: 4.5, unit: "mg/dL" },
+      },
+    ];
+
+    const composition = psofa.composition;
+    expect(composition, "psofa must declare a composition").toBeDefined();
+    if (!composition) return;
+
+    const observedMax = new Map(
+      composition.components.map((c) => [c.id, Number.NEGATIVE_INFINITY]),
+    );
+
+    for (const v of vectors) {
+      const outcome = psofa.compute(v as never);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) continue;
+      const get = (id: string) => outcome.result.values.find((x) => x.id === id)!.value;
+      const sum = composition.components.reduce((n, c) => n + get(c.id), 0);
+      expect(sum, `components must sum to the total`).toBe(get(composition.total));
+      for (const c of composition.components) {
+        const value = get(c.id);
+        expect(value, `${c.id} above declared max ${c.max}`).toBeLessThanOrEqual(c.max);
+        expect(value, `${c.id} below declared min`).toBeGreaterThanOrEqual(c.min ?? 0);
+        observedMax.set(c.id, Math.max(observedMax.get(c.id)!, value));
+      }
+    }
+
+    // Each declared max must be REACHED, not merely respected — otherwise a max
+    // set too high sails through the ≤ assertion above and mis-scales the bar.
+    for (const c of composition.components) {
+      expect(observedMax.get(c.id), `${c.id}: declared max ${c.max} is never attained`).toBe(c.max);
+    }
+
+    // And the declared maxima must still add up to the published ceiling.
+    expect(
+      composition.components.reduce((n, c) => n + c.max, 0),
+      "declared maxima must sum to the published pSOFA maximum of 24",
+    ).toBe(24);
+  });
 });

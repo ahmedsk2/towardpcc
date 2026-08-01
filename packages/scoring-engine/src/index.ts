@@ -12,6 +12,8 @@ export type {
   CategoricalInput,
   CategoricalOption,
   ChangelogEntry,
+  Composition,
+  CompositionComponent,
   ComputeResult,
   InputRejection,
   InputValues,

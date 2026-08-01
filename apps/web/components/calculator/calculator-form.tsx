@@ -10,6 +10,7 @@ import type {
 import { fromCanonical, getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { CompositionPanel, splitComposition } from "./composition-panel";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
@@ -225,6 +226,25 @@ function CalculatorFormInner({
     });
   }, [outcome, inputs]);
 
+  /**
+   * How much of a composite has actually been filled in.
+   *
+   * Counted straight off the field state rather than derived from `blocking`,
+   * which cannot answer this question: `blocking` lists inputs that FAILED
+   * validation, and a blank OPTIONAL input fails nothing. pSOFA declares seven
+   * of its fourteen inputs optional and scores a blank one as normal, so
+   * `inputs.length - blocking.length` would report "14 of 14 entered" on a form
+   * with seven empty boxes — and read the same on a completely empty form,
+   * where `blocking` is empty because nothing has been computed at all.
+   *
+   * That is the exact falsehood the partial-result cue beside it exists to
+   * prevent, so the counter has to be measured, not inferred.
+   */
+  const enteredCount = useMemo(
+    () => inputs.filter((i) => (state[i.id]?.raw ?? "") !== "").length,
+    [inputs, state],
+  );
+
   // Honest partial-result cue (PRD §6.4): additive composites (pSOFA, Phoenix,
   // VIS) score a blank component as normal, so a not-yet-complete entry can read
   // falsely low. Flag it whenever such a score computes with an optional field
@@ -245,6 +265,25 @@ function CalculatorFormInner({
    * No privacy implication — the clinician is choosing to copy. The shareable
    * LINK is a separate, separately-labelled action below, because it has the
    * opposite privacy character.
+   *
+   * IT KEEPS THE COMPONENTS, AND THAT IS A DECISION — the opposite one from the
+   * live region below, which drops them.
+   *
+   * The two consumers want different things. The live region is an
+   * INTERRUPTION: it fires on every recompute, and the panel already states the
+   * breakdown as readable text a few nodes away, so announcing it there too is
+   * the same information twice for a listener who cannot skim past it. This
+   * summary is a RECORD, read once, later, away from the page — and the
+   * breakdown is exactly what stops being recoverable when it leaves. pSOFA 9
+   * from cardiovascular 4 and renal 3 is a different handover from pSOFA 9
+   * spread across six organs, and the total alone cannot say which.
+   *
+   * So they are kept DELIBERATELY and as a breakdown: one labelled line, in the
+   * panel's own `4 of 24` phrasing, after the values and before the footer.
+   * That is the difference between this and what the composition work first did
+   * by accident, which was to append five unexplained lines to PELOD-2's
+   * summary and three to pGCS's, interleaved with the banded values and
+   * indistinguishable from them.
    */
   const copySummary = useCallback(() => {
     if (!outcome || !outcome.ok) return;
@@ -263,14 +302,22 @@ function CalculatorFormInner({
         return [`${i.label.en} ${raw === "true" ? c.booleanYes : c.booleanNo}`];
       })
       .join(" · ");
+    const { flat, components } = splitComposition(outcome.result.values, definition.composition);
     const lines = [
       `${definition.name} — ${new Date().toISOString().slice(0, 16)}Z`,
       ...(entered ? [`${c.copyInputsLabel}: ${entered}`] : []),
-      ...outcome.result.values.map((v) => {
+      ...flat.map((v) => {
         const band = matchInterpretationBand(definition, v.id, v.value);
         const num = `${v.label.en}: ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
         return band ? `${num} (${band.label.en})` : num;
       }),
+      ...(components.length > 0
+        ? [
+            `${c.copyComponentsLabel}: ${components
+              .map((r) => `${r.label} ${r.value} of ${r.max}`)
+              .join(" · ")}`,
+          ]
+        : []),
       `${definition.name} v${definition.version} · towardpcc.com`,
     ];
     // Clipboard can reject (denied permission / insecure context); swallow it so
@@ -499,6 +546,7 @@ function CalculatorFormInner({
         definition={definition}
         outcome={outcome}
         blocking={blocking}
+        enteredCount={enteredCount}
         copied={copied}
         linkCopied={linkCopied}
         onCopy={copySummary}
@@ -893,6 +941,7 @@ function ResultPanel({
   definition,
   outcome,
   blocking,
+  enteredCount,
   copied,
   linkCopied,
   onCopy,
@@ -903,6 +952,7 @@ function ResultPanel({
   definition: ScoreDefinition;
   outcome: ComputeResult | null;
   blocking: readonly BlockingField[];
+  enteredCount: number;
   copied: boolean;
   linkCopied: boolean;
   onCopy: () => void;
@@ -911,7 +961,31 @@ function ResultPanel({
   className?: string;
 }) {
   const ok = outcome?.ok ? outcome : null;
-  const multi = (ok?.result.values.length ?? 0) > 1;
+
+  /**
+   * The flat list shows everything the score emits EXCEPT the parts a
+   * composition already accounts for.
+   *
+   * Without this filter pSOFA's six organ subscores render TWICE — once as
+   * unexplained rows in the list, and again, labelled and in proportion, in the
+   * panel below. The panel is the better rendering of the two, so the list
+   * yields.
+   *
+   * Split ONCE, here, and used by both the list and the live region below.
+   * Splitting per consumer is how the live region came to announce all seven
+   * pSOFA values while the list rendered one.
+   */
+  const { flat: flatValues, components: componentRows } = useMemo(
+    () => splitComposition(ok?.result.values ?? [], definition.composition),
+    [ok, definition.composition],
+  );
+
+  /* Derived from what actually RENDERS, not from what the engine emitted.
+     `multi` exists to tell several numbers apart — it labels each one and
+     shrinks the non-primary ones. With the components pulled out, pSOFA shows a
+     single number and needs neither. PRISM still keeps its mortality
+     probability beside the total, so it stays multi and is unaffected. */
+  const multi = flatValues.length > 1;
 
   /**
    * The value that IS the score, when a score returns several.
@@ -951,6 +1025,21 @@ function ResultPanel({
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
 
+      {/* HOW MUCH OF THE INSTRUMENT HAS BEEN ANSWERED — composites only.
+          A composite that scores blank components as normal reads low while it
+          is still being filled in, and the number alone cannot say which it is.
+          The blocking list answers this only while the score is incomplete; it
+          disappears the moment a result exists, which is exactly when a pSOFA
+          with seven optional boxes still empty most needs to say so. So it sits
+          here, above both branches, and is present in both.
+          Not inside the live region below: it changes on every keystroke, and a
+          count read aloud that often is noise rather than information. */}
+      {definition.composition ? (
+        <p className="mt-1 font-numeric text-[13px] text-ink-muted">
+          {enteredCount} of {definition.inputs.length} entered
+        </p>
+      ) : null}
+
       {/* THE ANNOUNCEMENT, and nothing else.
           MOUNTED FROM FIRST PAINT — it was moved inside the `ok` branch to
           narrow what gets announced, and that narrowed it to nothing: a live
@@ -963,10 +1052,17 @@ function ResultPanel({
           on screen. The band scale and range strip are aria-hidden for the same
           reason; this is where their meaning is spoken instead.
           The blocking summary is deliberately NOT here: it changes on every
-          keystroke, and each field already announces itself on blur. */}
+          keystroke, and each field already announces itself on blur.
+          IT ANNOUNCES `flatValues`, NOT EVERY EMITTED VALUE — the same split the
+          visible list uses. Reading the components out here as well would
+          announce pSOFA's six organ subscores on every keystroke AND leave them
+          in the panel below, so a listener meets each one twice while a sighted
+          reader meets it once. The panel's `4 of 24` rows are ordinary text a
+          few nodes away: available on demand, which is the right register for
+          working. The answer is what is worth interrupting for. */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {ok
-          ? ok.result.values
+          ? flatValues
               .map((v) => {
                 const band = matchInterpretationBand(definition, v.id, v.value);
                 const num = `${v.label.en} ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
@@ -1045,8 +1141,16 @@ function ResultPanel({
         )
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
-            {ok.result.values.map((v) => {
+          {/* `data-result-values` is a test hook, and it earns its keep: the
+              double-rendering regression it guards is only visible in the LABELS
+              when `multi` is true, so a text-based assertion silently stops
+              catching it the moment a composite drops to one flat value. Counting
+              the rendered blocks catches it either way. */}
+          <div
+            data-result-values={flatValues.length}
+            className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}
+          >
+            {flatValues.map((v) => {
               const band: InterpretationBand | undefined = matchInterpretationBand(
                 definition,
                 v.id,
@@ -1140,6 +1244,11 @@ function ResultPanel({
               );
             })}
           </div>
+
+          {/* The working behind the total. Only composite scores declare a
+              composition, so `componentRows` is empty for the rest and the
+              panel renders nothing. */}
+          <CompositionPanel rows={componentRows} />
 
           {/* BESIDE THE NUMBER. A result-invalidating caveat that only appears
               in a Limitations tab is a caveat most readers will never meet.

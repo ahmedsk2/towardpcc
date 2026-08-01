@@ -927,6 +927,11 @@ export const site = {
     // fragment — and was invisible, which is the worst of both.
     copyLinkLabel: "Copy link with these values",
     copyInputsLabel: "Inputs",
+    // The composite breakdown in the copied summary, kept on purpose: pSOFA 9
+    // from two organs is a different handover from pSOFA 9 across six, and the
+    // total alone cannot say which. Labelled so it reads as a breakdown rather
+    // than as more result lines.
+    copyComponentsLabel: "Components",
     // Beside the number. "Full citation in Evidence, below" and NOT a link:
     // the fragment belongs to field state, so an href="#evidence" would wipe
     // everything the clinician had entered.

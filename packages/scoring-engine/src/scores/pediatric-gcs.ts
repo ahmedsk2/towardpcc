@@ -243,10 +243,29 @@ export const pediatricGcs = defineScore({
     "pgcs.notes",
     "Two lineages with different age cut-offs exist: James/PECARN (preverbal <2 y vs verbal ≥2 y, per Holmes 2005 / Borgialli 2016) and BPNA 'Child's GCS' (<5 y vs >5 y). A total is not comparable across schemes unless the scheme and age band are recorded — pin and store both per case. The E/V/M option labels here are neutral paraphrases spanning both the verbal-child and infant/preverbal descriptor columns; exact GCS wording is stewarded by the Royal College of Physicians and Surgeons of Glasgow / Teasdale (glasgowcomascale.org). Intubation breaks the plain sum: BPNA records the verbal component as a non-numeric 'T' (which is why the grimace score was introduced, Tatman 1997), while some US practice records V=1 with a 'T' suffix; this score computes a plain E+V+M and does not model 'T'. [NEEDS SOURCE] a single canonical rule for numerically substituting V=1 for intubated verbal in the James/PECARN branch (primary sources describe the code, not an arithmetic substitution). The 13–15/9–12/3–8 tri-band originated in adult TBI work; pediatric literature refines the 'severe' cut downward (≤5) for young children (StatPearls NBK513298). Sedation/paralysis makes V and M uninformative — flag such scores. Further [NEEDS SOURCE]: the original Reilly 1988 Adelaide per-level age-expected table and the James & Trauner 1985 chapter pagination were not independently verified from primary full text.",
   ),
+  composition: {
+    // min is 1, not 0: a GCS component has no zero. A bar drawn from zero would
+    // show a motor score of 1 as a sixth of its range when it is the floor.
+    total: "pgcs_total",
+    components: [
+      { id: "eye", max: 4, min: 1 },
+      { id: "verbal", max: 5, min: 1 },
+      { id: "motor", max: 6, min: 1 },
+    ],
+  },
   calculate: (values) => {
     const eye = Number(values.gcs_eye.value);
     const verbal = Number(values.gcs_verbal.value);
     const motor = Number(values.gcs_motor.value);
+
+    const point = (id: string, label: string, value: number) => ({
+      id,
+      label: defineText(`pgcs.out.${id}`, label),
+      value,
+      unit: "",
+      precision: 0,
+    });
+
     return [
       {
         id: "pgcs_total",
@@ -255,6 +274,9 @@ export const pediatricGcs = defineScore({
         unit: "",
         precision: 0,
       },
+      point("eye", "Eye-opening (E)", eye),
+      point("verbal", "Verbal / vocal (V)", verbal),
+      point("motor", "Motor (M)", motor),
     ];
   },
 });

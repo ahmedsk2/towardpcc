@@ -87,12 +87,22 @@ Both compute their parts internally and throw them away. Emitting them is a
 **behaviour change**, not a declaration: the result gains values, so the result
 panel gains rows and any test asserting an exact value count will need updating.
 
-PELOD-2's organ set and per-organ maxima come from Leteurtre 2013 Table 6 at
-implementation, not from the code's internal variable names — a variable called
-`neuro` is not a citation. Note also that PELOD-2 and PRISM are the only two
-built scores with **no `docs/research/scores/*.md` note**, so there is no
-transcribed table to work from; producing one for PELOD-2 is part of this work,
-matching the convention the other 21 scores follow.
+PELOD-2's organ set and per-organ maxima come from Leteurtre 2013 Table 6, not
+from the code's internal variable names — a variable called `neuro` is not a
+citation.
+
+**Correction, 2026-08-01:** this section first claimed PELOD-2 and PRISM were
+the only two built scores with no `docs/research/scores/*.md` note, and that
+producing one for PELOD-2 was part of this work. That was wrong — I misread the
+directory listing. `pelod2.md` has existed since `c4b4712`, runs to 252 lines,
+is transcribed from the Leteurtre full text and carries a Verification section
+recording an independent second fetch. Acting on the claim as written would have
+replaced a verified primary-source transcription with one derived from the
+implementation and marked `[NEEDS SOURCE]` — a real regression in provenance,
+caught only because the implementer checked before writing.
+
+**PRISM is the only score without a research note.** That is the gap this
+section was reaching for, and it is out of scope here: it needs its own task.
 
 pGCS is the simplest of the five and the one whose `min` matters: eye 1–4,
 verbal 1–5, motor 1–6, total 3–15.

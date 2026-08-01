@@ -315,19 +315,40 @@ export const pelod2 = defineScore({
     "pelod2.notes",
     "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25.",
   ),
+  // Maxima are Leteurtre 2013 Table 7, independently re-derived term by term
+  // from the branches above in docs/research/scores/pelod2.md §Organ maxima
+  // (9 + 10 + 2 + 8 + 4 = 33, the published ceiling). They are age-independent:
+  // the age bands move the MAP/creatinine thresholds, not the point values.
+  composition: {
+    total: "pelod2",
+    components: [
+      { id: "neurologic", max: 9 },
+      { id: "cardiovascular", max: 10 },
+      { id: "renal", max: 2 },
+      { id: "respiratory", max: 8 },
+      { id: "haematologic", max: 4 },
+    ],
+  },
   calculate: (values) => {
     const band = ageBandFor(values.age_months.value);
-    const points =
-      gcsPoints(values.gcs.value) +
-      (values.pupils.value === "both_fixed" ? 5 : 0) +
-      lactatePoints(values.lactate.value) +
-      mapPoints(values.map.value, band) +
-      creatininePoints(values.creatinine.value, band) +
+
+    // The ten items grouped into the five organ systems of Leteurtre 2013
+    // Table 6 — the published structure, not a grouping invented here. This is
+    // a pure re-association of the SAME ten terms that were previously summed
+    // inline: same terms, same order, integer addition, so `points` below is
+    // the identical number it has always been. Every worked example asserts its
+    // total, and the maxima (9/10/2/8/4 = 33) are derived term by term in
+    // docs/research/scores/pelod2.md §Organ maxima and reconcile with Table 7.
+    const neurologic = gcsPoints(values.gcs.value) + (values.pupils.value === "both_fixed" ? 5 : 0);
+    const cardiovascular = lactatePoints(values.lactate.value) + mapPoints(values.map.value, band);
+    const renal = creatininePoints(values.creatinine.value, band);
+    const respiratory =
       pfPoints(values.pao2_fio2.value) +
       paco2Points(values.paco2.value) +
-      (values.invasive_vent.value ? 3 : 0) +
-      wbcPoints(values.wbc.value) +
-      plateletPoints(values.platelets.value);
+      (values.invasive_vent.value ? 3 : 0);
+    const haematologic = wbcPoints(values.wbc.value) + plateletPoints(values.platelets.value);
+
+    const points = neurologic + cardiovascular + renal + respiratory + haematologic;
 
     const logit = -6.61 + 0.47 * points;
     const mortalityPercent = (1 / (1 + Math.exp(-logit))) * 100;
@@ -337,6 +358,41 @@ export const pelod2 = defineScore({
         id: "pelod2",
         label: defineText("pelod2.total", "PELOD-2 total"),
         value: points,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "neurologic",
+        label: defineText("pelod2.organ.neurologic", "Neurologic"),
+        value: neurologic,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "cardiovascular",
+        label: defineText("pelod2.organ.cardiovascular", "Cardiovascular"),
+        value: cardiovascular,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "renal",
+        label: defineText("pelod2.organ.renal", "Renal"),
+        value: renal,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "respiratory",
+        label: defineText("pelod2.organ.respiratory", "Respiratory"),
+        value: respiratory,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "haematologic",
+        label: defineText("pelod2.organ.haematologic", "Haematologic"),
+        value: haematologic,
         unit: "",
         precision: 0,
       },
