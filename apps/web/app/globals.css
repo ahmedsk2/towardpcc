@@ -239,6 +239,18 @@ body {
 [data-shown] .chip-meter {
   transform: scaleX(var(--fill, 1));
 }
+/* Opt out of the reveal gate, for meters that are not inside a reveal.
+   The composition panel's bars live in the calculator result rail, which is
+   sticky and mounted from first paint — nothing there is ever marked
+   `data-shown`, so the base rule above would hold every bar at scaleX(0) and
+   the panel would render six invisible tracks. This releases the fill on its
+   own while keeping the SAME transition and the same reduced-motion handling;
+   it is not a second animation. The bar still moves for the right reason —
+   `--fill` changes as the clinician types, so the transition now animates the
+   quantity it measures rather than an entrance. */
+.chip-meter[data-fill-immediate] {
+  transform: scaleX(var(--fill, 1));
+}
 @media (prefers-reduced-motion: reduce) {
   .chip-meter {
     transform: scaleX(var(--fill, 1));
