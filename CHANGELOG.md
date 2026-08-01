@@ -13,7 +13,7 @@ infrastructure is the remaining P8 work tracked in `LAUNCH-BLOCKERS.md`).
 
 ### Added
 
-- **Calculators** — 22 Tier-A pediatric-critical-care scores (scoring engine
+- **Calculators** — 24 Tier-A pediatric-critical-care scores (scoring engine
   `ENGINE_VERSION` 0.2.0), each citing its source, with a 100% line+branch
   coverage gate and worked-example verification. Compute entirely client-side;
   nothing entered is transmitted or stored (airplane-mode e2e).
