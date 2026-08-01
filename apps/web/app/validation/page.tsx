@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listScores, registry } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
 import { PageHero } from "@/components/page-hero";
+import { ReviewChip } from "@/components/trust/evidence-chip";
 import { site } from "@/content/site";
 
 /**
@@ -95,6 +96,14 @@ export default function ValidationPage() {
               </>
             )}
           </p>
+
+          {/* The same figure as /trust's review claim, from the same source in
+              lib/evidence.ts — different presentation because here it is the
+              page's subject rather than one claim among five.
+              It renders AT ZERO on purpose. A progress component that treated 0
+              as "nothing to show" would silently delete the most honest claim on
+              the site: that every reviewer slot is empty and says so. */}
+          <ReviewChip validated={complete} total={rows.length} />
 
           <div className="mt-8 overflow-x-auto rounded-lg border border-border">
             <table className="w-full text-left text-sm">

@@ -32,6 +32,22 @@ const JOBS = [
   },
   { src: "image-1785163481760.png", out: "library-screenshot.jpg", width: 1400 },
   /**
+   * /services replacement, PENDING THE SOURCE FILE.
+   *
+   * That page currently shows `care-thermometer.jpg` — a clinician taking a
+   * child's temperature — while its subject is study design, IRB guidance and
+   * biostatistics. It is the one photograph on the site whose subject does not
+   * match its page, so it is being replaced with researchers reading
+   * statistical output (Envato Elements PQBLD6T, licensed under the account's
+   * subscription).
+   *
+   * This job is inert until the file exists: save the download to Downloads as
+   * `services-statistics.jpg` and re-run. The page still points at
+   * `care-thermometer.jpg` and is switched over once this produces output, so
+   * merging in between cannot swap a real photograph for a placeholder.
+   */
+  { src: "services-statistics.jpg", out: "services-statistics.jpg", width: 1400 },
+  /**
    * Registry dashboard. The source shows that unit's real operating figures —
    * year-to-date admissions, bed occupancy above 100%, live census and dated
    * admissions. Those are not ours to publish, and labelling real numbers
