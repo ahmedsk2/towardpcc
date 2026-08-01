@@ -548,6 +548,20 @@ export const prism = defineScore({
     evidence:
       "US patent 5,809,477 (Pollack), which reproduces the complete PRISM III table and all six mortality equations, shows status 'Expired - Lifetime' with an anticipated expiration of 2015-09-21. The PRISM IV abstract (Pollack 2016, PMID 26492059) states the work's objective included 'placing the algorithms (Pediatric Risk of Mortality IV) in the public domain', and the authors' own network publishes a free public calculator. The widely repeated claim that PRISM III is available only under licence predates the patent's expiry.",
   },
+  /**
+   * The split PRISM IV weights separately, declared so the result panel can
+   * draw it. Both maxima are this score's own `formula` text: pupillary
+   * reflexes 0-11 plus mental status 0-5 gives the neurologic maximum of 16,
+   * and the remaining fifteen variables give 58. They sum to 74, the published
+   * PRISM III maximum, which the "caps at 74" case in the test file reaches.
+   */
+  composition: {
+    total: "prism_total",
+    components: [
+      { id: "neurologic_subscore", max: 16 },
+      { id: "non_neurologic_subscore", max: 58 },
+    ],
+  },
   // `calculate`, not `compute`: validation and unit normalisation happen in the
   // defineScore wrapper, so this receives canonical, already-validated values
   // and a score author cannot forget either step (ADR-0002).

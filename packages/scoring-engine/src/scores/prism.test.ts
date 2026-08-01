@@ -281,6 +281,7 @@ describe("PRISM threshold rows", () => {
     return {
       total: get("prism_total"),
       neuro: get("neurologic_subscore"),
+      nonNeuro: get("non_neurologic_subscore"),
       pct: get("mortality_probability"),
     };
   };
@@ -464,5 +465,52 @@ describe("PRISM threshold rows", () => {
     });
     expect(worst.total).toBe(74);
     expect(worst.neuro).toBe(16);
+    expect(worst.nonNeuro).toBe(58);
+
+    /**
+     * Tie the DECLARED composition maxima to the ceiling this case reaches.
+     *
+     * registry-gate proves both ids are emitted and the sum test below proves
+     * the halves add up, but neither notices a `max` declared too low — and a
+     * too-low max draws a bar past the end of its own track. Asserting the
+     * declaration against a case that EXACTLY attains it is what makes both
+     * numbers load-bearing: narrow either one and this fails.
+     */
+    const declaredMax = (id: string) => prism.composition!.components.find((c) => c.id === id)!.max;
+    expect(declaredMax("neurologic_subscore"), "declared neurologic max").toBe(worst.neuro);
+    expect(declaredMax("non_neurologic_subscore"), "declared non-neurologic max").toBe(
+      worst.nonNeuro,
+    );
+  });
+
+  /**
+   * The declared composition, checked against the numbers rather than the ids.
+   *
+   * registry-gate proves both subscore ids are emitted; the case above proves
+   * the pair reaches 16 and 58 at the ceiling. Neither proves the two halves
+   * add to the total AWAY from the ceiling — which is the property the result
+   * panel relies on when it draws one bar as two segments, and the property
+   * PRISM IV relies on when it weights the halves at 0.197 and 0.163 rather
+   * than scoring the total at all.
+   */
+  it("the two subscores sum to the total at several severities", () => {
+    const cases = [
+      normal,
+      { ...normal, sbp_min: { value: 30, unit: "mmHg" } },
+      { ...normal, pupils: { value: "both_fixed" } },
+      { ...normal, mental_status_gcs: { value: 3, unit: "" }, pupils: { value: "both_fixed" } },
+    ];
+    for (const c of cases) {
+      const outcome = prism.compute(c as never);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) continue;
+      const get = (id: string) => outcome.result.values.find((x) => x.id === id)!.value;
+      const sum = prism.composition!.components.reduce((n, comp) => n + get(comp.id), 0);
+      expect(sum, `components must sum to the total`).toBe(get(prism.composition!.total));
+      for (const comp of prism.composition!.components) {
+        expect(get(comp.id), `${comp.id} above declared max`).toBeLessThanOrEqual(comp.max);
+        expect(get(comp.id), `${comp.id} below declared min`).toBeGreaterThanOrEqual(comp.min ?? 0);
+      }
+    }
   });
 });
