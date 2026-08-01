@@ -54,6 +54,11 @@ describe("registry §6.3 gate", () => {
    * A composition that names an id the score does not emit is invisible without
    * this: the panel renders one fewer row and nothing fails. These assertions
    * are the entire reason the maxima are declared rather than computed.
+   *
+   * INERT UNTIL THE FIRST COMPOSITION IS DECLARED. No score carries one yet, so
+   * both loops `continue` on every score and `sampleInputs` never runs. Written
+   * first on purpose — the gate exists before the thing it guards, so the first
+   * declaration is checked the moment it lands rather than audited afterwards.
    */
   it("every declared composition names ids the score actually emits", () => {
     for (const s of registry) {
