@@ -371,6 +371,22 @@ export const phoenix = defineScore({
     "phoenix.notes",
     "Diagnostic criterion, not a graded severity ladder: sepsis = suspected/confirmed infection AND total ≥ 2; septic shock = sepsis AND cardiovascular component ≥ 1 (a cardiovascular point, not merely total ≥ 2). The vasoactive sub-score is a COUNT of distinct agents (0/1/≥2), not the VIS. Missing inputs contribute 0 to their component (reference-package convention), so the score reflects documented dysfunction — a teaching UI should show a missing input as missing, not as normal. The S/F ratio is used only when SpO₂ ≤ 97%; P/F is preferred when an arterial gas is available. That gate has a consequence worth stating outright, because it runs against intuition: with no arterial gas, a child on invasive ventilation at FiO₂ 1.0 scores respiratory 3 at SpO₂ 97 but 0 at SpO₂ 98 — the ratio simply is not computable above 97, and the missing-input convention then contributes 0. A well-saturated child on maximal support can therefore fall below the total ≥ 2 sepsis threshold on respiratory grounds alone. Read that as ‘not measurable’, never as ‘not hypoxaemic’, and obtain a blood gas. Only the numeric total GCS (3–15) is consumed; the GCS response-descriptor wording is a separate instrument (Teasdale & Jennett) and is not reproduced or licensed by the Phoenix papers. The validated cohort was children < 18 years and excluded newborns during the birth hospitalization and infants < 37 weeks post-conceptional age — applying the score to those groups is outside the validated population. The 8-organ research extension Phoenix-8 is out of scope. The MAP age bands are implemented as half-open [low, high) intervals (matching the reference package) so non-integer MAP scores exactly. The per-input plausible min/max are input-validity guardrails, not published Phoenix thresholds (the research labels these ranges as heuristics, not published thresholds); pao2/spo2/map upper bounds were widened beyond the research's 'typical' ranges to avoid false rejections and are annotated in code.",
   ),
+  /**
+   * Component maxima are JAMA 2024 Table 2 as transcribed in phoenix.md, NOT
+   * read back off `calculate` below — three of the four are computed (a sum or
+   * a cap) rather than assigned, so inferring them from the code would launder
+   * an assumption into a published range. They sum to 13, the published total
+   * maximum, which is the arithmetic check that they are the right four.
+   */
+  composition: {
+    total: "phoenix_total",
+    components: [
+      { id: "respiratory", max: 3 },
+      { id: "cardiovascular", max: 6 },
+      { id: "coagulation", max: 2 },
+      { id: "neurologic", max: 2 },
+    ],
+  },
   calculate: (values) => {
     // ---- 1. Respiratory (0–3) ----
     const support = values.resp_support?.value ?? "none";

@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { phoenix } from "./phoenix";
 
@@ -526,4 +527,79 @@ describeScore(phoenix, (ctx) => {
       { id: "sepsis", value: 0 },
     ],
   );
+
+  /**
+   * The declared composition must stay true of the numbers the score emits.
+   * registry-gate checks the four component IDS are emitted; nothing checked
+   * that they sum to the total, nor that any of them respects the range
+   * declared for it. Three of the four maxima (cardiovascular 6, coagulation 2,
+   * neurologic 2) are properties of the published table rather than of a
+   * literal in `calculate`, so a wrong one would draw a bar of the wrong length
+   * on a sepsis calculator while every other assertion in this file passed.
+   *
+   * The last vector is the published ceiling: 3 + 6 + 2 + 2 = 13. Asserting the
+   * sum there checks the four maxima are simultaneously attainable and that
+   * they tile the published 0–13 range rather than merely fitting inside it.
+   */
+  it("total equals the sum of its declared components, low severity through the 13-point ceiling", () => {
+    const vectors = [
+      // Nothing abnormal: every component 0.
+      { age_months: { value: 36, unit: "months" }, suspected_infection: { value: true } },
+      // Vignette 2's physiology: resp 2, cardio 0, coag 2, neuro 1 → 5.
+      {
+        age_months: { value: 72, unit: "months" },
+        suspected_infection: { value: true },
+        resp_support: { value: "imv" },
+        spo2: { value: 92, unit: "%" },
+        fio2: { value: 0.45, unit: "fraction" },
+        lactate: { value: 2.9, unit: "mmol/L" },
+        map: { value: 52, unit: "mmHg" },
+        inr: { value: 1.7, unit: "" },
+        ddimer: { value: 4.4, unit: "mg/L FEU" },
+        gcs_total: { value: 8, unit: "" },
+      },
+      // Every cardiovascular sub-score contributing one point apiece (vaso 1 +
+      // lactate 6 + MAP 40 ∈ [36,49) at 72 mo), with respiratory at 3.
+      {
+        ...ventilatedOnPureOxygen,
+        spo2: { value: 97, unit: "%" },
+        n_vasoactives: { value: 1, unit: "" },
+        lactate: { value: 6, unit: "mmol/L" },
+        map: { value: 40, unit: "mmHg" },
+      },
+      // The ceiling: resp 3 (S/F 97 < 148 on IMV) + cardio 6 (2 + 2 + 2) +
+      // coag 2 (capped) + neuro 2 (capped) = 13.
+      {
+        ...ventilatedOnPureOxygen,
+        spo2: { value: 97, unit: "%" },
+        n_vasoactives: { value: 3, unit: "" },
+        lactate: { value: 12, unit: "mmol/L" },
+        map: { value: 30, unit: "mmHg" },
+        platelets: { value: 50, unit: "10^3/uL" },
+        inr: { value: 2.0, unit: "" },
+        ddimer: { value: 5, unit: "mg/L FEU" },
+        fibrinogen: { value: 80, unit: "mg/dL" },
+        gcs_total: { value: 3, unit: "" },
+        fixed_pupils: { value: true },
+      },
+    ];
+    const totals: number[] = [];
+    for (const v of vectors) {
+      const outcome = phoenix.compute(v as never);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) continue;
+      const get = (id: string) => outcome.result.values.find((x) => x.id === id)!.value;
+      const sum = phoenix.composition!.components.reduce((n, c) => n + get(c.id), 0);
+      expect(sum, `components must sum to the total`).toBe(get(phoenix.composition!.total));
+      for (const c of phoenix.composition!.components) {
+        expect(get(c.id), `${c.id} above declared max`).toBeLessThanOrEqual(c.max);
+        expect(get(c.id), `${c.id} below declared min`).toBeGreaterThanOrEqual(c.min ?? 0);
+      }
+      totals.push(sum);
+    }
+    // The sweep really does span the published range, floor to ceiling — so a
+    // silently-narrowed max could not hide behind vectors that never reach it.
+    expect(totals[0], "the sweep must include a 0").toBe(0);
+    expect(totals.at(-1), "the sweep must reach the published 0–13 ceiling").toBe(13);
+  });
 });
