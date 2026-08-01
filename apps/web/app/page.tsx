@@ -460,6 +460,17 @@ export default function HomePage() {
                     />
                     <span
                       aria-hidden="true"
+                      /* Deliberately NOT `media-zoom`, which was tried here and
+                         measured worse. The clipped-frame idiom moves a
+                         PICTURE inside a still frame; this plate is a linear
+                         gradient, and a gradient scaled 4% shows no motion at
+                         all. What did move was everything riding on top of it:
+                         the status chip drifted, and `PillarIcon` — which
+                         already carries its own `group-hover:scale-110` over
+                         300ms — compounded to ~1.144 across two mismatched
+                         durations. The icon is this plate's media and already
+                         has the gesture; the chip is metadata and must hold
+                         still. */
                       className={cn("relative grid h-44 place-items-center bg-linear-140", p.media)}
                     >
                       <span

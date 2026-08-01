@@ -25,6 +25,11 @@ export function StickyShell({ children }: { children: React.ReactNode }) {
   return (
     <header
       data-print="hide"
+      // Named for the view transition, so the header holds position across a
+      // navigation instead of cross-fading with the page beneath it. It is
+      // literally the same element either side; saying so is what stops the
+      // flicker. See the @view-transition block in globals.css.
+      data-site-header
       className={cn(
         "sticky top-0 z-50 bg-surface-raised transition-shadow duration-150",
         stuck

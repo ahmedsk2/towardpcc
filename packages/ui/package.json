@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./contrast": "./src/contrast.ts",
     "./tokens.css": "./src/tokens.css"
   },
   "scripts": {

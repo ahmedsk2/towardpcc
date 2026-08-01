@@ -30,6 +30,12 @@ const ROUTES = [
   { label: "/ (home)", html: "server/app/index.html" },
   { label: "/calculators", html: "server/app/calculators.html" },
   { label: "/calculators/[slug]", html: "server/app/calculators/anion-gap.html" },
+  // The evidence chips are server-rendered by design, so these two routes must
+  // stay flat. They are here because the chip spec asserted "route JS
+  // unchanged" and a one-off measurement found +0.2 KB — an assertion nobody
+  // was checking. If a chip ever becomes a client component, this catches it.
+  { label: "/trust", html: "server/app/trust.html" },
+  { label: "/validation", html: "server/app/validation.html" },
 ];
 
 const SCRIPT_TAG = /<script[^>]*\ssrc="\/_next\/(static\/[^"]+?\.js)"([^>]*)><\/script>/g;

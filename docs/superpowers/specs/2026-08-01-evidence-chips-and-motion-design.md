@@ -124,10 +124,80 @@ place: a proof object that settles into view reads differently from one that
 slides, and that distinction is the reason to use it rather than variety for its
 own sake.
 
-**3. Chip motion, once, on scroll-in.** Each chip animates the quantity it
+**3. The clipped-frame image hover, taken from the reference template.**
+
+The template's card images grow inside a frame that does not move, which is why
+they read differently from a card that lifts. The idiom is three parts:
+
+```css
+.frame {
+  overflow: hidden;
+}
+.frame img {
+  transform: scale(1.001);
+  transition: transform …;
+}
+.card:hover .frame img {
+  transform: scale(1.15);
+}
+```
+
+`overflow: hidden` on the wrapper is what keeps the frame still while the
+picture moves. `scale(1.001)` at rest is the non-obvious part and the reason to
+copy this rather than reinvent it: it is a visual no-op that promotes the image
+to its own compositor layer BEFORE the hover, so the first animated frame is
+smooth instead of janking while the layer is created. It is a cheaper hint than
+a permanent `will-change`, which costs memory for the element's whole life.
+
+Adopted at **1.04, not 1.15**. Fifteen percent over 400 ms is marketing scale;
+the mechanism is what transfers, not the amplitude.
+
+Transitioned on `transform` explicitly, never `transition: all`. The template
+uses `all ease 0.4s` for 96 of its 133 transitions, which animates every
+property that happens to change and is the single largest reason its motion
+feels unspecific.
+
+#### Built, measured, and then removed
+
+Scoped to `a:hover`, on the reasoning that motion implies affordance — an image
+that moves under the pointer is promising a click. **Applied honestly, that rule
+excludes every photograph this site has.** All six are editorial (two mission
+images, two on `/about`, one per pillar page) and not one sits inside a link, so
+the hover half never matched on any route. The only surviving effect was
+`scale(1.001)` pinning two images to their own compositor layers permanently.
+
+It was also tried on the home pillar cards, whose plates _are_ inside links.
+That measured worse: the plate is a linear gradient, and a gradient scaled 4%
+shows no motion at all, while everything riding on it did move — the status chip
+drifted, and `PillarIcon` (which already carries its own `group-hover:scale-110`
+over 300 ms) compounded to ~1.144 across two mismatched durations.
+
+So the CSS is gone rather than shipped inert. The mechanism earns its place the
+day a photograph becomes clickable, and the three linked pillar cards are the
+obvious home — **if their gradient plates become photographs.** That is a design
+decision, not a motion one, and it is open.
+
+**4. Chip motion, once, on scroll-in.** Each chip animates the quantity it
 measures — the coverage meter fills to 100%, the counters count, the network
 panel's rows resolve to `0`. Reuses the shipped `Reveal` and `Counter`, so no
 new client JavaScript.
+
+### Considered from the template and rejected
+
+- **The two-pseudo-element button curtain.** `:before` and `:after` cover the
+  left and right halves, both `scaleY(0.4)` and transparent at rest, both
+  growing to full on hover, inset so a rim of the border survives. It opens
+  rather than wiping, and it is the most distinctive gesture in the template.
+  Rejected because our buttons already carry a considered hover and a second
+  fill colour inside a rim is a different visual language from Pulse Crimson —
+  not because the mechanism is bad. Worth revisiting for the two hero CTAs
+  alone if a bolder primary action is ever wanted.
+- **The ambient float.** One `@keyframes` parameterised per instance through
+  `--duration` and `--jump-y` — a genuinely elegant mechanism. Rejected on
+  register: an infinite six-second bob belongs on a school website, not beside
+  a mortality score.
+- **`transition: all ease 0.4s`.** 96 of the template's 133 transitions. Named
+  properties only, here.
 
 Explicitly excluded: parallax, scroll-jacking, and any motion on the calculator
 detail route. `docs/design/motion.md` revision 4 — the number may not move, and
@@ -189,9 +259,23 @@ Asserted in a unit test alongside the existing `tokens.test.ts` pairings.
 
 ## Budget
 
-Route JS unchanged — chips are server-rendered, view transitions are CSS. The
-only new bytes are the single `/services` photograph, through the existing
-optimiser. The 170 KB gate has 13–22 KB of headroom and this spends none of it.
+Chips are server-rendered and view transitions are CSS, so route JS barely
+moves. **Measured, not assumed** — built at `HEAD` and again with the chips:
+
+| route         | before   | after    | delta       |
+| ------------- | -------- | -------- | ----------- |
+| `/trust`      | 148.8 KB | 149.0 KB | **+0.2 KB** |
+| `/validation` | 148.8 KB | 149.0 KB | **+0.2 KB** |
+
+This section originally claimed "route JS unchanged". It is +0.2 KB — the
+client-reference boundary for `Reveal`, which neither page carried before. The
+figure is trivial against 21 KB of headroom, but the claim was wrong and no gate
+was watching it, so both routes are now in `scripts/check-bundle-budget.mjs`.
+That is the same rule the chips themselves follow: a number worth asserting is
+worth enforcing.
+
+The only other new bytes are the single `/services` photograph, through the
+existing optimiser.
 
 ## Out of scope
 

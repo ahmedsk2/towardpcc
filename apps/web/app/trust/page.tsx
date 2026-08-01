@@ -3,6 +3,14 @@ import Link from "next/link";
 import { listScores, registry } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
 import { PageHero } from "@/components/page-hero";
+import {
+  ContrastChip,
+  CountChip,
+  CoverageChip,
+  NetworkChip,
+  ReviewChip,
+} from "@/components/trust/evidence-chip";
+import { COVERAGE, PRIVACY_SPEC, evidence } from "@/lib/evidence";
 import { site } from "@/content/site";
 
 /**
@@ -30,10 +38,13 @@ const c = site.calculators;
 function Claim({
   heading,
   how,
+  chip,
   children,
 }: {
   heading: string;
   how: string;
+  /** The evidence, where the build can compute it. Omitted where it cannot. */
+  chip?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -49,17 +60,25 @@ function Claim({
           {how}
         </span>
       </p>
+      {/* The proof itself, where one can be computed. Five of the seven claims
+          have a chip; residency and backups do not, because `me-riyadh-1` lives
+          only in a comment and the last restore-drill date lives in prose. A
+          chip showing an underivable number is the decorative assertion this
+          page exists to refuse — see lib/evidence.ts. */}
+      {chip}
     </section>
   );
 }
 
 export default function TrustPage() {
+  // Every figure on this page comes from lib/evidence.ts, which is the only
+  // module allowed to compute one — so the heading and the chip beside it
+  // cannot disagree. These four were previously derived inline here and
+  // rendered only as words inside a heading.
+  const e = evidence();
   const scores = listScores({ status: "published" });
-  // Derived, not typed: if a score gains a citation this figure follows.
-  const citations = registry.reduce((n, s) => n + s.references.length, 0);
-  const validated = registry.filter((s) =>
-    s.validators.every((v) => v.status === "assigned"),
-  ).length;
+  const citations = e.citations;
+  const validated = e.validated;
 
   return (
     <>
@@ -74,6 +93,7 @@ export default function TrustPage() {
         <div className="flex flex-col gap-12">
           <Claim
             heading="Nothing you type into a calculator is transmitted"
+            chip={<NetworkChip spec={PRIVACY_SPEC} />}
             how="A test fills a calculator with the network disabled, asserts the result is still correct, and fails the build if any request carries data. A second scan fails the build if any file under the calculator routes reads the query string or declares a server action."
           >
             <p>
@@ -86,6 +106,7 @@ export default function TrustPage() {
 
           <Claim
             heading={`${scores.length} calculators, ${citations} citations, none of them decorative`}
+            chip={<CountChip scores={scores.length} citations={citations} />}
             how="Both figures are counted from the score definitions at build time. A score cannot be published without at least one locator (a PMID, a DOI or a URL), so a citation you cannot follow is not possible."
           >
             <p>
@@ -97,6 +118,7 @@ export default function TrustPage() {
 
           <Claim
             heading="The engine cannot merge below full test coverage"
+            chip={<CoverageChip percent={e.coveragePercent} axes={Object.keys(COVERAGE)} />}
             how="The coverage gate is set to 100% for lines, branches, functions and statements. It runs in CI, and a pull request that drops below it does not merge."
           >
             <p>
@@ -113,6 +135,7 @@ export default function TrustPage() {
                 : "Clinical validation is pending, and the badges say so"
             }
             how="The validation state lives in each score's definition and is rendered on its page. Nothing shows a reviewer's name until one is recorded."
+            chip={<ReviewChip validated={validated} total={registry.length} />}
           >
             <p>
               Every calculator carries two reviewer slots. Today they read{" "}
@@ -125,6 +148,7 @@ export default function TrustPage() {
 
           <Claim
             heading="Accessibility is asserted, not assumed"
+            chip={<ContrastChip ratio={e.contrast} />}
             how="Colour contrast is computed from the shipped stylesheet in a unit test (every border token against every surface), and layout is checked at 375, 768 and 1440 pixels on every page. Reduced-motion behaviour is tested too."
           >
             <p>

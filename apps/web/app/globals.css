@@ -224,6 +224,83 @@ body {
   }
 }
 
+/* The coverage meter on /trust: fills to its measured value when the chip is
+   revealed, rather than arriving already full.
+
+   It animates the quantity it MEASURES, which is the only justification a
+   number has for moving. `scaleX` on the compositor, never `width`, which is a
+   layout property and forbidden outright by motion.md revision 4. `--fill`
+   carries the value so one rule serves all four axes. */
+.chip-meter {
+  transform: scaleX(0);
+  transition: transform 900ms var(--motion-ease);
+  transition-delay: 220ms;
+}
+[data-shown] .chip-meter {
+  transform: scaleX(var(--fill, 1));
+}
+@media (prefers-reduced-motion: reduce) {
+  .chip-meter {
+    transform: scaleX(var(--fill, 1));
+    transition: none;
+  }
+}
+
+/* ── The clipped-frame media zoom: BUILT, MEASURED, AND REMOVED ──────────────
+   The reference template's best gesture — a card image growing inside a frame
+   that does not move — was implemented here and then taken out, because on
+   this site it could never fire.
+
+   The rule was correctly scoped to `a:hover .media-zoom`, on the reasoning that
+   motion implies affordance: a photograph that moves under the pointer is
+   promising a click. Applied honestly, that rule excludes every photograph
+   TowardPCC has. All six are editorial — the mission images, the about images,
+   the pillar-page image — and not one sits inside a link. So the hover half
+   never matched, and the only surviving effect was `scale(1.001)` pinning two
+   images to their own compositor layers for the life of the page.
+
+   Keeping it would have meant shipping a rule that reads as an implemented
+   feature and does nothing. The mechanism is worth having the day a photograph
+   becomes clickable — the three home pillar cards ARE links and are the
+   obvious home for it, if their gradient plates ever become photographs. Until
+   then this comment is the artefact, not the CSS.
+
+   Recorded in full (including the 1.04-not-1.15 amplitude call and the
+   `transform`-not-`all` transition) in
+   docs/superpowers/specs/2026-08-01-evidence-chips-and-motion-design.md. */
+
+/* ── Cross-document view transitions ─────────────────────────────────────────
+   Navigating between pages animates rather than blinks, in one CSS rule and
+   zero JavaScript. Browsers without support navigate exactly as they do today:
+   the at-rule is simply unknown to them, so there is nothing to feature-detect
+   and no polyfill to ship. The reference template fakes far less than this with
+   274 KB of LayerSlider.
+
+   The header carries its own transition name so it holds position across a
+   navigation instead of cross-fading with the page under it — it is the same
+   element either side, and saying so is what stops it flickering. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--motion-duration-enter);
+  animation-timing-function: var(--motion-ease);
+}
+[data-site-header] {
+  view-transition-name: site-header;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* ABSOLUTE, per the motion contract. `navigation: auto` still applies, so the
+     transition is neutralised by giving both halves no animation rather than by
+     hoping the browser opts out. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 /* Print stylesheet (PRD §6.4): a calculator result should print as a clean,
    self-contained clinical record — chrome and interactive controls removed,
    the computed result and its interpretation preserved. Opt elements out with
