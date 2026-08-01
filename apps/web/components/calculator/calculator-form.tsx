@@ -10,7 +10,7 @@ import type {
 import { fromCanonical, getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
-import { CompositionPanel } from "./composition-panel";
+import { CompositionPanel, splitComposition } from "./composition-panel";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
@@ -265,6 +265,25 @@ function CalculatorFormInner({
    * No privacy implication — the clinician is choosing to copy. The shareable
    * LINK is a separate, separately-labelled action below, because it has the
    * opposite privacy character.
+   *
+   * IT KEEPS THE COMPONENTS, AND THAT IS A DECISION — the opposite one from the
+   * live region below, which drops them.
+   *
+   * The two consumers want different things. The live region is an
+   * INTERRUPTION: it fires on every recompute, and the panel already states the
+   * breakdown as readable text a few nodes away, so announcing it there too is
+   * the same information twice for a listener who cannot skim past it. This
+   * summary is a RECORD, read once, later, away from the page — and the
+   * breakdown is exactly what stops being recoverable when it leaves. pSOFA 9
+   * from cardiovascular 4 and renal 3 is a different handover from pSOFA 9
+   * spread across six organs, and the total alone cannot say which.
+   *
+   * So they are kept DELIBERATELY and as a breakdown: one labelled line, in the
+   * panel's own `4 of 24` phrasing, after the values and before the footer.
+   * That is the difference between this and what the composition work first did
+   * by accident, which was to append five unexplained lines to PELOD-2's
+   * summary and three to pGCS's, interleaved with the banded values and
+   * indistinguishable from them.
    */
   const copySummary = useCallback(() => {
     if (!outcome || !outcome.ok) return;
@@ -283,14 +302,22 @@ function CalculatorFormInner({
         return [`${i.label.en} ${raw === "true" ? c.booleanYes : c.booleanNo}`];
       })
       .join(" · ");
+    const { flat, components } = splitComposition(outcome.result.values, definition.composition);
     const lines = [
       `${definition.name} — ${new Date().toISOString().slice(0, 16)}Z`,
       ...(entered ? [`${c.copyInputsLabel}: ${entered}`] : []),
-      ...outcome.result.values.map((v) => {
+      ...flat.map((v) => {
         const band = matchInterpretationBand(definition, v.id, v.value);
         const num = `${v.label.en}: ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
         return band ? `${num} (${band.label.en})` : num;
       }),
+      ...(components.length > 0
+        ? [
+            `${c.copyComponentsLabel}: ${components
+              .map((r) => `${r.label} ${r.value} of ${r.max}`)
+              .join(" · ")}`,
+          ]
+        : []),
       `${definition.name} v${definition.version} · towardpcc.com`,
     ];
     // Clipboard can reject (denied permission / insecure context); swallow it so
@@ -943,12 +970,14 @@ function ResultPanel({
    * unexplained rows in the list, and again, labelled and in proportion, in the
    * panel below. The panel is the better rendering of the two, so the list
    * yields.
+   *
+   * Split ONCE, here, and used by both the list and the live region below.
+   * Splitting per consumer is how the live region came to announce all seven
+   * pSOFA values while the list rendered one.
    */
-  const composition = definition.composition;
-  const flatValues = useMemo(
-    () =>
-      (ok?.result.values ?? []).filter((v) => !composition?.components.some((c) => c.id === v.id)),
-    [ok, composition],
+  const { flat: flatValues, components: componentRows } = useMemo(
+    () => splitComposition(ok?.result.values ?? [], definition.composition),
+    [ok, definition.composition],
   );
 
   /* Derived from what actually RENDERS, not from what the engine emitted.
@@ -1023,10 +1052,17 @@ function ResultPanel({
           on screen. The band scale and range strip are aria-hidden for the same
           reason; this is where their meaning is spoken instead.
           The blocking summary is deliberately NOT here: it changes on every
-          keystroke, and each field already announces itself on blur. */}
+          keystroke, and each field already announces itself on blur.
+          IT ANNOUNCES `flatValues`, NOT EVERY EMITTED VALUE — the same split the
+          visible list uses. Reading the components out here as well would
+          announce pSOFA's six organ subscores on every keystroke AND leave them
+          in the panel below, so a listener meets each one twice while a sighted
+          reader meets it once. The panel's `4 of 24` rows are ordinary text a
+          few nodes away: available on demand, which is the right register for
+          working. The answer is what is worth interrupting for. */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {ok
-          ? ok.result.values
+          ? flatValues
               .map((v) => {
                 const band = matchInterpretationBand(definition, v.id, v.value);
                 const num = `${v.label.en} ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
@@ -1210,10 +1246,9 @@ function ResultPanel({
           </div>
 
           {/* The working behind the total. Only composite scores declare a
-              composition, so nothing renders for the rest. */}
-          {composition ? (
-            <CompositionPanel composition={composition} values={ok.result.values} />
-          ) : null}
+              composition, so `componentRows` is empty for the rest and the
+              panel renders nothing. */}
+          <CompositionPanel rows={componentRows} />
 
           {/* BESIDE THE NUMBER. A result-invalidating caveat that only appears
               in a Limitations tab is a caveat most readers will never meet.
