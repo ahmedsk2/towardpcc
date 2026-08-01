@@ -20,6 +20,7 @@ import { generateTree, LOBES, MAIN_BRONCHI } from "./tree";
 import {
   insideLung,
   insidePleura,
+  MEDIAL_X,
   NOTCH_MATCHES_HEART_BORDER,
   notchDepthAt,
   PLEURAL_LATERAL_EXTENT,
@@ -594,21 +595,90 @@ describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
       // ellipsoids fall short of the mediastinum. Taking the row's min and max
       // drew the outline straight through the cardiac shadow: medial border
       // -0.021 against a heart border of -0.115.
+      //
+      // SWEPT, not sampled at two hand-picked heights. It used to test y = -0.1
+      // and y = -0.2, and -0.1 only had a chamber under it because the right
+      // atrium's roof was 0.070 too high — high enough that the right main
+      // bronchus ran through the chamber. Correcting the atrium left that level
+      // empty and the assertion read `Infinity`, which is the test reporting
+      // its own sample points rather than a defect. Sweeping every level where
+      // a chamber is actually present is strictly more coverage and cannot go
+      // stale the same way.
       const pts = outline("right");
-      for (const y of [-0.1, -0.2]) {
+      let checked = 0;
+      for (let i = 0; i <= 120; i++) {
+        const y = -0.02 - (i / 120) * 0.4;
+        // The right heart's body at this level: the first x where the field
+        // turns inside, and the CONTIGUOUS run from it. Contiguity matters —
+        // taking the last inside x anywhere on the row catches the left-sided
+        // chambers across the midline and reports a body that is not there.
+        let heartBorder = Infinity;
+        let medialEdge = -Infinity;
+        for (let j = 0; j <= 600; j++) {
+          const x = -0.2 + (j / 600) * 0.3;
+          const inside = cardiacField(x, y, 0) <= 0;
+          if (inside && !Number.isFinite(heartBorder)) heartBorder = x;
+          if (Number.isFinite(heartBorder)) {
+            if (!inside) break;
+            medialEdge = x;
+          }
+        }
+        // MEDIAL_X is a magnitude; the right lung's mediastinal plane is at
+        // MINUS it. A border medial to that is a left-sided chamber seen across
+        // the midline, not a right heart border.
+        if (!Number.isFinite(heartBorder) || heartBorder >= -MEDIAL_X) continue;
+        // AND that body must REACH the mediastinum. Where a chamber tapers —
+        // just under the atrial roof, just above its floor — it leaves a sliver
+        // sitting as an island inside the lung, and the lung's medial border at
+        // that level is the mediastinal plane rather than the heart. That is
+        // the azygo-oesophageal recess and it is real; demanding otherwise
+        // would assert a chamber wider than the border table specifies.
+        if (medialEdge < -MEDIAL_X - 0.015) continue;
         const band = pts.filter((p) => Math.abs(p.y - y) < 0.012);
         if (!band.length) continue;
         const medial = Math.max(...band.map((p) => p.x));
-        let heartBorder = Infinity;
-        for (let i = 0; i <= 600; i++) {
-          const x = -0.2 + (i / 600) * 0.3;
-          if (cardiacField(x, y, 0) <= 0) {
-            heartBorder = x;
-            break;
-          }
-        }
-        expect(Math.abs(medial - heartBorder), `right medial border at y=${y}`).toBeLessThan(0.02);
+        expect(
+          Math.abs(medial - heartBorder),
+          `right medial border at y=${y.toFixed(3)}`,
+        ).toBeLessThan(0.02);
+        checked++;
       }
+      /**
+       * Enough levels that this cannot pass by finding none.
+       *
+       * The band is narrower than it looks: at z = 0 the ONLY right-sided
+       * chamber is the atrium, because the right ventricle is centred at
+       * z = +0.115 with a depth radius of 0.080 and so does not exist in this
+       * plane at all. That is the depth ordering doing its job, not a defect —
+       * the RV is the anterior chamber. The right heart border on a film is an
+       * atrial border, which is exactly what this samples.
+       */
+      expect(checked, "no level had both a chamber and a shell").toBeGreaterThan(15);
+    });
+
+    it("keeps the right hilum clear of the cardiac hull", () => {
+      /**
+       * THE RIGHT MAIN BRONCHUS RAN THROUGH THE RIGHT ATRIUM. The chamber's
+       * roof sat at -0.035, barely below the carina, while the hilum is at
+       * -0.102 — so the bronchus, the hilum and the middle-lobe takeoff were
+       * all inside it, and the cardiac field measured 0.31 of the atrium's
+       * radius at the hilum. Nothing caught it for as long as the airway was
+       * the only thing there: the tree's sampler culls particles inside the
+       * heart, so the defect showed up as thin lobes rather than as a bronchus
+       * in a chamber. Drawing the pulmonary arteries alongside those bronchi is
+       * what surfaced it.
+       *
+       * Asserted on the SEGMENTS, not the sampled particles, because the
+       * segments are what is drawn and they were never culled.
+       */
+      let inside = 0;
+      for (let i = 0; i < s.tree.segments.length; i += 3) {
+        const x = s.tree.segments[i]!;
+        const y = s.tree.segments[i + 1]!;
+        const z = s.tree.segments[i + 2]!;
+        if (cardiacField(x, y, z) < 0) inside++;
+      }
+      expect(inside, "airway drawn inside the cardiac hull").toBe(0);
     });
 
     it("closes every shell contour", () => {

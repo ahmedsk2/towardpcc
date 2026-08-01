@@ -11,7 +11,13 @@ import {
   SCENE,
   VITALS,
 } from "@/lib/hero-cardiopulm/scene";
-import { capnograph, ieRatio, pulseTrace, rsaPercent } from "@/lib/hero-cardiopulm/waveforms";
+import {
+  capnograph,
+  ieRatio,
+  pulseTrace,
+  rsaPercent,
+  rsaStrip,
+} from "@/lib/hero-cardiopulm/waveforms";
 import { site } from "@/content/site";
 import { PulseDriver } from "./pulse-driver";
 
@@ -46,6 +52,7 @@ const scene = buildScene();
  */
 const capno = capnograph();
 const pulse = pulseTrace();
+const rsa = rsaStrip();
 const ie = ieRatio();
 
 const bands = (() => {
@@ -210,7 +217,7 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
                 anyone who reads one at a bedside. */}
             <svg
               className="cps-trace"
-              viewBox={`0 0 ${capno.width} ${capno.height}`}
+              viewBox={`0 0 ${capno.viewWidth} ${capno.height}`}
               aria-hidden="true"
               style={{ "--period": `${capno.periodMs}ms` } as CSSProperties}
             >
@@ -231,20 +238,40 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
                 downstroke; without it this reads as a sine, not a pulse. */}
             <svg
               className="cps-trace"
-              viewBox={`0 0 ${pulse.width} ${pulse.height}`}
+              viewBox={`0 0 ${pulse.viewWidth} ${pulse.height}`}
               aria-hidden="true"
               style={{ "--period": `${pulse.periodMs}ms` } as CSSProperties}
             >
               <path d={pulse.d} />
             </svg>
           </li>
-          {/* The signature of the whole piece, and invisible to anyone who does
-            not already know it is there. One line makes it legible. */}
+          {/* THE SIGNATURE OF THE WHOLE PIECE, and it used to be a sentence.
+            "Heart rate rises on inspiration" was the one thing in this figure
+            that asked to be believed rather than seen — a caption explaining a
+            coupling the picture was already running but never showed.
+            Now it is drawn: the breath as a swell along the bottom, the
+            instantaneous rate above it as one measured point per beat. They
+            rise and fall together. Nothing is claimed that is not on screen. */}
           <li className="cps-label cps-label-rsa">
             <span className="cps-key">RSA</span>
-            <span className="cps-unit">
-              ±{rsaPercent}% · {site.home.heroSceneCoupling}
-            </span>
+            <span className="cps-val">±{rsaPercent}%</span>
+            {/* The sentence did not go away — it moved to the accessible route.
+                The strip is aria-hidden, so without this a screen-reader user
+                would lose the coupling entirely, which is the opposite of the
+                trade this change was making. */}
+            <span className="sr-only">{site.home.heroSceneCoupling}</span>
+            <svg
+              className="cps-strip"
+              viewBox={`0 0 ${rsa.viewWidth} ${rsa.height}`}
+              aria-hidden="true"
+              style={{ "--period": `${rsa.periodMs}ms` } as CSSProperties}
+            >
+              <g className="cps-strip-scroll">
+                <path className="cps-strip-breath" d={rsa.breath} />
+                <path className="cps-strip-rate" d={rsa.rate} />
+                <path className="cps-strip-beats" d={rsa.beats} />
+              </g>
+            </svg>
           </li>
         </ul>
       </div>
@@ -346,18 +373,22 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
   justify-content: center;
 }
 .cps-label-rsa {
-  bottom: 1%;
+  bottom: 0;
   left: 0;
   right: 0;
   justify-content: center;
-  font-size: 10.5px;
-  color: color-mix(in oklab, var(--color-ink-on-dark), transparent 25%);
+  align-items: center;
 }
 
 /* ── Traces ─────────────────────────────────────────────────────────────── */
-/* Scrolled by CSS, never by JavaScript. Each path holds two whole cycles and
-   translates by exactly one over exactly one period, so the loop is seamless
-   and the scroll rate IS the physiological rate by construction. */
+/* Scrolled by CSS, never by JavaScript. Each path holds two whole cycles while
+   its viewBox shows ONE, so the second is waiting outside the viewport and
+   arrives exactly as the first leaves. Translating by 100% of that viewBox is
+   therefore one whole cycle, and the scroll rate IS the physiological rate by
+   construction rather than by tuning.
+   It was -50% of a viewBox that showed BOTH cycles, which is the same distance
+   and a different thing entirely: the trace slid out of its own box and the
+   right-hand half was empty by the end of every period. */
 .cps-trace {
   width: 46px;
   height: 15px;
@@ -379,11 +410,54 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
     translate: 0 0;
   }
   to {
-    translate: -50% 0;
+    translate: -100% 0;
   }
 }
 .cps-label-hr .cps-trace path {
   stroke: var(--color-accent-bright);
+}
+
+/* ── The RSA strip ──────────────────────────────────────────────────────── */
+/* Two registers on one time axis: the breath as a swell along the bottom, the
+   instantaneous rate above it. In phase, because that is the claim.
+   The whole group scrolls rather than each path, so the three stay registered
+   with one another — a breath and the beats sampled from it must never drift
+   apart, which three independent animations would eventually let them do. */
+.cps-strip {
+  /* Wider and taller than the traces it sits below, because it carries a
+     RELATIONSHIP rather than a shape: at the corner traces' 46 x 15 the two
+     curves were a squiggle, and a coupling nobody can see is exactly the
+     sentence this replaced. */
+  width: 196px;
+  height: 28px;
+  overflow: hidden;
+  margin-inline-start: 0.5em;
+}
+.cps-strip-scroll {
+  animation: cpsScroll var(--period) linear infinite;
+}
+/* The chest filling. A fill, not a line — it is the ground the rate rides on,
+   and an outline here would compete with the curve above it. */
+.cps-strip-breath {
+  fill: color-mix(in oklab, var(--color-coral), transparent 78%);
+  stroke: none;
+}
+.cps-strip-rate {
+  fill: none;
+  stroke: var(--color-accent-bright);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* The beats: zero-length subpaths with a round cap, so each is a disc at no
+   element cost — the same trick the mesh vertices use. These are the real
+   samples; the curve through them is smoothing, and they are drawn so the two
+   can be told apart. */
+.cps-strip-beats {
+  fill: none;
+  stroke: var(--color-peach);
+  stroke-width: 2.6;
+  stroke-linecap: round;
 }
 .cps-key {
   font-family: var(--font-numeric);
@@ -419,8 +493,11 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
     translate: 0 0;
   }
   /* A scrolling trace is motion for its own sake once motion is refused. It
-     holds one still cycle, which still shows the waveform's shape. */
-  .cps-trace path {
+     holds one still cycle, which still shows the waveform's shape — and the
+     RSA strip still shows the rate rising with the breath, which is the only
+     thing it was ever there to show. */
+  .cps-trace path,
+  .cps-strip-scroll {
     animation: none;
   }
 }

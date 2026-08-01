@@ -25,6 +25,68 @@ import { expect, test } from "@playwright/test";
  * properties are animated, so both halves of that split need holding in place.
  */
 test.describe("hero figure", () => {
+  test("loops every bedside trace seamlessly", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("load");
+
+    /**
+     * THE BUG THIS EXISTS FOR. Each trace holds a whole number of cycles and
+     * scrolls by exactly one per period — but the viewBox was sized to the
+     * WHOLE path rather than to one cycle, so the viewport showed every cycle
+     * at once and the scroll slid the waveform out of its own box. By the end
+     * of each period the right-hand half was empty and the trace had visibly
+     * drained away, then snapped back. It shipped, and nothing here noticed,
+     * because nothing here looked at the traces at all.
+     *
+     * The invariant is a RATIO, not a number: the drawn path must be wider
+     * than the window it is seen through, or there is nothing waiting to
+     * arrive when the visible cycle leaves.
+     */
+    const traces = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<SVGSVGElement>(".cps-trace, .cps-strip")).map((svg) => {
+        const box = svg.viewBox.baseVal;
+        const drawn = Array.from(svg.querySelectorAll("path")).reduce(
+          (w, p) => Math.max(w, p.getBBox().width),
+          0,
+        );
+        const animated = svg.querySelector<SVGElement>("path, g");
+        return {
+          className: svg.getAttribute("class"),
+          viewWidth: box.width,
+          drawn,
+          duration: animated ? getComputedStyle(animated).animationDuration : "",
+          timing: animated ? getComputedStyle(animated).animationTimingFunction : "",
+          iteration: animated ? getComputedStyle(animated).animationIterationCount : "",
+        };
+      }),
+    );
+
+    // Two corner traces plus the RSA strip.
+    expect(traces.length).toBe(3);
+    for (const t of traces) {
+      expect(t.drawn, `${t.className} is not wider than its window`).toBeGreaterThan(
+        t.viewWidth * 1.8,
+      );
+      // Linear and endless, or the scroll rate stops being the physiological
+      // rate — an eased scroll would speed up and slow down within each cycle.
+      expect(t.timing, `${t.className} must scroll linearly`).toBe("linear");
+      expect(t.iteration).toBe("infinite");
+      expect(Number.parseFloat(t.duration)).toBeGreaterThan(0);
+    }
+
+    // The RSA strip draws the coupling rather than asserting it: a breath
+    // swell, a rate curve, and the beats it was sampled from.
+    const strip = await page.evaluate(() => ({
+      breath: !!document.querySelector(".cps-strip-breath"),
+      rate: !!document.querySelector(".cps-strip-rate"),
+      beats: !!document.querySelector(".cps-strip-beats"),
+      // The sentence it replaced still reaches a screen reader.
+      coupling: document.querySelector(".cps-label-rsa .sr-only")?.textContent ?? "",
+    }));
+    expect(strip.breath && strip.rate && strip.beats, "the RSA strip is incomplete").toBe(true);
+    expect(strip.coupling.length, "the coupling lost its accessible text").toBeGreaterThan(10);
+  });
+
   test("renders the cardiopulmonary mesh, shaded by depth", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("load");

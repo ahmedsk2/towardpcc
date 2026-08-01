@@ -154,8 +154,37 @@ export const CHAMBERS = [
     // right border of -0.120. The render followed the chambers, making the
     // heart 24% too wide on the right and CTR 0.504 where 0.480 was intended.
     // Narrowed to meet the border table, which is the clinically-read landmark.
-    centroid: { x: -0.07, y: -0.14, z: 0.02 },
-    radii: { x: 0.05, y: 0.105, z: 0.075 },
+    // SHORTER, and lowered to match: -0.140 ± 0.105 became -0.175 ± 0.070.
+    //
+    // THE RIGHT MAIN BRONCHUS RAN THROUGH IT. The atrial roof sat at -0.035,
+    // barely below the carina, while the right hilum is at -0.102 — so the
+    // bronchus, the hilum and the whole right middle lobe takeoff were inside
+    // the chamber. Measured: the cardiac field at the hilum was 0.31 of the
+    // atrium's radius, comfortably interior. Nothing in the render said so
+    // until the pulmonary arteries were drawn alongside those bronchi and had
+    // to be culled out of a heart they were meant to be arriving at.
+    //
+    // The roof is the part that was wrong, not the depth. At the level of the
+    // main bronchi — T5 to T6 — the structure in that position is the superior
+    // vena cava; the right atrium proper begins below it, and the bronchus is
+    // SUPERIOR to the atrium rather than behind it. Dropping the roof to -0.105
+    // puts it just under the hilum and leaves the floor at -0.245, so the
+    // chamber still meets the right ventricle across the tricuspid annulus and
+    // still meets the left atrium across the septum.
+    //
+    // The right border does not move: it is centroid.x - radii.x = -0.120, and
+    // that is the landmark the silhouette assertion pins.
+    //
+    // WHAT THIS COSTS, said out loud: between the new roof and the carina the
+    // right mediastinal border is formed by the SUPERIOR VENA CAVA, and this
+    // model has no SVC. So the right lung reaches about 0.06 too far medially
+    // over a band 0.105 tall. That is the same class of simplification as the
+    // absent aortic arch — a great vessel, not a chamber — and adding one means
+    // adding both, which turns a heart-and-lungs figure into a mediastinum. The
+    // alternative was keeping a chamber roof 0.070 too high to stand in for a
+    // vessel, which put a bronchus inside an atrium. This is the better wrong.
+    centroid: { x: -0.07, y: -0.175, z: 0.02 },
+    radii: { x: 0.05, y: 0.07, z: 0.075 },
     share: 0.2,
   },
   {
@@ -378,8 +407,24 @@ export const RUL_TAKEOFF = {
  * upper lobe downward drives it through the heart.
  */
 export const LOBAR_BRONCHI = [
-  /** Right middle lobe: down, lateral, and ANTERIOR — hence the roll off 180°. */
-  { lobe: "rml", polarDeg: 24, rollDeg: 150 },
+  /**
+   * Right middle lobe: down, lateral, and ANTERIOR — hence the roll off 180°.
+   *
+   * Was 24°/150°, which is 66 degrees BELOW the horizontal — near-vertical, and
+   * it drove the bronchus into the right cardiophrenic angle and through the
+   * right atrium. That was the last airway vertex left inside the cardiac hull
+   * once the atrium's roof was corrected, and it is wrong on its own terms: the
+   * middle lobe is the ANTERIOR lobe of the right lung, so its bronchus leaves
+   * the bronchus intermedius forwards, not downwards. A real one runs about 30
+   * degrees below the horizontal.
+   *
+   * The roll moves with it. At 150° the branch was 1.7 times more lateral than
+   * anterior; at 138° the two are near enough equal, which is what "anterior
+   * and lateral" means. Lobe membership is unaffected — both the old tip and
+   * the new one fall in the middle lobe by the fissure planes, which is the
+   * only thing that assigns a lobe here.
+   */
+  { lobe: "rml", polarDeg: 52, rollDeg: 138 },
   { lobe: "rll", polarDeg: 52, rollDeg: 180 },
   /** Left upper lobe, including the lingula. Superolateral, mirroring the RUL. */
   { lobe: "lul", polarDeg: 145, rollDeg: 0 },
