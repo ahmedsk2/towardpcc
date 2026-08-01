@@ -639,7 +639,7 @@ Done, verified against the running system:
       `/`, a calculator, `/admin/login`, `/api/v1/health` and `/api/v1/ready`
       all 200 afterwards.
 
-Still outstanding, and both need care rather than speed:
+The two that needed care rather than speed, both now done:
 
 - [x] **`TOTP_ENC_KEY` ROTATED 2026-08-01, and verified against the running
       system.** It seals admin TOTP secrets **and** the stored SMTP settings,
@@ -668,9 +668,27 @@ Still outstanding, and both need care rather than speed:
       improvised against a live database. `cap_drop: ALL` also means even root
       in that container cannot `chown`, so staged files must be written as the
       app user rather than `docker cp`ed in.
-- [ ] **`DATABASE_URL`.** The preview held production database credentials.
-      Rotating means coordinating the app role and `towardpcc_owner`, then
-      re-running the restore drill.
+- [x] **`DATABASE_URL` ROTATED 2026-08-01.** The preview held production
+      database credentials, so the `towardpcc_app` password was changed
+      (`ALTER ROLE`, SQL over stdin so it never reached a process list), the
+      variable updated on both Coolify rows, and the container recreated.
+      **Proved both directions from inside the Postgres container:** the old
+      credential now returns `FATAL: password authentication failed`, the new
+      one returns `1`, and `/api/v1/ready` — which runs `SELECT 1` — is 200.
+      `towardpcc_owner` was deliberately **not** rotated: it appears only in
+      `towardpcc-secrets.env` on the host, never in the application
+      environment, and was never in the preview, so it is not part of this
+      exposure. **Re-run the restore drill** at the next convenient point; the
+      dump is taken by Coolify's own job, which does not use this credential.
+- [x] **The on-host seed file was stale and dangerous, now fixed.**
+      `/home/ubuntu/towardpcc-secrets.env` is documented as the source of truth
+      used to seed Coolify's variables, and after the earlier rotations it
+      still held the PRE-rotation `AUTH_SECRET`, `TOTP_ENC_KEY` and
+      `SUBMISSION_IP_SALT` — so re-seeding from it would have quietly restored
+      three exposed secrets. It is now re-synced from Coolify's live values,
+      with `DATABASE_URL_OWNER` left untouched. This was not on anyone's list;
+      it surfaced only because the file was opened while rotating something
+      else.
 
 The severity of the salt exposure is unchanged and worth restating: the stored
 value is `HMAC-SHA256(salt, ip)` truncated to 96 bits and kept 24 months. IPv4
