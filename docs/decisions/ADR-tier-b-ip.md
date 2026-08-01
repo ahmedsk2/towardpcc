@@ -153,3 +153,96 @@ secondary sources for a legal fact that a primary source states plainly and for
 free. A rights claim about a specific patent should be checked against the
 patent, and a claim about what authors permit should be checked against what the
 authors wrote.
+
+## Second addendum, 2026-08-01 — the PRISM row is reopened
+
+The addendum above closes with: "a claim about what authors permit should be
+checked against what the authors wrote." It did not do that. It is reopened
+here, applying its own lesson to itself.
+
+**What it answered.** Two secondary sources — Wikipedia and
+medicalalgorithms.com — both of which say PRISM III "is protected by patent".
+Against those, the rebuttal is sound: US 5,809,477 shows "Expired - Lifetime",
+anticipated expiry 2015-09-21, and a rights claim about a specific patent should
+indeed be checked against the patent.
+
+**What it never answered.** The original row did not rest on Wikipedia. It rested
+on the rights footnote the authors themselves published, which sources [1] and
+[2] point at. Recovered 2026-08-01 from two independent routes:
+
+> "PRISM III and updated PRISM algorithms are copyrighted and may be the subject
+> of one or more patents held by Children's Research Institute. However, the
+> equations are available without charge for **research uses** including the
+> independent verification of their accuracy and reliability. Children's National
+> Medical Center may receive **compensation resulting from nonresearch uses** of
+> PRISM III and PRISM algorithms."
+
+Three assertions joined by "and": copyright, patent, and a research/non-research
+split. **Patent expiry retires exactly one of them.** The footnote's own hedging
+is worth noticing — the patent is "may be", the copyright is flat. A free public
+calculator for practising clinicians is a clinical use, not "research uses
+including the independent verification of their accuracy and reliability"; it is
+on the wrong side of the line the authors drew.
+
+**Two factual corrections to the addendum above.**
+
+1. **The rights holder is not Children's National.** The patent's assignment
+   chain, verified directly against the record: Children's Research Institute →
+   **Children's Hospital of Los Angeles** (2007-11-01) → **VPS LLC**
+   (2008-04-07). VPS LLC is Virtual Pediatric Systems, a for-profit subscription
+   PICU benchmarking product that markets PRISM 3. This row has named the wrong
+   counterparty since 2008, and there are now at least two possible ones. The
+   assignment table sits four lines below the "Expired - Lifetime" status the
+   addendum quotes from the same page.
+2. **The public-domain grant names PRISM IV.** Pollack 2016 opens "the
+   prediction algorithms (Pediatric Risk of Mortality IV)". `prism.ts` also
+   implements the PRISM III-12 and PRISM III-24 score-only quadratic mortality
+   equations, which are outside that grant and are the most direct target of
+   "PRISM III and updated PRISM algorithms are copyrighted".
+
+**Status: `NEEDS-LEGAL-REVIEW`, as originally rated.** The instrument stays
+built and published while this is open, and that is a deliberate choice rather
+than an oversight — see below.
+
+**Why it is not unpublished.** The claim is probably weak: a table of physiologic
+cut-offs and a logistic equation is thin ground under 17 USC 102(b), and the
+"facts and formulae are not copyrightable" reasoning above is likely right on the
+merits. Removing a working clinical tool from a live site on the strength of a
+footnote nobody has read in its original context would be an over-reaction with a
+real cost to the clinicians using it. But the reverse — leaving the record saying
+the question is closed — is a misrepresentation, and this project's entire posture
+is that a claim it cannot substantiate gets disclosed rather than assumed away.
+
+**The inconsistency is real and is stated rather than resolved.** PEWS, FLACC,
+COMFORT-B, CAPD and SOS-PD were all declined on asserted claims without waiting
+to see whether those claims would hold. PRISM is published under an assertion of
+the same kind. The difference is that the others were declined before being
+built, and this one is live. That is an explanation, not a justification, and it
+is recorded so the next reader does not have to reconstruct it.
+
+**What closes this, in order of cost.**
+
+1. **Read Pollack 1996 p.752.** The footnote is in the body of the paywalled
+   paper; this repository's own research note records the full text as never
+   obtained. One page, institutional access, resolves it either way.
+2. **If it reads as quoted: ship PRISM IV only.** Drop the PRISM III-12/-24
+   quadratic equations. Their clearance is the only part that depends on reading
+   patent expiry as extinguishing a copyright claim, and the score's own `notes`
+   already tell the reader not to rely on them ("a PRISM III figure should not be
+   read as a current estimate of anything"). The physiologic table is unchanged
+   between the two models — Pollack 2016: "the PRISM score for physiologic
+   variables and their ranges did not change" — so it travels with the PRISM IV
+   public-domain grant.
+3. **Or obtain a written statement** from whichever of Children's National or
+   VPS LLC holds the copyright.
+
+**Note there is nothing to strip.** Unlike FLACC or COMFORT-B, PRISM has no item
+wording of its own — the only external wording is the GCS, and `prism.ts`
+consumes an integer total exactly as `pediatric-gcs.ts` does. The paraphrase
+route that de-risks a prose scale does not apply, because the assertion is over
+the algorithm itself.
+
+**The transferable lesson, restated.** The first addendum's version was right and
+incompletely applied. Checking a rights claim against a primary source means
+checking it against the source that _makes the claim you are answering_ — not
+against a different primary source that answers an easier one.
