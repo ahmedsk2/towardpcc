@@ -133,16 +133,30 @@ test("home counters animate to their real values", async ({ page }) => {
   // changes, the copy is wrong, not the test. (The calculator and citation
   // counts are 23 and 91, pinned separately in figures.test.ts; this comment
   // said 22 and 89 for as long as that gap existed.)
-  await expect(page.getByText("64,388", { exact: true })).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText("100%", { exact: true })).toBeVisible();
+  //
+  // SCOPED TO THE BAND. A page-wide `getByText` for these figures is ambiguous:
+  // 64,388 is also a Knowledge pillar-card stat, so once the <Counter> hydrates
+  // there are two exact matches and Playwright's strict mode throws. It only
+  // ever passed because the assertion usually won a race against hydration —
+  // and it duly passed locally and failed in CI, which is the worst way for a
+  // test to be wrong. The counters band is the thing under test; say so.
+  await expect(band.getByText("64,388", { exact: true })).toBeVisible({ timeout: 5000 });
+  await expect(band.getByText("100%", { exact: true })).toBeVisible();
 });
 
 test("reduced motion still shows the final counter values", async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: "reduce" });
   const page = await context.newPage();
   await page.goto("/");
-  await page.locator("#counters-heading").locator("..").scrollIntoViewIfNeeded();
-  // Under reduced motion the value must appear immediately, not animate.
-  await expect(page.getByText("64,388", { exact: true })).toBeVisible({ timeout: 3000 });
+  // Hydration first: the counter is a client component, and under reduced
+  // motion it renders its final value on mount. Asserting before that resolved
+  // against the server HTML, where the only 64,388 on the page belongs to a
+  // pillar card — so the test passed while proving nothing about the counter.
+  await page.waitForLoadState("networkidle");
+  const band = page.locator("#counters-heading").locator("..");
+  await band.scrollIntoViewIfNeeded();
+  // Scoped, for the reason given in the test above: page-wide this matches the
+  // pillar-card stat as well and strict mode throws.
+  await expect(band.getByText("64,388", { exact: true })).toBeVisible({ timeout: 3000 });
   await context.close();
 });
