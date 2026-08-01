@@ -611,19 +611,60 @@ The pattern worth naming: several items were filed against line numbers and
 rationales that no longer hold, and two rest on claims that are simply false. An
 audit item nobody re-reads decays into folklore.
 
-### Two findings that need the founder, not code
+### The shared-secret exposure — mostly closed 2026-08-01
 
-- [ ] **SUBMISSION_IP_SALT was shared with a public preview and never rotated
-      (SPC-TM-003).** `docs/standards/security-and-privacy.md:350` records this
-      salt as byte-identical between production and the unauthenticated,
-      publicly reachable `next.towardpcc.com`. The stored value is
-      `HMAC-SHA256(salt, ip)` truncated to 96 bits and kept 24 months. IPv4 is
-      2^32 candidates — minutes on one GPU — and 96 bits leaves no collision
-      ambiguity, so a matched candidate is a certain re-identification. The
-      crypto did not change; the leak probability did. Rotate the salt.
-      `ADR-data-model.md:43` claims "truncation defeats reversal", which is
-      false for a 32-bit preimage space and is why this was rated low.
+The preview environment (§4.1 of `docs/standards/security-and-privacy.md`) was
+recorded as "closed" because the container had been stopped. It was not closed.
+**The Coolify application record still existed**, status `exited`, still bound to
+`https://next.towardpcc.com`, and still holding its own copies of `AUTH_SECRET`,
+`DATABASE_URL`, `TOTP_ENC_KEY` and `SUBMISSION_IP_SALT` — exactly the state that
+document warned a single Deploy click would restore.
+
+Done, verified against the running system:
+
+- [x] **Preview application deleted**, not stopped — record, environment
+      variables and the `next.towardpcc.com` binding. Its non-secret config
+      (git repo, branch `redesign/site-v2`, build pack) is snapshotted at
+      `~/backups/towardpcc-preview-config-2026-08-01.json` (mode 600) on the
+      host, so a properly isolated preview can be rebuilt per §7.3 — its own
+      database, role and `AUTH_SECRET`.
+- [x] **`AUTH_SECRET` and `SUBMISSION_IP_SALT` rotated.** Coolify stores each
+      variable twice, once for production and once for its preview-deployments
+      feature, and both rows held the **same** value; they now hold two
+      different new values, so a future Coolify preview cannot share production
+      secrets either. Applied with a `restart_only` deployment rather than a
+      redeploy: `origin/main` has moved past the running image, so a rebuild
+      would have shipped unrelated code changes as a side effect of a secret
+      rotation. Container recreated, healthy, new values confirmed live;
+      `/`, a calculator, `/admin/login`, `/api/v1/health` and `/api/v1/ready`
+      all 200 afterwards.
+
+Still outstanding, and both need care rather than speed:
+
+- [ ] **`TOTP_ENC_KEY`.** Cannot be rotated on its own: it seals admin TOTP
+      secrets **and** the stored SMTP settings, and `auth.ts:123` calls
+      `decryptSecret(user.totpSecret)` _before_ the recovery-code branch on
+      line 124 — so a rotated key throws inside `authorize()` and login dies
+      before recovery codes are ever consulted. **Recovery codes would not get
+      you back in.** Needs a re-encryption pass (read with the old key, rewrite
+      with the new) plus a fix making one failed decrypt fail that attempt
+      rather than the whole login path.
+- [ ] **`DATABASE_URL`.** The preview held production database credentials.
+      Rotating means coordinating the app role and `towardpcc_owner`, then
+      re-running the restore drill.
+
+The severity of the salt exposure is unchanged and worth restating: the stored
+value is `HMAC-SHA256(salt, ip)` truncated to 96 bits and kept 24 months. IPv4
+is 2^32 candidates — minutes on one GPU — and 96 bits leaves no collision
+ambiguity, so a matched candidate is a certain re-identification.
+`ADR-data-model.md:43` claims "truncation defeats reversal", which is false for a
+32-bit preimage space and is why this was originally rated low. Hashes written
+before 2026-08-01 remain under the old, exposed salt until the 24-month purge.
+
 - [ ] **Cloudflare Web Analytics is injecting a beacon into calculator pages.**
+      Founder action: these are zone _settings_, reachable from neither the repo
+      nor the host, and the Cloudflare API token available here carries only
+      `#dns_records:edit` / `#zone:read`.
       Found 2026-08-01 by the integrity canary, the first run in which it could
       reach the site. `static.cloudflareinsights.com/beacon.min.js` is in the
       HTML of every calculator page. CSP blocks it, so no request is made and
