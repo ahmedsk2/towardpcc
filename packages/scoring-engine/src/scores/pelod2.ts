@@ -315,6 +315,20 @@ export const pelod2 = defineScore({
     "pelod2.notes",
     "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25.",
   ),
+  // Maxima are Leteurtre 2013 Table 7, independently re-derived term by term
+  // from the branches above in docs/research/scores/pelod2.md §Organ maxima
+  // (9 + 10 + 2 + 8 + 4 = 33, the published ceiling). They are age-independent:
+  // the age bands move the MAP/creatinine thresholds, not the point values.
+  composition: {
+    total: "pelod2",
+    components: [
+      { id: "neurologic", max: 9 },
+      { id: "cardiovascular", max: 10 },
+      { id: "renal", max: 2 },
+      { id: "respiratory", max: 8 },
+      { id: "haematologic", max: 4 },
+    ],
+  },
   calculate: (values) => {
     const band = ageBandFor(values.age_months.value);
 

@@ -187,4 +187,106 @@ describeScore(pelod2, (ctx) => {
     const sum = organs.reduce((n, o) => n + (get(o) ?? 0), 0);
     expect(sum).toBe(get("pelod2"));
   });
+
+  /**
+   * The declared composition must stay true of the numbers actually emitted.
+   * registry-gate checks the ids exist; nothing checks the ARITHMETIC — that
+   * the five organ subscores really sum to the total, and that each stays
+   * inside its declared [min, max]. A wrong `max` draws a bar of the wrong
+   * length on the result panel while every other assertion still passes.
+   *
+   * Read the ids and maxima from `pelod2.composition` rather than restating
+   * them: a sibling task found that hardcoding the numbers here made the
+   * equivalent PRISM test vacuous — the test and the declaration agreed with
+   * each other while both disagreed with the code.
+   *
+   * The maximum-dysfunction vector is what gives this test teeth. It drives
+   * ALL FIVE organs to their ceilings at once (4+5, 4+6, 2, 2+3+3, 2+2 = 33),
+   * so the attainment assertion below pins every declared max from both
+   * sides — too low fails because the vector exceeds it, too high fails
+   * because nothing reaches it.
+   */
+  it("declared components sum to the total and pin their maxima, low to high", () => {
+    const vectors = [
+      // Low — all-normal, every organ 0 (exercises the min side).
+      normal,
+      // Low/moderate — isolated renal dysfunction only (total 2).
+      {
+        ...normal,
+        age_months: { value: 100, unit: "months" },
+        creatinine: { value: 60, unit: "µmol/L" },
+      },
+      // Moderate — isolated cardiovascular + respiratory (total 3).
+      {
+        ...normal,
+        age_months: { value: 18, unit: "months" },
+        map: { value: 50, unit: "mmHg" },
+        paco2: { value: 70, unit: "mmHg" },
+      },
+      // Moderate/high — mixed dysfunction across four systems (total 9).
+      {
+        ...normal,
+        gcs: { value: 8, unit: "" },
+        lactate: { value: 6.0, unit: "mmol/L" },
+        map: { value: 40, unit: "mmHg" },
+        invasive_vent: { value: true },
+        platelets: { value: 100, unit: "10^9/L" },
+      },
+      // High — maximum dysfunction, every organ at its ceiling (total 33).
+      {
+        age_months: { value: 8, unit: "months" },
+        gcs: { value: 3, unit: "" },
+        pupils: { value: "both_fixed" },
+        lactate: { value: 12.0, unit: "mmol/L" },
+        map: { value: 20, unit: "mmHg" },
+        creatinine: { value: 30, unit: "µmol/L" },
+        pao2_fio2: { value: 50, unit: "" },
+        paco2: { value: 100, unit: "mmHg" },
+        invasive_vent: { value: true },
+        wbc: { value: 1.5, unit: "10^9/L" },
+        platelets: { value: 50, unit: "10^9/L" },
+      },
+    ];
+
+    const composition = pelod2.composition;
+    expect(composition, "pelod2 must declare a composition").toBeDefined();
+    if (!composition) return;
+
+    const observedMax = new Map(
+      composition.components.map((c) => [c.id, Number.NEGATIVE_INFINITY]),
+    );
+
+    for (const v of vectors) {
+      const outcome = pelod2.compute(v as never);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) continue;
+      const get = (id: string) => {
+        const found = outcome.result.values.find((x) => x.id === id);
+        expect(found, `${id} must be emitted`).toBeDefined();
+        return found!.value;
+      };
+
+      const sum = composition.components.reduce((n, c) => n + get(c.id), 0);
+      expect(sum, "components must sum to the total").toBe(get(composition.total));
+
+      for (const c of composition.components) {
+        const value = get(c.id);
+        expect(value, `${c.id} above declared max ${c.max}`).toBeLessThanOrEqual(c.max);
+        expect(value, `${c.id} below declared min`).toBeGreaterThanOrEqual(c.min ?? 0);
+        observedMax.set(c.id, Math.max(observedMax.get(c.id)!, value));
+      }
+    }
+
+    // Each declared max must be REACHED, not merely respected — otherwise a max
+    // set too high sails through the ≤ assertion above and mis-scales the bar.
+    for (const c of composition.components) {
+      expect(observedMax.get(c.id), `${c.id}: declared max ${c.max} is never attained`).toBe(c.max);
+    }
+
+    // And the declared maxima must still add up to the published ceiling.
+    expect(
+      composition.components.reduce((n, c) => n + c.max, 0),
+      "declared maxima must sum to the published PELOD-2 maximum of 33",
+    ).toBe(33);
+  });
 });
