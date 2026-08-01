@@ -129,9 +129,30 @@ test.describe("TM-001 calculator privacy invariant (runtime)", () => {
       expect(u.origin, `prefetch left the origin: ${url}`).toBe(new URL(CALC, u.origin).origin);
     }
 
-    // Belt and braces: the sentinel value must appear in no URL or body ever
-    // requested (shareable state lives only in the fragment, never transmitted).
-    for (const s of seen) {
+    /**
+     * Belt and braces: the sentinel value must appear in no URL or body ever
+     * requested (shareable state lives only in the fragment, never transmitted).
+     *
+     * BUILD ARTEFACTS ARE EXCLUDED, and not as a convenience. Webpack names its
+     * chunks with a hex content hash, and hex is 0-9a-f — so a three-digit
+     * clinical value collides with one sooner or later purely by chance. It did:
+     * CI produced `page-0137dec412d04a79.js` and this assertion failed on the
+     * `137` inside the hash, reporting a sodium leak that had not happened.
+     *
+     * A false alarm here is expensive out of proportion to its size. This is the
+     * test behind the site's central claim, and one that cries wolf on a hash
+     * lottery is one people learn to re-run rather than read. The sentinel could
+     * not be changed to dodge it either — 137 is a real serum sodium, and a
+     * value chosen to be hash-proof would be a value no clinician would type.
+     *
+     * Excluding these URLs costs nothing: their names are fixed by the bundler
+     * at build time, so no runtime input can reach them. Every other request —
+     * document, RSC payload, XHR, anything cross-origin — is still scanned whole.
+     */
+    const isBuildArtefact = (url: string) => /\/_next\/static\//.test(url);
+    const scannable = seen.filter((s) => !isBuildArtefact(s));
+    expect(scannable.length, "nothing was scanned — the filter is too broad").toBeGreaterThan(0);
+    for (const s of scannable) {
       expect(s, `input value leaked into a request: ${s}`).not.toContain("137");
     }
   });
