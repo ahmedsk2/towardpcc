@@ -2,6 +2,22 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { registry } from "./registry";
+import type { ScoreDefinition } from "../types";
+
+/**
+ * A minimal valid input vector, built from each input's own declared domain.
+ * Deliberately dumb: it exists to make `compute` return, not to be clinically
+ * meaningful, and every assertion above is about ids rather than values.
+ */
+function sampleInputs(s: ScoreDefinition): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const i of s.inputs) {
+    if (i.type === "numeric") out[i.id] = { value: i.min, unit: i.unit.canonical };
+    else if (i.type === "boolean") out[i.id] = { value: false };
+    else out[i.id] = { value: i.options[0]!.value };
+  }
+  return out;
+}
 
 /**
  * Crown-jewel structural gate (PRD §6.3): every registered score MUST have a
@@ -30,6 +46,38 @@ describe("registry §6.3 gate", () => {
       for (const ref of s.references) {
         const traceable = "pmid" in ref || "doi" in ref || "url" in ref;
         expect(traceable, `${s.slug} reference must be traceable (pmid/doi/url)`).toBe(true);
+      }
+    }
+  });
+
+  /**
+   * A composition that names an id the score does not emit is invisible without
+   * this: the panel renders one fewer row and nothing fails. These assertions
+   * are the entire reason the maxima are declared rather than computed.
+   */
+  it("every declared composition names ids the score actually emits", () => {
+    for (const s of registry) {
+      if (!s.composition) continue;
+      const outcome = s.compute(sampleInputs(s) as never);
+      expect(outcome.ok, `${s.slug}: sample inputs did not compute`).toBe(true);
+      if (!outcome.ok) continue;
+      const emitted = new Set(outcome.result.values.map((v) => v.id));
+      expect(
+        emitted,
+        `${s.slug}: composition.total "${s.composition.total}" is not emitted`,
+      ).toContain(s.composition.total);
+      for (const c of s.composition.components) {
+        expect(emitted, `${s.slug}: component "${c.id}" is not emitted`).toContain(c.id);
+      }
+    }
+  });
+
+  it("composition components declare a sane range", () => {
+    for (const s of registry) {
+      if (!s.composition) continue;
+      for (const c of s.composition.components) {
+        const min = c.min ?? 0;
+        expect(c.max, `${s.slug}/${c.id}: max must exceed min`).toBeGreaterThan(min);
       }
     }
   });
