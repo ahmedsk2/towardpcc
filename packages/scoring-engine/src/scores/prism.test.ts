@@ -288,6 +288,37 @@ describe("PRISM threshold rows", () => {
   const yrs = (v: number) => ({ value: v, unit: "years" });
   const mo = (v: number) => ({ value: v, unit: "months" });
 
+  /**
+   * Every scoring row at its worst tier at once — the 74-point ceiling, which
+   * decomposes as neurologic 16 + non-neurologic 58. Hoisted to describe scope
+   * because two tests need it: the cap case below, and the composition sweep at
+   * the end, whose maxima-are-attainable assertion has no teeth without a
+   * vector that actually attains them.
+   */
+  const worstCase = {
+    age: mo(0.5),
+    sbp_min: { value: 20, unit: "mmHg" },
+    temp_min: { value: 30, unit: "°C" },
+    temp_max: { value: 42, unit: "°C" },
+    mental_status_gcs: { value: 3, unit: "" },
+    pupils: { value: "both_fixed" },
+    hr_max: { value: 300, unit: "bpm" },
+    ph_min: { value: 6.8, unit: "" },
+    ph_max: { value: 7.7, unit: "" },
+    tco2_min: { value: 2, unit: "mmol/L" },
+    tco2_max: { value: 40, unit: "mmol/L" },
+    pco2_max: { value: 90, unit: "mmHg" },
+    pao2_min: { value: 30, unit: "mmHg" },
+    glucose_max: { value: 900, unit: "mg/dL" },
+    potassium_max: { value: 9, unit: "mEq/L" },
+    creatinine_max: { value: 5, unit: "mg/dL" },
+    bun_max: { value: 90, unit: "mg/dL" },
+    wbc_min: { value: 500, unit: "cells/mm³" },
+    platelets_min: { value: 10_000, unit: "cells/mm³" },
+    pt_max: { value: 60, unit: "s" },
+    ptt_max: { value: 150, unit: "s" },
+  };
+
   it("scores systolic pressure in every band", () => {
     expect(at({ age: mo(0.5), sbp_min: { value: 39, unit: "mmHg" } }).total).toBe(7);
     expect(at({ age: mo(0.5), sbp_min: { value: 50, unit: "mmHg" } }).total).toBe(3);
@@ -440,29 +471,7 @@ describe("PRISM threshold rows", () => {
   });
 
   it("caps at 74, decomposing as 16 neurologic and 58 non-neurologic", () => {
-    const worst = at({
-      age: mo(0.5),
-      sbp_min: { value: 20, unit: "mmHg" },
-      temp_min: { value: 30, unit: "°C" },
-      temp_max: { value: 42, unit: "°C" },
-      mental_status_gcs: { value: 3, unit: "" },
-      pupils: { value: "both_fixed" },
-      hr_max: { value: 300, unit: "bpm" },
-      ph_min: { value: 6.8, unit: "" },
-      ph_max: { value: 7.7, unit: "" },
-      tco2_min: { value: 2, unit: "mmol/L" },
-      tco2_max: { value: 40, unit: "mmol/L" },
-      pco2_max: { value: 90, unit: "mmHg" },
-      pao2_min: { value: 30, unit: "mmHg" },
-      glucose_max: { value: 900, unit: "mg/dL" },
-      potassium_max: { value: 9, unit: "mEq/L" },
-      creatinine_max: { value: 5, unit: "mg/dL" },
-      bun_max: { value: 90, unit: "mg/dL" },
-      wbc_min: { value: 500, unit: "cells/mm³" },
-      platelets_min: { value: 10_000, unit: "cells/mm³" },
-      pt_max: { value: 60, unit: "s" },
-      ptt_max: { value: 150, unit: "s" },
-    });
+    const worst = at(worstCase);
     expect(worst.total).toBe(74);
     expect(worst.neuro).toBe(16);
     expect(worst.nonNeuro).toBe(58);
@@ -492,25 +501,60 @@ describe("PRISM threshold rows", () => {
    * panel relies on when it draws one bar as two segments, and the property
    * PRISM IV relies on when it weights the halves at 0.197 and 0.163 rather
    * than scoring the total at all.
+   *
+   * The `<= max` assertion here is only half a test: it catches a max declared
+   * too LOW, never one declared too HIGH, because nothing ever attains the
+   * inflated ceiling and the comparison passes forever while the rendered bar
+   * stays silently short. The ceiling vector closes that side — both halves max
+   * out on the same patient (16 + 58 = 74), so each declared max is pinned from
+   * below as well as above.
    */
-  it("the two subscores sum to the total at several severities", () => {
+  it("the two subscores sum to the total and pin their maxima, at several severities", () => {
     const cases = [
       normal,
       { ...normal, sbp_min: { value: 30, unit: "mmHg" } },
       { ...normal, pupils: { value: "both_fixed" } },
       { ...normal, mental_status_gcs: { value: 3, unit: "" }, pupils: { value: "both_fixed" } },
+      // The ceiling: every row at its worst tier, 16 neurologic + 58 non-neurologic.
+      { ...normal, ...worstCase },
     ];
+
+    const composition = prism.composition;
+    expect(composition, "prism must declare a composition").toBeDefined();
+    if (!composition) return;
+
+    const observedMax = new Map(
+      composition.components.map((comp) => [comp.id, Number.NEGATIVE_INFINITY]),
+    );
+
     for (const c of cases) {
       const outcome = prism.compute(c as never);
       expect(outcome.ok).toBe(true);
       if (!outcome.ok) continue;
       const get = (id: string) => outcome.result.values.find((x) => x.id === id)!.value;
-      const sum = prism.composition!.components.reduce((n, comp) => n + get(comp.id), 0);
-      expect(sum, `components must sum to the total`).toBe(get(prism.composition!.total));
-      for (const comp of prism.composition!.components) {
-        expect(get(comp.id), `${comp.id} above declared max`).toBeLessThanOrEqual(comp.max);
-        expect(get(comp.id), `${comp.id} below declared min`).toBeGreaterThanOrEqual(comp.min ?? 0);
+      const sum = composition.components.reduce((n, comp) => n + get(comp.id), 0);
+      expect(sum, `components must sum to the total`).toBe(get(composition.total));
+      for (const comp of composition.components) {
+        const value = get(comp.id);
+        expect(value, `${comp.id} above declared max ${comp.max}`).toBeLessThanOrEqual(comp.max);
+        expect(value, `${comp.id} below declared min`).toBeGreaterThanOrEqual(comp.min ?? 0);
+        observedMax.set(comp.id, Math.max(observedMax.get(comp.id)!, value));
       }
     }
+
+    // Each declared max must be REACHED, not merely respected — otherwise a max
+    // set too high sails through the ≤ assertion above and mis-scales the bar.
+    for (const comp of composition.components) {
+      expect(
+        observedMax.get(comp.id),
+        `${comp.id}: declared max ${comp.max} is never attained`,
+      ).toBe(comp.max);
+    }
+
+    // And the declared maxima must still add up to the published ceiling.
+    expect(
+      composition.components.reduce((n, comp) => n + comp.max, 0),
+      "declared maxima must sum to the PRISM III maximum of 74",
+    ).toBe(74);
   });
 });

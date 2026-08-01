@@ -540,8 +540,14 @@ describeScore(phoenix, (ctx) => {
    * The last vector is the published ceiling: 3 + 6 + 2 + 2 = 13. Asserting the
    * sum there checks the four maxima are simultaneously attainable and that
    * they tile the published 0–13 range rather than merely fitting inside it.
+   *
+   * A `value <= max` assertion alone is only half a test: it catches a max
+   * declared too LOW, never one declared too HIGH, because nothing ever attains
+   * the inflated ceiling and the comparison passes forever while the rendered
+   * bar stays silently short. Hence the per-component attainment assertion
+   * below — the total reaching 13 constrains the four maxima only in aggregate.
    */
-  it("total equals the sum of its declared components, low severity through the 13-point ceiling", () => {
+  it("declared components sum to the total and pin their maxima, low through the 13-point ceiling", () => {
     const vectors = [
       // Nothing abnormal: every component 0.
       { age_months: { value: 36, unit: "months" }, suspected_infection: { value: true } },
@@ -583,23 +589,44 @@ describeScore(phoenix, (ctx) => {
         fixed_pupils: { value: true },
       },
     ];
+    const composition = phoenix.composition;
+    expect(composition, "phoenix must declare a composition").toBeDefined();
+    if (!composition) return;
+
+    const observedMax = new Map(
+      composition.components.map((c) => [c.id, Number.NEGATIVE_INFINITY]),
+    );
+
     const totals: number[] = [];
     for (const v of vectors) {
       const outcome = phoenix.compute(v as never);
       expect(outcome.ok).toBe(true);
       if (!outcome.ok) continue;
       const get = (id: string) => outcome.result.values.find((x) => x.id === id)!.value;
-      const sum = phoenix.composition!.components.reduce((n, c) => n + get(c.id), 0);
-      expect(sum, `components must sum to the total`).toBe(get(phoenix.composition!.total));
-      for (const c of phoenix.composition!.components) {
-        expect(get(c.id), `${c.id} above declared max`).toBeLessThanOrEqual(c.max);
-        expect(get(c.id), `${c.id} below declared min`).toBeGreaterThanOrEqual(c.min ?? 0);
+      const sum = composition.components.reduce((n, c) => n + get(c.id), 0);
+      expect(sum, `components must sum to the total`).toBe(get(composition.total));
+      for (const c of composition.components) {
+        const value = get(c.id);
+        expect(value, `${c.id} above declared max ${c.max}`).toBeLessThanOrEqual(c.max);
+        expect(value, `${c.id} below declared min`).toBeGreaterThanOrEqual(c.min ?? 0);
+        observedMax.set(c.id, Math.max(observedMax.get(c.id)!, value));
       }
       totals.push(sum);
     }
+
+    // Each declared max must be REACHED, not merely respected — otherwise a max
+    // set too high sails through the ≤ assertion above and mis-scales the bar.
+    for (const c of composition.components) {
+      expect(observedMax.get(c.id), `${c.id}: declared max ${c.max} is never attained`).toBe(c.max);
+    }
+
     // The sweep really does span the published range, floor to ceiling — so a
     // silently-narrowed max could not hide behind vectors that never reach it.
     expect(totals[0], "the sweep must include a 0").toBe(0);
     expect(totals.at(-1), "the sweep must reach the published 0–13 ceiling").toBe(13);
+    expect(
+      composition.components.reduce((n, c) => n + c.max, 0),
+      "declared maxima must sum to the published Phoenix maximum of 13",
+    ).toBe(13);
   });
 });
