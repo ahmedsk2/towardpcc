@@ -10,6 +10,7 @@ import type {
 import { fromCanonical, getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { CompositionPanel } from "./composition-panel";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
@@ -224,6 +225,25 @@ function CalculatorFormInner({
       return input ? [{ id: input.id, label: input.label.en, message: e.message }] : [];
     });
   }, [outcome, inputs]);
+
+  /**
+   * How much of a composite has actually been filled in.
+   *
+   * Counted straight off the field state rather than derived from `blocking`,
+   * which cannot answer this question: `blocking` lists inputs that FAILED
+   * validation, and a blank OPTIONAL input fails nothing. pSOFA declares seven
+   * of its fourteen inputs optional and scores a blank one as normal, so
+   * `inputs.length - blocking.length` would report "14 of 14 entered" on a form
+   * with seven empty boxes — and read the same on a completely empty form,
+   * where `blocking` is empty because nothing has been computed at all.
+   *
+   * That is the exact falsehood the partial-result cue beside it exists to
+   * prevent, so the counter has to be measured, not inferred.
+   */
+  const enteredCount = useMemo(
+    () => inputs.filter((i) => (state[i.id]?.raw ?? "") !== "").length,
+    [inputs, state],
+  );
 
   // Honest partial-result cue (PRD §6.4): additive composites (pSOFA, Phoenix,
   // VIS) score a blank component as normal, so a not-yet-complete entry can read
@@ -499,6 +519,7 @@ function CalculatorFormInner({
         definition={definition}
         outcome={outcome}
         blocking={blocking}
+        enteredCount={enteredCount}
         copied={copied}
         linkCopied={linkCopied}
         onCopy={copySummary}
@@ -893,6 +914,7 @@ function ResultPanel({
   definition,
   outcome,
   blocking,
+  enteredCount,
   copied,
   linkCopied,
   onCopy,
@@ -903,6 +925,7 @@ function ResultPanel({
   definition: ScoreDefinition;
   outcome: ComputeResult | null;
   blocking: readonly BlockingField[];
+  enteredCount: number;
   copied: boolean;
   linkCopied: boolean;
   onCopy: () => void;
@@ -911,7 +934,29 @@ function ResultPanel({
   className?: string;
 }) {
   const ok = outcome?.ok ? outcome : null;
-  const multi = (ok?.result.values.length ?? 0) > 1;
+
+  /**
+   * The flat list shows everything the score emits EXCEPT the parts a
+   * composition already accounts for.
+   *
+   * Without this filter pSOFA's six organ subscores render TWICE — once as
+   * unexplained rows in the list, and again, labelled and in proportion, in the
+   * panel below. The panel is the better rendering of the two, so the list
+   * yields.
+   */
+  const composition = definition.composition;
+  const flatValues = useMemo(
+    () =>
+      (ok?.result.values ?? []).filter((v) => !composition?.components.some((c) => c.id === v.id)),
+    [ok, composition],
+  );
+
+  /* Derived from what actually RENDERS, not from what the engine emitted.
+     `multi` exists to tell several numbers apart — it labels each one and
+     shrinks the non-primary ones. With the components pulled out, pSOFA shows a
+     single number and needs neither. PRISM still keeps its mortality
+     probability beside the total, so it stays multi and is unaffected. */
+  const multi = flatValues.length > 1;
 
   /**
    * The value that IS the score, when a score returns several.
@@ -950,6 +995,21 @@ function ResultPanel({
       )}
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
+
+      {/* HOW MUCH OF THE INSTRUMENT HAS BEEN ANSWERED — composites only.
+          A composite that scores blank components as normal reads low while it
+          is still being filled in, and the number alone cannot say which it is.
+          The blocking list answers this only while the score is incomplete; it
+          disappears the moment a result exists, which is exactly when a pSOFA
+          with seven optional boxes still empty most needs to say so. So it sits
+          here, above both branches, and is present in both.
+          Not inside the live region below: it changes on every keystroke, and a
+          count read aloud that often is noise rather than information. */}
+      {definition.composition ? (
+        <p className="mt-1 font-numeric text-[13px] text-ink-muted">
+          {enteredCount} of {definition.inputs.length} entered
+        </p>
+      ) : null}
 
       {/* THE ANNOUNCEMENT, and nothing else.
           MOUNTED FROM FIRST PAINT — it was moved inside the `ok` branch to
@@ -1046,7 +1106,7 @@ function ResultPanel({
       ) : (
         <div className="mt-4 flex flex-col gap-4">
           <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
-            {ok.result.values.map((v) => {
+            {flatValues.map((v) => {
               const band: InterpretationBand | undefined = matchInterpretationBand(
                 definition,
                 v.id,
@@ -1140,6 +1200,12 @@ function ResultPanel({
               );
             })}
           </div>
+
+          {/* The working behind the total. Only composite scores declare a
+              composition, so nothing renders for the rest. */}
+          {composition ? (
+            <CompositionPanel composition={composition} values={ok.result.values} />
+          ) : null}
 
           {/* BESIDE THE NUMBER. A result-invalidating caveat that only appears
               in a Limitations tab is a caveat most readers will never meet.
