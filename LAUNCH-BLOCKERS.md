@@ -598,3 +598,191 @@ P8 deploy-gated go-live checklist.
 - [ ] P8 deploy-gated (verify at go-live, not codebase defects): backup restore
       drill; CI image build + SBOM + signed provenance + scan; error tracker DSN + Uptime Kuma monitors + SLOs; branch protection + required review on main + a SAST job; OCI Vault for secrets + at-rest volume encryption; DPAs +
       PDPL breach clock + counsel privacy-policy review.
+
+## Triage of every remaining item (2026-08-01)
+
+Each open item was re-read against the code by one reviewer and then
+adversarially re-checked by a second. **Six of six proposed in-repo fixes were
+refuted**, each on a specific production breakage — so the honest status of this
+section is not "small tasks nobody got to" but "changes that need real work and
+must not be done drive-by".
+
+The pattern worth naming: several items were filed against line numbers and
+rationales that no longer hold, and two rest on claims that are simply false. An
+audit item nobody re-reads decays into folklore.
+
+### Two findings that need the founder, not code
+
+- [ ] **SUBMISSION_IP_SALT was shared with a public preview and never rotated
+      (SPC-TM-003).** `docs/standards/security-and-privacy.md:350` records this
+      salt as byte-identical between production and the unauthenticated,
+      publicly reachable `next.towardpcc.com`. The stored value is
+      `HMAC-SHA256(salt, ip)` truncated to 96 bits and kept 24 months. IPv4 is
+      2^32 candidates — minutes on one GPU — and 96 bits leaves no collision
+      ambiguity, so a matched candidate is a certain re-identification. The
+      crypto did not change; the leak probability did. Rotate the salt.
+      `ADR-data-model.md:43` claims "truncation defeats reversal", which is
+      false for a 32-bit preimage space and is why this was rated low.
+- [ ] **Cloudflare Web Analytics is injecting a beacon into calculator pages.**
+      Found 2026-08-01 by the integrity canary, the first run in which it could
+      reach the site. `static.cloudflareinsights.com/beacon.min.js` is in the
+      HTML of every calculator page. CSP blocks it, so no request is made and
+      nothing has been collected — but it is a third-party script tag on the
+      pages whose promise is that nothing is transmitted. Turn Web Analytics off
+      in the dashboard. While there: Email Address Obfuscation (Scrape Shield)
+      injects `/cdn-cgi/scripts/.../email-decode.min.js`, which is same-origin,
+      CSP-permitted and **does execute**. Neither is needed.
+
+### The daily production check had been red for the wrong reason
+
+Fixed 2026-08-01. Node's `fetch` sends no browser User-Agent and Cloudflare
+answered GitHub's runners with 403, so the canary never reached the site while
+reporting that four calculator pages had lost their names. Three checks also
+reported PASS off the same 403, treating any `status >= 400` as proof of
+absence. Both fixed, plus a preflight that reports BLOCKED rather than inventing
+an integrity incident out of its own blindness. **Still to verify:** whether the
+named User-Agent is actually allowed through from GitHub's IP ranges — only a
+run after this merges can establish that.
+
+### SPC-WEB-001 — keep `'unsafe-inline'`, and say so
+
+- [ ] Re-grade to low and record the waiver instead of tracking it as a to-do.
+
+Both reviewers agreed on the outcome. The built output settles it: `/` contains
+**101 bare inline `<script>` elements** (all `self.__next_f.push`), 1,077 across
+38 prerendered files. Nonces cannot reach prerendered HTML without making all 38
+routes dynamic — `/`'s flight payload is 304 KB per request on a single Riyadh
+origin, and a cacheable nonce is a CSP bypass by construction. Hashes are
+buildable but cost a 5.5 KB `script-src` header on `/`, a pinned build ID and a
+two-pass Docker build whose failure mode is a **dead site**: one stale hash and
+React never hydrates, invisible to `next build` and to any header check.
+
+The audit's rationale is also wrong. It argues the directive is the only barrier
+against "a compromised build-time dependency" — but such a dependency ships
+inside the first-party bundle served from `'self'`, which no nonce or hash policy
+constrains. `connect-src 'self'` is the barrier either way.
+
+Corrections: the literal is at `proxy.ts:59`, not `proxy.ts:23`. The audit's "no
+`dangerouslySetInnerHTML`" is false — three uses exist (`app/layout.tsx:69`,
+`app/calculators/[slug]/page.tsx:183`, `components/calculator/score-tabs.tsx:59`),
+all build-time constant, so the conclusion survives but the evidence does not.
+`ADR-security-headers.md:16` says "~17 inline scripts" per page; `/` has 101.
+
+### SPC-WEB-002 — the one that looked easy, and is not
+
+- [ ] Dropping `style-src 'unsafe-inline'` on the /admin tier needs
+      `app/global-error.tsx` fixed first.
+
+The first pass found exactly one inline `<style>` reaching /admin and called it
+near-zero risk. The re-check refuted that: `app/global-error.tsx` is the **root**
+error boundary, it replaces the root layout for every route, there is no
+admin-local `error.tsx`, and it is entirely inline-styled. Tightening the
+directive would strip the styling from the one screen that renders when
+everything else has already failed.
+
+Corrections: the directive is at `proxy.ts:68`, the nonce at `proxy.ts:92-94`.
+`ADR-security-headers.md:41` justifies it with "React sets a few inline style
+attributes", false for the admin subtree. Note CSP3 `style-src` **does** govern
+`style=` attributes, via the `style-src-attr` fallback.
+
+### SPC-DB-005 — worse than "no scheduler"
+
+- [ ] The retention purge cannot run in production at all as things stand.
+
+`packages/db/scripts/purge-retention.mjs` is correct and parameterised, but
+`apps/web/Dockerfile` copies only `.next/standalone`, `.next/static` and
+`public`. The script is imported by nothing, so Next never traces it and **it is
+not in the production image** — `docker exec` into the running container cannot
+run it under any schedule. `packages/db/package.json` has no purge script either.
+
+The safest scheduler is a root systemd timer on the OCI VM reusing the existing
+`docker run --network coolify --env-file ...` pattern that already runs
+migrations as owner. GitHub Actions must be rejected: it would put
+`towardpcc_owner` credentials into a cloud CI secret store, a larger exposure
+than the retention gap it closes.
+
+### SPC-TM-002 — sessions renew forever
+
+- [ ] Idle timeout and revocation. Higher severity than filed.
+
+`auth.ts:49` is `{ strategy: "jwt", maxAge: 8h }` with no adapter and no session
+model in the Prisma schema, so nothing server-side can invalidate a token. The
+audit calls this "absolute lifetime only" — wrong: `@auth/core` re-signs the JWT
+with a fresh `exp` and re-sets the cookie on **every** `GET /api/auth/session`,
+never consulting `updateAge` on the JWT path. Anyone holding the cookie can renew
+it indefinitely; the only reason a legitimate operator is logged out at 8h is
+that this app has no `SessionProvider` and never calls that endpoint. The same
+staleness voids `lockedUntil` and the OWNER/EDITOR role for a token's life.
+
+The proposed fix was refuted as producing an **infinite redirect loop on its
+normal path**: `app/admin/login/page.tsx:10` redirects an authenticated session
+to `/admin`, while the guard redirected back to `/admin/login` without clearing
+the cookie.
+
+### SPC-TM-001 — auth events still never reach the audit trail
+
+- [ ] Record login success, failure, TOTP replay, recovery-code burn, lockout
+      and logout in `AuditLog`.
+
+`recordAudit` is called from exactly four content-mutation server actions and
+from nothing in the auth path; `auth.ts` has zero references. These events exist
+only as pino lines on stdout, and `lib/logger.ts:15` redacts `*.email`, so even
+that record is low-attribution. No migration, grant or env var is needed — the
+app role already holds INSERT on `AuditLog`.
+
+The proposed fix was refuted: it computed the IP hash at statement level outside
+any try/catch, so a missing `SUBMISSION_IP_SALT` would become **100% admin login
+failure** rather than a missing audit row. (The audit's `auth.ts:84` pin is
+stale — that is now the cookie block.)
+
+### SPC-CON-009 — the docs and CI disagree, and nobody wrote it down
+
+- [ ] Decide `dumb-init` pinning explicitly, then make the docs and CI agree.
+
+`apps/web/Dockerfile:53` is unpinned — but `.github/workflows/ci.yml:184-187`
+suppresses hadolint `DL3018`, the rule that catches exactly this. CI encodes
+"won't fix" while two documents track it as open. Both justify inaction with
+"base is digest-pinned, therefore reproducible", which is **wrong**: the digest
+pins the layers already in the base image, while `apk add` resolves against the
+live Alpine index at build time. The audit's `Dockerfile:25` is stale (now 53).
+
+Unlike `docker-compose.prod.yml`, this Dockerfile is genuinely in effect —
+Coolify builds from it.
+
+### SPC-SUP-002 — one third done, and signing would attest to the wrong artefact
+
+- [ ] Provenance and signing, only after the builder moves.
+
+The SBOM exists (`ci.yml:228-241`, anchore/sbom-action to SPDX-JSON), so the
+audit's "no SBOM" is stale. But CI never runs `docker push`: the image is built
+into an ephemeral runner's daemon, scanned and destroyed, while **Coolify builds
+its own image on the OCI host**. Signing the CI image would attest to an artefact
+that never existed in production and whose digest differs from the deployed one.
+Cosign without moving the builder is theatre.
+
+### SPC-API-002 — the rewrite relocated the trust rather than removing it
+
+- [ ] Anti-forgery on the client-IP resolver.
+
+`resolveClientIp` validates nothing on the Cloudflare path, which serves 100% of
+live traffic today, and stakes the edge path entirely on one hand-observed
+infrastructure behaviour with no in-code check. The "Client IP is Cloudflare's"
+item above is ticked, but its own caveat — "widening those rules re-opens
+CWE-348 and means revisiting that file" — was triggered by the KSA migration work
+and never acted on.
+
+### Gitleaks pre-commit
+
+- [ ] Add a graceful-degradation hook; installing the binary needs a human.
+
+`.husky/pre-commit` is one line (`pnpm exec lint-staged`) with no secret scan.
+The hook is writable today and would stay inert-but-loud until a binary exists;
+what is blocked is installing gitleaks on this box (Windows 11 ARM64; no go,
+scoop or choco — only winget).
+
+The proposed hook was refuted for reproducing the bug it claimed to fix: it
+treated **any** non-zero gitleaks exit as a leak, and gitleaks exits non-zero for
+usage, config-parse and git errors too.
+
+`docs/prd/40-privacy-security.md:27` claims "gitleaks pre-commit and in CI" as
+the current posture. Only the CI half exists; `SECURITY.md:22` is the honest one.
