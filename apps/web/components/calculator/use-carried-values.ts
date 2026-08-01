@@ -63,8 +63,23 @@ function read(): CarriedValue[] {
   }
 }
 
-/** The inputs worth carrying. Nothing clinical — the patient's size, only. */
-const CARRIED_IDS = new Set(["age", "age_months", "weight", "weight_kg"]);
+/**
+ * The inputs worth carrying. Nothing clinical — the patient's size, only.
+ *
+ * EXPORTED, because it was applied on the READ side alone and the writer sent
+ * every numeric field it had. A session that touched pSOFA, anion gap, QTc and
+ * burn resuscitation accumulated nineteen labelled physiologic values —
+ * creatinine, bilirubin, platelets, lactate — as a readable snapshot of one
+ * child, persisting for the life of the tab, while /legal/data-protection says
+ * calculators collect "Nothing" and calls its table "the honest, complete
+ * picture". An allow-list that only guards the read is not an allow-list.
+ */
+export const CARRIED_IDS: ReadonlySet<string> = new Set([
+  "age",
+  "age_months",
+  "weight",
+  "weight_kg",
+]);
 
 export function useCarriedValues(inputs: readonly ScoreInput[]) {
   const [offered, setOffered] = useState<readonly CarriedValue[]>([]);
@@ -81,12 +96,19 @@ export function useCarriedValues(inputs: readonly ScoreInput[]) {
     setOffered(read().filter((v) => wanted.get(v.id) === v.unit));
   }, [inputs]);
 
-  /** Remember what this calculator was given, for the next one. */
+  /**
+   * Remember what this calculator was given, for the next one.
+   *
+   * Filters by CARRIED_IDS here as well as on the read. Belt and braces on
+   * purpose: this is the only line that decides what touches the disk, and the
+   * caller passing the wrong list is exactly what happened.
+   */
   const remember = useCallback((values: readonly CarriedValue[]) => {
-    if (values.length === 0) return;
+    const carryable = values.filter((v) => CARRIED_IDS.has(v.id));
+    if (carryable.length === 0) return;
     try {
       const merged = new Map(read().map((v) => [v.id, v]));
-      for (const v of values) merged.set(v.id, v);
+      for (const v of carryable) merged.set(v.id, v);
       sessionStorage.setItem(KEY, JSON.stringify([...merged.values()]));
     } catch {
       // Private mode, quota, disabled storage — carrying is a convenience and
@@ -94,6 +116,19 @@ export function useCarriedValues(inputs: readonly ScoreInput[]) {
     }
   }, []);
 
+  /**
+   * Take one offer, leaving the others alone.
+   *
+   * `applyCarried` used to call `dismiss`, which cleared the whole store — so a
+   * clinician offered both an age and a weight could only ever use one, and the
+   * other was deleted from storage as well as from the page, for the rest of
+   * the session.
+   */
+  const consume = useCallback((id: string) => {
+    setOffered((prev) => prev.filter((v) => v.id !== id));
+  }, []);
+
+  /** The explicit "no thanks": clears the page AND the store. */
   const dismiss = useCallback(() => {
     setOffered([]);
     try {
@@ -103,5 +138,5 @@ export function useCarriedValues(inputs: readonly ScoreInput[]) {
     }
   }, []);
 
-  return { offered, remember, dismiss };
+  return { offered, remember, consume, dismiss };
 }

@@ -907,6 +907,7 @@ export const site = {
     // actually standing in the way can be a screen and a half below.
     resultBlockedHeading: "Waiting on",
     resultBlockedJump: "Go to",
+    resultBlockedMore: "and {n} more",
     interpretationLabel: "Interpretation",
     // Shown for additive composites (pSOFA, Phoenix, VIS) where a blank
     // component is scored as normal, so a partial entry is never mistaken

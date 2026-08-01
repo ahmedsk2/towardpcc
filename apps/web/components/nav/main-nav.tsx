@@ -42,6 +42,8 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
   const setDrawer = (v: boolean) => setDrawerAt(v ? pathname : null);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const drawerTriggerRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLLIElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -55,7 +57,14 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
         setMegaAt(null);
         triggerRef.current?.focus();
       }
-      setDrawerAt(null);
+      // The drawer restores focus too. It used to close and leave
+      // document.activeElement on <body>, so a keyboard user pressing Escape
+      // lost their place entirely and had to tab from the top of the document —
+      // while the mega-menu three lines above did the right thing.
+      if (drawer) {
+        setDrawerAt(null);
+        drawerTriggerRef.current?.focus();
+      }
     };
     const onClick = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setMegaAt(null);
@@ -66,15 +75,67 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("click", onClick);
     };
-  }, [mega]);
+  }, [mega, drawer]);
 
-  // The drawer owns the viewport while open.
+  /**
+   * The drawer owns the viewport while open — and now owns FOCUS too.
+   *
+   * It is the only navigation surface below 1024px (the desktop nav is
+   * `hidden lg:block`), and it was failing three ways at once: focus stayed on
+   * the hamburger when it opened, Tab walked straight out of the panel into
+   * page content the drawer was covering, and Escape dropped focus to <body>.
+   * The scroll lock was the only part of "owns the viewport" that was actually
+   * implemented.
+   *
+   * `inert` on the rest of the document is what makes containment real rather
+   * than a keydown handler racing the browser: it removes everything outside
+   * from the tab order AND from the accessibility tree, so a screen-reader user
+   * cannot read through the drawer either. The wrap-around handler stays as the
+   * fallback for browsers without `inert`.
+   */
   useEffect(() => {
     if (!drawer) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const panel = drawerRef.current;
+    const outside = [...document.body.children].filter(
+      (el) => el instanceof HTMLElement && !el.contains(panel),
+    ) as HTMLElement[];
+    const wasInert = outside.map((el) => el.inert);
+    for (const el of outside) el.inert = true;
+
+    // Into the panel, not onto the page behind it.
+    const focusables = () =>
+      [
+        ...(panel?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ) ?? []),
+      ].filter((el) => el.offsetParent !== null);
+    focusables()[0]?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+
     return () => {
       document.body.style.overflow = prev;
+      outside.forEach((el, i) => {
+        el.inert = wasInert[i] ?? false;
+      });
+      document.removeEventListener("keydown", onKey);
     };
   }, [drawer]);
 
@@ -237,6 +298,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
       {/* Mobile trigger */}
       <button
         type="button"
+        ref={drawerTriggerRef}
         aria-expanded={drawer}
         aria-controls="nav-drawer"
         onClick={() => setDrawer(true)}
@@ -259,6 +321,13 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
           />
           <div
             id="nav-drawer"
+            ref={drawerRef}
+            // It behaves as a modal, so it says so: without a role and a name a
+            // screen reader announced an unlabelled group and gave no signal
+            // that the rest of the page had gone away.
+            role="dialog"
+            aria-modal="true"
+            aria-label={site.nav.menuLabel}
             className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-2xl motion-safe:animate-[drawerIn_var(--motion-duration-panel)_var(--motion-ease)_both]"
           >
             <div className="mb-6 flex items-center justify-between">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef } from "react";
+import { useActionState, useCallback, useEffect, useId, useRef, useState } from "react";
 import { buttonClasses, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import type { SubmitResult } from "@/lib/submissions";
@@ -42,12 +42,69 @@ export function SubmissionForm({
   const [state, formAction, pending] = useActionState(action, null);
   const baseId = useId();
   const renderedAtRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  /**
+   * What the visitor typed, so a rejected submission does not throw it away.
+   *
+   * React RESETS an uncontrolled `<form action={fn}>` once the action settles —
+   * including when it settles with validation errors. So a single bad character
+   * in the email emptied every field, and a 230-character message was
+   * unrecoverable. Captured on submit and replayed as `defaultValue` on the
+   * next render, keyed so React rebuilds the inputs rather than reusing the
+   * reset DOM nodes.
+   */
+  const [submitted, setSubmitted] = useState<Record<string, string>>({});
+  const [attempt, setAttempt] = useState(0);
 
-  // Stamp the render time on mount (the server's time-trap reads it). Kept out
-  // of SSR so it reflects when the human actually loaded the form.
-  useEffect(() => {
-    if (renderedAtRef.current) renderedAtRef.current.value = String(Date.now());
+  /**
+   * The render-time stamp the server's time-trap reads. Kept out of SSR so it
+   * reflects when the human actually loaded the form.
+   *
+   * CAPTURED ONCE AND REPLAYED — never re-read from the clock. The trap asks
+   * "did at least MIN_FILL_MS elapse between render and submit", so stamping
+   * with `Date.now()` at submit time makes every submission look instantaneous
+   * and drops all of them as `too-fast`. That is a different way to lose the
+   * message, and it fails on the FIRST submit rather than the second.
+   */
+  const mountedAtRef = useRef(0);
+  const stamp = useCallback(() => {
+    if (renderedAtRef.current) renderedAtRef.current.value = String(mountedAtRef.current);
   }, []);
+  useEffect(() => {
+    mountedAtRef.current = Date.now();
+    stamp();
+  }, [stamp]);
+
+  /**
+   * RE-STAMP ON EVERY SUBMIT, because React puts the stamp back to its
+   * `defaultValue` of "0" when it resets the form.
+   *
+   * This was a silent data-loss bug, and the worst kind: the second submission
+   * from any page load — the ordinary mistype-then-correct path — arrived with
+   * `t = "0"`, `classifyDrop` read that as `no-timestamp`, and `handleSubmission`
+   * returned `{ ok: true }` from the accept-and-drop branch ABOVE the rate
+   * limiter, above Zod, above the database write. The visitor was shown
+   * "Message sent. Thank you." for a message that was never stored, never
+   * emailed and never counted. An entirely empty form was accepted this way.
+   *
+   * Accept-and-drop is the right design against bots — a bot must not be able
+   * to tell a rejection from a delivery — which is exactly why the stamp has to
+   * be right for humans: everything downstream trusts it completely.
+   *
+   * Also captures the field values for the replay above. `useActionState` runs
+   * the action after this handler, so both happen before the reset.
+   */
+  const onSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      stamp();
+      const data = new FormData(e.currentTarget);
+      const next: Record<string, string> = {};
+      for (const field of fields) next[field.name] = String(data.get(field.name) ?? "");
+      setSubmitted(next);
+      setAttempt((n) => n + 1);
+    },
+    [stamp, fields],
+  );
 
   if (state?.ok) {
     return (
@@ -59,7 +116,13 @@ export function SubmissionForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-5" noValidate>
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={onSubmit}
+      className="flex flex-col gap-5"
+      noValidate
+    >
       {fields.map((field) => {
         const id = `${baseId}-${field.name}`;
         const err = state && !state.ok ? state.fieldErrors?.[field.name] : undefined;
@@ -71,8 +134,13 @@ export function SubmissionForm({
             </label>
             {field.type === "textarea" ? (
               <textarea
+                // Keyed on the attempt count so React remounts the control and
+                // honours the new defaultValue instead of keeping the node it
+                // has just reset.
+                key={attempt}
                 id={id}
                 name={field.name}
+                defaultValue={submitted[field.name] ?? ""}
                 rows={5}
                 autoComplete={field.autoComplete}
                 placeholder={field.placeholder}
@@ -82,8 +150,10 @@ export function SubmissionForm({
               />
             ) : (
               <input
+                key={attempt}
                 id={id}
                 name={field.name}
+                defaultValue={submitted[field.name] ?? ""}
                 type={field.type ?? "text"}
                 autoComplete={field.autoComplete}
                 placeholder={field.placeholder}

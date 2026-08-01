@@ -234,7 +234,15 @@ export function rsaStrip(): RsaStrip {
     // Rate as a fraction of the base rate, normalised onto [0, 1] across the
     // full RSA excursion. Derived from the interval rather than from `v`, so
     // the curve is the rate the heart is actually running at.
-    const norm = (base / interval - (1 - span)) / (2 * span);
+    //
+    // RATE-SPACE BOUNDS for a rate-space quantity. This divided by the INTERVAL
+    // excursion (1 ± span), but `base / interval` ranges over 1/(1 ± span) —
+    // which is not symmetric. The curve sat 3.7% off its floor and clipped at
+    // the top of every inspiration, in a file whose own doc-comment says the
+    // rate IS the physiological rate by construction rather than by tuning.
+    const fastest = 1 / (1 - span);
+    const slowest = 1 / (1 + span);
+    const norm = (base / interval - slowest) / (fastest - slowest);
     samples.push({
       x: x(t),
       y: RSA_RATE_TOP + (1 - Math.min(1, Math.max(0, norm))) * (RSA_RATE_BOTTOM - RSA_RATE_TOP),

@@ -7,11 +7,11 @@ import type {
   ScoreDefinition,
   ScoreInput,
 } from "@towardpcc/scoring-engine";
-import { getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
+import { fromCanonical, getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import { formatBand, shortCite } from "./format";
-import { useCarriedValues, type CarriedValue } from "./use-carried-values";
+import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
 const c = site.calculators;
 
@@ -296,7 +296,12 @@ function CalculatorFormInner({
    * SERVER-RENDERED defaults, not our fragment-hydrated state, so on a shared
    * link it would restore the shared values rather than empty the form.
    */
-  const { offered, remember, dismiss: dismissCarried } = useCarriedValues(inputs);
+  const {
+    offered,
+    remember,
+    consume: consumeCarried,
+    dismiss: dismissCarried,
+  } = useCarriedValues(inputs);
 
   // Remembered only once the score COMPUTES. A half-typed weight is not a
   // patient's weight, and offering one to the next calculator would carry a
@@ -306,7 +311,13 @@ function CalculatorFormInner({
     remember(
       inputs.flatMap((i) => {
         const raw = state[i.id]?.raw ?? "";
-        if (i.type !== "numeric" || raw === "") return [];
+        // Filtered HERE as well as in the hook. This sent every numeric field
+        // it had, so sessionStorage accumulated creatinine, bilirubin, lactate
+        // and the rest as a labelled snapshot of one child — undisclosed local
+        // persistence on a page whose privacy table says "Nothing". It also
+        // means the effect below does no storage work at all on a score with no
+        // age or weight, instead of a read-parse-stringify-write per keystroke.
+        if (!CARRIED_IDS.has(i.id) || i.type !== "numeric" || raw === "") return [];
         return [
           {
             id: i.id,
@@ -322,17 +333,28 @@ function CalculatorFormInner({
   const applyCarried = useCallback(
     (v: CarriedValue) => {
       setField(v.id, { raw: v.raw, unit: v.unit });
-      dismissCarried();
+      // Clicking a chip is a commit at least as deliberate as leaving a field,
+      // so the value is eligible for validation messages immediately. Without
+      // this an accepted-but-out-of-range carry sat there looking fine.
+      markBlurred(v.id);
+      // Only this one. The others stay on offer.
+      consumeCarried(v.id);
     },
-    [setField, dismissCarried],
+    [setField, markBlurred, consumeCarried],
   );
 
   const clearAll = useCallback(() => {
     setState(initialState(inputs));
     setBlurred(new Set());
     setCopied(false);
+    setLinkCopied(false);
     dismissCarried();
-    window.history.replaceState(null, "", window.location.pathname);
+    // KEEPS THE QUERY STRING. This dropped `window.location.search`, so a visit
+    // carrying a campaign or referral parameter lost it the moment the form was
+    // cleared — and permanently, because the mirroring effect above then
+    // re-derives the URL from the search it can no longer see. Field values are
+    // this button's business; the query string is not.
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
   }, [inputs, dismissCarried]);
 
   /**
@@ -381,7 +403,13 @@ function CalculatorFormInner({
        the reference zone on a phone. One source of vertical rhythm, not two. */
     <div className="grid items-start gap-x-8 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
       <form
-        className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1"
+        /* `pe-16` below the two-column breakpoint: room for the fixed
+           back-to-top button, which is full-width-overlapping down there and
+           was sitting on the unit toggles at the inline end of these rows.
+           Reserving the space is the half of that fix which belongs to the
+           content — the button moves in as well, and neither alone is enough at
+           320px. */
+        className="flex min-w-0 flex-col gap-5 pe-16 lg:col-start-1 lg:row-start-1 lg:pe-0"
         noValidate
         aria-label={definition.name}
       >
@@ -651,9 +679,32 @@ function InputField({
   // plausibility bounds that REJECT rather than compute — for a pediatric tool
   // a mistyped weight changes a dose — so the wording says accepted, not
   // typical, and the value is never silently clamped.
+  /**
+   * THE BOUND, IN THE UNIT ON SCREEN.
+   *
+   * `min` and `max` are declared canonically and were printed verbatim under
+   * the canonical name — so selecting `milliunits/kg/min` on VIS vasopressin
+   * left the field reading "Accepted 0–0.01 units/kg/min" while the box beside
+   * it expected milliunits. A clinician obeying that hint enters a thousandth
+   * of the intended dose, and it is ACCEPTED, because validation converts from
+   * the selected unit and 0.005 milliunits is legitimately inside 0–0.01 units.
+   * Nothing anywhere would have flagged it. That field's own source comment
+   * calls the pairing "a documented 1000x error trap".
+   *
+   * Converted, then rounded to the precision the bound actually carries —
+   * `fromCanonical` on 0.01 units gives 10.000000000000002 milliunits, and a
+   * plausibility bound printed to sixteen digits reads like a bug.
+   */
+  const selectedUnit = input.type === "numeric" ? (field.unit ?? input.unit.canonical) : "";
+  const bound = (v: number) => {
+    if (input.type !== "numeric") return v;
+    const converted = fromCanonical(input.unit, v, selectedUnit);
+    if (converted === null) return v;
+    return Number(converted.toPrecision(6));
+  };
   const range =
     input.type === "numeric"
-      ? `${input.min}–${input.max}${input.unit.canonical ? ` ${input.unit.canonical}` : ""}`
+      ? `${bound(input.min)}–${bound(input.max)}${selectedUnit ? ` ${selectedUnit}` : ""}`
       : null;
 
   const hint = error ? (
@@ -765,14 +816,23 @@ function InputField({
      * behaviour is not guaranteed once the role is overridden.
      */
     <fieldset
+      // The blocking summary links to `#field-<id>`, and this branch used to
+      // expose no such element at all — only `${id}-legend` on the legend — so
+      // every jump link for a categorical or boolean input was a dead anchor.
+      // On PRISM, whose three required inputs are all categorical, that was
+      // every link on the page.
+      id={id}
       role="radiogroup"
       aria-labelledby={`${id}-legend`}
       aria-describedby={describedBy}
       aria-invalid={error ? true : undefined}
       aria-required={input.required || undefined}
-      /* React's onBlur is focusout, which bubbles — so this fires when focus
-         leaves the GROUP rather than when it moves between its own radios,
-         which is exactly the commit point a radiogroup has. */
+      /* React's onBlur is focusout, which BUBBLES — so this fires on every
+         focus change inside the group as well as on leaving it. That is fine
+         and is why no `relatedTarget` check is needed: the flag means "the user
+         has reached this group", and arrowing between its own radios is
+         reaching it. (An earlier comment here claimed focusout fires only on
+         leaving the group. It does not.) */
       onBlur={onCommit}
       className="flex flex-col gap-2"
     >
@@ -819,6 +879,9 @@ function InputField({
     </fieldset>
   );
 }
+
+/** How many blocking fields the rail names before it summarises the rest. */
+const BLOCKING_SHOWN = 5;
 
 interface BlockingField {
   id: string;
@@ -887,6 +950,32 @@ function ResultPanel({
       )}
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
+
+      {/* THE ANNOUNCEMENT, and nothing else.
+          MOUNTED FROM FIRST PAINT — it was moved inside the `ok` branch to
+          narrow what gets announced, and that narrowed it to nothing: a live
+          region inserted into the DOM in the same mutation as its content is
+          not announced by any major screen reader, so the FIRST computed score
+          was silent. A live region has to exist BEFORE its content changes.
+          It carries the answer as a sentence rather than mirroring the visual
+          block, because the visual block is a grid of numbers, band scales and
+          citation lines whose reading order out loud is not the reading order
+          on screen. The band scale and range strip are aria-hidden for the same
+          reason; this is where their meaning is spoken instead.
+          The blocking summary is deliberately NOT here: it changes on every
+          keystroke, and each field already announces itself on blur. */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {ok
+          ? ok.result.values
+              .map((v) => {
+                const band = matchInterpretationBand(definition, v.id, v.value);
+                const num = `${v.label.en} ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
+                return band ? `${num}, ${band.label.en}` : num;
+              })
+              .join(". ")
+          : ""}
+      </div>
+
       {!ok ? (
         blocking.length === 0 ? (
           <p className="mt-4 text-sm text-ink-muted">{c.resultPlaceholder}</p>
@@ -901,11 +990,32 @@ function ResultPanel({
           <div className="mt-4 flex flex-col gap-2">
             <p className="text-sm text-ink-muted">{c.resultBlockedHeading}</p>
             <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-              {blocking.map((b) => (
+              {blocking.slice(0, BLOCKING_SHOWN).map((b) => (
                 <li key={b.id} className="text-sm">
-                  <a
-                    href={`#field-${b.id}`}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-sm text-alert-text underline decoration-alert-text/40 underline-offset-2 hover:decoration-alert-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  {/* A BUTTON, NOT AN ANCHOR. `href="#field-x"` navigates by
+                      writing the fragment — and this page's fragment IS its
+                      field state, so clicking a jump link replaced
+                      `#pao2=180~mmHg` with `#field-fio2` and silently discarded
+                      every entered value from the URL. "Copy link with these
+                      values" then copied a link with none, and a reload lost
+                      the lot. The comment on the source line below rejects an
+                      anchor for exactly this reason; these had it anyway.
+                      Scrolling and focusing directly does the same job and
+                      leaves the URL alone. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(`field-${b.id}`);
+                      if (!el) return;
+                      el.scrollIntoView({ block: "center", behavior: "smooth" });
+                      // A fieldset is not focusable; focus its first control so
+                      // the keyboard lands where the eye does.
+                      (el.matches("input, select, textarea")
+                        ? el
+                        : el.querySelector<HTMLElement>("input, select, textarea")
+                      )?.focus({ preventScroll: true });
+                    }}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-sm text-left text-alert-text underline decoration-alert-text/40 underline-offset-2 hover:decoration-alert-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
                     <span
                       aria-hidden="true"
@@ -917,29 +1027,25 @@ function ResultPanel({
                       {b.label}
                       <span className="sr-only">{` — ${b.message}. ${c.resultBlockedJump}`}</span>
                     </span>
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>
+            {/* CAPPED. PELOD-2 declares all eleven inputs required, so one
+                entry produced ten 44px links — taller than the sticky rail's
+                own window on a 1024px laptop, and a sticky element taller than
+                its viewport stops holding position. The count still tells the
+                truth about how much is left. */}
+            {blocking.length > BLOCKING_SHOWN ? (
+              <p className="text-sm text-ink-muted">
+                {c.resultBlockedMore.replace("{n}", String(blocking.length - BLOCKING_SHOWN))}
+              </p>
+            ) : null}
           </div>
         )
       ) : (
         <div className="mt-4 flex flex-col gap-4">
-          {/* THE LIVE REGION IS THE ANSWER, not the panel.
-              `aria-live` used to sit on the whole <aside>, so it wrapped the
-              heading, the buttons and the standing privacy callout — and
-              compute is synchronous per keystroke, so typing "140" re-announced
-              every one of them three times. Narrowed to the values and their
-              interpretation, which is the only part that changed.
-              The blocking summary above is deliberately NOT live: it changes on
-              every keystroke too, and the per-field message already announces
-              itself on blur, so announcing both would rebuild the noise this
-              removes. */}
-          <div
-            aria-live="polite"
-            aria-atomic="false"
-            className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}
-          >
+          <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
             {ok.result.values.map((v) => {
               const band: InterpretationBand | undefined = matchInterpretationBand(
                 definition,

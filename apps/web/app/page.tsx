@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { listScores } from "@towardpcc/scoring-engine";
 import { cn } from "@towardpcc/ui";
 import { Reveal } from "@/components/reveal";
 import { Eyebrow } from "@/components/eyebrow";
@@ -274,7 +275,16 @@ export default function HomePage() {
               </div>
               <p className="absolute -bottom-6 -left-6 z-20 rounded-[20px] bg-surface-raised px-6 py-5 shadow-[0_26px_54px_-22px_rgba(0,0,0,0.4)]">
                 <span className="block font-numeric text-3xl leading-none font-semibold text-accent tabular-nums">
-                  <Counter value={22} />
+                  {/* DERIVED. This was a hardcoded 22 sitting under the line
+                      "Every figure here is something you can go and count.
+                      Nothing on this page is an estimate." — while the same
+                      screen printed 23 four times over and the pillar body
+                      spelled out "Twenty-three". The figures guard passed
+                      because its regexes anchor on the `{ label, value }` shape
+                      and the spelled-out phrase, and a bare Counter literal
+                      matches neither. A number that can drift is a number that
+                      will. */}
+                  <Counter value={listScores({ status: "published" }).length} />
                 </span>
                 <span className="text-[13px] text-ink-muted">calculators, live today</span>
               </p>

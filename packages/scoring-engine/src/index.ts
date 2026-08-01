@@ -34,6 +34,12 @@ export type {
 export { defineScore, type ScoreSpec } from "./define-score";
 export { matchInterpretationBand } from "./interpretation";
 export { defineText, type LocalizedText } from "./i18n/text";
-export { NO_UNIT, toCanonical, type UnitConversion, type UnitSpec } from "./units/types";
+export {
+  NO_UNIT,
+  fromCanonical,
+  toCanonical,
+  type UnitConversion,
+  type UnitSpec,
+} from "./units/types";
 export { KPA_PER_MMHG, cmH2O, kpaForMmhg, mmhgWithKpa } from "./units/pressure";
 export { getScore, listScores, registry, type ListScoresFilter } from "./scores/registry";

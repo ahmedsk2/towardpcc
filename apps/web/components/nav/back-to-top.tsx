@@ -36,7 +36,21 @@ export function BackToTop() {
         })
       }
       className={cn(
-        "fixed end-6 z-[90] grid size-12 place-items-center rounded-full bg-gradient-accent text-ink-on-accent",
+        // `end-3` below the two-column breakpoint, not `end-6`.
+        //
+        // IT WAS EATING TAPS. At 320-768px the calculator form is full-width
+        // and its unit toggles run to the inline end, so the FAB sat directly
+        // on top of them — five PRISM fields at 375px, the kPa label 95%
+        // covered at 320px, and `elementFromPoint` at the label's centre
+        // returning this button. A tap left the unit unchanged and scrolled the
+        // page to the top. From 1024px the two-column grid puts the FAB over
+        // the gutter and nothing overlaps, which is why this never showed on a
+        // desktop review.
+        //
+        // Paired with the end padding the form column reserves at the same
+        // widths, so the button clears the controls rather than merely
+        // overlapping them less.
+        "fixed end-3 z-[90] grid size-12 place-items-center rounded-full bg-gradient-accent text-ink-on-accent lg:end-6",
         // `translate`, not `bottom`: bottom is a layout property, which
         // motion.md revision 4 forbids outright, and the compositor cannot
         // fast-path it. The button stays pinned at bottom-6 and slides out of
