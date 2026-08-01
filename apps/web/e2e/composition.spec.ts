@@ -39,9 +39,10 @@ const RESULT = '[data-print="result"]';
 /**
  * Strip everything hidden from the a11y tree, then read what is left.
  *
- * The live region is removed too: it is `sr-only`, it restates every emitted
- * value including the components, and leaving it in would make the
- * once-and-only-once count below pass no matter what the visible panel did.
+ * The live region is removed too: it is `sr-only` and it restates the values it
+ * announces, so leaving it in would make the once-and-only-once count below
+ * pass on text nobody can see. What the live region itself may say is asserted
+ * separately, in "the live region announces the answer, not the working".
  */
 async function accessibleResultText(page: import("@playwright/test").Page) {
   return page.locator(RESULT).evaluate((el) => {
@@ -191,6 +192,133 @@ test.describe("composition panel", () => {
       "0.5",
       "1",
     ]);
+  });
+
+  /**
+   * The `sr-only` `aria-live` region and the panel must not both carry the
+   * components.
+   *
+   * The panel's arrival made the flat value list drop the six organ subscores,
+   * and the live region — a THIRD reader of `result.values`, in the same
+   * component — kept announcing all seven. Nothing looked wrong: the visible
+   * page was correct, the once-and-only-once test above passes either way
+   * because it strips `sr-only` first, and the only symptom was a listener
+   * hearing every organ announced on every keystroke and then meeting each one
+   * again in the panel below.
+   *
+   * Asserted on the live region alone, because that is where the duplication
+   * lived and nowhere else can see it.
+   */
+  test("the live region announces the answer, not the working", async ({ page }) => {
+    await openWithValues(page, "psofa", PSOFA_FRAGMENT);
+
+    const live = page.locator(`${RESULT} [aria-live]`);
+    await expect(live, "the result panel has no live region at all").toHaveCount(1);
+    const announced = ((await live.textContent()) ?? "").replace(/\s+/g, " ");
+
+    expect(announced, "the live region is not announcing the total").toContain("Total pSOFA");
+    for (const [organ] of PSOFA_ORGANS) {
+      expect(
+        announced,
+        `"${organ}" is announced by the live region AND rendered by the panel`,
+      ).not.toContain(organ);
+    }
+
+    // The other half: the panel is still the thing that carries them, so this
+    // cannot be "passed" by deleting the breakdown.
+    const rows = await accessibleRows(page);
+    expect(
+      rows.map((r) => r.label),
+      "the components left the live region and the panel",
+    ).toEqual(PSOFA_ORGANS.map(([label]) => label));
+  });
+
+  /**
+   * The copied summary KEEPS the breakdown — the opposite decision from the
+   * live region above, and for the opposite reason.
+   *
+   * A live region is an interruption and the panel is a few nodes away, so
+   * saying it twice costs a listener time for nothing. This summary is a
+   * timestamped record that gets pasted into a note and read later, away from
+   * the page, and the breakdown is precisely what stops being recoverable once
+   * it leaves: pSOFA 9 from two organs is a different handover from pSOFA 9
+   * across six.
+   *
+   * So it is asserted on SHAPE, not just presence. The composition work first
+   * added these by accident — five extra lines to PELOD-2, three to pGCS,
+   * interleaved with the banded values and indistinguishable from them. Kept on
+   * purpose means labelled, in the panel's own `4 of 24` phrasing, in one place.
+   */
+  test("the copied summary states the breakdown as a labelled breakdown", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await openWithValues(page, "psofa", PSOFA_FRAGMENT);
+
+    await page.getByRole("button", { name: "Copy result summary" }).click();
+    const copied: string = await page.evaluate(() => navigator.clipboard.readText());
+    const lines = copied.split("\n");
+
+    expect(
+      lines.filter((l) => l.startsWith("Total pSOFA:")),
+      "the summary lost the total it exists to record",
+    ).toHaveLength(1);
+
+    const breakdown = lines.filter((l) => l.startsWith("Components:"));
+    expect(breakdown, "the components are not one labelled line").toHaveLength(1);
+    for (const [organ, value] of PSOFA_ORGANS) {
+      expect(breakdown[0]).toContain(`${organ} ${value} of 4`);
+    }
+
+    // And nowhere else in the record — a component that is both a result line
+    // and a breakdown entry is the accidental version wearing a label.
+    for (const [organ] of PSOFA_ORGANS) {
+      const occurrences = copied.split(organ).length - 1;
+      expect(occurrences, `"${organ}" appears ${occurrences}x in the summary`).toBe(1);
+    }
+  });
+
+  /**
+   * The completion counter, which is the one piece of arithmetic on this panel
+   * that has already been wrong once.
+   *
+   * Its first form was `inputs.length - blocking.length`, and `blocking` lists
+   * inputs that FAILED validation. A blank optional input fails nothing, and an
+   * empty form has computed nothing at all — so an untouched pSOFA reported
+   * "14 of 14 entered", which is the exact falsehood the partial-result cue
+   * beside it exists to prevent. It is now a count of non-empty fields, and
+   * this is what says so.
+   */
+  test("the completion counter counts fields entered, not validations passed", async ({ page }) => {
+    await page.goto("/calculators/psofa");
+    const counter = page.locator(RESULT).getByText(/^\d+ of \d+ entered$/);
+
+    await expect(counter, "an untouched pSOFA is not reading zero").toHaveText("0 of 14 entered");
+
+    await page.locator("#field-age_months").fill("60");
+    await expect(counter).toHaveText("1 of 14 entered");
+
+    await page.locator("#field-fio2").fill("0.5");
+    await page.locator("#field-platelets").fill("100");
+    await expect(counter).toHaveText("3 of 14 entered");
+
+    // A REJECTED value still counts, because it has still been entered. This is
+    // the distinction the old arithmetic collapsed: bilirubin accepts 0.1–50,
+    // so 999 is blocking — and the field is not empty.
+    await page.locator("#field-bilirubin").fill("999");
+    await expect(
+      page.locator(RESULT),
+      "999 mg/dL was accepted, so this no longer tests a blocking field",
+    ).toContainText("Total bilirubin must be between 0.1 and 50 mg/dL");
+    await expect(counter, "a blocking field stopped being counted as entered").toHaveText(
+      "4 of 14 entered",
+    );
+
+    // And the top of the range — the number the broken version printed for an
+    // empty form — is reached only when all fourteen really are filled.
+    await openWithValues(page, "psofa", PSOFA_FRAGMENT);
+    await expect(counter).toHaveText("14 of 14 entered");
   });
 
   test("the panel introduces no horizontal scroll at 320px", async ({ page }) => {

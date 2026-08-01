@@ -250,6 +250,13 @@ body {
    quantity it measures rather than an entrance. */
 .chip-meter[data-fill-immediate] {
   transform: scaleX(var(--fill, 1));
+  /* AND NO DELAY. The 220ms above is the evidence chips' scroll-in stagger —
+     it holds each meter back so the row fills after the card it sits in has
+     arrived. These bars have no entrance to stagger behind: they are on screen
+     from first paint and `--fill` changes as the clinician types, so the delay
+     is not a stagger here, it is 220ms of the bar disagreeing with the number
+     printed beside it on every keystroke. */
+  transition-delay: 0ms;
 }
 @media (prefers-reduced-motion: reduce) {
   .chip-meter {
