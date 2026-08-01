@@ -490,12 +490,17 @@ describeScore(phoenix, (ctx) => {
    * pathway was untested. The claim was wrong — it was tested — but probing it
    * turned this up, which no committed case had covered.
    */
+  // `as const` is load-bearing: without it `resp_support.value` widens to
+  // `string` and will not narrow back to the "none" | "any-support" | "imv"
+  // union when spread into workedExample. Every other case in this file passes
+  // its inputs inline, where the literal type survives — this is the first one
+  // hoisted to a shared constant, which is why it is the first to hit it.
   const ventilatedOnPureOxygen = {
     age_months: { value: 72, unit: "months" },
     suspected_infection: { value: true },
     resp_support: { value: "imv" },
     fio2: { value: 1.0, unit: "fraction" },
-  };
+  } as const;
   ctx.workedExample(
     {
       ...jamaTable2,
