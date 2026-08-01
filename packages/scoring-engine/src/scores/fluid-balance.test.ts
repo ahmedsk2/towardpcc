@@ -48,7 +48,9 @@ const weightForm = {
 
 const adqi = {
   citation:
-    "Pediatric ADQI Collaborative. Fluid assessment, fluid balance, and fluid overload in sick children. Pediatr Nephrol. 2024. Table 1 prints both formulae side by side without choosing between them.",
+    "Selewski DT, Barhight MF, Bjornstad EC, et al.; Pediatric Acute Disease Quality Initiative (ADQI) Consensus Committee. Fluid assessment, fluid balance, and fluid overload in sick children: a report from the Pediatric Acute Disease Quality Initiative (ADQI) conference. Pediatr Nephrol. 2024;39(3):955-979. Table 1 prints both formulae side by side without choosing between them.",
+  pmid: "37934274",
+  doi: "10.1007/s00467-023-06156-w",
   url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10817849/",
   locator: "constructed from both formulae — no published paediatric worked example exists",
 };

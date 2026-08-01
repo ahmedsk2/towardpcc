@@ -16,9 +16,11 @@
 > 2011;37(7):1166–1173. **PMID: 21533569** · **DOI: 10.1007/s00134-011-2231-3**
 >
 > Source of record for current consensus, and for the fact that **both** forms are printed side by
-> side without one being chosen: **Pediatric ADQI Collaborative.** _Fluid assessment, fluid balance,
-> and fluid overload in sick children: a report from the Pediatric Acute Disease Quality Initiative._
-> **Pediatr Nephrol.** 2024. **PMC10817849**
+> side without one being chosen: **Selewski DT, Barhight MF, Bjornstad EC, et al.; Pediatric Acute
+> Disease Quality Initiative (ADQI) Consensus Committee.** _Fluid assessment, fluid balance, and
+> fluid overload in sick children: a report from the Pediatric Acute Disease Quality Initiative
+> (ADQI) conference._ **Pediatr Nephrol.** 2024;39(3):955–979. **PMID: 37934274** ·
+> **DOI: 10.1007/s00467-023-06156-w** · **PMC10817849**
 >
 > **Scope.** This file documents a **descriptive arithmetic quantity** — the net fluid a patient has
 > accumulated or lost since an anchor point, expressed as a percentage of an anchor body weight. It
@@ -27,10 +29,15 @@
 
 ## Naming — why this page is not called "fluid overload"
 
-The Pediatric ADQI consensus asks that the term **"fluid overload" be reserved for a _pathologic
-state_** — a clinical condition with signs, organ consequences, and a therapeutic implication —
-and that **"percent cumulative fluid balance"** be used as the **neutral quantitative descriptor**
-for the number produced by the formulae below.
+The Pediatric ADQI consensus defines the term **"fluid overload"** as, verbatim, _"a pathologic
+state of positive fluid balance associated with a clinically observable event(s), which may vary by
+age, case-mix, acuity, and phase of illness"_ — and gives **"percent cumulative fluid balance"** as
+the **neutral quantitative descriptor** for the number produced by the formulae below.
+
+[The earlier draft of this page glossed ADQI's definition as "a clinical condition with signs, organ
+consequences, and a therapeutic implication". ADQI's actual wording is narrower — "associated with a
+clinically observable event(s)" — and the gloss has been replaced with the quotation above. See
+§Verification.]
 
 That distinction is the whole reason this page exists in the shape it does. A percentage computed
 from a flowsheet is a measurement of accumulated volume. Whether the child _has fluid overload_ is
@@ -81,17 +88,30 @@ is ever to be quoted as a correction factor. It is not applied in this implement
 %CFB_weight = (current weight [kg] − anchor weight [kg]) × 100 / anchor weight [kg]
 ```
 
-Selewski 2011 validated this form against the fluid-based one in PICU patients requiring CRRT and
-found it a practical substitute, reporting a **per-1% mortality odds ratio of 1.044 for the
-weight-based form versus 1.056 for the fluid-based form**. The two forms therefore carry a very
-similar per-unit association with mortality in that cohort — similar, not identical, and the
-difference is in the expected direction (the fluid-based form, being the one the thresholds were
-derived on, tracks its own derivation cohort slightly more tightly).
+Selewski 2011 validated this form against the fluid-based one in PICU patients requiring CRRT
+(n = 113) and found it a practical substitute, reporting **univariate** odds ratios for PICU
+mortality per 1% increase in fluid overload of **1.056 (95% CI 1.025–1.087) by the fluid-balance
+method**, **1.044 (95% CI 1.019–1.069) by the weight-based method using PICU admission weight**, and
+**1.045 (95% CI 1.022–1.070) by the weight-based method using hospital admission weight**. The forms
+therefore carry a very similar per-unit association with mortality in that cohort.
 
-Its theoretical advantages are that it (a) **captures insensible losses**, which no flowsheet
-records, and (b) **avoids intake/output transcription error**, which accumulates over every shift of
-a long stay. It is generally regarded as the better form **in neonates**, where insensible losses are
-proportionally large and where a small absolute charting error is a large relative one.
+**Two precision points that the earlier draft of this page omitted and that matter:** those odds
+ratios are **univariate**, not adjusted (contrast Sutherland's OR of 1.03, which _is_ adjusted); and
+on multivariate analysis Selewski reports that all three methods only **"approached significance"**
+in predicting PICU survival. The weight-based form's mortality association is therefore **not
+established as independent** in this study. The paper's own conclusion is the weaker, correctly
+scoped one: it "provides evidence for a more practical weight-based definition of FO that can be
+used at the bedside."
+
+Its advantages are stated by ADQI directly: the weight-based approach _"removes the inherent
+inaccuracies of accounting for daily input and output and should theoretically capture insensible
+and other losses"_, and enables _"compensation for missed or inaccurate daily measures of fluid
+input and output"_. Conversely the intake/output method _"does not account for insensible losses or
+potential insensible gains"_, and _"inaccuracies or missing input/output measurements are carried
+forward in all subsequent fluid balance calculations, propagating any potential inaccuracy"_.
+
+**In neonates ADQI is stronger than "generally regarded":** _"Weight-based methods have been clearly
+shown to be a superior measure of fluid balance in neonates."_
 
 Its cost is that a scale measures _all_ mass change, not just fluid — see §Limitations.
 
@@ -126,12 +146,22 @@ quantified.]
 ### Anchor weight — a named knowledge gap, not a settled parameter
 
 The denominator of both forms, and the reference point for the numerator of both, is the **anchor
-weight**. It is **most commonly the ICU admission weight**, and that is the convention the cited
+weight** — and "anchor weight" is **ADQI's own term**, used throughout its Table 1 and text, not a
+coinage of this page. ADQI states that _"the ICU admission weight is the weight most commonly
+utilized as the anchor weight for fluid balance calculations"_, and that is the convention the cited
 outcome literature used.
 
+**Neonates use a different anchor.** ADQI states that in neonates _"the most common anchor weight is
+the birthweight in the first two postnatal weeks."_ A neonatal result anchored to an admission
+weight is therefore not comparable to the neonatal literature. [This point was absent from the
+earlier draft of this page and from the first implementation; it was added on verification, and it
+matters because Worked Example 5 below is a neonatal case.]
+
 The Pediatric ADQI consensus **explicitly names the selection of the anchor weight as a knowledge
-gap**. This is not a footnote: the anchor is the denominator, so the choice of anchor scales every
-percentage the calculator can produce. A child admitted already fluid-overloaded from the ward or
+gap**, stating that _"no clear gold standard exists against which to systematically compare
+different approaches, highlighting a knowledge gap requiring targeted study."_ This is not a
+footnote: the anchor is the denominator, so the choice of anchor scales every percentage the
+calculator can produce. A child admitted already fluid-overloaded from the ward or
 the referring hospital has an admission weight that already contains the accumulation, and the
 percentage computed from it understates the total accumulation from the child's true dry weight.
 
@@ -298,8 +328,9 @@ of CRRT initiation** in critically ill children who were already receiving renal
 therapy. They are not thresholds that classify an arbitrary patient, and they were never proposed
 as such.
 
-The Pediatric ADQI consensus states outright that **no specific threshold of positive fluid balance
-alone can define fluid overload across all sick children**. Rendering the 10/20 % figures as bands
+The Pediatric ADQI consensus states outright — quoted verbatim from the consensus statements, and
+independently re-fetched on verification — that **"no specific threshold of positive fluid balance
+alone can define fluid overload across all sick children."** Rendering the 10/20 % figures as bands
 would convert an association observed in one selected population into an apparent classification of
 any child a user types numbers about — which is exactly the over-claim this platform refuses to
 make, and would additionally contradict the naming decision at the top of this page by implying the
@@ -317,9 +348,16 @@ initiation, fluid-based form):
 | 10 – 20 %              | 43.1 %                            |
 | ≥ 20 %                 | 65.6 %                            |
 
-Also reported by Sutherland 2010: an **adjusted odds ratio of 1.03 per 1 %** of fluid overload, and
-an **odds ratio of 8.5 at ≥ 20 %**. Selewski 2011 reports **per-1 % odds ratios of 1.044
-(weight-based) and 1.056 (fluid-based)** in its PICU CRRT cohort.
+Also reported by Sutherland 2010: an **adjusted mortality odds ratio of 1.03 per 1 %** of fluid
+overload (**95 % CI 1.01–1.05**), i.e. a 3 % increase in mortality per 1 % increase in fluid
+overload; and, dichotomised, an **adjusted mortality odds ratio of 8.5 at ≥ 20 %** (**95 % CI
+2.8–25.7**). The stratum denominators are n = 153 (<10 %), n = 51 (10–20 %), n = 93 (≥20 %) of 297
+patients — note how small the middle stratum is.
+
+Selewski 2011 reports **univariate** per-1 % PICU-mortality odds ratios of **1.044 (weight-based,
+PICU admission weight; 95 % CI 1.019–1.069)** and **1.056 (fluid-balance method; 95 % CI
+1.025–1.087)** in its PICU CRRT cohort. **These are univariate, not adjusted**, and on multivariate
+analysis all three of Selewski's methods only "approached significance" — see §Form 2.
 
 Note what those mortality figures actually say: **29.4 % of the children with less than 10 % fluid
 overload died.** The lowest stratum of this table is a population with near-30 % mortality. That is
@@ -349,25 +387,47 @@ computed result.
    pediatric intensive care unit patients requiring continuous renal replacement therapy.
    _Intensive Care Med._ 2011;37(7):1166–1173. **PMID: 21533569.**
    **DOI: 10.1007/s00134-011-2231-3.** — _Validation of the weight-based form as a practical
-   substitute for the fluid-based form; source of the per-1 % mortality odds ratios (1.044
-   weight-based vs 1.056 fluid-based)._
+   substitute for the fluid-based form; source of the **univariate** per-1 % PICU-mortality odds
+   ratios (1.044 weight-based using PICU admission weight, 95 % CI 1.019–1.069; 1.056 fluid-balance
+   method, 95 % CI 1.025–1.087; 1.045 weight-based using hospital admission weight, 95 % CI
+   1.022–1.070). On multivariate analysis all three methods only "approached significance."_
 4. **Foland JA, Fortenberry JD, Warshaw BL, Pettignano R, Merritt RK, Heard ML, Rogers K, Reid C,
    Tanner AJ, Easley KA.** Fluid overload before continuous hemofiltration and survival in
    critically ill children: a retrospective analysis. _Crit Care Med._ 2004;32(8):1771–1776.
-   **PMID: 15286557.** — _Supporting evidence in the paediatric CRRT fluid-overload literature.
-   Cited here as corroborating lineage only; **no numeric value on this page is taken from it**, and
-   its specific findings are **[NEEDS SOURCE]** for this file._
-5. **Pediatric ADQI Collaborative.** Fluid assessment, fluid balance, and fluid overload in sick
-   children: a report from the Pediatric Acute Disease Quality Initiative. _Pediatr Nephrol._ 2024.
-   URL: https://pmc.ncbi.nlm.nih.gov/articles/PMC10817849/ — _Current consensus. Prints **both**
-   formulae in Table 1 without selecting between them; asks that "fluid overload" be reserved for a
-   pathologic state with "percent cumulative fluid balance" as the neutral descriptor; states that
-   no specific threshold of positive fluid balance alone can define fluid overload across all sick
-   children; and names anchor-weight selection as a knowledge gap._ [Some sources refer to this work
-   as the **2023** consensus, after the meeting date, and to the _Pediatr Nephrol_ record as the 2024
-   publication. They are treated here as one work. The meeting-year vs publication-year distinction
-   was **not independently verified for this file** — **NEEDS SOURCE** if the year is ever cited
-   precisely. No exact volume/issue/page or DOI was available to this file either.]
+   **PMID: 15286557.** **DOI: 10.1097/01.ccm.0000132897.52737.49.** — _Supporting evidence in the
+   paediatric CRRT fluid-overload literature. Cited here as corroborating lineage only; **no numeric
+   value on this page or in the implementation is taken from it.** Its findings were nonetheless
+   verified on this pass (n = 113 children receiving CVVH, 69 survivors / 61 %, median age 9.6 y;
+   median %FO 7.8 % in survivors vs 15.1 % in non-survivors, p = 0.02; the association with survival
+   held independently in patients with ≥3-organ MODS), so the earlier **[NEEDS SOURCE]** on this
+   entry is **resolved**. The DOI was absent from the earlier draft and has been added._
+5. **Selewski DT, Barhight MF, Bjornstad EC, Ricci Z, de Sousa Tavares M, Akcan-Arikan A,
+   Goldstein SL, Basu R, Bagshaw SM; Pediatric Acute Disease Quality Initiative (ADQI) Consensus
+   Committee.** Fluid assessment, fluid balance, and fluid overload in sick children: a report from
+   the Pediatric Acute Disease Quality Initiative (ADQI) conference. _Pediatr Nephrol._
+   2024;39(3):955–979. **PMID: 37934274.** **DOI: 10.1007/s00467-023-06156-w.** Epub 2023 Nov 7.
+   Open-access full text: https://pmc.ncbi.nlm.nih.gov/articles/PMC10817849/ — _Current consensus.
+   Prints **both** formulae in Table 1 without selecting between them; defines "fluid overload" as a
+   pathologic state of positive fluid balance associated with clinically observable event(s), with
+   "percent cumulative fluid balance" as the neutral descriptor; states that no specific threshold of
+   positive fluid balance alone can define fluid overload across all sick children; names
+   anchor-weight selection a knowledge gap with no clear gold standard; is the source of the term
+   "anchor weight" itself; and is the source for the neonatal birthweight anchor and for the
+   weight-based form's stated advantages._
+
+   **Citation corrections made on verification (this entry was the most defective on the page).** The
+   earlier draft credited the work to a nonexistent corporate author, **"Pediatric ADQI
+   Collaborative"**, and carried **no PMID, no DOI, and no volume/issue/pages**. The real first
+   author is **David T Selewski** — the same first author as reference 3 above, which the earlier
+   draft did not notice. The title was also truncated: it ends **"...(ADQI) conference"**.
+
+   **The 2023-vs-2024 ambiguity is resolved, and the earlier draft's explanation of it was wrong.**
+   It is **not** a meeting-year vs publication-year distinction. It is **online-first vs print
+   issue**: the paper was **Epub 2023 Nov 7** and assigned to the **2024** print issue, _Pediatr
+   Nephrol_ **39(3):955–979**. Both dates are publication dates of the same record. **2024 is the
+   correct citation year**; sources saying "2023" are citing the online-first date. (Separately, the
+   underlying meeting was the 26th ADQI consensus conference, but that is not what drives the year
+   discrepancy.) The former **[NEEDS SOURCE]** on this point is **resolved**.
 
 ## Limitations & notes
 
@@ -394,9 +454,12 @@ computed result.
 - **A partial intake/output record produces a wrong number, not a missing one.** If some output was
   never charted, the fluid-based form returns a confidently over-positive percentage with no
   indication that anything is missing. There is no way for the calculator to detect this.
-- **Neonates.** The weight-based form is generally preferred here (proportionally large insensible
-  losses; small denominator amplifying charting error). No neonate-specific threshold exists, and
-  none should be inferred from the CRRT-cohort figures.
+- **Neonates.** ADQI states that weight-based methods "have been clearly shown to be a superior
+  measure of fluid balance in neonates" (proportionally large insensible losses; small denominator
+  amplifying charting error). **The neonatal anchor is also different** — ADQI reports the most
+  common neonatal anchor weight as the **birthweight in the first two postnatal weeks**, not an
+  admission weight. No neonate-specific threshold exists, and none should be inferred from the
+  CRRT-cohort figures.
 - **Input bounds are engineering limits, [NEEDS SOURCE] as clinical values.** The 0.5–150 kg weight
   range and the 0–200 L volume range are validation sanity limits carried from this platform's other
   weight-driven calculators; no cited paper specifies a valid range for any input.
@@ -407,25 +470,157 @@ computed result.
 
 ## Verification
 
-**Arithmetic.** All eight worked examples were re-derived by hand from the two formulae in
-§Formula/algorithm during this pass; each is a single subtraction and a single division and each
+**Arithmetic (implementation pass, 2026-08-01).** All eight worked examples were re-derived by hand
+from the two formulae in §Formula/algorithm; each is a single subtraction and a single division and each
 reproduces exactly (Examples 5 and 8 to within floating-point residue, which the corresponding tests
 carry as an explicit tolerance). Example 4 was additionally checked against the two most plausible
 wrong denominators (17.4 % and 13.0 %), confirming it discriminates them.
 
-**Sources.** The citations, PMIDs, DOIs, the Sutherland strata and odds ratios, the Selewski odds
-ratios, and the four ADQI positions (both formulae printed side by side; "fluid overload" reserved
-for the pathologic state; no single threshold defines fluid overload across all sick children;
-anchor-weight selection is a knowledge gap) were **supplied by a completed research pass** and are
-reproduced here as given.
+**Sources — independent re-verification performed 2026-08-01 by a second reviewer.** This closes the
+gap left by the implementation pass, which had explicitly reported that "sources were not
+independently re-fetched." Every citation, PMID, DOI, and quoted figure below was fetched from the
+primary record (PubMed and PMC) during this pass, not carried over from the research hand-off.
 
-**They were NOT independently re-fetched during this implementation pass**, and this file therefore
-does **not** carry the second-reviewer re-verification that `psofa.md` does. Nothing on this page is
-inferred or invented beyond what that research pass supplied — the mechanistic list in §"When the
-two forms disagree", the density figure, the input bounds, the ADQI meeting-year/publication-year
-question, and the Foland 2004 findings are each explicitly marked above as reasoning or as
-**[NEEDS SOURCE]**. An independent re-verification pass against the primary sources remains
-**outstanding** and should be run before clinical sign-off.
+**What was fetched:** PubMed records for PMID 11389248 (Goldstein 2001), 20042260 (Sutherland 2010),
+21533569 (Selewski 2011), 15286557 (Foland 2004) and 37934274 (ADQI 2024); the PMC open-access full
+text of the ADQI consensus (PMC10817849); and the indexed verbatim abstract of Sutherland 2010 for
+its formula sentence.
+
+**Reconciled — matched the primary source exactly, no change needed:**
+
+- **Goldstein 2001** — PMID **11389248 resolves to the named paper**. Citation, author list (all six,
+  in order), journal, year, volume, issue, pages (1309–1312) and DOI (10.1542/peds.107.6.1309) all
+  **match**. Its role as the **origin of the metric is confirmed independently**: the ADQI consensus
+  cites Goldstein 2001 as the foundational description of fluid overload percentage at CKRT
+  initiation in critically ill children. The file correctly takes **no numeric value** from it — and
+  note that Goldstein's own figures (21 patients, 42.8 % survival, FO 16.4 ± 13.8 % in survivors vs
+  34.0 ± 21.0 % in non-survivors) appear **nowhere** in this file or the implementation, so there is
+  no mis-attribution in either direction.
+- **Sutherland 2010** — PMID **20042260 resolves to the named paper**; citation, 19-author list,
+  journal, year, volume, issue, pages (316–325) and DOI (10.1053/j.ajkd.2009.10.048) all **match**.
+  - **The formula is stated verbatim, as claimed.** Re-extracted: _"defined as a percentage equal to
+    (fluid in [L] − fluid out [L])/(ICU admit weight [kg]) × 100%."_ This is **exactly** the
+    implementation's fluid-based form, **including the ICU-admit-weight denominator**. The
+    load-bearing "denominator is the anchor weight, never the current weight" claim is **confirmed
+    at the primary source**.
+  - **Mortality strata confirmed exactly**: **29.4 %** (<10 %, 45/153), **43.1 %** (10–20 %, 22/51),
+    **65.6 %** (≥20 %, 61/93), of 297 patients.
+  - **Adjusted OR 1.03 confirmed**, 95 % CI 1.01–1.05 ("a 3 % increase in mortality for each 1 %
+    increase in severity of fluid overload").
+  - **OR 8.5 at ≥20 % confirmed**, 95 % CI 2.8–25.7, adjusted, dichotomised.
+  - All four figures are **correctly attributed to Sutherland** — none belongs to Goldstein.
+- **Selewski 2011** — PMID **21533569 resolves to the named paper**; citation, 10-author list,
+  journal, year, volume, issue, pages (1166–1173) and DOI (10.1007/s00134-011-2231-3) all **match**.
+  The odds ratios **1.044** and **1.056** are **confirmed present and correctly paired** with the
+  weight-based and fluid-balance methods respectively. (Corrections to their _framing_ below.)
+- **Foland 2004** — PMID **15286557 resolves to the named paper**; citation, 10-author list, journal,
+  year, volume, issue and pages (1771–1776) all **match**. Confirmed that no figure in this file or
+  the implementation derives from it.
+- **ADQI consensus** — **all five substantive claims confirmed verbatim in the PMC full text:**
+  1. **Both formulae are printed side by side in Table 1, without one being chosen** — confirmed.
+     Table 1 prints `∑[Fluid intake(L) − fluid output(L)] × 100% / anchor weight (kg)` and
+     `[(Current weight kg − anchor weight kg) × 100%] / anchor weight (kg)`. **Both match the
+     implementation character-for-character in structure and denominator.** This also supplies the
+     **primary source for the weight-based formula** that the verification brief asked for — it is
+     printed, not inferred.
+  2. **"No specific threshold of positive fluid balance alone can define fluid overload across all
+     sick children"** — **confirmed verbatim.** The no-bands decision stands (see below).
+  3. **Terminology** — confirmed: _"Fluid overload denotes a pathologic state of positive fluid
+     balance associated with a clinically observable event(s), which may vary by age, case-mix,
+     acuity, and phase of illness"_, with percent cumulative fluid balance as the neutral descriptor.
+  4. **"Anchor weight" is ADQI's own term** — confirmed; it is used throughout Table 1 and the text.
+     The file was **not** coining or borrowing it from elsewhere.
+  5. **Anchor-weight knowledge gap** — confirmed verbatim: _"no clear gold standard exists against
+     which to systematically compare different approaches, highlighting a knowledge gap requiring
+     targeted study."_
+
+**Arithmetic and worked examples.** Re-derived independently again on this pass against the
+now-primary-source-confirmed formulae; all eight reproduce exactly (5 and 8 to floating-point
+residue, which the tests carry as explicit tolerances). Example 4's discrimination of the two wrong
+denominators (17.4 % and 13.0 %) re-checked and holds.
+
+### Did not reconcile — corrections made on this pass
+
+1. **The ADQI citation was materially wrong and has been corrected in this file, in
+   `fluid-balance.ts`, and in `fluid-balance.test.ts`.**
+   - _Before:_ "**Pediatric ADQI Collaborative.** Fluid assessment, fluid balance, and fluid overload
+     in sick children: a report from the Pediatric Acute Disease Quality Initiative. _Pediatr
+     Nephrol._ 2024." — no PMID, no DOI, no volume/issue/pages, truncated title.
+   - _After:_ "**Selewski DT, Barhight MF, Bjornstad EC, et al.; Pediatric Acute Disease Quality
+     Initiative (ADQI) Consensus Committee.** …a report from the Pediatric Acute Disease Quality
+     Initiative (ADQI) **conference**. _Pediatr Nephrol._ **2024;39(3):955–979**. **PMID 37934274**.
+     **DOI 10.1007/s00467-023-06156-w**."
+   - "Pediatric ADQI Collaborative" **is not the author of record**; it does not appear on the paper.
+     The first author is **David T Selewski — the same first author as reference 3**, which the
+     earlier draft did not notice.
+2. **The 2023-vs-2024 ambiguity is resolved, and the earlier explanation of it was wrong.** It is
+   **online-first vs print issue** (Epub 2023 Nov 7; print 2024;39(3):955–979), **not** meeting year
+   vs publication year. **2024 is correct.** Former **[NEEDS SOURCE]** — **resolved**.
+3. **Selewski's odds ratios were under-qualified in a way that overstated them.**
+   - _Before:_ "per-1 % mortality ORs of 1.044 (weight-based) and 1.056 (fluid-based)."
+   - _After:_ **univariate** per-1 % PICU-mortality ORs — 1.044 (weight-based, **specifically using
+     PICU admission weight**; 95 % CI 1.019–1.069) and 1.056 (fluid-balance method; 95 % CI
+     1.025–1.087) — **and on multivariate analysis all three of Selewski's methods only "approached
+     significance."** The numbers were right; their status was not. Sutherland's 1.03 _is_ adjusted,
+     so the earlier text sat two unlike quantities next to each other without distinguishing them.
+     A third value, **1.045** (weight-based using _hospital_ admission weight), existed in the source
+     and was missing here; it is now recorded.
+4. **ADQI's definition of "fluid overload" was over-glossed.** The earlier text expanded it to "a
+   clinical condition with signs, organ consequences, and a therapeutic implication." ADQI's actual
+   wording is narrower — "associated with a clinically observable event(s)". Replaced with the
+   quotation. No conclusion changes, but the file was putting words in ADQI's mouth.
+5. **A neonatal safety gap was found and closed.** ADQI states the most common neonatal anchor is the
+   **birthweight in the first two postnatal weeks**, not an admission weight. Neither this file nor
+   the implementation mentioned it, while both told users the anchor is "most commonly the ICU
+   admission weight" — advice that is **wrong for neonates**, and Worked Example 5 is a neonatal
+   case. Added to this file, to the `anchor_weight` help text, to the anchor caution, and to `notes`.
+6. **Foland 2004 was missing its DOI** (10.1097/01.ccm.0000132897.52737.49); added. Its findings,
+   previously **[NEEDS SOURCE]**, were verified on this pass and are **resolved** — though still no
+   number from it is used anywhere.
+7. **The weight-based form's advantages and its neonatal superiority were stated as this file's own
+   reasoning when they are in fact ADQI's, quotably.** Re-attributed to ADQI, and the neonatal claim
+   **strengthened** from "generally regarded as the better form" to ADQI's actual "clearly shown to
+   be a superior measure of fluid balance in neonates."
+
+### The no-bands decision — verdict
+
+**It survives, on the strongest possible footing.** The sentence the whole decision rests on was
+found **verbatim** in the ADQI consensus full text: _"No specific threshold of positive fluid balance
+alone can define fluid overload across all sick children."_ It is not a paraphrase, not an inference
+from the research hand-off, and not a reconstruction. `interpretation: []` and
+`interpretationStatus: "not-applicable"` are correct as shipped, and the test that pins them is
+guarding a real consensus position.
+
+Two findings from this pass **strengthen** the decision rather than merely permitting it: Sutherland's
+strata are now confirmed to sit on denominators of 153 / 51 / 93 in a **CRRT** population, and
+Selewski's weight-based association is confirmed **not** to be independent on multivariate analysis.
+Rendering either set as bands would be less defensible after verification than before it.
+
+### Still unverified after this pass
+
+- **Goldstein 2001 full text** — the _Pediatrics_ 2001 article is paywalled and could not be fetched;
+  only the PubMed abstract was retrievable. The **origin attribution is confirmed** (via ADQI's own
+  citation of it, and via consistent secondary literature), but **whether Goldstein 2001 prints the
+  formula in the exact form quoted** is **not** confirmed at the primary source. This is not load
+  bearing: the file takes the formula from **Sutherland 2010**, where it _was_ confirmed verbatim,
+  and takes no number from Goldstein.
+- **Input bounds** (0.5–150 kg, 0–200 L) — remain **[NEEDS SOURCE]**. Re-confirmed on this pass that
+  none of the five sources specifies a valid input range; these are genuinely absent from the
+  literature, not merely unchecked. Left marked.
+- **The five divergence mechanisms** in §"When the two forms disagree" — ADQI supports the two
+  principal ones (insensible losses; carried-forward charting error) and those are now quoted. The
+  remaining three (uncharted intake, true tissue-mass change, scale technique) are **not enumerated
+  in any cited source** and remain explanatory reasoning, **[NEEDS SOURCE]** if ever quantified.
+- **The 0.993 kg/L density figure** — standard physical chemistry, not from any cited clinical paper,
+  and not applied in the implementation. Left marked **[NEEDS SOURCE]**.
+- **No published paediatric worked example** — re-confirmed absent across all five sources. Every test
+  vector remains constructed and labelled as such.
+
+**Result:** no computational defect found. **The formulae, the denominator, and every quoted figure
+are correct as shipped** — the arithmetic the calculator performs needed no change. The defects were
+in **citation integrity** (a fabricated corporate author, a missing PMID/DOI/pages), in **statistical
+framing** (univariate ORs presented alongside an adjusted one without distinction), and in one
+**clinical omission** (the neonatal anchor weight). All are corrected above.
 
 ## IP status
 
