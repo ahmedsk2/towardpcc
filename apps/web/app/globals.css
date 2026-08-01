@@ -1,6 +1,28 @@
 @import "tailwindcss";
 @import "@towardpcc/ui/tokens.css";
 
+/**
+ * Hover, WITHOUT the pointer-capability media query.
+ *
+ * Tailwind v4 compiles `hover:` to `@media (hover: hover) { &:hover { … } }`.
+ * That is a reasonable default for phones, and it silently kills every hover on
+ * a TOUCHSCREEN LAPTOP: Windows reports maxTouchPoints 10 and Chrome answers
+ * `(hover: hover)` with false even when a mouse is attached, so the query never
+ * matches and the rules never apply.
+ *
+ * Measured on the owner's machine: `(hover: hover)` false, `(any-hover: hover)`
+ * false, `(pointer: fine)` false, maxTouchPoints 10. Four such guards existed in
+ * the compiled sheet, wrapping all seven `group-hover:` rules — which is exactly
+ * how card and menu-item hovers are built, and exactly what was reported as
+ * missing. It reproduced as "no hover anywhere" on hardware that has a mouse.
+ *
+ * Dropping the guard costs nothing on a true touch device: with no pointer there
+ * is no hover to trigger, so the rules simply never fire. Every interactive
+ * element keeps a `focus-visible` style regardless, which is what carries
+ * keyboard and assistive navigation.
+ */
+@custom-variant hover (&:hover);
+
 /* Tailwind must scan the UI package sources for class usage. */
 @source "../../../packages/ui/src";
 
@@ -58,6 +80,12 @@
   --text-display-1: var(--text-display-1);
   --text-display-2: var(--text-display-2);
   --text-eyebrow: var(--text-eyebrow);
+
+  /* Spacing and shell, so `py-section`, `py-section-tight` and `max-w-shell`
+     compile. Tailwind derives padding/margin utilities from --spacing-*. */
+  --spacing-section: var(--space-section);
+  --spacing-section-tight: var(--space-section-tight);
+  --container-shell: var(--shell-max);
 }
 
 /* Gradient surfaces (ADR revision 2, 2026-07-27). Each sets a solid
@@ -147,23 +175,6 @@ body {
   from {
     opacity: 0;
     transform: translateY(8px);
-  }
-}
-
-/* Hero organ stack (components/home/organ-stack.tsx). A drift, not a spin: a
-   full rotation would put every label edge-on twice a revolution, and a label
-   you have to wait for is worse than no label. 20s alternation, ±16°, slow
-   enough to be ambient while the headline beside it is being read.
-
-   Under reduced motion the class is not emitted (motion-safe:) and the element
-   holds the outbound angle from its base transform — a composed still, not a
-   flat elevation. */
-@keyframes organDrift {
-  from {
-    transform: rotateX(16deg) rotateY(-16deg);
-  }
-  to {
-    transform: rotateX(16deg) rotateY(16deg);
   }
 }
 
@@ -273,5 +284,30 @@ body {
     grid-row: auto !important;
     border: 1px solid #000 !important;
     break-inside: avoid;
+  }
+
+  /* THE WHOLE REFERENCE ZONE PRINTS, not whichever tab was open.
+     Formula, limitations, evidence and version history are four tabpanels and
+     three of them carry `hidden` at any moment, so a printed clinical record
+     shipped with one of them and silently dropped the other three — including,
+     depending on where the reader had clicked, the very evidence that
+     justifies the number on the page above it. The tab strip itself is
+     navigation and goes; each panel gets its tab's label back as a heading,
+     from the same `label` the button renders, so the two cannot disagree. */
+  [role="tablist"] {
+    display: none !important;
+  }
+  [data-score-panel] {
+    display: block !important;
+    padding-top: 0 !important;
+    break-inside: avoid;
+  }
+  [data-score-panel]::before {
+    content: attr(data-panel-title);
+    display: block;
+    margin: 1.25rem 0 0.4rem;
+    font-weight: 600;
+    border-bottom: 1px solid #000;
+    padding-bottom: 0.2rem;
   }
 }

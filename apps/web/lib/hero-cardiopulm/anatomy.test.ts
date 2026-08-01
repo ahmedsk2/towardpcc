@@ -1,0 +1,950 @@
+import { describe, expect, it } from "vitest";
+import {
+  BRONCHI,
+  BUDGET,
+  CHAMBERS,
+  DEFAULT_SEED,
+  ENVELOPE,
+  HEART,
+  HEART_CENTRE,
+  LOBE_SHARES,
+  RUL_TAKEOFF,
+  THORAX,
+  VESSELS,
+  type Preset,
+} from "./anatomy";
+import { cardiacApex, cardiacField, cardiacHullExtentX, generateHeart } from "./heart";
+import { buildMesh } from "./mesh";
+import { generateVessels } from "./vessels";
+import { generateTree, LOBES, MAIN_BRONCHI } from "./tree";
+import {
+  insideLung,
+  insidePleura,
+  MEDIAL_X,
+  NOTCH_MATCHES_HEART_BORDER,
+  notchDepthAt,
+  PLEURAL_LATERAL_EXTENT,
+} from "./envelope";
+import { generateShells, sampleShells, shellsAsPointCloud } from "./shells";
+
+/**
+ * The anatomical assertion suite — ANATOMY.md §7, verbatim.
+ *
+ * Contrast is asserted rather than eyeballed on this platform; anatomy gets the
+ * same treatment. A pediatric intensivist is the primary viewer, and a wrong
+ * relationship is exactly the kind of thing this site refuses to ship.
+ *
+ * These test typed arrays, not pixels, so they are render-target agnostic:
+ * they survived the switch from the brief's Canvas 2D to CSS 3D without an
+ * edit, and they must pass at EVERY degradation tier. A cheaper scene is still
+ * a correct one.
+ */
+const PRESETS: Preset[] = ["desktop", "narrow"];
+
+const scene = (preset: Preset) => {
+  const b = BUDGET[preset];
+  return {
+    heart: generateHeart(b.heart, DEFAULT_SEED),
+    tree: generateTree(b.airways, b.generations, DEFAULT_SEED),
+    shells: generateShells(),
+    envelope: shellsAsPointCloud(generateShells()),
+    budget: b,
+  };
+};
+
+describe.each(PRESETS)("anatomical assertions — %s", (preset) => {
+  const s = scene(preset);
+
+  describe("cardiac position", () => {
+    it("orders the chambers RV anterior → LA posterior", () => {
+      const z = Object.fromEntries(CHAMBERS.map((c) => [c.id, c.centroid.z]));
+      // The ordering that makes bronchi pass behind the RV and above the LA.
+      expect(z.rv).toBeGreaterThan(z.ra!);
+      expect(z.ra).toBeGreaterThan(z.lv!);
+      expect(z.lv).toBeGreaterThan(z.la!);
+      expect(Math.min(...CHAMBERS.map((c) => c.centroid.z))).toBe(z.la);
+      expect(Math.max(...CHAMBERS.map((c) => c.centroid.z))).toBe(z.rv);
+    });
+
+    it("puts the left-atrial roof immediately beneath the carina", () => {
+      // Close enough that LA enlargement splays the carinal angle — the classic
+      // sign of a large left-to-right shunt.
+      const la = CHAMBERS.find((c) => c.id === "la")!;
+      expect(la.centroid.y + la.radii.y).toBeGreaterThanOrEqual(-0.01);
+    });
+
+    it("places no chamber centroid above the carina", () => {
+      for (const c of CHAMBERS) expect(c.centroid.y).toBeLessThan(0);
+    });
+
+    it("makes the apex the inferior-most cardiac particle, to the patient's left", () => {
+      let minY = Infinity;
+      let apexX = 0;
+      for (let i = 0; i < s.heart.count; i++) {
+        const y = s.heart.positions[i * 3 + 1]!;
+        if (y < minY) {
+          minY = y;
+          apexX = s.heart.positions[i * 3]!;
+        }
+      }
+      // +x is the viewer's right = the patient's LEFT. This is correct.
+      //
+      // ANALYTIC. The taper lives in the field now, so the apex is a property
+      // of the geometry rather than of whichever particle happened to land
+      // lowest — and the sampled extreme was measuring the RNG: 0.121 to 0.155
+      // in x across seeds, and missing the y bound outright at the narrow
+      // budget on geometry that had not changed.
+      const apex = cardiacApex();
+      expect(apex.x).toBeGreaterThanOrEqual(0.13);
+      expect(apex.x).toBeLessThanOrEqual(0.17);
+      expect(apex.y).toBeGreaterThanOrEqual(-0.475);
+      expect(apex.y).toBeLessThanOrEqual(-0.43);
+
+      // The sampled cloud must still agree in direction, or the particles and
+      // the field have come apart the way they had before the taper moved.
+      expect(apexX).toBeGreaterThan(0);
+      expect(minY).toBeLessThan(HEART.baseY);
+    });
+
+    it("holds the cardiac silhouette to the documented AP borders", () => {
+      // ANALYTIC, not sampled — the borders a radiologist measures off a film.
+      //
+      // This replaces a mass-fraction assertion that anatomy never made. The
+      // documented 2:1 split is about silhouette WIDTH, and asserting it as
+      // mass let a 24%-over-wide right border ship: the RA and the border table
+      // in ANATOMY.md §3 disagreed, and a [0.45, 0.55] CTR band was loose
+      // enough to swallow the difference.
+      //
+      // Sampling cannot replace this. Across 40 seeds the widest sampled
+      // particle ranged 0.205 to 0.239 against a true border of 0.240, so any
+      // band loose enough to survive the RNG is too loose to catch the defect
+      // that motivated the check.
+      const hull = cardiacHullExtentX();
+      expect(hull.minX).toBeCloseTo(HEART.rightBorderX, 2);
+      expect(hull.maxX).toBeCloseTo(HEART.leftBorderX, 2);
+      expect(hull.maxX - hull.minX).toBeCloseTo(HEART.width, 2);
+      expect(hull.ctr).toBeCloseTo(HEART.ctr, 2);
+    });
+
+    it("tints by chamber laterality, so the right ventricle crosses the midline", () => {
+      // The septum is NOT the midline. It runs obliquely from upper-right to
+      // lower-left, and the RV — the most anterior chamber, the front of the
+      // heart — sits substantially across it. A tint keyed to sign(x) cannot
+      // express that: it measured 0 of 30 RV particles at x > 0 reading as
+      // right heart. Chamber-membership blending measures 21–45%.
+      let rightTinted = 0;
+      let crossing = 0;
+      for (let i = 0; i < s.heart.count; i++) {
+        if (s.heart.tint[i]! >= 0.5) continue;
+        rightTinted++;
+        if (s.heart.positions[i * 3]! > 0) crossing++;
+      }
+      expect(crossing / rightTinted).toBeGreaterThanOrEqual(0.1);
+    });
+
+    it("keeps the right/left tint continuous rather than seamed", () => {
+      // A hard split down the middle reads as two hearts, not one.
+      const intermediate = [...s.heart.tint].filter((t) => t > 0.05 && t < 0.95).length;
+      expect(intermediate / s.heart.count).toBeGreaterThanOrEqual(0.1);
+    });
+
+    it("keeps cardiac mass predominantly to the patient's left", () => {
+      // LOOSE, and deliberately so. This measures a DIFFERENT QUANTITY from the
+      // silhouette assertion above — sampled mass, not projected width — and
+      // anatomy makes no claim about it. Kept only as a sanity check that the
+      // heart has not been mirrored. NEVER TUNE GEOMETRY AGAINST THIS NUMBER;
+      // doing so is what produced a heart 24% too wide on the right.
+      let positive = 0;
+      for (let i = 0; i < s.heart.count; i++) {
+        if (s.heart.positions[i * 3]! > 0) positive++;
+      }
+      const fraction = positive / s.heart.count;
+      expect(fraction).toBeGreaterThanOrEqual(0.55);
+      expect(fraction).toBeLessThanOrEqual(0.72);
+    });
+  });
+
+  describe("airways", () => {
+    it("keeps the right main bronchus more vertical than the left", () => {
+      expect(MAIN_BRONCHI.right.angleDeg).toBeLessThan(MAIN_BRONCHI.left.angleDeg);
+    });
+
+    it("keeps the right main bronchus shorter than the left", () => {
+      expect(MAIN_BRONCHI.right.length).toBeLessThan(MAIN_BRONCHI.left.length);
+    });
+
+    it("holds the subcarinal angle in the pediatric range", () => {
+      expect(MAIN_BRONCHI.subcarinalAngleDeg).toBeGreaterThanOrEqual(65);
+      expect(MAIN_BRONCHI.subcarinalAngleDeg).toBeLessThanOrEqual(80);
+    });
+
+    it("takes the right upper lobe bronchus off in the proximal half", () => {
+      // Its early takeoff is the most recognisable feature of the right airway.
+      expect(RUL_TAKEOFF.alongRightMain).toBeGreaterThan(0);
+      expect(RUL_TAKEOFF.alongRightMain).toBeLessThanOrEqual(0.5);
+    });
+
+    it("sends the right upper lobe superolaterally, not into the mediastinum", () => {
+      // Aimed downward it drives through the heart and is culled entirely.
+      let topY = -Infinity;
+      let mostLateralX = Infinity;
+      for (let i = 0; i < s.tree.count; i++) {
+        if (LOBES[s.tree.lobe[i]!] !== "rul") continue;
+        const x = s.tree.positions[i * 3]!;
+        const y = s.tree.positions[i * 3 + 1]!;
+        if (y > topY) topY = y;
+        if (x < mostLateralX) mostLateralX = x;
+      }
+      expect(topY).toBeGreaterThan(0); // above the carina
+      expect(mostLateralX).toBeLessThan(0); // the patient's right
+    });
+
+    it("gives the right lung more particles than the left, by 10–25%", () => {
+      let right = 0;
+      let left = 0;
+      for (let i = 0; i < s.tree.count; i++) {
+        if (LOBES[s.tree.lobe[i]!]!.startsWith("r")) right++;
+        else left++;
+      }
+      const ratio = right / left;
+      expect(ratio).toBeGreaterThanOrEqual(1.1);
+      expect(ratio).toBeLessThanOrEqual(1.25);
+    });
+
+    it("resolves three lobar groups on the right and two on the left", () => {
+      const present = new Set<string>();
+      for (let i = 0; i < s.tree.count; i++) present.add(LOBES[s.tree.lobe[i]!]!);
+      expect([...present].filter((l) => l.startsWith("r"))).toHaveLength(3);
+      expect([...present].filter((l) => l.startsWith("l"))).toHaveLength(2);
+    });
+  });
+
+  describe("lung filling", () => {
+    it("fills each lung out to its pleural surface", () => {
+      // THE BIGGEST VISUAL DEFECT THIS SCENE EVER SHIPPED. The right lung was
+      // filled to 0.613 of its half-width, leaving an empty shell across its
+      // entire lateral third — anatomically backwards, since the right lung is
+      // the LARGER one, and on screen it read as a chest with one lung missing.
+      //
+      // The cause was real anatomy faithfully implemented: the right hilum sits
+      // at x -0.054 and the left at +0.124, so the right tree must cross 0.313
+      // to reach its pleura against the left's 0.228 — and both sides had the
+      // same decay, depth and isotropic branching.
+      //
+      // Measured on the TREE, not on the sampled particles. The particles are a
+      // thinned draw from the tree, so at the narrow preset's smaller budget
+      // the extremes are simply less likely to be sampled — the same assertion
+      // read 0.827 on desktop and 0.684 on narrow for identical geometry. What
+      // fills a lung is where the airway reaches.
+      let minX = Infinity;
+      let maxX = -Infinity;
+      for (let i = 0; i < s.tree.segments.length; i += 3) {
+        const x = s.tree.segments[i]!;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+      }
+      // Compared against the ANALYTIC pleural surface, not against whichever
+      // envelope particle happened to land furthest out.
+      expect(Math.abs(minX) / PLEURAL_LATERAL_EXTENT).toBeGreaterThanOrEqual(0.85);
+      expect(maxX / PLEURAL_LATERAL_EXTENT).toBeGreaterThanOrEqual(0.85);
+    });
+
+    it("keeps every airway particle inside the pleura", () => {
+      // The other half of the fill problem. Steering branches along their
+      // lobe's growth axis fixed the hollow lung and then pushed tips 7.6%
+      // BEYOND the pleural surface — one defect traded for its mirror image.
+      // Reach and containment are separate properties needing separate
+      // mechanisms; a single tuned constant just hides whichever the seed hides.
+      //
+      // Tested against insideLung, the predicate the tree actually contains
+      // against — NOT the weaker insidePleura, which ignores the notch and so
+      // would pass a tree growing through it.
+      //
+      // The MEDIASTINAL airway is exempt, and the exemption is verified rather
+      // than trusted. Trachea, carina and main bronchi run BETWEEN the lungs —
+      // that is what "between the lungs" means — and containing them deleted
+      // them: the scene rendered with alveolar clusters glowing at the apices
+      // and nothing joining them, because the inverted Y that everyone
+      // recognises as an airway had been culled for being outside the lung.
+      let outside = 0;
+      let notActuallyCentral = 0;
+      for (let i = 0; i < s.tree.count; i++) {
+        const x = s.tree.positions[i * 3]!;
+        const y = s.tree.positions[i * 3 + 1]!;
+        const z = s.tree.positions[i * 3 + 2]!;
+        if (s.tree.central[i] === 1) {
+          // A particle claiming the exemption must actually be central, or the
+          // exemption becomes somewhere for distal leaks to hide.
+          if (Math.abs(x) > 0.14 || y < BRONCHI.left.hilum.y - 0.06) notActuallyCentral++;
+          continue;
+        }
+        if (!insideLung(x, y, z)) outside++;
+      }
+      expect(outside).toBe(0);
+      expect(notActuallyCentral).toBe(0);
+    });
+
+    it("allocates the airway budget per lobe, not per side", () => {
+      // Allocating by side fixed R:L and still shipped the RIGHT LOWER LOBE —
+      // the largest lobe of the lung — as the thinnest object in the scene, at
+      // 13 particles, because within a side the split fell out of branch
+      // counts. The lesson from the R:L fix generalises one level down.
+      // Excludes the mediastinal airway, which is reserved off the top and
+      // belongs to no lobe — counting it would skew every share by its size.
+      const counts = LOBES.map(
+        (_, i) => [...s.tree.lobe].filter((v, k) => v === i && s.tree.central[k] === 0).length,
+      );
+      const total = counts.reduce((a, b) => a + b, 0);
+      LOBES.forEach((lobe, i) => {
+        const share = counts[i]! / total;
+        const want = LOBE_SHARES[lobe];
+        expect(Math.abs(share - want) / want).toBeLessThanOrEqual(0.2);
+        expect(share).toBeGreaterThanOrEqual(0.05);
+      });
+      const rll = counts[LOBES.indexOf("rll")]!;
+      expect(rll).toBeGreaterThan(counts[LOBES.indexOf("rml")]!);
+      expect(rll).toBeGreaterThan(counts[LOBES.indexOf("rul")]!);
+    });
+  });
+
+  describe("spatial integrity", () => {
+    it("puts no airway particle inside the cardiac hull", () => {
+      // The heart sits in a real cavity, not inside a thicket.
+      let inside = 0;
+      for (let i = 0; i < s.tree.count; i++) {
+        if (
+          cardiacField(
+            s.tree.positions[i * 3]!,
+            s.tree.positions[i * 3 + 1]!,
+            s.tree.positions[i * 3 + 2]!,
+          ) < 0
+        ) {
+          inside++;
+        }
+      }
+      expect(inside).toBe(0);
+    });
+
+    it("puts no pleural surface inside the cardiac hull", () => {
+      // TESTED AT FULL PRECISION, off the paths themselves. The lung's
+      // mediastinal border and the cardiac border are the same line where the
+      // two abut, so surface points sit exactly ON the hull — and a float32
+      // round-trip of a point that is exactly on a boundary lands a few times
+      // 1e-8 either side of it. Asserting `< 0` against the float32 adapter
+      // therefore measured storage precision, not geometry: it reported 18
+      // intrusions where the model has none.
+      let intruders = 0;
+      for (const p of sampleShells(s.shells)) {
+        if (cardiacField(p.x, p.y, p.z) < 0) intruders++;
+      }
+      expect(intruders).toBe(0);
+    });
+
+    it("keeps the float32 render buffer within an epsilon of the hull", () => {
+      // The adapter is what a renderer would upload. It may not drift further
+      // than the rounding that produced it.
+      const EPS = 1e-5;
+      let beyond = 0;
+      for (let i = 0; i < s.envelope.count; i++) {
+        const d = cardiacField(
+          s.envelope.positions[i * 3]!,
+          s.envelope.positions[i * 3 + 1]!,
+          s.envelope.positions[i * 3 + 2]!,
+        );
+        if (d < -EPS) beyond++;
+      }
+      expect(beyond).toBe(0);
+    });
+
+    it("cuts the cardiac notch to exactly the heart's left border", () => {
+      // The notch and the cardiac silhouette are the same curve — asserted
+      // against the constant rather than a transcribed copy of it.
+      expect(NOTCH_MATCHES_HEART_BORDER).toBe(true);
+    });
+
+    it("leaves the notch empty of left lung, anteriorly", () => {
+      // NARROWED TO THE ANTERIOR HALF, and the narrowing is the point rather
+      // than an accommodation. This previously asserted the notch was empty at
+      // EVERY depth, which encoded a full-thickness cut through the lung. The
+      // heart lies against the FRONT of the left lung; behind it the lung runs
+      // medially toward the descending aorta and the spine. Asserting emptiness
+      // posteriorly asserts the absence of lung that is really there.
+      //
+      // Anterior emptiness is still absolute — that is the notch.
+      let anteriorIntruders = 0;
+      let posteriorPresence = 0;
+      for (let i = 0; i < s.envelope.count; i++) {
+        if (s.envelope.isRight[i] === 1) continue;
+        const x = s.envelope.positions[i * 3]!;
+        const y = s.envelope.positions[i * 3 + 1]!;
+        const z = s.envelope.positions[i * 3 + 2]!;
+        // Against the notch's PROFILE, not a constant. The cut used to be a
+        // rectangle reaching medialX at every height in the band; it now eases
+        // to nothing at both ends, so lung correctly exists at x < medialX near
+        // the band edges and only the deepest height reaches the heart border.
+        const depth = notchDepthAt(y);
+        if (depth <= 0 || x >= depth - 0.004) continue;
+        if (z > ENVELOPE.cardiacNotch.anteriorZ) anteriorIntruders++;
+        else posteriorPresence++;
+      }
+      expect(anteriorIntruders).toBe(0);
+      // And the posterior lung must actually be there, or the depth-limited
+      // notch would be indistinguishable from the full-thickness one it fixed.
+      expect(posteriorPresence).toBeGreaterThan(0);
+    });
+
+    it("gives the right lung no equivalent notch", () => {
+      // The asymmetry between the two medial borders is much of what makes
+      // this read as a real chest rather than a symmetric ornament.
+      const band = (lo: number, hi: number, right: boolean) => {
+        let extreme = right ? -Infinity : Infinity;
+        for (let i = 0; i < s.envelope.count; i++) {
+          if ((s.envelope.isRight[i] === 1) !== right) continue;
+          const y = s.envelope.positions[i * 3 + 1]!;
+          if (y > hi || y < lo) continue;
+          const x = s.envelope.positions[i * 3]!;
+          extreme = right ? Math.max(extreme, x) : Math.min(extreme, x);
+        }
+        return extreme;
+      };
+      const notchLo = ENVELOPE.cardiacNotch.bottomY;
+      const notchHi = ENVELOPE.cardiacNotch.topY;
+      const rightMedial = Math.abs(band(notchLo, notchHi, true));
+      const leftMedial = Math.abs(band(notchLo, notchHi, false));
+      // The left medial border is pushed laterally by the notch; the right is not.
+      expect(leftMedial).toBeGreaterThan(rightMedial);
+    });
+
+    it("carries the lung apices well above the carina", () => {
+      let top = -Infinity;
+      for (let i = 0; i < s.envelope.count; i++) {
+        top = Math.max(top, s.envelope.positions[i * 3 + 1]!);
+      }
+      expect(top).toBeGreaterThanOrEqual(0.3);
+    });
+
+    it("sits the right hemidiaphragm dome higher than the left", () => {
+      // The liver raises it. Measured at the DOME, which is medial — not at the
+      // lowest particle overall, which is the costophrenic angle. ANATOMY.md
+      // gives one costophrenic value for both sides and differing values only
+      // for the domes, so comparing the lowest point compares the wrong
+      // landmark and fails on geometry that is in fact correct.
+      expect(THORAX.rightDiaphragmY).toBeGreaterThan(THORAX.leftDiaphragmY);
+
+      const domeFloor = (right: boolean) => {
+        let y = Infinity;
+        for (let i = 0; i < s.envelope.count; i++) {
+          if ((s.envelope.isRight[i] === 1) !== right) continue;
+          const x = s.envelope.positions[i * 3]!;
+          // Medial third of that lung, where the dome sits.
+          if (Math.abs(x) > 0.14) continue;
+          y = Math.min(y, s.envelope.positions[i * 3 + 1]!);
+        }
+        return y;
+      };
+      expect(domeFloor(true)).toBeGreaterThan(domeFloor(false));
+    });
+  });
+
+  describe("budget", () => {
+    it("lands within the preset's total", () => {
+      // The envelope no longer spends particles: its surfaces are six stroked
+      // paths, and the ~110 it used to cost went to the airways and the heart,
+      // which is where the hollow right lung was.
+      // Counts RENDERED ELEMENTS. s.envelope is a point cloud sampled off the
+      // paths for assertion purposes only — 1459 vertices describe 6 elements,
+      // and charging the budget for vertices would price a curve as if it were
+      // still a particle cloud.
+      const total = s.heart.count + s.tree.count + s.shells.length;
+      expect(total).toBeLessThanOrEqual(s.budget.total);
+    });
+
+    it("draws the pleural surfaces as six paths, not a particle cloud", () => {
+      // Three nested outlines per lung. The count is asserted because the whole
+      // point of the rewrite was replacing 110 DOM nodes with a handful, and a
+      // regression that quietly reintroduced per-depth particles would still
+      // pass every landmark assertion below.
+      expect(s.shells.length).toBe(6);
+      expect(s.shells.filter((sh) => sh.lung === "right")).toHaveLength(3);
+      expect(s.shells.filter((sh) => sh.lung === "left")).toHaveLength(3);
+    });
+
+    it("nests the shells, so depth reads without motion", () => {
+      // The cross-section narrows with |z|, so the anterior and posterior
+      // outlines must sit strictly inside the mid one. If they did not, the
+      // three would overdraw as a single thick line and the volume would be
+      // carried entirely by the sway.
+      for (const lung of ["right", "left"] as const) {
+        const width = (z: number) => {
+          const sh = s.shells.find((h) => h.lung === lung && h.z === z)!;
+          const xs = sh.segments.flatMap((g) => g.points.map((p) => p.x));
+          return Math.max(...xs) - Math.min(...xs);
+        };
+        expect(width(0)).toBeGreaterThan(width(0.14));
+        expect(width(0)).toBeGreaterThan(width(-0.14));
+      }
+    });
+
+    /** Points on one lung's mid-depth outline. */
+    const outline = (lung: "right" | "left") =>
+      s.shells
+        .filter((h) => h.lung === lung && h.z === 0)
+        .flatMap((h) => h.segments.flatMap((g) => g.points));
+
+    it("keeps both costophrenic angles sharp", () => {
+      // ANATOMY.md §7 requires this and it had NO ASSERTION, while
+      // ENVELOPE.costophrenicAngleDeg sat unreferenced by any code — a
+      // documented landmark with neither an implementation nor a test. What
+      // shipped was 112 degrees on the right and 133 on the left. A blunted
+      // costophrenic angle on a pediatric film is the cardinal sign of a
+      // pleural effusion, so this is not a cosmetic tolerance.
+      //
+      // The angle is between a vertical chest wall and the diaphragm, so it is
+      // measured as 90 degrees minus the diaphragm's rise going medially from
+      // the lowest point of the lung.
+      //
+      // Measured off the PREDICATE, not off the drawn outline. The outline has
+      // 150 rows over a 1.0-unit lung, so its vertical quantum is 0.0067 and a
+      // two-row rise over a 0.02 baseline reads as 56 degrees no matter what
+      // the surface does — the first version of this assertion measured its own
+      // sampling step and failed on geometry that is correct.
+      const floorAt = (x: number) => {
+        for (let i = 0; i <= 2400; i++) {
+          const y = -0.78 + i * 0.0005;
+          if (insideLung(x, y, 0)) return y;
+        }
+        return NaN;
+      };
+      for (const lung of ["right", "left"] as const) {
+        const sign = lung === "right" ? -1 : 1;
+        let low = { x: 0, y: Infinity };
+        for (let i = 0; i <= 1200; i++) {
+          const x = sign * (0.02 + (i / 1200) * 0.36);
+          const y = floorAt(x);
+          if (Number.isFinite(y) && y < low.y) low = { x, y };
+        }
+        const rise = floorAt(low.x - sign * 0.02) - low.y;
+        const angle = 90 - (Math.atan2(rise, 0.02) * 180) / Math.PI;
+        expect(angle, `${lung} costophrenic angle`).toBeLessThan(45);
+        expect(angle).toBeGreaterThan(0);
+      }
+    });
+
+    it("sits the right costophrenic angle higher than the left", () => {
+      // The liver raises the WHOLE right hemidiaphragm, the angle with it.
+      //
+      // Amendment C claimed this was delivered. It was not: the two angles came
+      // out 0.0007 apart against a specified 0.015, because the diaphragm's
+      // lateral term was normalised by half the lung's width, so it ran 0 to 2
+      // and the shell — not the diaphragm — ended up forming the base. The
+      // amendment was written from the constants rather than from the geometry,
+      // which is precisely what an assertion is for.
+      const lowest = (lung: "right" | "left") =>
+        outline(lung).reduce((a, p) => (p.y < a.y ? p : a)).y;
+      const specified = Math.abs(THORAX.rightCostophrenicY - THORAX.leftCostophrenicY);
+      const delivered = lowest("right") - lowest("left");
+      expect(delivered).toBeGreaterThan(0);
+      expect(delivered).toBeGreaterThan(specified * 0.5);
+      expect(delivered).toBeLessThan(specified * 2);
+    });
+
+    it("rests the heart on the diaphragm, with no lung between", () => {
+      // On a chest film the cardiac silhouette MERGES into the left
+      // hemidiaphragm; the cardiophrenic angle is where they join and there is
+      // no lung in between. The model drew lung in that wedge for as long as
+      // the diaphragm fell monotonically from the mediastinum outward, which
+      // made it highest exactly where the heart has to rest on it — so there
+      // was nowhere to put the heart but above the whole diaphragm, and a
+      // 0.096-tall band of lung sat under the apex.
+      //
+      // A real hemidiaphragm domes over the central tendon and falls both ways.
+      const apex = cardiacApex();
+      let beneath = 0;
+      for (let i = 0; i <= 400; i++) {
+        const y = apex.y - 0.001 - (i / 400) * 0.18;
+        if (insideLung(apex.x, y, 0)) beneath++;
+      }
+      expect(beneath, "lung is drawn between the cardiac apex and the diaphragm").toBe(0);
+    });
+
+    it("tapers the lung apex into a dome", () => {
+      // The split wall exponent exists for this. A single exponent high enough
+      // to give the vertical lower wall a costophrenic angle needs also flattens
+      // the apex: measured, the lung at y +0.30 was 94% as wide as at y -0.30,
+      // a column rather than a chest.
+      //
+      // Measured on the LATERAL border only — the notch cuts the left medial
+      // border, so a full-width measure would report the notch, not the apex.
+      for (const lung of ["right", "left"] as const) {
+        const pts = outline(lung);
+        const lateralAt = (y: number) => {
+          const band = pts.filter((p) => Math.abs(p.y - y) < 0.03);
+          return band.length ? Math.max(...band.map((p) => Math.abs(p.x))) : 0;
+        };
+        expect(lateralAt(0.3) / lateralAt(-0.3), `${lung} apical taper`).toBeLessThan(0.85);
+      }
+    });
+
+    it("runs the medial border along the cardiac silhouette", () => {
+      // Where the heart is present the lung's medial border IS the heart's
+      // border; they are the same curve, which is the claim ANATOMY.md makes
+      // for the notch and the reason the shell is worth drawing at all.
+      //
+      // A row through the heart is discontinuous — lung laterally, cardiac
+      // shadow, then a thin strip medial to the heart where the chamber
+      // ellipsoids fall short of the mediastinum. Taking the row's min and max
+      // drew the outline straight through the cardiac shadow: medial border
+      // -0.021 against a heart border of -0.115.
+      //
+      // SWEPT, not sampled at two hand-picked heights. It used to test y = -0.1
+      // and y = -0.2, and -0.1 only had a chamber under it because the right
+      // atrium's roof was 0.070 too high — high enough that the right main
+      // bronchus ran through the chamber. Correcting the atrium left that level
+      // empty and the assertion read `Infinity`, which is the test reporting
+      // its own sample points rather than a defect. Sweeping every level where
+      // a chamber is actually present is strictly more coverage and cannot go
+      // stale the same way.
+      const pts = outline("right");
+      let checked = 0;
+      for (let i = 0; i <= 120; i++) {
+        const y = -0.02 - (i / 120) * 0.4;
+        // The right heart's body at this level: the first x where the field
+        // turns inside, and the CONTIGUOUS run from it. Contiguity matters —
+        // taking the last inside x anywhere on the row catches the left-sided
+        // chambers across the midline and reports a body that is not there.
+        let heartBorder = Infinity;
+        let medialEdge = -Infinity;
+        for (let j = 0; j <= 600; j++) {
+          const x = -0.2 + (j / 600) * 0.3;
+          const inside = cardiacField(x, y, 0) <= 0;
+          if (inside && !Number.isFinite(heartBorder)) heartBorder = x;
+          if (Number.isFinite(heartBorder)) {
+            if (!inside) break;
+            medialEdge = x;
+          }
+        }
+        // MEDIAL_X is a magnitude; the right lung's mediastinal plane is at
+        // MINUS it. A border medial to that is a left-sided chamber seen across
+        // the midline, not a right heart border.
+        if (!Number.isFinite(heartBorder) || heartBorder >= -MEDIAL_X) continue;
+        // AND that body must REACH the mediastinum. Where a chamber tapers —
+        // just under the atrial roof, just above its floor — it leaves a sliver
+        // sitting as an island inside the lung, and the lung's medial border at
+        // that level is the mediastinal plane rather than the heart. That is
+        // the azygo-oesophageal recess and it is real; demanding otherwise
+        // would assert a chamber wider than the border table specifies.
+        if (medialEdge < -MEDIAL_X - 0.015) continue;
+        const band = pts.filter((p) => Math.abs(p.y - y) < 0.012);
+        if (!band.length) continue;
+        const medial = Math.max(...band.map((p) => p.x));
+        expect(
+          Math.abs(medial - heartBorder),
+          `right medial border at y=${y.toFixed(3)}`,
+        ).toBeLessThan(0.02);
+        checked++;
+      }
+      /**
+       * Enough levels that this cannot pass by finding none.
+       *
+       * The band is narrower than it looks: at z = 0 the ONLY right-sided
+       * chamber is the atrium, because the right ventricle is centred at
+       * z = +0.115 with a depth radius of 0.080 and so does not exist in this
+       * plane at all. That is the depth ordering doing its job, not a defect —
+       * the RV is the anterior chamber. The right heart border on a film is an
+       * atrial border, which is exactly what this samples.
+       */
+      expect(checked, "no level had both a chamber and a shell").toBeGreaterThan(15);
+    });
+
+    it("keeps the right hilum clear of the cardiac hull", () => {
+      /**
+       * THE RIGHT MAIN BRONCHUS RAN THROUGH THE RIGHT ATRIUM. The chamber's
+       * roof sat at -0.035, barely below the carina, while the hilum is at
+       * -0.102 — so the bronchus, the hilum and the middle-lobe takeoff were
+       * all inside it, and the cardiac field measured 0.31 of the atrium's
+       * radius at the hilum. Nothing caught it for as long as the airway was
+       * the only thing there: the tree's sampler culls particles inside the
+       * heart, so the defect showed up as thin lobes rather than as a bronchus
+       * in a chamber. Drawing the pulmonary arteries alongside those bronchi is
+       * what surfaced it.
+       *
+       * Asserted on the SEGMENTS, not the sampled particles, because the
+       * segments are what is drawn and they were never culled.
+       */
+      let inside = 0;
+      for (let i = 0; i < s.tree.segments.length; i += 3) {
+        const x = s.tree.segments[i]!;
+        const y = s.tree.segments[i + 1]!;
+        const z = s.tree.segments[i + 2]!;
+        if (cardiacField(x, y, z) < 0) inside++;
+      }
+      expect(inside, "airway drawn inside the cardiac hull").toBe(0);
+    });
+
+    it("closes every shell contour", () => {
+      // A shell is a closed surface. The lateral and medial chains meet at the
+      // apex, and leaving them unjoined drew every lung with an open top —
+      // 0.054 to 0.085 wide, indistinguishable from a fissure to anything
+      // reading the stroke, including a viewer.
+      for (const shell of s.shells) {
+        const first = shell.segments[0]!.points[0]!;
+        const lastSeg = shell.segments[shell.segments.length - 1]!;
+        const last = lastSeg.points[lastSeg.points.length - 1]!;
+        expect(Math.hypot(first.x - last.x, first.y - last.y)).toBeLessThanOrEqual(
+          ENVELOPE.fissureGap,
+        );
+      }
+    });
+
+    it("resolves three lobes on the right and two on the left, as stroke gaps", () => {
+      // The horizontal fissure exists only on the right. Two fissures break the
+      // right outline more times than one breaks the left — which is what makes
+      // the lobes visible without drawing a line where there is no edge.
+      const segs = (lung: "right" | "left") =>
+        s.shells.filter((h) => h.lung === lung).map((h) => h.segments.length);
+      expect(Math.min(...segs("right"))).toBeGreaterThan(Math.max(...segs("left")) - 2);
+      expect(Math.max(...segs("right"))).toBeGreaterThan(Math.min(...segs("left")));
+    });
+
+    it("opens the cardiac notch anteriorly and closes it behind the heart", () => {
+      // The heart lies against the FRONT of the left lung. A full-thickness
+      // notch deletes posterior lung that really exists, and discards the one
+      // fact the notch is there to convey. The medial border inside the notch
+      // band must therefore sit at the heart's left border on anterior shells
+      // and at the mediastinum on the posterior one.
+      //
+      // Measured at the notch's DEEPEST height, which is the only height at
+      // which the spec's medialX applies. Taking the minimum across the whole
+      // band would measure the shallow ends instead: the notch is a smooth
+      // concavity now, not the rectangle that made every height equivalent.
+      const n = ENVELOPE.cardiacNotch;
+      const deepestY = n.bottomY + (n.topY - n.bottomY) * n.deepestAtFraction;
+      const medialAt = (z: number) => {
+        const sh = s.shells.find((h) => h.lung === "left" && h.z === z)!;
+        const band = sh.segments
+          .flatMap((g) => g.points)
+          .filter((p) => Math.abs(p.y - deepestY) < 0.02);
+        return band.length ? Math.min(...band.map((p) => p.x)) : 0;
+      };
+      expect(medialAt(0.14)).toBeGreaterThanOrEqual(n.medialX - 0.02);
+      expect(medialAt(-0.14)).toBeLessThan(n.medialX - 0.05);
+    });
+
+    it("respects the airway / heart split", () => {
+      expect(s.heart.count).toBeLessThanOrEqual(s.budget.heart);
+      expect(s.tree.count).toBeLessThanOrEqual(s.budget.airways);
+      expect(s.budget.envelope).toBe(0);
+    });
+
+    it("keeps the heart's density — it is the separation from the airways", () => {
+      // Cutting the heart first defeats the design: that density IS how it
+      // reads as distinct from the branch dust around it.
+      expect(s.heart.count / s.budget.heart).toBeGreaterThan(0.9);
+    });
+  });
+
+  describe("determinism", () => {
+    it("produces byte-identical geometry from the same seed", () => {
+      const again = scene(preset);
+      const hash = (a: Float32Array) => {
+        let h = 2166136261;
+        for (let i = 0; i < a.length; i++) {
+          h ^= Math.round(a[i]! * 1e6);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      };
+      expect(hash(again.heart.positions)).toBe(hash(s.heart.positions));
+      expect(hash(again.tree.positions)).toBe(hash(s.tree.positions));
+      expect(hash(again.envelope.positions)).toBe(hash(s.envelope.positions));
+    });
+  });
+});
+
+/**
+ * THE PULMONARY CIRCULATION.
+ *
+ * Kept outside the per-preset block on purpose: the vessels are generated from
+ * the desktop tree and are identical at every budget, so running them twice
+ * would double a two-hundred-millisecond build to assert the same numbers.
+ *
+ * What is asserted here is not "vessels exist" — it is the handful of
+ * relationships a reader who knows one thing about a hilum knows, and which a
+ * figure is better off without than wrong about.
+ */
+describe("pulmonary vessels", () => {
+  const tree = generateTree(BUDGET.desktop.airways, BUDGET.desktop.generations, DEFAULT_SEED);
+  const vessels = generateVessels(tree, DEFAULT_SEED);
+
+  /** Where a waypoint chain sits at a given x, by linear interpolation. */
+  const atX = (chain: readonly { x: number; y: number; z: number }[], x: number) => {
+    for (let i = 0; i + 1 < chain.length; i++) {
+      const a = chain[i]!;
+      const b = chain[i + 1]!;
+      if ((a.x - x) * (b.x - x) <= 0 && a.x !== b.x) {
+        const t = (x - a.x) / (b.x - a.x);
+        return { y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t };
+      }
+    }
+    return null;
+  };
+  /** A main bronchus runs straight from the carina to its hilum. */
+  const bronchusAt = (side: "right" | "left", x: number) =>
+    (x / BRONCHI[side].hilum.x) * BRONCHI[side].hilum.y;
+
+  it("makes the right hilum EPARTERIAL", () => {
+    // The right upper lobe bronchus is the only lobar bronchus in the body
+    // above its artery, and it is why RUL_TAKEOFF is an explicit branch.
+    const x = BRONCHI.right.hilum.x * RUL_TAKEOFF.alongRightMain;
+    const rpa = atX([VESSELS.mpaBifurcation, ...VESSELS.rpa], x);
+    expect(rpa).not.toBeNull();
+    expect(bronchusAt("right", x)).toBeGreaterThan(rpa!.y);
+
+    // And the artery passes ANTERIOR to the bronchus, which runs at z = 0.
+    for (const p of VESSELS.rpa) expect(p.z).toBeGreaterThan(0);
+  });
+
+  it("makes the left hilum HYPARTERIAL, by arching over the bronchus", () => {
+    const summit = VESSELS.lpa[0]!;
+    const lpa = atX([VESSELS.mpaBifurcation, ...VESSELS.lpa], summit.x);
+    expect(lpa).not.toBeNull();
+    // Above the left main bronchus where it crosses it: every left lobar
+    // bronchus is therefore below its artery.
+    expect(lpa!.y).toBeGreaterThan(bronchusAt("left", summit.x));
+
+    // THE ARCH ITSELF: the vessel starts anterior at the bifurcation and ends
+    // posterior, so it must cross the plane of the bronchus on its way over.
+    // Two straight limbs meeting at a summit would satisfy the height test
+    // above and still not be an arch; this is what makes it one.
+    expect(VESSELS.mpaBifurcation.z).toBeGreaterThan(0);
+    expect(VESSELS.lpa[VESSELS.lpa.length - 1]!.z).toBeLessThan(0);
+  });
+
+  it("roots the trunk in the right ventricle and the veins in the left atrium", () => {
+    // Buried inside the chambers deliberately — it is what keeps the vessels
+    // joined to the heart when the lungs breathe. See VESSELS.mpaRoot.
+    const { mpaRoot, ostia } = VESSELS;
+    expect(cardiacField(mpaRoot.x, mpaRoot.y, mpaRoot.z)).toBeLessThan(0);
+    for (const [name, o] of Object.entries(ostia)) {
+      expect(cardiacField(o.x, o.y, o.z), `${name} must open into the heart`).toBeLessThan(0);
+      // POSTERIOR to the chamber's centre: the veins enter the back of the
+      // atrium, which is the reason the atrium is the posterior chamber.
+      expect(o.z, `${name} must enter posteriorly`).toBeLessThan(HEART_CENTRE.z);
+    }
+  });
+
+  it("keeps every artery in its bronchovascular bundle", () => {
+    // The definition of a bundle: the artery never leaves its bronchus. The
+    // mean must land at the offset it was built with, not merely near it.
+    const offset = Math.hypot(VESSELS.bundleOffset.right.y, VESSELS.bundleOffset.right.z);
+    expect(vessels.stats.arteryToAirway).toBeLessThanOrEqual(offset * 1.2);
+  });
+
+  it("runs every vein in the intersegmental septa, not the bundles", () => {
+    // The one property that makes the veins a second SYSTEM rather than a
+    // second copy of the first. It cannot pass unless the septal sampler is
+    // doing its job.
+    expect(vessels.stats.veinToAirway).toBeGreaterThan(vessels.stats.arteryToAirway * 2);
+  });
+
+  it("drains both lungs, not one", () => {
+    // THE FAILURE THIS SHIPPED ONCE. An absolute clearance threshold starved
+    // the right lung — whose airway is deliberately denser — and the measured
+    // growth was rspv 1, ripv 1, lspv 219, lipv 1: a chest with veins down one
+    // side, invisible in the composite render and obvious the moment the veins
+    // were drawn alone.
+    const counts = Object.values(vessels.stats.perVein);
+    expect(Math.min(...counts)).toBeGreaterThan(Math.max(...counts) * 0.4);
+  });
+
+  it("contains every intrapulmonary vessel inside a lung", () => {
+    // EXACT, not lenient: the mediastinal runs are flagged structurally, so
+    // this can demand zero rather than tolerating a handful and thereby never
+    // catching a real leak.
+    const escaped = [...vessels.arteries, ...vessels.veins].filter(
+      (s) => !s.mediastinal && !insideLung(s.to.x, s.to.y, s.to.z),
+    );
+    expect(escaped).toHaveLength(0);
+  });
+});
+
+describe("cardiac surface", () => {
+  const mesh = buildMesh();
+
+  it("draws a heart that reaches its base and its apex", () => {
+    /**
+     * THE BALL. The cardiac surface was swept by rays from a centre and then
+     * re-meshed by proximity, which starves an elongated body at its ends:
+     * angular sampling puts no more points on the apex than on the nearest
+     * face, so the points there fell further apart than the edge ceiling and
+     * were simply not joined. The geometry measured correct the whole time —
+     * y from -0.002 to -0.460, exactly base and apex — while the DRAWN surface
+     * stopped at -0.16 and read as a ball.
+     *
+     * So this measures the CONNECTED surface, not the point cloud. A vertex
+     * with no edge is not part of a mesh.
+     */
+    const connected = new Set<number>();
+    for (const e of mesh.edges) {
+      if (e.kind !== "heart") continue;
+      connected.add(e.a);
+      connected.add(e.b);
+    }
+    const ys = [...connected].map((i) => mesh.points[i]!.y);
+    expect(Math.max(...ys)).toBeGreaterThanOrEqual(HEART.baseY);
+    expect(Math.min(...ys)).toBeLessThanOrEqual(HEART.apex.y);
+
+    // And no hole across the mitral annulus. The left heart was two solids
+    // with a gap of 0.020 between atrium and ventricle; at that height the
+    // surface existed only on the right, from x -0.120 to -0.067.
+    const annulus = [...connected]
+      .map((i) => mesh.points[i]!)
+      .filter((p) => p.y < -0.12 && p.y > -0.16);
+    expect(Math.max(...annulus.map((p) => p.x))).toBeGreaterThan(0);
+  });
+});
+
+describe("source hygiene", () => {
+  /**
+   * Every generator. shells.ts was omitted from this list when it was added,
+   * and immediately drifted — it carried its own copy of the lung half-width.
+   */
+  const GENERATORS = ["tree.ts", "heart.ts", "envelope.ts", "shells.ts", "vessels.ts"];
+
+  const read = async (f: string) => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    return readFileSync(fileURLToPath(new URL(f, import.meta.url)), "utf8");
+  };
+
+  it("keeps every geometry number in anatomy.ts", async () => {
+    // THIS TEST USED TO CHECK ONLY FOR COLOURS while claiming, in its own name
+    // and its own comment, to guard geometry numbers. It passed over nineteen
+    // bare decimals across four files — including 0.175 written out separately
+    // in envelope.ts and shells.ts, two copies of the lung's half-width free to
+    // drift apart. A guard that cannot fail is worse than none, because it gets
+    // read as evidence that the thing it names was checked.
+    //
+    // Comments and string literals are stripped first: prose citing a measured
+    // value is documentation, not a bypass.
+    const ALLOWED = new Set(["0.5", "1.5", "2.0"]);
+    for (const f of GENERATORS) {
+      const src = (await read(f))
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "")
+        .replace(/"[^"]*"|'[^']*'|`[^`]*`/g, '""');
+      const bare = [
+        ...new Set([...src.matchAll(/(?<![\w.])(\d+\.\d+)(?![\w])/g)].map((m) => m[1]!)),
+      ].filter((v) => !ALLOWED.has(v));
+      expect(bare, `${f} carries bare geometry numbers; move them to anatomy.ts`).toEqual([]);
+    }
+  });
+
+  it("keeps colour out of the geometry layer", async () => {
+    for (const f of GENERATORS) {
+      const src = await read(f);
+      expect(src, `${f} must not carry a hex colour`).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      expect(src, `${f} must not carry an rgb()/hsl() literal`).not.toMatch(/\b(rgba?|hsla?)\(/);
+    }
+  });
+});

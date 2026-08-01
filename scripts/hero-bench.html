@@ -1,0 +1,159 @@
+<!-- Item 6 benchmark: what the CSS-3D hero actually costs per frame.
+
+     NOT IN public/ ON PURPOSE — it would be served at /hero-bench.html in
+     production. To run it, copy it into apps/web/public/ temporarily, open
+     http://localhost:<port>/hero-bench.html in a REAL, VISIBLE browser window,
+     and delete the copy afterwards.
+
+     WHAT THIS MEASURES, and what it does not.
+
+     It measures MAIN-THREAD cost per frame: the style writes, plus the recalc
+     and layout they dirty, with one forced flush AFTER the whole batch.
+
+     An earlier version timed requestAnimationFrame intervals instead. That is
+     not the same quantity and cannot answer the question — a frame interval is
+     clamped to the display refresh, so it reads ~16.7ms whatever the work is
+     and shows no headroom, and in any tab that is not visible it measures
+     throttling rather than cost.
+
+     It does NOT measure GPU raster or compositing. That is where particle
+     COUNT actually costs something, since `will-change` promotes a layer per
+     particle. Measuring it needs a visible compositing window and a profiler.
+
+     THE RESULT THAT MATTERS: per-frame cost is flat in particle count and
+     scales with GROUP count, because the animation writes one transform for
+     the scene and one per group. Particle transforms are set once at mount and
+     never touched again. -->
+<style>
+  body {
+    margin: 0;
+    background: #260e1a;
+    color: #ffd9cc;
+    font: 13px/1.5 monospace;
+  }
+  #scene {
+    position: fixed;
+    inset: 0;
+    perspective: 900px;
+  }
+  #world {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-style: preserve-3d;
+  }
+  .grp {
+    position: absolute;
+    transform-style: preserve-3d;
+  }
+  .p {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    margin: -3px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ea3a57, transparent 70%);
+    will-change: transform;
+  }
+  #out {
+    position: fixed;
+    left: 8px;
+    top: 8px;
+    z-index: 9;
+    white-space: pre;
+  }
+</style>
+<div id="scene"><div id="world"></div></div>
+<pre id="out">running…</pre>
+<script>
+  const world = document.getElementById("world");
+  const out = document.getElementById("out");
+
+  function build(n, groups) {
+    world.textContent = "";
+    const gs = [];
+    for (let g = 0; g < groups; g++) {
+      const el = document.createElement("div");
+      el.className = "grp";
+      world.appendChild(el);
+      gs.push(el);
+    }
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement("div");
+      el.className = "p";
+      // Fibonacci spread, so this looks like the real scene rather than a stack.
+      const t = i / n;
+      const a = i * 2.399963;
+      const r = 180 * Math.sqrt(t);
+      el.style.transform =
+        "translate3d(" +
+        Math.cos(a) * r +
+        "px," +
+        Math.sin(a) * r * 0.9 +
+        "px," +
+        (t - 0.5) * 260 +
+        "px)";
+      gs[i % groups].appendChild(el);
+    }
+    return gs;
+  }
+
+  function measure(n, groups) {
+    const t0 = performance.now();
+    const gs = build(n, groups);
+    void document.body.offsetHeight;
+    const buildMs = performance.now() - t0;
+
+    const samples = [];
+    for (let iter = 0; iter < 400; iter++) {
+      const start = performance.now();
+
+      // ── the entire per-frame write batch ────────────────────────────────
+      const beat = (start % 741) / 741;
+      const breath = (start % 3200) / 3200;
+      const base = 1 + 0.05 * Math.sin(beat * 6.283);
+      world.style.transform = "rotateY(" + 12 * Math.sin(breath * 6.283) + "deg)";
+      for (let g = 0; g < gs.length; g++) {
+        const k = base + 0.02 * Math.sin((beat + g / gs.length) * 6.283);
+        gs[g].style.transform = "scale3d(" + k + "," + k + ",1)";
+      }
+      // ONE flush, after the batch. Flushing per element is what made the
+      // first benchmark report 53ms at 3500 particles.
+      void document.body.offsetHeight;
+
+      samples.push(performance.now() - start);
+    }
+    samples.sort((a, b) => a - b);
+    return {
+      n: n,
+      groups: groups,
+      buildMs: +buildMs.toFixed(1),
+      p50: +samples[200].toFixed(3),
+      p95: +samples[380].toFixed(3),
+    };
+  }
+
+  const line = (x) =>
+    String(x.n).padStart(9) +
+    String(x.groups).padStart(8) +
+    x.buildMs.toFixed(1).padStart(8) +
+    x.p50.toFixed(3).padStart(9) +
+    x.p95.toFixed(3).padStart(9);
+
+  const head = "particles  groups   build   p50 ms   p95 ms   (400 batches, main thread only)";
+
+  // Particle count at fixed group count — expect this block to be FLAT.
+  const byParticles = [300, 550, 800, 1200, 1800, 2500, 3500].map((n) => measure(n, 6));
+  // Group count at the shipped particle budget — expect this block to RISE.
+  const byGroups = [6, 25, 50, 60, 100, 200].map((g) => measure(550, g));
+
+  out.textContent =
+    head +
+    "\n" +
+    byParticles.map(line).join("\n") +
+    "\n" +
+    "-".repeat(head.length) +
+    "\n" +
+    byGroups.map(line).join("\n") +
+    "\n\nDONE — top block should be flat in n; bottom block should rise with groups.";
+</script>

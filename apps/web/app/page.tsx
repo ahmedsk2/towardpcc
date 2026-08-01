@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { listScores } from "@towardpcc/scoring-engine";
 import { cn } from "@towardpcc/ui";
 import { Reveal } from "@/components/reveal";
 import { Eyebrow } from "@/components/eyebrow";
-import { OrganStack } from "@/components/home/organ-stack";
+import { CardiopulmonaryScene } from "@/components/home/cardiopulmonary-scene";
 import { Counter } from "@/components/home/counter";
 import { EvidenceCarousel } from "@/components/home/evidence-carousel";
 import { ImageSlot } from "@/components/image-slot";
@@ -104,7 +105,7 @@ export default function HomePage() {
         <div className="relative z-10 mx-auto grid max-w-[1280px] items-center gap-12 px-6 pt-20 pb-28 lg:grid-cols-[1.02fr_0.98fr]">
           <div>
             <p
-              className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-[13px] font-semibold motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-[13px] font-semibold motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "40ms" }}
             >
               <span
@@ -117,24 +118,27 @@ export default function HomePage() {
                 uses. Fluid rather than a 3rem→4rem jump at a single breakpoint,
                 which left every width in between with whichever size fit worst. */}
             <h1
-              className="max-w-[15ch] font-display text-display-1 leading-[1.03] font-bold tracking-[-0.02em] text-white motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="max-w-[15ch] font-display text-display-1 leading-[1.03] font-bold tracking-[-0.02em] text-ink-on-dark motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "120ms" }}
             >
               {h.heading}
             </h1>
             <p
-              className="mt-6 max-w-[46ch] text-lg leading-relaxed text-ink-on-dark/90 motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mt-6 max-w-[46ch] text-lg leading-relaxed text-ink-on-dark/90 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "220ms" }}
             >
               {h.promise}
             </p>
             <div
-              className="mt-9 flex flex-wrap gap-3.5 motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mt-9 flex flex-wrap gap-3.5 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "320ms" }}
             >
               <Link
                 href="/calculators"
-                className={cn(ctaBase, "bg-surface-raised text-accent hover:bg-accent-tint")}
+                className={cn(
+                  ctaBase,
+                  "bg-surface-raised text-accent hover:bg-accent-tint hover:text-accent-deep",
+                )}
               >
                 {h.ctaPrimary}
               </Link>
@@ -142,7 +146,7 @@ export default function HomePage() {
                 href="/knowledge"
                 className={cn(
                   ctaBase,
-                  "border-2 border-white/50 text-white hover:border-white hover:bg-white/10",
+                  "border-2 border-white/50 text-ink-on-dark hover:border-white hover:bg-white/10",
                 )}
               >
                 {h.ctaSecondary}
@@ -150,14 +154,14 @@ export default function HomePage() {
             </div>
 
             <dl
-              className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-white/20 pt-6 motion-safe:animate-[heroRise_600ms_var(--motion-ease)_both]"
+              className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-white/20 pt-6 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "420ms" }}
             >
               {h.heroTrust.map((t) => (
                 <div key={t.label}>
                   <dt className="sr-only">{t.label}</dt>
                   <dd className="m-0">
-                    <span className="block font-numeric text-2xl font-semibold text-white tabular-nums">
+                    <span className="block font-numeric text-2xl font-semibold text-ink-on-dark tabular-nums">
                       {t.value}
                     </span>
                     <span className="text-[13px] text-ink-on-dark/70">{t.label}</span>
@@ -180,9 +184,21 @@ export default function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="rounded-3xl border border-white/20 bg-white/10 p-5 shadow-[0_40px_80px_-30px_rgba(0,0,0,0.7)] backdrop-blur-md">
-              <OrganStack />
-            </div>
+            {/* A DARK ground, not the frosted white panel the organ stack sat
+                on. The figure is a luminous wire mesh in the crimson family,
+                and on a mid-crimson card it was the same value as its own
+                background: legible, but muddy, with none of the depth the
+                brightness gradient is carrying. Deep ground is what lets one
+                hue read as near and far. */}
+            {/* NO CARD. The figure sits on the hero gradient directly — no
+                border, no panel, no shadow. Every other element on this page
+                sits on the ground it is drawn on, and a boxed figure read as
+                pasted in.
+                The cost is contrast: depth here is carried entirely by
+                brightness, and the ground moved from near-black to
+                mid-crimson. Paid for by lifting the mesh rather than by
+                putting the box back. */}
+            <CardiopulmonaryScene />
           </div>
         </div>
 
@@ -208,7 +224,7 @@ export default function HomePage() {
               {/* `group` on the Reveal wrapper, which is the element that gains
                   data-shown — so the rule below draws itself from CSS when the
                   card enters view, with no second observer and no extra JS. */}
-              <Reveal className="group h-full" delay={i * 60}>
+              <Reveal className="group h-full" delay={Math.min(i, 6) * 45}>
                 <div className="relative h-full overflow-hidden rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-[translate] duration-200 hover:-translate-y-2">
                   <span
                     aria-hidden="true"
@@ -259,7 +275,16 @@ export default function HomePage() {
               </div>
               <p className="absolute -bottom-6 -left-6 z-20 rounded-[20px] bg-surface-raised px-6 py-5 shadow-[0_26px_54px_-22px_rgba(0,0,0,0.4)]">
                 <span className="block font-numeric text-3xl leading-none font-semibold text-accent tabular-nums">
-                  <Counter value={22} />
+                  {/* DERIVED. This was a hardcoded 22 sitting under the line
+                      "Every figure here is something you can go and count.
+                      Nothing on this page is an estimate." — while the same
+                      screen printed 23 four times over and the pillar body
+                      spelled out "Twenty-three". The figures guard passed
+                      because its regexes anchor on the `{ label, value }` shape
+                      and the spelled-out phrase, and a bare Counter literal
+                      matches neither. A number that can drift is a number that
+                      will. */}
+                  <Counter value={listScores({ status: "published" }).length} />
                 </span>
                 <span className="text-[13px] text-ink-muted">calculators, live today</span>
               </p>
@@ -303,8 +328,21 @@ export default function HomePage() {
         // bg-gradient-hero plus two coral radials — the same construction as
         // the hero, so on scroll the page appeared to return to where it
         // started. Solid reads as a different room.
-        className="relative overflow-hidden bg-surface-hero text-white"
+        className="relative overflow-hidden bg-surface-hero text-ink-on-dark"
       >
+        {/* Depth, from the warm secondary rather than from more crimson.
+            `coral-soft` and `peach` are contrast-cleared for the night bands
+            (coral is 7.11:1 there) and had five consumers across the whole app,
+            so a solid slab of surface-hero was the flattest surface on the site.
+            Two very low-alpha washes, no radial repeat of the hero's own
+            construction — this band is deliberately a different room.
+            DECORATIVE ONLY, and light grounds never see these: coral is 2.55:1
+            on white and fails the 3:1 non-text threshold, which tokens.test.ts
+            pins. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(900px_320px_at_50%_0%,color-mix(in_oklab,var(--color-coral-soft),transparent_92%),transparent_70%)]"
+        />
         {/* Same curve as the hero divider, mirrored: one wave on the site, not
             three. Fills with surface-page because that is the ground above. */}
         <svg
@@ -337,7 +375,7 @@ export default function HomePage() {
         <div className="relative z-10 mx-auto max-w-[1280px] px-6 py-20">
           <h2
             id="counters-heading"
-            className="text-center font-display text-2xl font-medium text-white md:text-3xl"
+            className="text-center font-display text-2xl font-medium text-ink-on-dark md:text-3xl"
           >
             {h.countersHeading}
           </h2>
@@ -352,7 +390,7 @@ export default function HomePage() {
             {h.counters.map((c, i) => (
               <Reveal
                 key={c.label}
-                delay={i * 70}
+                delay={Math.min(i, 6) * 45}
                 // No vertical rules. They were meant to divide the columns, but
                 // a grid that wraps from four to two needs the rule cleared on
                 // each ROW's first cell, and `first:` only knows about the
@@ -363,7 +401,7 @@ export default function HomePage() {
                 className="px-2 pt-8 text-center sm:px-4 lg:px-6"
               >
                 <div>
-                  <dd className="m-0 font-numeric text-4xl font-semibold text-white tabular-nums md:text-5xl">
+                  <dd className="m-0 font-numeric text-4xl font-semibold text-ink-on-dark tabular-nums md:text-5xl">
                     <Counter value={c.value} suffix={c.suffix} prefix={c.prefix} />
                   </dd>
                   <dt className="mt-3 text-sm text-ink-on-dark/80">{c.label}</dt>
@@ -406,7 +444,7 @@ export default function HomePage() {
           <ul className="grid list-none gap-6 md:grid-cols-2">
             {pillars.map((p, i) => (
               <li key={p.href}>
-                <Reveal className="group/reveal h-full" delay={i * 70}>
+                <Reveal className="group/reveal h-full" delay={Math.min(i, 6) * 45}>
                   <Link
                     href={p.href}
                     className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface-raised shadow-xl transition-[translate,box-shadow] duration-200 hover:-translate-y-2 hover:shadow-[var(--shadow-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -500,19 +538,24 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA BAND ────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-accent text-white">
+      <section className="relative overflow-hidden bg-gradient-accent text-ink-on-accent">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_300px_at_50%_0%,rgba(255,255,255,0.22),transparent_70%)]"
         />
         <div className="relative z-10 mx-auto max-w-[1280px] px-6 py-20 text-center">
-          <h2 className="mx-auto max-w-[20ch] font-display text-3xl font-bold tracking-tight text-white md:text-4xl">
+          <h2 className="mx-auto max-w-[20ch] font-display text-3xl font-bold tracking-tight text-ink-on-accent md:text-4xl">
             {h.ctaBand.heading}
           </h2>
-          <p className="mx-auto mt-4 max-w-[52ch] text-lg text-white/90">{h.ctaBand.body}</p>
+          <p className="mx-auto mt-4 max-w-[52ch] text-lg text-ink-on-accent/90">
+            {h.ctaBand.body}
+          </p>
           <Link
             href="/calculators"
-            className={cn(ctaBase, "mt-8 bg-surface-raised text-accent hover:bg-accent-tint")}
+            className={cn(
+              ctaBase,
+              "mt-8 bg-surface-raised text-accent hover:bg-accent-tint hover:text-accent-deep",
+            )}
           >
             {h.ctaBand.cta}
           </Link>
@@ -580,7 +623,7 @@ function FeatureIcon({ tone }: { tone: string }) {
     ),
   };
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-6 text-white">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-6 text-ink-on-accent">
       {paths[tone]}
     </svg>
   );
@@ -632,7 +675,7 @@ function PillarIcon({ href }: { href: string }) {
       viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"
-      className="size-14 text-white/95 transition-[scale] duration-300 group-hover:scale-110"
+      className="size-14 text-ink-on-accent/95 transition-[scale] duration-300 group-hover:scale-110"
     >
       {paths[href]}
     </svg>

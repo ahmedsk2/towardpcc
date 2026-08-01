@@ -1,27 +1,9 @@
-import type { InterpretationBand, ScoreDefinition } from "@towardpcc/scoring-engine";
+import type { InterpretationBand, IpStatus, ScoreDefinition } from "@towardpcc/scoring-engine";
+import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { formatBand } from "./format";
 
 const c = site.calculators;
-
-/**
- * Renders a band's numeric range exactly as the engine evaluates it.
- *
- * Inclusivity is not decoration here. The defaults model an ascending
- * "≥ threshold" score (min inclusive, max exclusive), while descending scores
- * like P/F invert both, and a band printed as "4–8" would be ambiguous at
- * precisely the boundary a clinician is most likely to be looking up.
- */
-function formatBand(band: InterpretationBand): string {
-  const minInc = band.minInclusive ?? true;
-  const maxInc = band.maxInclusive ?? false;
-
-  if (band.min !== null && band.max !== null) {
-    return `${minInc ? "" : ">"}${band.min} to ${maxInc ? "" : "<"}${band.max}`;
-  }
-  if (band.min !== null) return `${minInc ? "≥" : ">"} ${band.min}`;
-  if (band.max !== null) return `${maxInc ? "≤" : "<"} ${band.max}`;
-  return "any value";
-}
 
 /**
  * Metadata chips beside the heading: what this is, which version, when it was
@@ -32,6 +14,7 @@ function formatBand(band: InterpretationBand): string {
  * history, so this is a place the site is genuinely ahead — worth showing at
  * the top rather than leaving at the bottom of the page.
  */
+
 export function TrustStrip({ score }: { score: ScoreDefinition }) {
   const latest = [...score.changelog].sort((a, b) => b.date.localeCompare(a.date))[0];
   const validated = score.validators.every((v) => v.status === "assigned");
@@ -94,7 +77,25 @@ export function TrustStrip({ score }: { score: ScoreDefinition }) {
  * table, because an absence presented as a gap reads as missing work.
  */
 export function InterpretationTable({ score }: { score: ScoreDefinition }) {
-  if (score.interpretation.length === 0) return null;
+  /**
+   * "No band applies" and "we have not written one" used to render as the same
+   * silence.
+   *
+   * Thirteen of the shipped scores declare no interpretation at all. For BSA,
+   * ideal body weight and ETT size that is correct — they are estimators, and a
+   * band would be an invention. For PIM3, PRISM and PELOD-2 it is a content
+   * gap: those scores have published strata that have not been authored yet.
+   * Rendering nothing for both told a reader the same thing about two different
+   * situations, and one of those things was untrue.
+   */
+  if (score.interpretation.length === 0) {
+    if (score.interpretationStatus !== "pending") return null;
+    return (
+      <Callout tone="note" className="max-w-[58ch] text-[13px]">
+        {c.bandsPending}
+      </Callout>
+    );
+  }
 
   const byOutput = new Map<string, InterpretationBand[]>();
   for (const band of score.interpretation) {
@@ -145,6 +146,41 @@ export function InterpretationTable({ score }: { score: ScoreDefinition }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Reproduction rights, rendered.
+ *
+ * Every score carries a typed `ipStatus` — original formula, freely
+ * reproducible, permission required, permission obtained — with the
+ * rights-holder and the evidence behind the claim. A repo-wide search found no
+ * render of it anywhere: pSOFA has been carrying a paragraph of reasoning that
+ * nobody could read.
+ *
+ * For a registry that reproduces published instruments this is exactly the
+ * provenance a reviewing intensivist checks, and it belongs beside the
+ * references rather than in a type definition.
+ */
+export function IpStatusNote({ status }: { status: IpStatus }) {
+  const label = c.ipStatus[status.kind];
+  const detail =
+    status.kind === "freely-reproducible"
+      ? status.evidence
+      : status.kind === "permission-required"
+        ? `${status.rightsHolder} — ${status.note}`
+        : status.kind === "permission-obtained"
+          ? `${status.rightsHolder} · ${c.ipGrantedOn} ${status.grantedDate}`
+          : null;
+
+  return (
+    <div>
+      <h3 className="font-display text-lg font-medium text-ink-strong">{c.ipHeading}</h3>
+      <p className="mt-2 max-w-[58ch] leading-relaxed text-ink-body">
+        <span className="font-medium">{label}</span>
+        {detail ? <span className="mt-1 block text-[13px] text-ink-muted">{detail}</span> : null}
+      </p>
     </div>
   );
 }

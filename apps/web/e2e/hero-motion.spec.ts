@@ -3,52 +3,193 @@ import { expect, test } from "@playwright/test";
 /**
  * The hero figure.
  *
- * This file used to test a canvas waveform: that it painted distinct frames,
- * that it survived on touchscreens, that it paused off-screen and on tab-hide,
- * and that no three.js came with it. That scene is gone — the hero now shows
- * six organ systems as CSS planes stacked in depth, which is what the site's
- * scores are actually summed across.
+ * Two scenes have now been retired here. First a canvas waveform, then six
+ * organ-system planes stacked in depth. The figure is now a child's heart and
+ * lungs in CSS 3D: 544 particles and six stroked pleural outlines, generated on
+ * the server from the geometry in lib/hero-cardiopulm and asserted there.
  *
- * Most of those assertions died with the canvas. Two survive because they were
- * never really about the canvas:
+ * What each rewrite has kept, because none of it was ever really about the
+ * scene that happened to be in the hero:
  *
- *  - No three.js. The scene once pulled ~874 KB of it. Nothing should
- *    re-introduce a 3D library for a hero, and the new figure makes that
- *    stronger rather than weaker: it is pure CSS, so the correct cost is zero.
- *  - Reduced motion. The figure must still read as a stack in depth when
- *    animation is off, not collapse to a flat list.
+ *  - No 3D library. The original pulled ~874 KB of three.js. The right number
+ *    is zero, and a reintroduction should fail loudly rather than quietly cost
+ *    every visitor most of a megabyte.
+ *  - No canvas. Same reason.
+ *  - Reduced motion holds a COMPOSED still, not a flat or empty one.
+ *  - preserve-3d actually survives. It is easy to lose to a stray
+ *    `overflow-hidden` or `filter` on an ancestor, and the failure is silent:
+ *    the figure keeps rendering, just flat.
  *
- * And one is new, because the old hero could not have failed this way: the
- * planes must genuinely be separated in Z. `preserve-3d` is easy to lose to a
- * stray `overflow-hidden` or `filter` on an ancestor, and the failure is silent
- * — the figure keeps rendering, just flat.
+ * What is new, because this scene can fail in ways the stack could not: the
+ * geometry is server-rendered as depth-banded paths and only four custom
+ * properties are animated, so both halves of that split need holding in place.
  */
 test.describe("hero figure", () => {
-  test("renders six organ-system planes, separated in depth", async ({ page }) => {
+  test("loops every bedside trace seamlessly", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("load");
 
-    const planes = page.locator("figure li");
-    await expect(planes).toHaveCount(6);
+    /**
+     * THE BUG THIS EXISTS FOR. Each trace holds a whole number of cycles and
+     * scrolls by exactly one per period — but the viewBox was sized to the
+     * WHOLE path rather than to one cycle, so the viewport showed every cycle
+     * at once and the scroll slid the waveform out of its own box. By the end
+     * of each period the right-hand half was empty and the trace had visibly
+     * drained away, then snapped back. It shipped, and nothing here noticed,
+     * because nothing here looked at the traces at all.
+     *
+     * The invariant is a RATIO, not a number: the drawn path must be wider
+     * than the window it is seen through, or there is nothing waiting to
+     * arrive when the visible cycle leaves.
+     */
+    const traces = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<SVGSVGElement>(".cps-trace, .cps-strip")).map((svg) => {
+        const box = svg.viewBox.baseVal;
+        const drawn = Array.from(svg.querySelectorAll("path")).reduce(
+          (w, p) => Math.max(w, p.getBBox().width),
+          0,
+        );
+        const animated = svg.querySelector<SVGElement>("path, g");
+        return {
+          className: svg.getAttribute("class"),
+          viewWidth: box.width,
+          drawn,
+          duration: animated ? getComputedStyle(animated).animationDuration : "",
+          timing: animated ? getComputedStyle(animated).animationTimingFunction : "",
+          iteration: animated ? getComputedStyle(animated).animationIterationCount : "",
+        };
+      }),
+    );
 
-    const depth = await page.evaluate(() => {
-      const list = document.querySelector("figure ul");
-      if (!list) return null;
-      const items = Array.from(list.querySelectorAll("li"));
+    // Two corner traces plus the RSA strip.
+    expect(traces.length).toBe(3);
+    for (const t of traces) {
+      expect(t.drawn, `${t.className} is not wider than its window`).toBeGreaterThan(
+        t.viewWidth * 1.8,
+      );
+      // Linear and endless, or the scroll rate stops being the physiological
+      // rate — an eased scroll would speed up and slow down within each cycle.
+      expect(t.timing, `${t.className} must scroll linearly`).toBe("linear");
+      expect(t.iteration).toBe("infinite");
+      expect(Number.parseFloat(t.duration)).toBeGreaterThan(0);
+    }
+
+    // The RSA strip draws the coupling rather than asserting it: a breath
+    // swell, a rate curve, and the beats it was sampled from.
+    const strip = await page.evaluate(() => ({
+      breath: !!document.querySelector(".cps-strip-breath"),
+      rate: !!document.querySelector(".cps-strip-rate"),
+      beats: !!document.querySelector(".cps-strip-beats"),
+      // The sentence it replaced still reaches a screen reader.
+      coupling: document.querySelector(".cps-label-rsa .sr-only")?.textContent ?? "",
+    }));
+    expect(strip.breath && strip.rate && strip.beats, "the RSA strip is incomplete").toBe(true);
+    expect(strip.coupling.length, "the coupling lost its accessible text").toBeGreaterThan(10);
+  });
+
+  test("renders the cardiopulmonary mesh, shaded by depth", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("load");
+
+    const scene = await page.evaluate(() => {
+      const frame = document.querySelector(".cps-frame");
+      const world = document.querySelector(".cps-world");
+      if (!frame || !world) return null;
+      const paths = Array.from(frame.querySelectorAll<SVGPathElement>("path[class^=cps-]"));
+      const opacities = new Set(paths.map((p) => getComputedStyle(p).strokeOpacity));
+      const segments = paths.reduce(
+        (a, p) => a + (p.getAttribute("d") ?? "").split("M").length - 1,
+        0,
+      );
       return {
-        preserve3d: getComputedStyle(list).transformStyle,
-        // Distinct matrices mean the planes really are at different depths.
-        distinctTransforms: new Set(items.map((el) => getComputedStyle(el).transform)).size,
-        listIsTransformed: getComputedStyle(list).transform !== "none",
+        paths: paths.length,
+        edges: segments,
+        airwayBands: frame.querySelectorAll("path.cps-airway").length,
+        tracheaBands: frame.querySelectorAll("path.cps-trachea").length,
+        heartBands: frame.querySelectorAll("path.cps-heart").length,
+        pleuraBands: frame.querySelectorAll("path.cps-pleura").length,
+        arteryBands: frame.querySelectorAll("path.cps-artery").length,
+        veinBands: frame.querySelectorAll("path.cps-vein").length,
+        clusters: frame.querySelectorAll(".cps-clusters circle").length,
+        bandGroups: frame.querySelectorAll(".cps-band").length,
+        distinctOpacities: opacities.size,
+        worldTransformed: getComputedStyle(world).transform !== "none",
       };
     });
 
-    expect(depth, "expected the stack to be in the DOM").not.toBeNull();
-    expect(depth!.preserve3d, "preserve-3d is lost — the stack will render flat").toBe(
-      "preserve-3d",
-    );
-    expect(depth!.distinctTransforms, "planes are not separated in depth").toBe(6);
-    expect(depth!.listIsTransformed, "the stack is not rotated into perspective").toBe(true);
+    expect(scene, "expected the scene in the DOM").not.toBeNull();
+
+    // Thousands of edges, collapsed into a handful of depth-banded paths. That
+    // collapse is the whole rendering argument: as individual lines this would
+    // be six times the element budget for a figure that never changes shape.
+    expect(scene!.edges, "the mesh is missing").toBeGreaterThan(1500);
+    // Five bands per system for the edges and five more for the vertices,
+    // which are zero-length subpaths with a round linecap rather than three
+    // thousand circles.
+    expect(scene!.paths, "edges were not bucketed into bands").toBeLessThanOrEqual(40);
+    expect(scene!.airwayBands).toBeGreaterThan(2);
+    // Exactly one band is expected, not more: the central airway runs down
+    // the midline at a single depth, which is why it gets a narrow opacity
+    // ramp rather than the wide one the other systems use.
+    expect(scene!.tracheaBands, "the central airway is not drawn").toBeGreaterThanOrEqual(1);
+    expect(scene!.heartBands).toBeGreaterThan(2);
+    expect(scene!.pleuraBands).toBeGreaterThan(2);
+    // The pulmonary circulation: an artery beside every proximal bronchus and a
+    // vein running between the bundles. Without these the hila are places where
+    // bronchi stop, and nothing explains why the left atrium is posterior.
+    expect(scene!.arteryBands, "the pulmonary arteries are not drawn").toBeGreaterThan(2);
+    expect(scene!.veinBands, "the pulmonary veins are not drawn").toBeGreaterThan(2);
+    expect(scene!.clusters, "no alveolar clusters").toBeGreaterThan(20);
+
+    // Parallax nests outside breath and beat rather than concatenating into
+    // one transform string, so each band needs its own group.
+    //
+    // The ceiling is SIX SYSTEMS times five bands, raised from twenty when the
+    // arteries and veins arrived. It is a real budget, not a formality — every
+    // group is a transform recalculated on each frame of the sway — so it moves
+    // when a system is added and not otherwise.
+    expect(scene!.bandGroups, "depth bands are not grouped for parallax").toBeGreaterThan(14);
+    expect(scene!.bandGroups).toBeLessThanOrEqual(30);
+
+    // The heart carries itself as a surface. It used to need a few hundred
+    // vertex dots because it was a proximity web with no facets; the mesh
+    // says it now, and the dots were most of the element budget restating it.
+    expect(scene!.heartBands, "the heart is not meshed").toBeGreaterThan(2);
+
+    // Depth is carried by brightness alone, so the bands must actually differ.
+    // If they collapsed to one opacity the mesh would read as a flat doily.
+    expect(scene!.distinctOpacities, "depth banding is not shading").toBeGreaterThan(4);
+    expect(scene!.worldTransformed, "the sway is not applied").toBe(true);
+  });
+
+  test("lays the scene out proportionally, with nothing escaping the frame", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("load");
+
+    // Positions are percentages and depths are container units, so the figure
+    // must track its card at any width. An earlier build scaled the world with
+    // calc(100cqw / 340), which resolves to a LENGTH where scale() needs a
+    // number — the browser dropped the declaration and the scene rendered with
+    // no transform and no perspective at all.
+    for (const width of [320, 520, 760]) {
+      const overflow = await page.evaluate((w) => {
+        const frame = document.querySelector<HTMLElement>(".cps-frame")!;
+        const card = frame.parentElement!;
+        const previous = card.style.width;
+        card.style.width = `${w}px`;
+        const box = frame.getBoundingClientRect();
+        const svg = frame.querySelector<SVGSVGElement>(".cps-svg")!.getBoundingClientRect();
+        const aspect = box.width / box.height;
+        card.style.width = previous;
+        return {
+          aspect,
+          fills: Math.abs(svg.width - box.width) < 2 && Math.abs(svg.height - box.height) < 2,
+        };
+      }, width);
+
+      expect(overflow.fills, `the scene did not fill its frame at ${width}px`).toBe(true);
+      expect(overflow.aspect, `aspect drifted at ${width}px`).toBeCloseTo(340 / 440, 2);
+    }
   });
 
   test("the figure carries an accessible description", async ({ page }) => {
@@ -59,10 +200,11 @@ test.describe("hero figure", () => {
     // stacking order, which means nothing out loud. The caption is the route.
     const caption = page.locator("figure figcaption");
     await expect(caption).toHaveCount(1);
-    await expect(caption).toContainText(/organ systems/i);
+    await expect(caption).not.toBeEmpty();
+    await expect(page.locator(".cps-frame")).toHaveAttribute("aria-hidden", "true");
   });
 
-  test("reduced motion holds the stack at an angle rather than flattening it", async ({
+  test("reduced motion holds a composed still rather than freezing at zero", async ({
     browser,
   }) => {
     const ctx = await browser.newContext({ reducedMotion: "reduce" });
@@ -71,28 +213,56 @@ test.describe("hero figure", () => {
       await page.goto("/");
       await page.waitForLoadState("load");
 
-      const state = await page.evaluate(() => {
-        const list = document.querySelector("figure ul");
-        if (!list) return null;
+      const before = await page.evaluate(() => {
+        const f = document.querySelector<HTMLElement>(".cps-frame")!;
+        const s = getComputedStyle(f);
         return {
-          running: list.getAnimations().filter((a) => a.playState === "running").length,
-          transform: getComputedStyle(list).transform,
+          breath: Number(s.getPropertyValue("--breath")),
+          beat: Number(s.getPropertyValue("--beat")),
+          wave: Number(s.getPropertyValue("--wave")),
+          swayCos: Number(s.getPropertyValue("--sway-cos")),
+          running: document.getAnimations().filter((a) => a.playState === "running").length,
         };
       });
 
-      expect(state).not.toBeNull();
-      expect(state!.running, "animation must not run under reduced motion").toBe(0);
-      // Still angled: a composed still, not a flat elevation.
-      expect(state!.transform, "the stack flattened under reduced motion").not.toBe("none");
+      // A composed pose, not frame zero: lungs full and a heart perfused, so a
+      // reader who never sees this move still sees something alive.
+      expect(before.breath).toBeGreaterThan(0.5);
+      expect(before.beat).toBeGreaterThan(1);
+      expect(before.wave).toBeGreaterThan(0);
+      // Turned slightly, not square on: the still is a composed pose.
+      expect(before.swayCos).toBeGreaterThan(0.9);
+      expect(before.swayCos).toBeLessThan(1);
+      expect(before.running, "nothing may animate under reduced motion").toBe(0);
+
+      // And it must STAY there — the driver must not have mounted at all.
+      await page.waitForTimeout(900);
+      const after = await page.evaluate(() => {
+        const s = getComputedStyle(document.querySelector<HTMLElement>(".cps-frame")!);
+        return {
+          breath: Number(s.getPropertyValue("--breath")),
+          beat: Number(s.getPropertyValue("--beat")),
+        };
+      });
+      expect(after.breath, "the scene moved under reduced motion").toBe(before.breath);
+      expect(after.beat, "the scene moved under reduced motion").toBe(before.beat);
     } finally {
       await ctx.close();
     }
   });
 
-  test("no 3D library is downloaded for the hero", async ({ page }) => {
-    // The scene once pulled ~874 KB of three.js. The figure is now pure CSS, so
-    // the right number is zero and a re-introduction should fail loudly rather
-    // than quietly cost every visitor most of a megabyte.
+  test("the geometry is server-rendered, not built in the browser", async ({ page }) => {
+    // The mesh must arrive as HTML. If it ever starts being constructed
+    // client-side, the route pays for the geometry twice and the scene pops in
+    // after hydration instead of being there on first paint.
+    const response = await page.request.get("/");
+    const html = await response.text();
+    const bands = (html.match(/class="cps-(airway|heart|pleura)"/g) ?? []).length;
+    expect(bands, "the mesh is missing from the server HTML").toBeGreaterThan(8);
+    expect(html).toContain("cps-clusters");
+  });
+
+  test("no 3D library and no canvas is downloaded for the hero", async ({ page }) => {
     const scripts: string[] = [];
     page.on("response", (r) => {
       if (r.request().resourceType() === "script") scripts.push(r.url());
@@ -111,14 +281,6 @@ test.describe("hero figure", () => {
     );
     const offender = bodies.findIndex((b) => b.includes("WebGLRenderer") || b.includes("THREE."));
     expect(offender, `three.js found in ${scripts[offender] ?? ""}`).toBe(-1);
-  });
-
-  test("the hero mounts no canvas at all", async ({ page }) => {
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-    // The figure replaced a dynamically imported canvas renderer. If a canvas
-    // reappears here, something has been added back that the CSS figure was
-    // meant to make unnecessary.
     await expect(page.locator("canvas")).toHaveCount(0);
   });
 });

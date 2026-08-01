@@ -7,9 +7,11 @@ import type {
   ScoreDefinition,
   ScoreInput,
 } from "@towardpcc/scoring-engine";
-import { getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
+import { fromCanonical, getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { formatBand, shortCite } from "./format";
+import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
 const c = site.calculators;
 
@@ -93,6 +95,32 @@ function anyEntered(inputs: readonly ScoreInput[], state: FieldState): boolean {
 }
 
 /**
+ * Inputs in declaration order, partitioned into their sections.
+ *
+ * DECLARATION ORDER IS PRESERVED WITHIN AND BETWEEN GROUPS — a section is
+ * opened the first time its label appears and inputs are appended to it, so a
+ * score's author still controls the sequence and the grouping cannot silently
+ * reorder a form that was ordered for a reason. An input with no group joins
+ * the run it sits in, which is why an un-annotated score yields exactly one
+ * unlabelled section and renders as it always did.
+ */
+function groupInputs(inputs: readonly ScoreInput[]): [string | null, ScoreInput[]][] {
+  const out: [string | null, ScoreInput[]][] = [];
+  const index = new Map<string | null, ScoreInput[]>();
+  for (const input of inputs) {
+    const key = input.group?.en ?? null;
+    let bucket = index.get(key);
+    if (!bucket) {
+      bucket = [];
+      index.set(key, bucket);
+      out.push([key, bucket]);
+    }
+    bucket.push(input);
+  }
+  return out;
+}
+
+/**
  * Client-side calculator. Takes only the slug (a string) and resolves the
  * score itself, so the compute function and unit conversions live in the
  * browser — never serialized across the RSC boundary, and never sent to the
@@ -115,6 +143,7 @@ function CalculatorFormInner({
   const { inputs } = definition;
   const [state, setState] = useState<FieldState>(() => initialState(inputs));
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Hydrate from the URL fragment once on mount. Reading the hash in the
   // state initializer would diverge from the server render (no window there)
@@ -145,11 +174,56 @@ function CalculatorFormInner({
     return definition.compute(toComputeInput(inputs, state) as never);
   }, [definition, inputs, state]);
 
+  /**
+   * Fields the user has actually left. Validation MESSAGES wait for this;
+   * compute does not.
+   *
+   * Typing one digit into any field of a 26-input score used to paint a
+   * "… is required." paragraph under every OTHER field and fire that many
+   * `role="alert"` announcements — the form shouting about work the user had
+   * not reached yet. Range messages had the same shape mid-typing: on the way
+   * to 140 the value passes through 1, and a field accepting 20–600 called it
+   * out of range while the clinician was still on the first keystroke.
+   *
+   * Blur is the natural commit point: it means "I have finished with this
+   * field", needs no timer, and cannot fire for a field nobody has visited.
+   */
+  const [blurred, setBlurred] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const markBlurred = useCallback((id: string) => {
+    setBlurred((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  }, []);
+
   const errorsById = useMemo(() => {
     const m = new Map<string, string>();
-    if (outcome && !outcome.ok) for (const e of outcome.errors) m.set(e.inputId, e.message);
+    if (outcome && !outcome.ok) {
+      for (const e of outcome.errors) {
+        // Not yet reached is not yet wrong.
+        if (!blurred.has(e.inputId)) continue;
+        m.set(e.inputId, e.message);
+      }
+    }
     return m;
-  }, [outcome]);
+  }, [outcome, blurred]);
+
+  /**
+   * What is standing between the entries so far and a result.
+   *
+   * The result rail is sticky and the blocking field can be a screen and a half
+   * below it, so a panel that says only "Enter values to compute." is telling a
+   * half-filled form the same thing it tells an empty one. Named, and linked.
+   *
+   * Un-gated by `blurred` on purpose: this is a SUMMARY of why there is no
+   * number, not a per-field accusation, and a summary that omitted the fields
+   * you have not visited would be a list of the wrong things.
+   */
+  const blocking = useMemo(() => {
+    if (!outcome || outcome.ok) return [];
+    const byId = new Map(inputs.map((i) => [i.id, i]));
+    return outcome.errors.flatMap((e) => {
+      const input = byId.get(e.inputId);
+      return input ? [{ id: input.id, label: input.label.en, message: e.message }] : [];
+    });
+  }, [outcome, inputs]);
 
   // Honest partial-result cue (PRD §6.4): additive composites (pSOFA, Phoenix,
   // VIS) score a blank component as normal, so a not-yet-complete entry can read
@@ -160,10 +234,38 @@ function CalculatorFormInner({
     return inputs.some((i) => !i.required && (state[i.id]?.raw ?? "") === "");
   }, [definition.missingAsNormal, outcome, inputs, state]);
 
+  /**
+   * The copied summary carries the INPUTS and a timestamp.
+   *
+   * Pasted into a handover note, the old one was unreproducible: a reader could
+   * not tell which creatinine produced pSOFA 9, and a version number without a
+   * date does not fix that. A clinical record that cannot be checked against
+   * its own inputs is a number with a name on it.
+   *
+   * No privacy implication — the clinician is choosing to copy. The shareable
+   * LINK is a separate, separately-labelled action below, because it has the
+   * opposite privacy character.
+   */
   const copySummary = useCallback(() => {
     if (!outcome || !outcome.ok) return;
+    const entered = inputs
+      .flatMap((i) => {
+        const raw = state[i.id]?.raw ?? "";
+        if (raw === "") return [];
+        if (i.type === "numeric") {
+          const unit = state[i.id]?.unit ?? i.unit.canonical;
+          return [`${i.label.en} ${raw}${unit ? ` ${unit}` : ""}`];
+        }
+        if (i.type === "categorical") {
+          const opt = i.options.find((o) => o.value === raw);
+          return [`${i.label.en} ${opt?.label.en ?? raw}`];
+        }
+        return [`${i.label.en} ${raw === "true" ? c.booleanYes : c.booleanNo}`];
+      })
+      .join(" · ");
     const lines = [
-      definition.name,
+      `${definition.name} — ${new Date().toISOString().slice(0, 16)}Z`,
+      ...(entered ? [`${c.copyInputsLabel}: ${entered}`] : []),
       ...outcome.result.values.map((v) => {
         const band = matchInterpretationBand(definition, v.id, v.value);
         const num = `${v.label.en}: ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
@@ -180,7 +282,99 @@ function CalculatorFormInner({
         setTimeout(() => setCopied(false), 2000);
       })
       .catch(() => {});
-  }, [definition, outcome]);
+  }, [definition, outcome, inputs, state]);
+
+  /**
+   * CLEAR ALL — and it clears the fragment too.
+   *
+   * There was no reset anywhere on the page: emptying a 26-field PRISM meant
+   * clearing each field by hand or reloading without the fragment. Radio groups
+   * already had a Clear, because a native radio cannot be unchecked; numeric
+   * fields were simply left asymmetric.
+   *
+   * `type="button"`, never `type="reset"`: native reset restores the
+   * SERVER-RENDERED defaults, not our fragment-hydrated state, so on a shared
+   * link it would restore the shared values rather than empty the form.
+   */
+  const {
+    offered,
+    remember,
+    consume: consumeCarried,
+    dismiss: dismissCarried,
+  } = useCarriedValues(inputs);
+
+  // Remembered only once the score COMPUTES. A half-typed weight is not a
+  // patient's weight, and offering one to the next calculator would carry a
+  // typo forward.
+  useEffect(() => {
+    if (!outcome?.ok) return;
+    remember(
+      inputs.flatMap((i) => {
+        const raw = state[i.id]?.raw ?? "";
+        // Filtered HERE as well as in the hook. This sent every numeric field
+        // it had, so sessionStorage accumulated creatinine, bilirubin, lactate
+        // and the rest as a labelled snapshot of one child — undisclosed local
+        // persistence on a page whose privacy table says "Nothing". It also
+        // means the effect below does no storage work at all on a score with no
+        // age or weight, instead of a read-parse-stringify-write per keystroke.
+        if (!CARRIED_IDS.has(i.id) || i.type !== "numeric" || raw === "") return [];
+        return [
+          {
+            id: i.id,
+            raw,
+            unit: state[i.id]?.unit ?? i.unit.canonical,
+            label: i.label.en,
+          } satisfies CarriedValue,
+        ];
+      }),
+    );
+  }, [outcome, inputs, state, remember]);
+
+  const applyCarried = useCallback(
+    (v: CarriedValue) => {
+      setField(v.id, { raw: v.raw, unit: v.unit });
+      // Clicking a chip is a commit at least as deliberate as leaving a field,
+      // so the value is eligible for validation messages immediately. Without
+      // this an accepted-but-out-of-range carry sat there looking fine.
+      markBlurred(v.id);
+      // Only this one. The others stay on offer.
+      consumeCarried(v.id);
+    },
+    [setField, markBlurred, consumeCarried],
+  );
+
+  const clearAll = useCallback(() => {
+    setState(initialState(inputs));
+    setBlurred(new Set());
+    setCopied(false);
+    setLinkCopied(false);
+    dismissCarried();
+    // KEEPS THE QUERY STRING. This dropped `window.location.search`, so a visit
+    // carrying a campaign or referral parameter lost it the moment the form was
+    // cleared — and permanently, because the mirroring effect above then
+    // re-derives the URL from the search it can no longer see. Field values are
+    // this button's business; the query string is not.
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+  }, [inputs, dismissCarried]);
+
+  /**
+   * Copying the link is DELIBERATE, and says what it contains.
+   *
+   * The capability already existed and was invisible: state is mirrored into
+   * the fragment on every keystroke, so the address bar has always been
+   * shareable. Naming the action is what turns an accident into a choice — and
+   * the privacy line now says the same thing, because "nothing is transmitted"
+   * was architecturally true while the values sat in plain sight in the URL.
+   */
+  const copyLink = useCallback(() => {
+    void navigator.clipboard
+      .writeText(window.location.href)
+      .then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     /**
@@ -209,27 +403,106 @@ function CalculatorFormInner({
        the reference zone on a phone. One source of vertical rhythm, not two. */
     <div className="grid items-start gap-x-8 gap-y-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
       <form
-        className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1"
+        /* `pe-16` below the two-column breakpoint: room for the fixed
+           back-to-top button, which is full-width-overlapping down there and
+           was sitting on the unit toggles at the inline end of these rows.
+           Reserving the space is the half of that fix which belongs to the
+           content — the button moves in as well, and neither alone is enough at
+           320px. */
+        className="flex min-w-0 flex-col gap-5 pe-16 lg:col-start-1 lg:row-start-1 lg:pe-0"
         noValidate
         aria-label={definition.name}
       >
-        {inputs.map((input) => (
-          <InputField
-            key={input.id}
-            input={input}
-            field={state[input.id] ?? { raw: "" }}
-            error={errorsById.get(input.id)}
-            onChange={(patch) => setField(input.id, patch)}
-            missingAsNormal={Boolean(definition.missingAsNormal)}
-          />
+        {/* AN OFFER, NEVER A PRE-FILL. See use-carried-values.ts: this is the
+            one thing on the page that could put a number into a form nobody
+            typed, so it asks. Hidden the moment anything is entered — an offer
+            to fill a field you are already filling is just clutter. */}
+        {offered.length > 0 && !anyEntered(inputs, state) ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border-subtle bg-surface-sunken px-4 py-3">
+            <span className="text-sm text-ink-muted">{c.carriedLabel}</span>
+            {offered.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => applyCarried(v)}
+                className="numeric inline-flex min-h-11 items-center rounded-pill border border-border-strong bg-surface-raised px-3.5 text-sm font-medium text-ink-strong transition-colors duration-[var(--motion-duration-fast)] hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {v.label} {v.raw} {v.unit}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={dismissCarried}
+              className="min-h-11 rounded-sm px-1 text-sm text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {c.carriedDismiss}
+            </button>
+          </div>
+        ) : null}
+
+        {/* GROUPED, where the score is long enough for declaration order to
+            stop being navigable. PRISM's 26 inputs were one undifferentiated
+            column with no landmark and no sense of progress, while the
+            structure sat in the data all along — and grouping puts the min/max
+            worst-value pairs next to each other instead of eight rows apart,
+            which is how they are collected at the bedside.
+            Separation is a hairline plus the existing rhythm, not a card: the
+            "rules inside a card" border tier, exactly as the ADR intends. A
+            tinted band per organ system inside a form would read as six cards.
+            A score with no groups yields one unlabelled section, so nothing
+            that was not annotated changes at all. */}
+        {groupInputs(inputs).map(([group, items]) => (
+          <fieldset
+            key={group ?? "_"}
+            className="flex min-w-0 flex-col gap-5 border-t border-border-subtle pt-6 first:border-t-0 first:pt-0"
+          >
+            {group ? (
+              /* `mb-1` rather than relying on the fieldset's `gap-5`. A <legend>
+                 is not a flex item — browsers render it in the fieldset's
+                 border area — so the gap does not apply to it, and on the first
+                 section (which has no top rule to sit in) the heading landed
+                 6px above its first field. */
+              <legend className="mb-2 font-numeric text-eyebrow font-semibold tracking-[0.1em] text-ink-muted uppercase">
+                {group}
+              </legend>
+            ) : null}
+            {items.map((input) => (
+              <InputField
+                key={input.id}
+                input={input}
+                field={state[input.id] ?? { raw: "" }}
+                error={errorsById.get(input.id)}
+                onChange={(patch) => setField(input.id, patch)}
+                onCommit={() => markBlurred(input.id)}
+                missingAsNormal={Boolean(definition.missingAsNormal)}
+              />
+            ))}
+          </fieldset>
         ))}
+
+        {/* Only once something is entered. On an untouched form a reset is an
+            offer to undo nothing, and it would be the first control a reader
+            meets under a 26-field score. */}
+        {anyEntered(inputs, state) ? (
+          <button
+            type="button"
+            data-print="hide"
+            onClick={clearAll}
+            className="min-h-11 self-start rounded-sm text-sm font-medium text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {c.clearAllLabel}
+          </button>
+        ) : null}
       </form>
 
       <ResultPanel
         definition={definition}
         outcome={outcome}
+        blocking={blocking}
         copied={copied}
+        linkCopied={linkCopied}
         onCopy={copySummary}
+        onCopyLink={copyLink}
         showPartialCue={showPartialCue}
         className="lg:col-start-2 lg:row-start-1 lg:row-span-2"
       />
@@ -265,16 +538,19 @@ function unitsFitASegmentedToggle(units: readonly string[]): boolean {
  * semantics are the browser's job rather than ours. `role="listbox"` would have
  * implied a popup and handed us every keyboard behaviour to reimplement.
  *
- * Selected state carries FOUR cues, because `accent-tint` is #fff2ee — 1.10:1
- * against white, and byte-identical to `surface-sunken`. It is invisible on its
- * own and cannot mean anything by itself (WCAG 1.4.1). So: the radio dot fills
- * (shape), the border goes crimson at a constant 2px (never 1px to 2px, which
- * would shift every row by 2px), the label goes medium weight, and the tint
- * arrives last as reinforcement rather than as the signal.
+ * Selected state carries FOUR cues. The original reason was that `accent-tint`
+ * was #fff2ee — 1.10:1 against white and byte-identical to `surface-sunken` —
+ * so the fill was invisible and could not carry meaning at all. The token is
+ * now #ffd9e0 and does separate, and the four cues stay regardless: WCAG 1.4.1
+ * is not satisfied by a fill that is merely visible, because colour must never
+ * be the only carrier. So the radio dot fills (shape), the border goes crimson
+ * at a constant 2px (never 1px to 2px, which would shift every row by 2px), the
+ * label goes medium weight, and the tint arrives last as reinforcement.
  *
- * Hover moves the BORDER, not the fill. `hover:bg-surface-sunken` would paint an
- * unselected row #fff2ee — the selected fill exactly — so hovering would read as
- * selecting.
+ * Hover moves the BORDER, not the fill. That was forced when the selected fill
+ * and `surface-sunken` were the same colour; it is still right, because a fill
+ * change on hover reads as selection on a control whose selected state is also
+ * a fill change.
  */
 function OptionControl({
   name,
@@ -381,12 +657,15 @@ function InputField({
   field,
   error,
   onChange,
+  onCommit,
   missingAsNormal,
 }: {
   input: ScoreInput;
   field: Field;
   error?: string | undefined;
   onChange: (patch: { raw?: string; unit?: string }) => void;
+  /** The user has finished with this field — see `blurred` above. */
+  onCommit: () => void;
   missingAsNormal: boolean;
 }) {
   const id = `field-${input.id}`;
@@ -400,9 +679,32 @@ function InputField({
   // plausibility bounds that REJECT rather than compute — for a pediatric tool
   // a mistyped weight changes a dose — so the wording says accepted, not
   // typical, and the value is never silently clamped.
+  /**
+   * THE BOUND, IN THE UNIT ON SCREEN.
+   *
+   * `min` and `max` are declared canonically and were printed verbatim under
+   * the canonical name — so selecting `milliunits/kg/min` on VIS vasopressin
+   * left the field reading "Accepted 0–0.01 units/kg/min" while the box beside
+   * it expected milliunits. A clinician obeying that hint enters a thousandth
+   * of the intended dose, and it is ACCEPTED, because validation converts from
+   * the selected unit and 0.005 milliunits is legitimately inside 0–0.01 units.
+   * Nothing anywhere would have flagged it. That field's own source comment
+   * calls the pairing "a documented 1000x error trap".
+   *
+   * Converted, then rounded to the precision the bound actually carries —
+   * `fromCanonical` on 0.01 units gives 10.000000000000002 milliunits, and a
+   * plausibility bound printed to sixteen digits reads like a bug.
+   */
+  const selectedUnit = input.type === "numeric" ? (field.unit ?? input.unit.canonical) : "";
+  const bound = (v: number) => {
+    if (input.type !== "numeric") return v;
+    const converted = fromCanonical(input.unit, v, selectedUnit);
+    if (converted === null) return v;
+    return Number(converted.toPrecision(6));
+  };
   const range =
     input.type === "numeric"
-      ? `${input.min}–${input.max}${input.unit.canonical ? ` ${input.unit.canonical}` : ""}`
+      ? `${bound(input.min)}–${bound(input.max)}${selectedUnit ? ` ${selectedUnit}` : ""}`
       : null;
 
   const hint = error ? (
@@ -450,6 +752,15 @@ function InputField({
             aria-invalid={error ? true : undefined}
             aria-describedby={describedBy}
             onChange={(e) => onChange({ raw: e.target.value })}
+            onBlur={onCommit}
+            /* A FOCUSED type=number INCREMENTS ON WHEEL SCROLL in Chrome and
+               Safari. Fill weight, scroll down to the next field, and the
+               weight changes underneath you with no keystroke and no undo. On
+               a pediatric dose tool that is a patient-safety defect rather
+               than a nitpick, and blurring on wheel is the whole fix.
+               It costs keyboard users nothing: arrow keys still step the
+               value, which is the accessible increment path. */
+            onWheel={(e) => e.currentTarget.blur()}
             className="numeric h-11 w-full min-w-[8.5rem] flex-1 rounded-md border border-border-strong bg-surface-raised px-3.5 text-ink-strong tabular-nums placeholder:text-ink-body/80 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent aria-invalid:border-alert-text"
           />
           {units.length > 1 ? (
@@ -460,6 +771,7 @@ function InputField({
                 aria-label={`${input.label.en} ${c.unitLabel}`}
                 value={field.unit ?? units[0]}
                 onChange={(e) => onChange({ unit: e.target.value })}
+                onBlur={onCommit}
                 className="h-11 shrink-0 rounded-md border border-border-strong bg-surface-raised px-3 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
               >
                 {units.map((u) => (
@@ -504,11 +816,24 @@ function InputField({
      * behaviour is not guaranteed once the role is overridden.
      */
     <fieldset
+      // The blocking summary links to `#field-<id>`, and this branch used to
+      // expose no such element at all — only `${id}-legend` on the legend — so
+      // every jump link for a categorical or boolean input was a dead anchor.
+      // On PRISM, whose three required inputs are all categorical, that was
+      // every link on the page.
+      id={id}
       role="radiogroup"
       aria-labelledby={`${id}-legend`}
       aria-describedby={describedBy}
       aria-invalid={error ? true : undefined}
       aria-required={input.required || undefined}
+      /* React's onBlur is focusout, which BUBBLES — so this fires on every
+         focus change inside the group as well as on leaving it. That is fine
+         and is why no `relatedTarget` check is needed: the flag means "the user
+         has reached this group", and arrowing between its own radios is
+         reaching it. (An earlier comment here claimed focusout fires only on
+         leaving the group. It does not.) */
+      onBlur={onCommit}
       className="flex flex-col gap-2"
     >
       <legend id={`${id}-legend`} className="text-sm font-medium text-ink-strong">
@@ -555,29 +880,67 @@ function InputField({
   );
 }
 
+/** How many blocking fields the rail names before it summarises the rest. */
+const BLOCKING_SHOWN = 5;
+
+interface BlockingField {
+  id: string;
+  label: string;
+  message: string;
+}
+
 function ResultPanel({
   definition,
   outcome,
+  blocking,
   copied,
+  linkCopied,
   onCopy,
+  onCopyLink,
   showPartialCue,
   className,
 }: {
   definition: ScoreDefinition;
   outcome: ComputeResult | null;
+  blocking: readonly BlockingField[];
   copied: boolean;
+  linkCopied: boolean;
   onCopy: () => void;
+  onCopyLink: () => void;
   showPartialCue: boolean;
   className?: string;
 }) {
   const ok = outcome?.ok ? outcome : null;
-  // One output → a single dominant headline. Several outputs → an equal-weight
-  // list, so the panel stays scannable without implying one value is "the"
-  // answer (e.g. IBW deliberately shows every method and chooses none).
   const multi = (ok?.result.values.length ?? 0) > 1;
+
+  /**
+   * The value that IS the score, when a score returns several.
+   *
+   * Every value used to render at the same size in the multi branch. That is
+   * right for ideal body weight, which deliberately offers four methods and
+   * chooses none — and wrong for pSOFA, which returns a 0–24 total plus six
+   * organ subscores, where one number is the answer and six are its working.
+   *
+   * DERIVED, not declared: the primary value is the one carrying interpretation
+   * bands, which the engine already knows. IBW declares none, so `primaryId`
+   * stays undefined there and its equal-weight treatment is preserved exactly.
+   */
+  const bandedIds = useMemo(
+    () => new Set(definition.interpretation.map((b) => b.appliesTo)),
+    [definition.interpretation],
+  );
+  const primaryId = ok?.result.values.find((v) => bandedIds.has(v.id))?.id;
+  const bandsFor = useCallback(
+    (valueId: string) => definition.interpretation.filter((b) => b.appliesTo === valueId),
+    [definition.interpretation],
+  );
+  const source = definition.references[0];
+  // Omitted rather than degraded where the reference has no author to shorten
+  // to — see shortCite. A missing line is recoverable; an unreadable one is not.
+  const shortSource = source ? shortCite(source.citation) : null;
+
   return (
     <aside
-      aria-live="polite"
       data-print="result"
       // top-24 clears the sticky header (84px, shrinking to 64px on scroll)
       // rather than tucking underneath it.
@@ -587,8 +950,99 @@ function ResultPanel({
       )}
     >
       <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
+
+      {/* THE ANNOUNCEMENT, and nothing else.
+          MOUNTED FROM FIRST PAINT — it was moved inside the `ok` branch to
+          narrow what gets announced, and that narrowed it to nothing: a live
+          region inserted into the DOM in the same mutation as its content is
+          not announced by any major screen reader, so the FIRST computed score
+          was silent. A live region has to exist BEFORE its content changes.
+          It carries the answer as a sentence rather than mirroring the visual
+          block, because the visual block is a grid of numbers, band scales and
+          citation lines whose reading order out loud is not the reading order
+          on screen. The band scale and range strip are aria-hidden for the same
+          reason; this is where their meaning is spoken instead.
+          The blocking summary is deliberately NOT here: it changes on every
+          keystroke, and each field already announces itself on blur. */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {ok
+          ? ok.result.values
+              .map((v) => {
+                const band = matchInterpretationBand(definition, v.id, v.value);
+                const num = `${v.label.en} ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
+                return band ? `${num}, ${band.label.en}` : num;
+              })
+              .join(". ")
+          : ""}
+      </div>
+
       {!ok ? (
-        <p className="mt-4 text-sm text-ink-muted">{c.resultPlaceholder}</p>
+        blocking.length === 0 ? (
+          <p className="mt-4 text-sm text-ink-muted">{c.resultPlaceholder}</p>
+        ) : (
+          /* NAMED AND LINKED, not just "enter values". The reference this was
+             measured against fails here in the other direction — its incomplete
+             submit adds an `.error` class that has no CSS rule in any of its
+             stylesheets, so the user gets literally nothing — and arriving at
+             the same place by a different route would be no better.
+             Amber, never crimson: in this palette crimson is the brand and must
+             never mean error. */
+          <div className="mt-4 flex flex-col gap-2">
+            <p className="text-sm text-ink-muted">{c.resultBlockedHeading}</p>
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+              {blocking.slice(0, BLOCKING_SHOWN).map((b) => (
+                <li key={b.id} className="text-sm">
+                  {/* A BUTTON, NOT AN ANCHOR. `href="#field-x"` navigates by
+                      writing the fragment — and this page's fragment IS its
+                      field state, so clicking a jump link replaced
+                      `#pao2=180~mmHg` with `#field-fio2` and silently discarded
+                      every entered value from the URL. "Copy link with these
+                      values" then copied a link with none, and a reload lost
+                      the lot. The comment on the source line below rejects an
+                      anchor for exactly this reason; these had it anyway.
+                      Scrolling and focusing directly does the same job and
+                      leaves the URL alone. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(`field-${b.id}`);
+                      if (!el) return;
+                      el.scrollIntoView({ block: "center", behavior: "smooth" });
+                      // A fieldset is not focusable; focus its first control so
+                      // the keyboard lands where the eye does.
+                      (el.matches("input, select, textarea")
+                        ? el
+                        : el.querySelector<HTMLElement>("input, select, textarea")
+                      )?.focus({ preventScroll: true });
+                    }}
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-sm text-left text-alert-text underline decoration-alert-text/40 underline-offset-2 hover:decoration-alert-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="numeric inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-alert-bg text-[11px] font-medium"
+                    >
+                      !
+                    </span>
+                    <span>
+                      {b.label}
+                      <span className="sr-only">{` — ${b.message}. ${c.resultBlockedJump}`}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {/* CAPPED. PELOD-2 declares all eleven inputs required, so one
+                entry produced ten 44px links — taller than the sticky rail's
+                own window on a 1024px laptop, and a sticky element taller than
+                its viewport stops holding position. The count still tells the
+                truth about how much is left. */}
+            {blocking.length > BLOCKING_SHOWN ? (
+              <p className="text-sm text-ink-muted">
+                {c.resultBlockedMore.replace("{n}", String(blocking.length - BLOCKING_SHOWN))}
+              </p>
+            ) : null}
+          </div>
+        )
       ) : (
         <div className="mt-4 flex flex-col gap-4">
           <div className={cn("flex flex-col", multi ? "gap-3" : "gap-4")}>
@@ -598,6 +1052,7 @@ function ResultPanel({
                 v.id,
                 v.value,
               );
+              const bands = bandsFor(v.id);
               return (
                 <div
                   key={v.id}
@@ -611,12 +1066,17 @@ function ResultPanel({
                   <p
                     className={cn(
                       "numeric font-medium tabular-nums text-ink-strong",
-                      multi ? "text-2xl" : "text-4xl",
+                      !multi || v.id === primaryId ? "text-4xl" : "text-2xl",
                     )}
                   >
                     {v.value.toFixed(v.precision)}
                     {v.unit ? (
-                      <span className={cn("ml-1 text-ink-muted", multi ? "text-base" : "text-xl")}>
+                      <span
+                        className={cn(
+                          "ml-1 text-ink-muted",
+                          !multi || v.id === primaryId ? "text-xl" : "text-base",
+                        )}
+                      >
                         {v.unit}
                       </span>
                     ) : null}
@@ -627,10 +1087,68 @@ function ResultPanel({
                       {band.label.en} — {band.description.en}
                     </p>
                   )}
+                  {band && bands.length > 1 ? (
+                    <>
+                      {/* WHERE THE NUMBER SITS, not only what it is called.
+                          The cutpoints lived one tab-click away and below the
+                          fold; a clinician reading pSOFA 9 wants to see that
+                          the threshold is >8 and that they are one point over
+                          it. Proximity to a threshold IS the clinical
+                          information, and a sentence cannot carry it.
+
+                          EQUAL-WIDTH SEGMENTS, deliberately. Bands are often
+                          open-ended, so proportional widths would draw a
+                          magnitude the score does not have. Position says
+                          WHICH band; the number itself says how much.
+
+                          Crimson marks "you are here", never "this is bad" —
+                          there is no green-amber-red ramp. Severity is carried
+                          by the band's own ordinal label and by where the mark
+                          sits in the sequence, which is also what makes this
+                          legible without colour. */}
+                      <ol aria-hidden="true" className="mt-2 flex list-none gap-0.5 p-0">
+                        {bands.map((b) => (
+                          <li
+                            key={b.id}
+                            className={cn(
+                              "h-1.5 flex-1 rounded-pill",
+                              b.id === band.id ? "bg-accent" : "bg-border-subtle",
+                            )}
+                          />
+                        ))}
+                      </ol>
+                      <p
+                        aria-hidden="true"
+                        className="numeric mt-1 text-[11px] tracking-[0.02em] text-ink-muted"
+                      >
+                        {bands.map((b) => formatBand(b)).join(" · ")}
+                      </p>
+                    </>
+                  ) : null}
+                  {band && shortSource ? (
+                    /* PROVENANCE BESIDE THE NUMBER. The site's whole claim is
+                       "every one referenced", and the panel showed a band
+                       description with no visible source at all.
+                       PLAIN TEXT, NOT A LINK: the URL fragment belongs to field
+                       state, so an href="#evidence" would wipe everything the
+                       clinician had entered. */
+                    <p className="mt-1 text-[13px] text-ink-muted">
+                      {c.sourceLabel}: {shortSource} — {c.sourceSuffix}.
+                    </p>
+                  ) : null}
                 </div>
               );
             })}
           </div>
+
+          {/* BESIDE THE NUMBER. A result-invalidating caveat that only appears
+              in a Limitations tab is a caveat most readers will never meet.
+              Amber with a non-colour marker, never crimson. */}
+          {definition.cautions?.map((caution) => (
+            <Callout key={caution.key} tone="alert" className="text-[13px]">
+              {caution.en}
+            </Callout>
+          ))}
 
           {showPartialCue && (
             <Callout tone="note" className="text-[13px]" data-print="hide">
@@ -638,17 +1156,45 @@ function ResultPanel({
             </Callout>
           )}
 
-          <button
-            type="button"
-            onClick={onCopy}
-            data-print="hide"
-            className={cn(
-              "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-              "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-            )}
-          >
-            {copied ? c.copied : c.copyResult}
-          </button>
+          {/* Two ways out of the page, because there are two things a
+              clinician does with a score: paste it into a note, or put it in
+              the record. The print stylesheet already existed and was already
+              careful — full-width result, chosen answers only, link targets
+              spelled out — and `printLabel` had been sitting in the copy file
+              with nothing rendering it, so the whole printable record was
+              reachable only by knowing the browser shortcut. */}
+          <div className="flex flex-wrap gap-2" data-print="hide">
+            <button
+              type="button"
+              onClick={onCopy}
+              className={cn(
+                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
+                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              )}
+            >
+              {copied ? c.copied : c.copyResult}
+            </button>
+            <button
+              type="button"
+              onClick={onCopyLink}
+              className={cn(
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
+                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              )}
+            >
+              {linkCopied ? c.copied : c.copyLinkLabel}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className={cn(
+                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
+                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+              )}
+            >
+              {c.printLabel}
+            </button>
+          </div>
         </div>
       )}
       <Callout tone="note" className="mt-6 text-[13px]">

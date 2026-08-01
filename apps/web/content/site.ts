@@ -85,8 +85,9 @@ export const site = {
       "Free, referenced clinical calculators that run entirely in your browser: the start of a shared digital home for pediatric critical care.",
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
+    heroSceneCoupling: "heart rate rises on inspiration",
     heroSceneLabel:
-      "The six organ systems a pediatric severity score is summed across: respiratory, coagulation, hepatic, cardiovascular, neurologic and renal. Shown as planes stacked in depth, because a score means nothing until every one of them is accounted for.",
+      "A school-age child's heart and lungs, built from measured pediatric anatomy: airways branching from the carina into alveolar clusters that fill with each breath, four cardiac chambers in their true depth order, and both lungs outlined with the cardiac notch where the heart rests against the left one. It breathes about nineteen times a minute and beats about eighty-one, the way a well child at rest does, and the heart rate rises on inspiration as it does in a real one.",
     status: "Live. 23 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
@@ -900,6 +901,13 @@ export const site = {
     backToIndex: "All calculators",
     resultHeading: "Result",
     resultPlaceholder: "Enter values to compute.",
+    // Shown once entry has STARTED but a result is still blocked. A sticky
+    // rail that says "Enter values to compute." to a half-filled form is
+    // telling it the same thing it tells an empty one, while the field
+    // actually standing in the way can be a screen and a half below.
+    resultBlockedHeading: "Waiting on",
+    resultBlockedJump: "Go to",
+    resultBlockedMore: "and {n} more",
     interpretationLabel: "Interpretation",
     // Shown for additive composites (pSOFA, Phoenix, VIS) where a blank
     // component is scored as normal, so a partial entry is never mistaken
@@ -909,6 +917,36 @@ export const site = {
     copyResult: "Copy result summary",
     copied: "Copied",
     printLabel: "Print",
+    clearAllLabel: "Clear all values",
+    // An offer, not a notification of something already done. The wording has
+    // to make it obvious nothing has been filled in yet.
+    carriedLabel: "From your last calculator — tap to use:",
+    carriedDismiss: "Dismiss",
+    // The label states what the link contains, because the link contains the
+    // values. Sharing was always possible — state is mirrored into the
+    // fragment — and was invisible, which is the worst of both.
+    copyLinkLabel: "Copy link with these values",
+    copyInputsLabel: "Inputs",
+    // Beside the number. "Full citation in Evidence, below" and NOT a link:
+    // the fragment belongs to field state, so an href="#evidence" would wipe
+    // everything the clinician had entered.
+    sourceLabel: "Source",
+    sourceSuffix: "full citation in Evidence, below",
+    // Rendered where a score has no interpretation bands AND says so on
+    // purpose vs. has simply not had them authored yet. Two different facts
+    // that used to render as the same silence.
+    // Reproduction rights, in words rather than in a union type. Every score
+    // carries this and nothing rendered it.
+    ipHeading: "Reproduction rights",
+    ipGrantedOn: "granted",
+    ipStatus: {
+      "original-formula": "Original formula — published without reproduction restrictions.",
+      "freely-reproducible": "Freely reproducible.",
+      "permission-required": "Reproduction requires permission from the rights holder.",
+      "permission-obtained": "Reproduced with permission from the rights holder.",
+    },
+    bandsPending:
+      "Interpretation bands for this score are not yet authored — see the references below.",
     unitLabel: "Unit",
     // Option groups. Yes/No were hardcoded in the JSX while every other
     // user-visible string lives here.
@@ -922,8 +960,14 @@ export const site = {
     clearSelection: "Clear",
     clearSelectionLabel: "Clear the selection for",
     // Privacy line — must be architecturally true (PRD §6.4)
+    // "Nothing transmitted or stored" was architecturally true and quietly
+    // incomplete: values are mirrored into the page fragment on every
+    // keystroke, so they sit in the address bar, in session history, and in any
+    // bookmark or screenshot. On a shared PICU workstation that is a real
+    // exposure, and the honest line is the one that says so and points at the
+    // control that clears it.
     privacyLine:
-      "Calculations run entirely in your browser. Nothing you enter is transmitted or stored.",
+      "Calculations run entirely in your browser — nothing you enter leaves this device. Values do appear in this page's address bar, so the link can be bookmarked or shared. Clear all values removes them.",
     // Validation badge (PRD §6.4 — honest pending state)
     validationPending: "Independent clinical validation: pending",
     validationPendingDetail:

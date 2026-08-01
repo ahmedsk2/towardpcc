@@ -83,7 +83,10 @@ export function ImageSlot({
           screen reader. The plate is decoration in both states. */}
       <div
         aria-hidden="true"
-        className={cn("relative z-10 px-6 text-center", frame ? "text-ink-muted" : "text-white")}
+        className={cn(
+          "relative z-10 px-6 text-center",
+          frame ? "text-ink-muted" : "text-ink-on-dark",
+        )}
       >
         <svg
           viewBox="0 0 24 24"

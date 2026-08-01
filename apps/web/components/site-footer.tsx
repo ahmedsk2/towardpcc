@@ -39,8 +39,16 @@ function FooterLink({ href, label }: { href: string; label: string }) {
 
 export function SiteFooter() {
   return (
-    <footer className="bg-surface-hero text-ink-on-dark">
-      <div className="mx-auto max-w-[1400px] px-6 py-14">
+    <footer className="relative overflow-hidden bg-surface-hero text-ink-on-dark">
+      {/* A single warm horizon along the top edge, so the footer reads as the
+          bottom of a room rather than as the page running out. Same family and
+          the same constraint as the counter band: decorative, dark-ground only,
+          never a boundary or an icon. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-coral-soft/45 to-transparent"
+      />
+      <div className="relative mx-auto max-w-[1400px] px-6 py-14">
         <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(3,1fr)]">
           <div className="max-w-sm">
             <div className="flex items-center gap-2.5">
@@ -49,7 +57,7 @@ export function SiteFooter() {
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"
-                  className="size-5 text-white"
+                  className="size-5 text-ink-on-accent"
                 >
                   <path
                     d="M2 13h4l2-6 4 12 3-9 2 3h5"

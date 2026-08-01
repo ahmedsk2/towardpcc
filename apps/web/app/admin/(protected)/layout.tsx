@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <nav className="flex items-center gap-5" aria-label="Admin">
             <Link
               href="/admin"
-              className="rounded-sm font-display text-sm font-semibold text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="rounded-sm font-display text-sm font-semibold text-ink-strong transition-[color] duration-150 ease-[var(--motion-ease)] hover:text-accent motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               TowardPCC admin
             </Link>

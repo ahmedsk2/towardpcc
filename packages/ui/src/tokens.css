@@ -27,7 +27,24 @@
   --color-accent: #cf1f3d;
   --color-accent-bright: #ea3a57; /* gradient partner + hover */
   --color-accent-deep: #8f1728; /* 9.05:1 on white */
-  --color-accent-tint: #fff2ee; /* chip/selection backgrounds on light */
+  /* Chip and selection backgrounds on light.
+
+     WAS BYTE-IDENTICAL TO `--color-surface-sunken` (#fff2ee). Not a near-miss —
+     the same colour, so a chip on a sunken section painted nothing at all, and
+     on white it separated by 1.10:1. calculator-form.tsx had already noticed
+     and worked around it, giving the selected option four cues because "the
+     tint is invisible on its own"; the workaround is good practice and stays,
+     but it was standing in for a token that should have been fixed.
+
+     Moved toward the accent's own hue, so it reads as a tint OF the accent
+     rather than as the page's own sunken tone. Measured: 1.29:1 against white,
+     1.25:1 against the page, 1.18:1 against sunken — visible on all three.
+
+     THE CEILING IS THE TEXT, not the ground. Chip labels use `accent-deep`
+     (7.00:1 here). Plain `accent` reaches only 4.15:1 on this tint and must not
+     be used on it — that is why the one chip that did was moved to
+     `accent-deep`, which is the token that exists for exactly this. */
+  --color-accent-tint: #ffd9e0;
   --color-ink-on-accent: #ffffff; /* 5.36:1 on accent fills */
 
   /* Coral — the warm secondary. DARK SURFACES AND GRADIENTS ONLY.
@@ -148,9 +165,39 @@
   --radius-lg: 1.25rem;
   --radius-pill: 999px;
 
+  /* Vertical rhythm, shell width and measure — a NAMING of what already ships,
+     not a new proposal.
+     There was no spacing layer at all, so a request to "increase breathing
+     room" had no vocabulary to land in. Measured across the app: section
+     padding is py-24 (13 sites), py-16 (5), py-20 (3); shell width is
+     max-w-[1280px] (20 sites) against an ADR that says 1400px; and the prose
+     cap comes in five flavours — 58ch (16), 62ch (10), 52ch (5), 60ch (4),
+     70ch (2) — against an ADR that says 65ch.
+     Two steps, not a ladder. The reference template runs 120/90/60/30 from two
+     variables plus a calc offset; the structure is right and the magnitude is
+     marketing-scale. A clinical page wants more on screen.
+     THE 1280 IS RATIFIED, not migrated: it is what shipped, what the layout was
+     tuned against, and the better measure for a page carrying a 22rem sticky
+     rail. All rem/ch, so everything scales with user text size. */
+  --space-section: 6rem;
+  --space-section-tight: 4rem;
+  --shell-max: 80rem;
+  --measure: 62ch;
+
   /* Motion — single easing voice; all animation honors reduced-motion.
-     Interactions stay at 150ms: half a second on a control reads as lag. */
+     Interactions stay at 150ms: half a second on a control reads as lag.
+
+     THE SCALE WAS DEFINED AND NOT USED. Measured across the tracked source:
+     `-fast`, `-slow` and `-count` had zero consumers, `-reveal` had two, and
+     every one of the seven keyframes in globals.css was invoked with a
+     hand-typed duration — 180, 200, 220, 240, 260, 600, 700ms. A scale nobody
+     consumes is not a scale, it is a comment; and seven hand-typed values are
+     how a product ends up with motion that does not feel like one product.
+     `-enter` and `-panel` are added because the hand-typed values clustered
+     there: they are the two durations the site was already reaching for. */
   --motion-duration-fast: 150ms;
+  --motion-duration-enter: 200ms;
+  --motion-duration-panel: 260ms;
   --motion-duration-slow: 400ms;
   --motion-duration-reveal: 700ms;
   --motion-duration-count: 1500ms;

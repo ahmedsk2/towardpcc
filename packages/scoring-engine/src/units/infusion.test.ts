@@ -5,7 +5,7 @@ import {
   milliunitsForUnits,
   unitsPerKgPerMin,
 } from "./infusion";
-import { toCanonical } from "./types";
+import { fromCanonical, toCanonical } from "./types";
 
 describe("infusion-rate units", () => {
   it("treats µg/kg/min as identical to mcg/kg/min (same unit, microgram)", () => {
@@ -28,6 +28,28 @@ describe("infusion-rate units", () => {
         12,
       );
     }
+  });
+
+  /**
+   * The inverse, which the calculator form uses to state a plausibility bound in
+   * the unit the clinician has SELECTED.
+   *
+   * `min` and `max` are declared canonically, and the form printed them verbatim
+   * under the canonical name — so with `milliunits/kg/min` chosen, vasopressin
+   * read "Accepted 0–0.01 units/kg/min" while the box beside it expected
+   * milliunits. Obeying that hint enters a thousandth of the intended dose and
+   * it is ACCEPTED, because validation converts from the selected unit and
+   * 0.005 milliunits is legitimately inside 0–0.01 units. This is the exact
+   * field whose comment above calls the pairing a documented 1000x error trap,
+   * which is why the conversion the fix depends on is pinned here.
+   */
+  it("states a canonical bound in the selected unit, and refuses an unknown one", () => {
+    expect(fromCanonical(unitsPerKgPerMin, 0.01, "units/kg/min")).toBe(0.01);
+    expect(fromCanonical(unitsPerKgPerMin, 0.01, "milliunits/kg/min")).toBeCloseTo(10, 9);
+    expect(fromCanonical(unitsPerKgPerMin, 0.0003, "milliunits/kg/min")).toBeCloseTo(0.3, 12);
+    // Null rather than a silent passthrough: a bound printed under a unit the
+    // spec does not know is the defect this exists to prevent.
+    expect(fromCanonical(unitsPerKgPerMin, 1, "units/min")).toBeNull();
   });
 
   it("resolves canonical, alternate, and unknown units via a spec", () => {

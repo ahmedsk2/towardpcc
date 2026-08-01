@@ -51,6 +51,45 @@ describe("palette — text contrast (WCAG 2.2 AA)", () => {
  */
 const LIGHT_SURFACES = ["color-surface-page", "color-surface-raised", "color-surface-sunken"];
 
+describe("palette — the accent tint is a real tint", () => {
+  /**
+   * It was #fff2ee: BYTE-IDENTICAL to --color-surface-sunken. Not a near-miss,
+   * the same colour — so a chip drawn on a sunken section painted nothing, and
+   * on white it separated by 1.10:1. Two components had already noticed and
+   * worked around it in prose rather than fixing the token, which is how a
+   * palette rots: the guard above only ever asked about TEXT, so a background
+   * that had ceased to be a background passed CI for as long as it existed.
+   */
+  it("is not the same colour as any surface it is painted on", () => {
+    for (const surface of LIGHT_SURFACES) {
+      expect(token("color-accent-tint"), `accent-tint must differ from ${surface}`).not.toBe(
+        token(surface),
+      );
+      // A fill a reader cannot see is not a fill. This is below WCAG 1.4.11's
+      // 3:1 on purpose — a chip fill is decoration whose label carries the meaning,
+      // and 3:1 here would produce a pink block, not a tint.
+      expect(
+        contrastRatio(token("color-accent-tint"), token(surface)),
+        `accent-tint is invisible on ${surface}`,
+      ).toBeGreaterThanOrEqual(1.15);
+    }
+  });
+
+  it("carries accent-deep as its text colour, not accent", () => {
+    // The tint's ceiling is its TEXT, not its ground: pushing it far enough to
+    // be visible pushes plain `accent` under AA on top of it. accent-deep is
+    // the token that exists for exactly this, and this assertion is what stops
+    // the pairing being re-introduced by someone reaching for the obvious one.
+    expect(
+      contrastRatio(token("color-accent-deep"), token("color-accent-tint")),
+    ).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(
+      contrastRatio(token("color-accent"), token("color-accent-tint")),
+      "accent now clears AA on the tint — if so, say so and allow the pairing",
+    ).toBeLessThan(AA_TEXT);
+  });
+});
+
 /**
  * Per-tier bands. Floors keep a border perceivable; ceilings keep each tier
  * meaning a weight rather than merely "some number below the next one".

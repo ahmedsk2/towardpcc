@@ -117,23 +117,46 @@ test("home counters animate to their real values", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
 
+  // Wait for hydration before touching the DOM. Without this the scroll raced
+  // React and failed with "element is not attached to the DOM": the locator
+  // resolved against the server HTML and the node was replaced underneath it.
+  // Latent for as long as the hero was small, and real once the hero became a
+  // 544-particle scene, which widened the window the reconciler walks.
+  await page.waitForLoadState("networkidle");
+
   // The counter band is well below the fold; scroll it into view to trigger
   // the one-shot IntersectionObserver.
   const band = page.locator("#counters-heading").locator("..");
   await band.scrollIntoViewIfNeeded();
 
-  // 22 calculators / 89 citations / 64,388 pages / 100% coverage — the four
-  // verified figures. If any of these changes, the copy is wrong, not the test.
-  await expect(page.getByText("64,388", { exact: true })).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText("100%", { exact: true })).toBeVisible();
+  // 64,388 pages / 100% coverage — two of the four verified figures. If either
+  // changes, the copy is wrong, not the test. (The calculator and citation
+  // counts are 23 and 91, pinned separately in figures.test.ts; this comment
+  // said 22 and 89 for as long as that gap existed.)
+  //
+  // SCOPED TO THE BAND. A page-wide `getByText` for these figures is ambiguous:
+  // 64,388 is also a Knowledge pillar-card stat, so once the <Counter> hydrates
+  // there are two exact matches and Playwright's strict mode throws. It only
+  // ever passed because the assertion usually won a race against hydration —
+  // and it duly passed locally and failed in CI, which is the worst way for a
+  // test to be wrong. The counters band is the thing under test; say so.
+  await expect(band.getByText("64,388", { exact: true })).toBeVisible({ timeout: 5000 });
+  await expect(band.getByText("100%", { exact: true })).toBeVisible();
 });
 
 test("reduced motion still shows the final counter values", async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: "reduce" });
   const page = await context.newPage();
   await page.goto("/");
-  await page.locator("#counters-heading").locator("..").scrollIntoViewIfNeeded();
-  // Under reduced motion the value must appear immediately, not animate.
-  await expect(page.getByText("64,388", { exact: true })).toBeVisible({ timeout: 3000 });
+  // Hydration first: the counter is a client component, and under reduced
+  // motion it renders its final value on mount. Asserting before that resolved
+  // against the server HTML, where the only 64,388 on the page belongs to a
+  // pillar card — so the test passed while proving nothing about the counter.
+  await page.waitForLoadState("networkidle");
+  const band = page.locator("#counters-heading").locator("..");
+  await band.scrollIntoViewIfNeeded();
+  // Scoped, for the reason given in the test above: page-wide this matches the
+  // pillar-card stat as well and strict mode throws.
+  await expect(band.getByText("64,388", { exact: true })).toBeVisible({ timeout: 3000 });
   await context.close();
 });

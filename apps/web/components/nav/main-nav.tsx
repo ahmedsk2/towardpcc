@@ -42,6 +42,8 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
   const setDrawer = (v: boolean) => setDrawerAt(v ? pathname : null);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const drawerTriggerRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLLIElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -55,7 +57,14 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
         setMegaAt(null);
         triggerRef.current?.focus();
       }
-      setDrawerAt(null);
+      // The drawer restores focus too. It used to close and leave
+      // document.activeElement on <body>, so a keyboard user pressing Escape
+      // lost their place entirely and had to tab from the top of the document —
+      // while the mega-menu three lines above did the right thing.
+      if (drawer) {
+        setDrawerAt(null);
+        drawerTriggerRef.current?.focus();
+      }
     };
     const onClick = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setMegaAt(null);
@@ -66,15 +75,67 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("click", onClick);
     };
-  }, [mega]);
+  }, [mega, drawer]);
 
-  // The drawer owns the viewport while open.
+  /**
+   * The drawer owns the viewport while open — and now owns FOCUS too.
+   *
+   * It is the only navigation surface below 1024px (the desktop nav is
+   * `hidden lg:block`), and it was failing three ways at once: focus stayed on
+   * the hamburger when it opened, Tab walked straight out of the panel into
+   * page content the drawer was covering, and Escape dropped focus to <body>.
+   * The scroll lock was the only part of "owns the viewport" that was actually
+   * implemented.
+   *
+   * `inert` on the rest of the document is what makes containment real rather
+   * than a keydown handler racing the browser: it removes everything outside
+   * from the tab order AND from the accessibility tree, so a screen-reader user
+   * cannot read through the drawer either. The wrap-around handler stays as the
+   * fallback for browsers without `inert`.
+   */
   useEffect(() => {
     if (!drawer) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+    const panel = drawerRef.current;
+    const outside = [...document.body.children].filter(
+      (el) => el instanceof HTMLElement && !el.contains(panel),
+    ) as HTMLElement[];
+    const wasInert = outside.map((el) => el.inert);
+    for (const el of outside) el.inert = true;
+
+    // Into the panel, not onto the page behind it.
+    const focusables = () =>
+      [
+        ...(panel?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ) ?? []),
+      ].filter((el) => el.offsetParent !== null);
+    focusables()[0]?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+
     return () => {
       document.body.style.overflow = prev;
+      outside.forEach((el, i) => {
+        el.inert = wasInert[i] ?? false;
+      });
+      document.removeEventListener("keydown", onKey);
     };
   }, [drawer]);
 
@@ -150,13 +211,13 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                 {mega && (
                   <div
                     id="mega-calculators"
-                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-2xl motion-safe:animate-[megaIn_180ms_var(--motion-ease)_both]"
+                    className="absolute end-0 top-full z-50 mt-2 grid w-[min(860px,calc(100vw-3rem))] grid-cols-3 gap-x-6 rounded-lg border border-border bg-surface-raised p-6 shadow-2xl motion-safe:animate-[megaIn_var(--motion-duration-enter)_var(--motion-ease)_both]"
                   >
                     {/* The panel drops 6px (megaIn) while its contents rise 6px
                         to meet it. Four beats, not sixty: a per-link stagger at
                         any readable step would still be arriving two seconds
                         after the menu opened. */}
-                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3 motion-safe:animate-[megaColIn_220ms_var(--motion-ease)_both]">
+                    <div className="col-span-3 mb-1 flex items-center justify-between gap-4 border-b border-border-subtle pb-3 motion-safe:animate-[megaColIn_var(--motion-duration-enter)_var(--motion-ease)_both]">
                       <p className="m-0 text-sm text-ink-muted">
                         <strong className="font-semibold text-ink-strong">
                           {groups.reduce((n, g) => n + g.items.length, 0)} calculators
@@ -165,16 +226,25 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                       </p>
                       <Link
                         href="/calculators"
-                        className="shrink-0 rounded-sm font-numeric text-[11px] tracking-[0.09em] text-accent uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        className="group/all shrink-0 rounded-sm font-numeric text-[11px] tracking-[0.09em] text-accent uppercase transition-[color] duration-150 ease-[var(--motion-ease)] hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
                       >
-                        {site.nav.browseAll} →
+                        {site.nav.browseAll}{" "}
+                        {/* The arrow advances rather than the label moving: a
+                            label that shifts on hover is harder to click, which
+                            is the opposite of what the affordance is for. */}
+                        <span
+                          aria-hidden="true"
+                          className="inline-block transition-[translate] duration-150 ease-[var(--motion-ease)] group-hover/all:translate-x-0.5 motion-reduce:transition-none"
+                        >
+                          →
+                        </span>
                       </Link>
                     </div>
 
                     {[0, 1, 2].map((col) => (
                       <div
                         key={col}
-                        className="motion-safe:animate-[megaColIn_220ms_var(--motion-ease)_both]"
+                        className="motion-safe:animate-[megaColIn_var(--motion-duration-enter)_var(--motion-ease)_both]"
                         style={{ animationDelay: `${60 + col * 55}ms` }}
                       >
                         {groups
@@ -228,6 +298,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
       {/* Mobile trigger */}
       <button
         type="button"
+        ref={drawerTriggerRef}
         aria-expanded={drawer}
         aria-controls="nav-drawer"
         onClick={() => setDrawer(true)}
@@ -246,11 +317,18 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
             type="button"
             aria-label={site.nav.closeMenuLabel}
             onClick={() => setDrawer(false)}
-            className="absolute inset-0 h-full w-full cursor-zoom-out bg-black/50 motion-safe:animate-[drawerScrimIn_200ms_var(--motion-ease)_both]"
+            className="absolute inset-0 h-full w-full cursor-zoom-out bg-black/50 motion-safe:animate-[drawerScrimIn_var(--motion-duration-enter)_var(--motion-ease)_both]"
           />
           <div
             id="nav-drawer"
-            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-2xl motion-safe:animate-[drawerIn_260ms_var(--motion-ease)_both]"
+            ref={drawerRef}
+            // It behaves as a modal, so it says so: without a role and a name a
+            // screen reader announced an unlabelled group and gave no signal
+            // that the rest of the page had gone away.
+            role="dialog"
+            aria-modal="true"
+            aria-label={site.nav.menuLabel}
+            className="absolute inset-y-0 end-0 flex w-[min(20rem,85vw)] flex-col overflow-y-auto bg-surface-raised p-6 shadow-2xl motion-safe:animate-[drawerIn_var(--motion-duration-panel)_var(--motion-ease)_both]"
           >
             <div className="mb-6 flex items-center justify-between">
               <span className="font-display text-lg font-bold text-ink-strong">
@@ -276,7 +354,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
               {links.map(({ href, label }, i) => (
                 <li
                   key={href}
-                  className="motion-safe:animate-[drawerItemIn_260ms_var(--motion-ease)_both]"
+                  className="motion-safe:animate-[drawerItemIn_var(--motion-duration-panel)_var(--motion-ease)_both]"
                   style={{ animationDelay: `${80 + i * 35}ms` }}
                 >
                   <Link
@@ -297,7 +375,9 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
             </ul>
             <Link
               href="/calculators"
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-bold text-ink-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              // Matches the header CTA: accent-deep on hover, which holds
+              // 9.05:1 under white where accent-bright would fall to 4.01:1.
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-bold text-ink-on-accent transition-[background-color,box-shadow] duration-150 ease-[var(--motion-ease)] hover:bg-accent-deep hover:shadow-[var(--shadow-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
             >
               {site.nav.headerCta}
             </Link>
@@ -309,7 +389,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
 }
 
 const navLink =
-  "group relative inline-flex min-h-11 items-center gap-1.5 rounded-md px-3.5 py-2.5 text-[15px] font-semibold text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "group relative inline-flex min-h-11 items-center gap-1.5 rounded-md px-3.5 py-2.5 text-[15px] font-semibold text-ink-strong transition-colors duration-150 hover:bg-accent-tint hover:text-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const navLinkActive = "text-accent";
 
 /**

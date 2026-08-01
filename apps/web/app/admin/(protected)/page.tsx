@@ -57,7 +57,10 @@ export default async function InboxPage({
             Submissions below are still being stored safely — but nothing is emailing you when one
             arrives, so this page is the only way to see them. Missing configuration:{" "}
             <span className="numeric">{mailStatus.missing.join(", ")}</span>.{" "}
-            <Link href="/admin/settings" className="underline underline-offset-2">
+            <Link
+              href="/admin/settings"
+              className="underline underline-offset-2 transition-[color] duration-150 ease-[var(--motion-ease)] hover:text-accent motion-reduce:transition-none"
+            >
               See Settings
             </Link>
             .
