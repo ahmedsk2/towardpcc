@@ -324,6 +324,85 @@ describeScore(psofa, (ctx) => {
     ],
   );
 
+  /**
+   * THE TWO AGE BANDS NOTHING ASSERTED A VALUE FOR.
+   *
+   * Table 1's age-adjusted rows are the part of pSOFA most easily got wrong,
+   * and five of the seven bands were already pinned by the examples above
+   * (2, 18, 36, 60 and 168 months). The outermost two — neonates under a month
+   * and patients over 216 months — were only ever reached by the input-range
+   * boundary probes, which prove the value is ACCEPTED, not that it selects the
+   * right thresholds.
+   *
+   * That gap is invisible to the 100% branch gate: `ageBand` returns an object
+   * literal, so the branch executes and counts as covered whether the constants
+   * inside it are right or wrong. Coverage proves reachability, never
+   * correctness. Flagged by an external review on 2026-08-01, which reached the
+   * conclusion by the wrong route — it argued pSOFA needed a second SOFTWARE
+   * implementation — but the underlying gap it pointed at was real.
+   */
+  ctx.workedExample(
+    {
+      ...matics,
+      locator: "MAP 45 mmHg in the <1 mo band (threshold 46) → cardiovascular 1 (Table 1 MAP row)",
+    },
+    {
+      ...normal,
+      age_months: { value: 0.5, unit: "months" },
+      map: { value: 45, unit: "mmHg" },
+    },
+    [
+      { id: "total", value: 1 },
+      { id: "cardiovascular", value: 1 },
+    ],
+  );
+  ctx.workedExample(
+    {
+      ...matics,
+      locator: "creatinine 1.0 mg/dL in the <1 mo band (cuts 0.8/1.0/1.2/1.6) → renal 2",
+    },
+    {
+      ...normal,
+      age_months: { value: 0.5, unit: "months" },
+      creatinine: { value: 1.0, unit: "mg/dL" },
+    },
+    [
+      { id: "total", value: 2 },
+      { id: "renal", value: 2 },
+    ],
+  );
+  ctx.workedExample(
+    {
+      ...matics,
+      locator:
+        "MAP 69 mmHg in the >216 mo band (threshold 70) → cardiovascular 1 (Table 1 MAP row)",
+    },
+    {
+      ...normal,
+      age_months: { value: 240, unit: "months" },
+      map: { value: 69, unit: "mmHg" },
+    },
+    [
+      { id: "total", value: 1 },
+      { id: "cardiovascular", value: 1 },
+    ],
+  );
+  ctx.workedExample(
+    {
+      ...matics,
+      locator: "creatinine 3.5 mg/dL in the >216 mo band (cuts 1.2/2.0/3.5/5.0) → renal 3",
+    },
+    {
+      ...normal,
+      age_months: { value: 240, unit: "months" },
+      creatinine: { value: 3.5, unit: "mg/dL" },
+    },
+    [
+      { id: "total", value: 3 },
+      { id: "renal", value: 3 },
+    ],
+  );
+
   // --- Cardiovascular: MAP at/above the age-band threshold, and the vasoactive
   // tiers (Table 1). With no MAP conflict, cardiovascular == the vasoactive tier. ---
   ctx.workedExample(

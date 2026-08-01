@@ -468,4 +468,57 @@ describeScore(phoenix, (ctx) => {
       { id: "septic_shock", value: 0 },
     ],
   );
+
+  /**
+   * THE SpO₂ 97/98 CLIFF, PINNED — the least intuitive behaviour in this score.
+   *
+   * S/F is only defined for SpO₂ ≤ 97, because above that the dissociation
+   * curve plateaus and the ratio stops discriminating. Combine that published
+   * gate with the reference package's missing-input convention (a component
+   * with no usable data contributes 0) and the result is a genuine cliff: the
+   * SAME child on invasive ventilation at FiO₂ 1.0 scores respiratory 3 at
+   * SpO₂ 97 and 0 at SpO₂ 98, which can drop them below the total ≥ 2 sepsis
+   * threshold on respiratory grounds alone.
+   *
+   * Both halves are correct per the paper, and neither was asserted anywhere.
+   * That is the dangerous combination: a clinician reading 0 for a child on
+   * 100% oxygen could take it as reassurance rather than as "not measurable —
+   * get a gas". The limitations prose now says so, and this pins the numbers
+   * that sentence quotes, so the two cannot drift apart.
+   *
+   * Surfaced 2026-08-01 while checking an external review's claim that the S/F
+   * pathway was untested. The claim was wrong — it was tested — but probing it
+   * turned this up, which no committed case had covered.
+   */
+  const ventilatedOnPureOxygen = {
+    age_months: { value: 72, unit: "months" },
+    suspected_infection: { value: true },
+    resp_support: { value: "imv" },
+    fio2: { value: 1.0, unit: "fraction" },
+  };
+  ctx.workedExample(
+    {
+      ...jamaTable2,
+      locator: "S/F 97 with IMV → respiratory 3 (Table 2 respiratory row, S/F < 148)",
+    },
+    { ...ventilatedOnPureOxygen, spo2: { value: 97, unit: "%" } },
+    [
+      { id: "respiratory", value: 3 },
+      { id: "phoenix_total", value: 3 },
+      { id: "sepsis", value: 1 },
+    ],
+  );
+  ctx.workedExample(
+    {
+      ...jamaTable2,
+      locator:
+        "SpO₂ 98 is above the S/F validity gate, so respiratory has no usable input and scores 0",
+    },
+    { ...ventilatedOnPureOxygen, spo2: { value: 98, unit: "%" } },
+    [
+      { id: "respiratory", value: 0 },
+      { id: "phoenix_total", value: 0 },
+      { id: "sepsis", value: 0 },
+    ],
+  );
 });
