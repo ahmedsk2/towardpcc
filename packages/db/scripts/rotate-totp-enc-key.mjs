@@ -238,6 +238,52 @@ async function rotate() {
 }
 
 /**
+ * Pipe mode: re-encrypt `id<TAB>sealed` on stdin to `id<TAB>sealed` on stdout.
+ *
+ * WHY THIS EXISTS, and it is not hypothetical. The Prisma path above cannot run
+ * against this production deployment: `packages/db` is not in the image (Next
+ * traces only what the app imports), the host has no Node at all, and inside
+ * the container Prisma sits in a pnpm store path with `pg` never traced in. The
+ * one thing available everywhere is Node's built-in `crypto`.
+ *
+ * So the values move with `psql` and only the crypto happens here — which keeps
+ * a single tested implementation rather than a second copy written under
+ * pressure against a live database. `TOTP_ENC_KEY_OLD` is read from the
+ * container's own `TOTP_ENC_KEY`, so the old key never leaves the host.
+ *
+ * Rows already under the new key are dropped from stdout and reported on
+ * stderr, so re-running is safe and the caller updates only what changed.
+ */
+async function filterMode() {
+  const OLD = loadKey("TOTP_ENC_KEY_OLD");
+  const NEW = loadKey("TOTP_ENC_KEY_NEW");
+  if (OLD.length === NEW.length && timingSafeEqual(OLD, NEW)) {
+    throw new Error("TOTP_ENC_KEY_OLD and TOTP_ENC_KEY_NEW are identical — nothing to rotate");
+  }
+  let input = "";
+  for await (const chunk of process.stdin) input += chunk;
+
+  let rotated = 0;
+  let skipped = 0;
+  for (const line of input.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const tab = trimmed.indexOf("\t");
+    if (tab < 0) throw new Error(`malformed input line (no tab): ${trimmed.slice(0, 24)}…`);
+    const id = trimmed.slice(0, tab);
+    const next = migrate(trimmed.slice(tab + 1), id, OLD, NEW);
+    if (next === null) {
+      skipped++;
+      process.stderr.write(`skip ${id} (already on the new key)\n`);
+    } else {
+      rotated++;
+      process.stdout.write(`${id}\t${next}\n`);
+    }
+  }
+  process.stderr.write(`filter: ${rotated} rotated, ${skipped} already current\n`);
+}
+
+/**
  * Only act when executed directly. `seal`/`open` are exported so a test can
  * prove they interoperate with `apps/web/lib/crypto/secret-box.ts` — and
  * without this guard, importing the module to run that test would connect to
@@ -246,6 +292,7 @@ async function rotate() {
 const executedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (executedDirectly) {
-  if (SELF_TEST) selfTest();
+  if (process.argv.includes("--filter")) await filterMode();
+  else if (SELF_TEST) selfTest();
   else await rotate();
 }

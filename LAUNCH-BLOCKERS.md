@@ -641,21 +641,33 @@ Done, verified against the running system:
 
 Still outstanding, and both need care rather than speed:
 
-- [x] **`TOTP_ENC_KEY` — tooling built and tested; the rotation itself is not
-      yet run.** It seals admin TOTP secrets **and** the stored SMTP settings,
-      so it can never be swapped in the environment alone.
-      `packages/db/scripts/rotate-totp-enc-key.mjs` re-encrypts both in one
-      transaction: `--self-test` proves the crypto with no database, the
-      default is a dry run, `--commit` applies, and it is re-runnable after an
-      interrupted attempt. Procedure in `docs/runbooks/deploy-production.md`.
-      A vitest interop test seals with the app and opens with the script in
-      both directions, because duplicated crypto that is merely believed to
-      match is how a rotation becomes an unrecoverable outage.
+- [x] **`TOTP_ENC_KEY` ROTATED 2026-08-01, and verified against the running
+      system.** It seals admin TOTP secrets **and** the stored SMTP settings,
+      so it can never be swapped in the environment alone —
+      `packages/db/scripts/rotate-totp-enc-key.mjs` re-encrypts both, verifying
+      each new box in memory before anything is written. Two rows moved
+      (`AdminUser.totpSecret`, `AppSetting.SMTP_PASSWORD`) in one transaction,
+      then the variable was updated on both Coolify rows and the container
+      recreated. **Proof, not inference:** the values were read back out of the
+      database and opened with the key the running container now holds — the
+      TOTP secret decrypts to valid base32 and is unchanged, so existing
+      authenticator apps keep working, and the SMTP password opens. Site 200
+      across `/`, a calculator, `/admin/login`, `/api/v1/health`,
+      `/api/v1/ready`. Old and new key material shredded from the host.
       **Fixed alongside it:** `auth.ts` decrypted the TOTP secret _before_
       considering a recovery code, so a wrong key threw inside `authorize()`
       and killed the whole login path — taking down recovery codes, which are
       hashed and do not depend on that key at all. A failed decrypt now fails
       that attempt and logs at error.
+      **A detail worth keeping:** the rotation could not use the script's own
+      Prisma path. `packages/db` is not in the production image, the host has
+      no Node, and inside the container Prisma sits in a pnpm store path with
+      `pg` never traced in. So the script gained a `--filter` mode — values
+      move by `psql`, only the crypto runs in the container on Node's built-in
+      `crypto` — which kept one tested implementation instead of a second copy
+      improvised against a live database. `cap_drop: ALL` also means even root
+      in that container cannot `chown`, so staged files must be written as the
+      app user rather than `docker cp`ed in.
 - [ ] **`DATABASE_URL`.** The preview held production database credentials.
       Rotating means coordinating the app role and `towardpcc_owner`, then
       re-running the restore drill.

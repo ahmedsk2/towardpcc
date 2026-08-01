@@ -199,6 +199,32 @@ and writes nothing. Add `--commit` to apply (one transaction, re-runnable), then
 set `TOTP_ENC_KEY` to the new value and restart as above. Between the commit and
 the restart the running app still holds the old key, so keep that window short.
 
+**On this host the Prisma path above does not work**, and that is not a bug to
+fix in a hurry: `packages/db` is not in the production image (Next traces only
+what the app imports), the host has no Node at all, and inside the container
+Prisma sits in a pnpm store path with `pg` never traced in. Use `--filter`, which
+moves values with `psql` and runs only the crypto in the container on Node's
+built-in `crypto` — one tested implementation instead of a second copy written
+against a live database. This is what the 2026-08-01 rotation used:
+
+```bash
+APP=$(sudo docker ps --format '{{.Names}}' | grep ^gpsokvxzncr7ks1vzqz7wkr4)
+PG=tjuvmq29ogsdoocz59qigcoc
+# Stage as the app user: cap_drop:ALL means even root in the container cannot
+# chown, so a `docker cp`ed file stays unreadable to uid 100.
+sudo docker exec -i "$APP" sh -c 'umask 077; cat > /tmp/nk' < new.key
+sudo docker exec "$PG" psql -U postgres -d towardpcc -tAc \
+  "SELECT id || E'\t' || \"totpSecret\" FROM \"AdminUser\"" > admin.in
+sudo docker exec -i "$APP" sh -c \
+  'TOTP_ENC_KEY_OLD="$TOTP_ENC_KEY" TOTP_ENC_KEY_NEW="$(cat /tmp/nk)" node /tmp/rotate.mjs --filter' \
+  < admin.in > admin.out
+```
+
+Then generate `UPDATE` statements from `admin.out` and apply them inside one
+`BEGIN`/`COMMIT`. Verify by reading the values back out of the database and
+opening them with the key the running container holds — not by trusting the
+restart. Shred the key files afterwards.
+
 `DATABASE_URL` is a separate exercise: it means coordinating the app role and
 `towardpcc_owner`, and re-running the restore drill afterwards.
 
