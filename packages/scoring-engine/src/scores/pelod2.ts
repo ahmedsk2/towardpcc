@@ -317,17 +317,24 @@ export const pelod2 = defineScore({
   ),
   calculate: (values) => {
     const band = ageBandFor(values.age_months.value);
-    const points =
-      gcsPoints(values.gcs.value) +
-      (values.pupils.value === "both_fixed" ? 5 : 0) +
-      lactatePoints(values.lactate.value) +
-      mapPoints(values.map.value, band) +
-      creatininePoints(values.creatinine.value, band) +
+
+    // The ten items grouped into the five organ systems of Leteurtre 2013
+    // Table 6 — the published structure, not a grouping invented here. This is
+    // a pure re-association of the SAME ten terms that were previously summed
+    // inline: same terms, same order, integer addition, so `points` below is
+    // the identical number it has always been. Every worked example asserts its
+    // total, and the maxima (9/10/2/8/4 = 33) are derived term by term in
+    // docs/research/scores/pelod2.md §Organ maxima and reconcile with Table 7.
+    const neurologic = gcsPoints(values.gcs.value) + (values.pupils.value === "both_fixed" ? 5 : 0);
+    const cardiovascular = lactatePoints(values.lactate.value) + mapPoints(values.map.value, band);
+    const renal = creatininePoints(values.creatinine.value, band);
+    const respiratory =
       pfPoints(values.pao2_fio2.value) +
       paco2Points(values.paco2.value) +
-      (values.invasive_vent.value ? 3 : 0) +
-      wbcPoints(values.wbc.value) +
-      plateletPoints(values.platelets.value);
+      (values.invasive_vent.value ? 3 : 0);
+    const haematologic = wbcPoints(values.wbc.value) + plateletPoints(values.platelets.value);
+
+    const points = neurologic + cardiovascular + renal + respiratory + haematologic;
 
     const logit = -6.61 + 0.47 * points;
     const mortalityPercent = (1 / (1 + Math.exp(-logit))) * 100;
@@ -337,6 +344,41 @@ export const pelod2 = defineScore({
         id: "pelod2",
         label: defineText("pelod2.total", "PELOD-2 total"),
         value: points,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "neurologic",
+        label: defineText("pelod2.organ.neurologic", "Neurologic"),
+        value: neurologic,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "cardiovascular",
+        label: defineText("pelod2.organ.cardiovascular", "Cardiovascular"),
+        value: cardiovascular,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "renal",
+        label: defineText("pelod2.organ.renal", "Renal"),
+        value: renal,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "respiratory",
+        label: defineText("pelod2.organ.respiratory", "Respiratory"),
+        value: respiratory,
+        unit: "",
+        precision: 0,
+      },
+      {
+        id: "haematologic",
+        label: defineText("pelod2.organ.haematologic", "Haematologic"),
+        value: haematologic,
         unit: "",
         precision: 0,
       },

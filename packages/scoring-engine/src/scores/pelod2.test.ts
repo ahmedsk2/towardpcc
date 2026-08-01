@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import type { InputValues } from "../types";
 import { pelod2 } from "./pelod2";
@@ -175,4 +176,15 @@ describeScore(pelod2, (ctx) => {
     { ...normal, creatinine: { value: 1.0, unit: "mmol/L" } },
     { inputId: "creatinine", code: "unknown-unit" },
   );
+
+  it("emits five organ subscores that sum to the total", () => {
+    const outcome = pelod2.compute(normal as never);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const get = (id: string) => outcome.result.values.find((x) => x.id === id)?.value;
+    const organs = ["neurologic", "cardiovascular", "renal", "respiratory", "haematologic"];
+    for (const o of organs) expect(get(o), `${o} must be emitted`).toBeDefined();
+    const sum = organs.reduce((n, o) => n + (get(o) ?? 0), 0);
+    expect(sum).toBe(get("pelod2"));
+  });
 });
