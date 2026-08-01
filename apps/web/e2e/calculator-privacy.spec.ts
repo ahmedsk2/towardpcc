@@ -23,6 +23,16 @@ async function settleServiceWorker(page: import("@playwright/test").Page) {
 }
 
 test.describe("TM-001 calculator privacy invariant (runtime)", () => {
+  /**
+   * The suite blocks service workers to kill a reload race (see
+   * playwright.config.ts). This spec is the one place that must NOT, because
+   * the worker is itself a network actor on calculator pages: it precaches
+   * assets, and "nothing you type is transmitted" has to hold with it running,
+   * not merely with it switched off. Blocking it here would quietly narrow the
+   * site's central privacy claim to a configuration real visitors never get.
+   */
+  test.use({ serviceWorkers: "allow" });
+
   test("anion gap computes in airplane mode (network cut, client-side only)", async ({
     page,
     context,
