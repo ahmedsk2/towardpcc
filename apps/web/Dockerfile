@@ -28,13 +28,26 @@ ENV NEXT_OUTPUT_STANDALONE=1
 # external dependency is a deliberate choice (ADR-0004).
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @towardpcc/web build
-# Next's standalone tracer misses Prisma's WASM query compiler (driver adapter,
-# engineType=client). Copy the generated client's query_compiler_bg.wasm into the
-# standalone tree at its resolved path so the runner has it (hash-independent).
+# Next's standalone tracer misses Prisma's WASM query compiler. Copy it out of
+# the generated client into the standalone tree at its resolved path so the
+# runner has it (hash-independent).
+#
+# Matched by glob, not by exact filename. Prisma 7 renamed this file from
+# query_compiler_bg.wasm to query_compiler_fast_bg.wasm — a rename that an
+# exact-name `find` turns into a build failure on upgrade, which is how this
+# was caught. The glob also copies every variant present rather than the first
+# one `head -1` happened to return, so a future fast/small split ships whole.
+#
+# The count is asserted BEFORE any copying: matching nothing must abort the
+# build. The failure this whole step exists to prevent is a container where
+# every query dies with ENOENT while /api/v1/health cheerfully returns 200.
+#
+# `find -exec` rather than a `for` loop over `find` output — the loop form is
+# fragile on paths with whitespace, and hadolint rejects it (SC2044).
 RUN set -eu; SA=apps/web/.next/standalone; \
-  WASM="$(find node_modules -type f -name 'query_compiler_bg.wasm' -path '*.prisma/client*' | head -1)"; \
-  test -n "$WASM"; mkdir -p "$SA/$(dirname "$WASM")"; cp "$WASM" "$SA/$WASM"; \
-  echo "bundled prisma wasm: $WASM"
+  test "$(find node_modules -type f -name 'query_compiler*_bg.wasm' -path '*.prisma/client*' | wc -l)" -gt 0; \
+  find node_modules -type f -name 'query_compiler*_bg.wasm' -path '*.prisma/client*' \
+    -exec sh -c 'mkdir -p "$1/$(dirname "$2")"; cp "$2" "$1/$2"; echo "bundled prisma wasm: $2"' _ "$SA" {} \;
 
 FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS runner
 ENV NODE_ENV=production

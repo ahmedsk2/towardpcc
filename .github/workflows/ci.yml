@@ -231,9 +231,14 @@ jobs:
         # ENOENT at runtime while /api/v1/health still returns 200. It has been
         # missed once already; asserting it here is cheaper than finding out in
         # production via /api/v1/ready.
+        #
+        # Globbed rather than named exactly: Prisma 7 renamed the file from
+        # query_compiler_bg.wasm to query_compiler_fast_bg.wasm. An exact name
+        # here would have kept passing against a stale image or started failing
+        # for a reason that reads like a packaging bug rather than a rename.
         run: |
           docker run --rm --entrypoint sh towardpcc-web:ci -c \
-            'find / -name "query_compiler_bg.wasm" -not -path "*/proc/*" 2>/dev/null | head -1 | grep -q . '
+            'find / -name "query_compiler*_bg.wasm" -not -path "*/proc/*" 2>/dev/null | head -1 | grep -q . '
 
       # An inventory of what is actually inside the image, kept as a build
       # artifact. Trivy above answers "are there known vulnerabilities today";

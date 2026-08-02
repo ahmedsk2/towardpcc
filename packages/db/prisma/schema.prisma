@@ -3,17 +3,27 @@
 // side only, PRD §6.4); this schema serves only the submission/admin surfaces.
 
 generator client {
-  provider   = "prisma-client-js"
-  // Driver adapters + WASM query compiler (GA in Prisma 6.19) run queries via the
-  // pure-JS `pg` driver with no native Rust engine — required because Prisma ships
-  // no Windows-ARM64 engine (dev box), and fine on the Linux prod host. Enabled by
-  // passing an adapter to PrismaClient (see src/index.ts); `engineType` pins it.
-  engineType = "client"
+  // Queries run through the WASM query compiler over the pure-JS `pg` driver,
+  // with no native Rust engine — required because Prisma ships no Windows-ARM64
+  // engine (dev box), and fine on the Linux prod host. Enabled by passing an
+  // adapter to PrismaClient (see src/index.ts).
+  //
+  // Prisma 6 needed `engineType = "client"` here to select that mode. Prisma 7
+  // removed the Rust engine outright and made driver adapters mandatory, so the
+  // setting no longer selects anything and has been dropped rather than left
+  // behind as a line that reads like it still controls something.
+  //
+  // Still `prisma-client-js`, not the newer `prisma-client` generator: that one
+  // requires an explicit `output` inside the repo and changes every import from
+  // "@prisma/client" to a generated path. Deferred as its own decision.
+  provider = "prisma-client-js"
 }
 
+// No `url` here: Prisma 7 rejects `datasource.url` in the schema outright
+// (P1012). The connection string now lives in prisma.config.ts, which reads it
+// from DATABASE_URL at CLI time.
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum AdminRole {
