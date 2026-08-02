@@ -29,7 +29,7 @@ export const pim3 = defineScore({
   id: "pim3",
   slug: "pim3",
   name: "Paediatric Index of Mortality 3 (PIM3)",
-  version: "1.0.0",
+  version: "1.0.1",
   status: "published",
   category: "mortality-severity",
   inputs: [
@@ -189,12 +189,22 @@ export const pim3 = defineScore({
         "Straney L, Clements A, Parslow RC, et al; ANZICS Paediatric Study Group and PICANet. Paediatric index of mortality 3: an updated model for predicting mortality in pediatric intensive care. Pediatr Crit Care Med. 2013;14(7):673–681.",
       pmid: "23863821",
       doi: "10.1097/PCC.0b013e31829760cf",
-    },
-    {
-      citation:
-        "ANZICS Centre for Outcome and Resource Evaluation. PIM2 & PIM3 for the ANZPIC Registry — Information Booklet (Version Jan 2019). Authoritative source for variable coding rules (SBP special values, pupil/ventilation definitions, first-hour timing).",
-      url: "https://www.anzics.org/wp-content/uploads/2019/07/ANZPICR-PIM2-PIM3-Information-Booklet.pdf",
-      note: "Booklet PDF returned HTTP 404 at verification; coding-rule wording carried as [NEEDS SOURCE].",
+      // The ANZICS "PIM2 & PIM3 for the ANZPIC Registry — Information Booklet
+      // (Version Jan 2019)" is the authoritative source for the variable CODING
+      // rules (SBP special values, pupil and ventilation definitions, first-hour
+      // timing). It is named here rather than carried as its own reference
+      // because it no longer has a locator that resolves: its published URL
+      // (anzics.org/wp-content/uploads/2019/07/ANZPICR-PIM2-PIM3-Information-Booklet.pdf)
+      // returns HTTP 404, re-verified 2026-08-02, as does every other
+      // anzics.org upload path tried. It was the only locator on this page not
+      // backed by a resolver, and shipping a dead link beside working DOIs and
+      // a PMID made the citation list less trustworthy, not more complete.
+      //
+      // The booklet is not the publication PIM3 comes from — Straney 2013 is —
+      // so naming it as supporting material here is also the structurally
+      // honest placement. Every rule that depended on it stays marked
+      // [NEEDS SOURCE] in `notes`, which is what the reader needs to know.
+      note: "Derivation paper for the PIM3 model, its 13 coefficients and the logistic transform. Variable coding rules come from the ANZICS 'PIM2 & PIM3 for the ANZPIC Registry — Information Booklet (Version Jan 2019)', which is no longer retrievable at its published URL (HTTP 404, re-verified 2026-08-02); the rules that depend on it are carried as [NEEDS SOURCE] in the limitations rather than presented as sourced.",
     },
     {
       citation:
@@ -212,6 +222,13 @@ export const pim3 = defineScore({
         "Initial release: PIM3 logistic model → predicted mortality probability, with corrected FiO₂/PaO₂ missing-value default of 0.23.",
       reason: "initial-release",
     },
+    {
+      version: "1.0.1",
+      date: "2026-08-02",
+      summary:
+        "Removed the ANZICS PIM2/PIM3 Information Booklet as a separate reference: its published URL returns HTTP 404 (re-verified 2026-08-02) and it was the only locator on this page not backed by a resolver. The booklet is still named, as the authoritative source for the variable coding rules, in a note on the derivation paper it supports, and the rules that depend on it remain marked [NEEDS SOURCE]. No citation text was lost and no computed value changed.",
+      reason: "new-reference",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -224,7 +241,7 @@ export const pim3 = defineScore({
   ),
   notes: defineText(
     "pim3.notes",
-    "PIM3 estimates the probability of death from data collected at first ICU contact. It is a unit-level case-mix / benchmarking tool — summed individual probabilities across a cohort give an expected death count, compared with observed deaths as a Standardised Mortality Ratio (SMR = observed/expected) — and is NOT an individual bedside prediction. The derivation paper (Straney 2013) defines no diagnostic cut-points or risk bands, so this score reports none. Missing-data conventions are load-bearing: unknown systolic BP defaults to 120 mmHg, unknown base excess contributes 0, and an unmeasured FiO₂/PaO₂ sets that term to PIM3's 'normal' value of 0.23 (a correction — PIM2 used 0). SBP coding: cardiac arrest at admission → enter 0; shocked with an unmeasurable BP → enter 30; unknown → leave blank (120). Use the FIRST value of each variable from first ICU contact up to 1 hour after admission (may include ED/retrieval data), not the worst. Calibration drifts by setting and era (external AUC ~0.80–0.90, variable calibration); recalibrate and monitor locally before comparative interpretation. [NEEDS SOURCE] (all depend on the ANZICS PIM2/PIM3 Information Booklet, which returned HTTP 404 at verification): the pupil-exclusion clause (fixed pupils from drugs/toxins/local eye injury not scored), the mechanical-ventilation CPAP/BiPAP inclusion and tracheostomy-while-spontaneously-breathing exclusion, the elective 'could not have been foreseen' exclusion wording, and the exact verbatim SBP special-value wording (the values cardiac arrest→0 and shocked/unmeasurable→30 are widely repeated but no quotable full-text source was fetched). Per-region calibration statistics and the exact ANZPIC diagnosis-code mappings for each risk tier are also [NEEDS SOURCE].",
+    "PIM3 estimates the probability of death from data collected at first ICU contact. It is a unit-level case-mix / benchmarking tool — summed individual probabilities across a cohort give an expected death count, compared with observed deaths as a Standardised Mortality Ratio (SMR = observed/expected) — and is NOT an individual bedside prediction. The derivation paper (Straney 2013) defines no diagnostic cut-points or risk bands, so this score reports none. Missing-data conventions are load-bearing: unknown systolic BP defaults to 120 mmHg, unknown base excess contributes 0, and an unmeasured FiO₂/PaO₂ sets that term to PIM3's 'normal' value of 0.23 (a correction — PIM2 used 0). SBP coding: cardiac arrest at admission → enter 0; shocked with an unmeasurable BP → enter 30; unknown → leave blank (120). Use the FIRST value of each variable from first ICU contact up to 1 hour after admission (may include ED/retrieval data), not the worst. Calibration drifts by setting and era (external AUC ~0.80–0.90, variable calibration); recalibrate and monitor locally before comparative interpretation. [NEEDS SOURCE] (all depend on the ANZICS PIM2/PIM3 Information Booklet, whose published URL returns HTTP 404 — re-verified 2026-08-02, along with every other anzics.org document path tried, so it is named in the references rather than linked): the pupil-exclusion clause (fixed pupils from drugs/toxins/local eye injury not scored), the mechanical-ventilation CPAP/BiPAP inclusion and tracheostomy-while-spontaneously-breathing exclusion, the elective 'could not have been foreseen' exclusion wording, and the exact verbatim SBP special-value wording (the values cardiac arrest→0 and shocked/unmeasurable→30 are widely repeated but no quotable full-text source was fetched). Per-region calibration statistics and the exact ANZPIC diagnosis-code mappings for each risk tier are also [NEEDS SOURCE].",
   ),
   calculate: (values) => {
     const pupils = values.pupils.value ? 1 : 0;
