@@ -246,3 +246,62 @@ the algorithm itself.
 incompletely applied. Checking a rights claim against a primary source means
 checking it against the source that _makes the claim you are answering_ — not
 against a different primary source that answers an easier one.
+
+## Third addendum, 2026-08-02 — PRISM and FOUR: founder decision
+
+Both rows are closed by a decision rather than by new evidence. Recorded that
+way on purpose: the evidence in the second addendum is unchanged and still
+accurate, and a later reader must be able to see what was decided, by whom, and
+on what basis — not find a document that quietly stopped mentioning a footnote.
+
+### PRISM — proceed, with attribution
+
+**Decision (founder, 2026-08-02): publish PRISM III and PRISM IV, treating the
+algorithms as uncopyrightable, with full attribution to the source study.**
+
+The reasoning this rests on is the one the first addendum already set out and
+which the second addendum agreed was probably right on the merits: PRISM III is
+a table of physiologic cut-points and a logistic equation. Under 17 USC 102(b)
+an idea, procedure, process, system or method of operation is not copyrightable
+regardless of the form in which it is described — and a scoring table plus a
+regression is that, not expression. PRISM has no item-descriptor prose of its
+own to copy; the only external wording is the Glasgow Coma Scale, and `prism.ts`
+consumes an integer total exactly as `pediatric-gcs.ts` does, reproducing none
+of Teasdale's descriptors.
+
+**What does not change.** The rights footnote in Pollack 1996 p.752 exists, says
+what the second addendum quotes, and has not been withdrawn. The patent's
+current assignee is VPS LLC, not Children's National. Those facts stay recorded
+in this document and in `docs/research/scores/prism.md`; this decision is taken
+in full view of them, not in ignorance of them.
+
+**The obligation this decision carries is attribution**, and it is not optional.
+Every published surface must name the derivation study, and the score's
+`references` must resolve. That is an academic-integrity duty independent of
+copyright, and it is the thing that makes "treat it as uncopyrightable" a
+defensible position rather than a convenient one.
+
+**What would reopen it:** a communication from VPS LLC or Children's National
+asserting a claim against this specific use. Nothing else. This is not an
+invitation to re-litigate on a third reading of the same footnote.
+
+### FOUR score — no IP obstacle; build it
+
+**Decision (founder, 2026-08-02): the FOUR score carries no IP obstacle for this
+project. Build it.**
+
+The prior rating was `uncertain`, upheld on adversarial challenge — the concern
+being whether Mayo Clinic asserts rights over the item descriptors the way the
+GCS's stewards do over Teasdale's wording. The decision resolves the uncertainty
+in favour of building.
+
+**The implementation constraint that follows from the concern, and it is
+binding:** build it the way `pediatric-gcs.ts` is built. Consume the four
+component scores as integers. Do not reproduce verbatim descriptor prose from
+the source instrument; where a component needs explanation, write it in this
+project's own words and cite Wijdicks 2005. That keeps the calculator on the
+correct side of the only line anyone has plausibly drawn, at no cost to its
+clinical usefulness — the arithmetic and the thresholds are facts either way.
+
+Attribution obligation as above: the derivation study is named on the page and
+in `references`.
