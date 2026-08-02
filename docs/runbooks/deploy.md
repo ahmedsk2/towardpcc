@@ -31,17 +31,34 @@ backup + uptime-kuma). The residency claim on the site depends on the region —
    `openssl rand -base64 32`), `SUBMISSION_IP_SALT` (`openssl rand -hex 16`),
    `POSTGRES_PASSWORD` (DB owner), `POSTGRES_APP_PASSWORD` (least-privilege app
    role, `openssl rand -hex 24`), and `UMAMI_DB_PASSWORD` / `UMAMI_APP_SECRET`.
-   Set `SITE_DOMAIN`, `WEB_IMAGE`, and the SMTP_* vars. The app connects as the
-   scoped `towardpcc_app` role (CRUD only); only the `migrate` profile and the
-   retention purge use the owner (`POSTGRES_USER` / `POSTGRES_PASSWORD`).
+   Set `SITE_DOMAIN`, `WEB_IMAGE`, `MIGRATE_IMAGE`, and the SMTP_\* vars. The app
+   connects as the scoped `towardpcc_app` role (CRUD only); only the `migrate`
+   profile and the retention purge use the owner (`POSTGRES_USER` /
+   `POSTGRES_PASSWORD`).
 
-## 1. Build & push the image
+## 1. Build & push the images — there are TWO
 
 ```bash
 # On CI or a build host matching the VM architecture:
 docker build -f apps/web/Dockerfile -t "$WEB_IMAGE" .
 docker push "$WEB_IMAGE"
+
+# The migrate image is the `build` stage of the SAME Dockerfile, at the SAME
+# commit. Same build, one extra tag — the layers are already in cache.
+docker build -f apps/web/Dockerfile --target build -t "$MIGRATE_IMAGE" .
+docker push "$MIGRATE_IMAGE"
 ```
+
+> **Why two.** `WEB_IMAGE` is the `runner` stage: the Next.js standalone output,
+> which contains only what the server imports. It has no Prisma CLI, no
+> `schema.prisma`, no `migrations/` and no `prisma.config.ts` — so it cannot run
+> a migration, and cannot run `packages/db/scripts/*` either. The `build` stage
+> has the whole workspace and is what production already uses for migrations
+> (`deploy-production.md`, "Database migrations").
+>
+> **Build both from the same commit.** A newer migrate image applies migrations
+> the running app does not know about; an older one leaves the app expecting
+> columns that do not exist.
 
 ## 2. Bring up data services
 
@@ -55,6 +72,22 @@ docker compose -f docker-compose.prod.yml ps   # wait for postgres healthy
 ```bash
 docker compose -f docker-compose.prod.yml --profile migrate run --rm migrate
 ```
+
+Runs `pnpm --filter @towardpcc/db exec prisma migrate deploy` from
+`$MIGRATE_IMAGE` as the **owner** role. `--filter` is not decoration: it sets the
+working directory to `packages/db`, which is how Prisma 7 finds
+`prisma.config.ts`, where the datasource URL now lives.
+
+Expect `All migrations have been successfully applied.` and exit 0. Re-running is
+a no-op (`No pending migrations to apply.`).
+
+> **This service was broken from the day it was written until 2026-08-02.** It
+> pointed at `$WEB_IMAGE` and invoked `node node_modules/prisma/build/index.js`,
+> a path that does not exist in the standalone runner image; every invocation
+> died with `Cannot find module '/app/node_modules/prisma/build/index.js'`. It
+> was never caught because this stack is not what production runs. If you are
+> reading this because you are standing the stack up for real, that is the fix
+> you are benefiting from — and the reason step 1 now builds two images.
 
 ## 3b. Lock the audit trail to append-only (once, after the first migrate)
 
@@ -87,10 +120,22 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
 
 ```bash
 ADMIN_BOOTSTRAP_PASSWORD='<strong>' docker compose -f docker-compose.prod.yml \
-  run --rm -e ADMIN_BOOTSTRAP_PASSWORD web \
-  node packages/db/scripts/create-admin.mjs you@towardpcc.com OWNER
+  --profile migrate run --rm -e ADMIN_BOOTSTRAP_PASSWORD -e TOTP_ENC_KEY \
+  --entrypoint sh migrate \
+  -c 'cd packages/db && node scripts/create-admin.mjs you@towardpcc.com OWNER'
 # Save the printed TOTP URI + recovery codes offline. They are shown once.
 ```
+
+> **Also fixed 2026-08-02, same root cause.** This step used to run against the
+> `web` service and failed with
+> `Cannot find module '/app/packages/db/scripts/create-admin.mjs'` — the script
+> is not in the standalone image either, for exactly the reason step 1 explains.
+> `deploy-production.md` already records the general form of this
+> ("`packages/db` is not in the production image"); this runbook had not caught
+> up. It runs on the `migrate` service because that is the one pointing at the
+> build image. `-e TOTP_ENC_KEY` passes the value through from the host
+> environment — the script seals the TOTP secret with it, and the migrate
+> service does not carry it otherwise.
 
 ## 5. Start the app + proxy
 

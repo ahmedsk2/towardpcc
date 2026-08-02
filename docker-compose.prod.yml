@@ -102,24 +102,59 @@ services:
       retries: 5
     networks: [data]
 
-  # Runs migrations once on deploy, then exits (docs/runbooks/deploy.md step 4).
-  # Uses the OWNER role (DDL); the app runtime never holds DDL rights.
+  # Runs migrations once on deploy, then exits (docs/runbooks/deploy.md step 3).
+  # Uses the OWNER role (DDL); the app runtime never holds DDL rights — verified:
+  # as `towardpcc_app` this command dies with "permission denied for table
+  # _prisma_migrations", which is the whole point of the split.
+  #
+  # WHY A SEPARATE IMAGE FROM `web`, AND NOT ${WEB_IMAGE}.
+  #
+  # This service ran against ${WEB_IMAGE} until 2026-08-02 and had never worked.
+  # ${WEB_IMAGE} is the Dockerfile's `runner` stage — the Next.js standalone
+  # output — and the standalone tracer copies only what the server actually
+  # imports. The Prisma CLI is a devDependency of packages/db and is never
+  # traced in, so the old entrypoint died on
+  # `Cannot find module '/app/node_modules/prisma/build/index.js'` every time.
+  # Confirmed empirically against both a Prisma 7 image and one built under
+  # Prisma 6: a pre-existing defect, not an upgrade regression. The runner image
+  # carries none of what a migration needs — no prisma CLI, no schema.prisma, no
+  # migrations directory, no prisma.config.ts.
+  #
+  # ${MIGRATE_IMAGE} is the `build` stage of the SAME Dockerfile at the SAME
+  # commit (`docker build -f apps/web/Dockerfile --target build`). It has the
+  # full workspace install, so it has all four. Pointing at the build stage
+  # rather than inventing a dedicated migrate stage is deliberate: it makes this
+  # stack run the identical command production already runs
+  # (docs/runbooks/deploy-production.md, "Database migrations"), so there is one
+  # migration mechanism to keep correct instead of two.
+  #
+  # ${MIGRATE_IMAGE} MUST be built from the same commit as ${WEB_IMAGE}. A newer
+  # migrate image applies migrations the running app does not know about; an
+  # older one leaves the app expecting columns that do not exist.
+  #
+  # `pnpm --filter` rather than calling the CLI by path: it sets the working
+  # directory to packages/db, which is how Prisma 7 finds prisma.config.ts —
+  # required since the upgrade, because Prisma 7 rejects `url` inside
+  # `datasource` in schema.prisma and the connection string is resolved in that
+  # config file instead. It also resolves the CLI out of pnpm's store without
+  # this file hardcoding a node_modules layout, which is the class of mistake
+  # the old entrypoint made.
   migrate:
-    image: ${WEB_IMAGE:?}
+    image: ${MIGRATE_IMAGE:?build stage of apps/web/Dockerfile at the same commit as WEB_IMAGE, e.g. registry/towardpcc-migrate:sha}
     profiles: ["migrate"]
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]
+    # One-shot, but still bounded: an unbounded migration container on a
+    # single-VM stack can starve postgres alongside it. Verified sufficient for
+    # the current migration set.
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
+    working_dir: /repo
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:?}
-    entrypoint:
-      [
-        "node",
-        "node_modules/prisma/build/index.js",
-        "migrate",
-        "deploy",
-        "--schema=packages/db/prisma/schema.prisma",
-      ]
+    entrypoint: ["pnpm", "--filter", "@towardpcc/db", "exec", "prisma", "migrate", "deploy"]
     networks: [data]
     depends_on:
       postgres:
