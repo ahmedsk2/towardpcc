@@ -520,7 +520,29 @@ Independent re-check performed **2026-08-01**, against the primary sources direc
 
 ## IP status
 
-> ## ⚠ UNRESOLVED — reopened 2026-08-01, and PRISM is live in production
+> ## DECIDED 2026-08-02 — publish, treating the algorithms as uncopyrightable
+>
+> **Founder decision:** publish PRISM III and PRISM IV with full attribution to
+> the derivation study, on the basis that a table of physiologic cut-points and
+> a logistic equation is a method of operation under 17 USC 102(b) rather than
+> copyrightable expression. See `docs/decisions/ADR-tier-b-ip.md`, third
+> addendum.
+>
+> **The obligation that comes with it:** every published surface names the study,
+> and `references` must resolve. Attribution is an academic-integrity duty
+> independent of copyright, and it is what makes this position defensible rather
+> than merely convenient.
+>
+> **The evidence below is unchanged and stays on the record.** The footnote
+> exists, says what it says, and has not been withdrawn; the current patent
+> assignee is VPS LLC, not Children's National. The decision is taken in view of
+> those facts, not in ignorance of them. What would reopen it is a communication
+> from VPS LLC or Children's National asserting a claim against this specific
+> use — nothing else.
+>
+> ---
+>
+> ## The evidence, as recorded 2026-08-01
 >
 > This section previously read **"Freely reproducible"** and concluded the
 > licence question was closed. An adversarial re-check found it answered the
