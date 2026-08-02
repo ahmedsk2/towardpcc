@@ -67,6 +67,46 @@ describe("registry §6.3 gate", () => {
     );
   });
 
+  /**
+   * `version` must BE the newest changelog entry's version.
+   *
+   * /trust claims every score carries a version and a changelog, and the
+   * detail page derives its "reviewed" date from the newest changelog entry —
+   * so a score whose declared version is not the one that entry describes is
+   * showing a review date for text it does not cover. Two scores had exactly
+   * that: sf-ratio and phoenix gained new clinical paragraphs on 2026-08-01
+   * while still declaring v1.0.0 dated 2026-07-25, so the page invited a
+   * reviewer to sign off "v1.0.0, reviewed 2026-07-25" over different text
+   * from the one that was reviewed.
+   *
+   * WHAT THIS DOES AND DOES NOT CATCH. It catches a bumped version with no
+   * entry, an entry with no bump, and an entry added out of order. It does NOT
+   * catch prose edited with neither touched — that needs a content hash over
+   * the user-visible fields, which is a bigger mechanism (a committed manifest
+   * plus a reseal script) and is deliberately not attempted here. This is the
+   * part that is free.
+   */
+  it("every score's version is the newest entry in its own changelog", () => {
+    for (const s of registry) {
+      expect(s.changelog.length, `${s.slug} needs at least one changelog entry`).toBeGreaterThan(0);
+
+      const dates = s.changelog.map((e) => e.date);
+      const sortedDates = [...dates].sort((a, b) => a.localeCompare(b));
+      expect(
+        dates,
+        `${s.slug}: changelog must read oldest-first so "newest" is unambiguous`,
+      ).toEqual(sortedDates);
+
+      const newest = s.changelog[s.changelog.length - 1];
+      expect(
+        s.version,
+        `${s.slug}: declares v${s.version} but its newest changelog entry is ` +
+          `v${newest?.version} (${newest?.date}) — a version without an entry describing ` +
+          `it means the page shows a review date for text that entry does not cover`,
+      ).toBe(newest?.version);
+    }
+  });
+
   it("every score carries the honest two-slot validator tuple and a locator-able reference", () => {
     for (const s of registry) {
       expect(s.validators, `${s.slug} needs exactly two validator slots`).toHaveLength(2);
