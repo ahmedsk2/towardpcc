@@ -13,7 +13,7 @@
  * count is 87 — and it survived because the e2e guard compared the rendered
  * figure to this file, so the number only had to agree with itself.
  */
-const CITATIONS = 95;
+const CITATIONS = 103;
 
 export const site = {
   name: "TowardPCC",
@@ -88,7 +88,7 @@ export const site = {
     heroSceneCoupling: "heart rate rises on inspiration",
     heroSceneLabel:
       "A school-age child's heart and lungs, built from measured pediatric anatomy: airways branching from the carina into alveolar clusters that fill with each breath, four cardiac chambers in their true depth order, and both lungs outlined with the cardiac notch where the heart rests against the left one. It breathes about nineteen times a minute and beats about eighty-one, the way a well child at rest does, and the heart rate rises on inspiration as it does in a real one.",
-    status: "Live. 24 referenced calculators.",
+    status: "Live. 25 referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
       heading: "How we handle data",
@@ -101,9 +101,9 @@ export const site = {
       href: "/legal/data-protection",
     },
     // Hero eyebrow — reflects the live registry count, not a marketing claim.
-    badge: "Live now · 24 referenced calculators",
+    badge: "Live now · 25 referenced calculators",
     heroTrust: [
-      { value: "24", label: "Calculators live" },
+      { value: "25", label: "Calculators live" },
       // Value injected at render from the registry — see app/page.tsx. It was
       // hardcoded to 89 and the real count is 87; the site overclaimed by two
       // for as long as anyone had been reading it.
@@ -155,7 +155,7 @@ export const site = {
     countersLede:
       "Every figure here is something you can go and count. Nothing on this page is an estimate.",
     counters: [
-      { value: 24, label: "Referenced calculators" },
+      { value: 25, label: "Referenced calculators" },
       { value: CITATIONS, label: "Literature citations" },
       { value: 64388, label: "Library pages indexed" },
       { value: 100, suffix: "%", label: "Engine test coverage" },
