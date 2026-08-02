@@ -140,6 +140,52 @@ describeScore(pelod2, (ctx) => {
     ],
   );
 
+  /**
+   * THE 45 mmHg GAP IN THE 24–59 MONTH BAND.
+   *
+   * Table 6 prints that band as ≥62 → 0, 46–61 → 2, 32–44 → 3, ≤31 → 6. A MAP
+   * of exactly 45 is scored by none of them. Every other age band tiles the
+   * axis without a gap (0–<1: ≤16/17–30/31–45/≥46; 1–11: ≤24/25–38/39–54/≥55;
+   * 12–23: ≤30/31–43/44–59/≥60; 60–143: ≤35/36–48/49–64/≥65; ≥144:
+   * ≤37/38–51/52–66/≥67), and the creatinine bands are contiguous in all six —
+   * so this is a one-value omission in the source, not a deliberate exclusion.
+   *
+   * The paper states no rule, so an implementation MUST choose, and the choice
+   * is not derivable from the publication. We close the gap DOWNWARD: the
+   * ≥-cascade in `mapPoints` falls through to the 3-point band, extending it up
+   * to 45. That is the conservative (higher-severity) reading, which for a
+   * severity score is the safer default. The public ESPNIC calculator closes it
+   * upward and scores 45 as 2, so a 2–4-year-old at exactly this MAP totals one
+   * point higher here than there — the only input at which the two disagree.
+   *
+   * Pinned so the choice is deliberate rather than incidental: 45 → 3 is a
+   * fall-through, which is exactly the kind of behaviour that survives a
+   * refactor by accident and dies by accident. The neighbours are asserted too,
+   * because a "fix" that shifts the printed band edges to close the gap would
+   * otherwise be invisible — 46 belongs to the 2-point band and 44 to the
+   * 3-point band, and both are printed in Table 6 rather than inferred.
+   *
+   * `normal` is age 36 mo (in-band) with every other item scoring 0, so the
+   * total IS the cardiovascular subscore here.
+   */
+  for (const [map, points, why] of [
+    [46, 2, "printed 2-pt band floor (46–61)"],
+    [45, 3, "UNPRINTED — the gap; closed downward to 3 (ESPNIC assigns 2)"],
+    [44, 3, "printed 3-pt band ceiling (32–44)"],
+  ] as const) {
+    ctx.workedExample(
+      {
+        ...leteurtre,
+        locator: `Table 6, 24–59 mo band: MAP ${map} mmHg → ${points} pts — ${why}`,
+      },
+      { ...normal, map: { value: map, unit: "mmHg" } },
+      [
+        { id: "pelod2", value: points },
+        { id: "cardiovascular", value: points },
+      ],
+    );
+  }
+
   // Boundary coverage for every numeric input (also satisfies the rejection floor).
   for (const id of [
     "age_months",
