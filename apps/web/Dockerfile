@@ -38,16 +38,16 @@ RUN pnpm --filter @towardpcc/web build
 # was caught. The glob also copies every variant present rather than the first
 # one `head -1` happened to return, so a future fast/small split ships whole.
 #
-# The `test -n` guard stays: matching nothing must abort the build. The failure
-# this whole step exists to prevent is a container where every query dies with
-# ENOENT while /api/v1/health cheerfully returns 200.
+# The count is asserted BEFORE any copying: matching nothing must abort the
+# build. The failure this whole step exists to prevent is a container where
+# every query dies with ENOENT while /api/v1/health cheerfully returns 200.
+#
+# `find -exec` rather than a `for` loop over `find` output — the loop form is
+# fragile on paths with whitespace, and hadolint rejects it (SC2044).
 RUN set -eu; SA=apps/web/.next/standalone; \
-  FOUND=0; \
-  for WASM in $(find node_modules -type f -name 'query_compiler*_bg.wasm' -path '*.prisma/client*'); do \
-    mkdir -p "$SA/$(dirname "$WASM")"; cp "$WASM" "$SA/$WASM"; \
-    echo "bundled prisma wasm: $WASM"; FOUND=1; \
-  done; \
-  test "$FOUND" = 1
+  test "$(find node_modules -type f -name 'query_compiler*_bg.wasm' -path '*.prisma/client*' | wc -l)" -gt 0; \
+  find node_modules -type f -name 'query_compiler*_bg.wasm' -path '*.prisma/client*' \
+    -exec sh -c 'mkdir -p "$1/$(dirname "$2")"; cp "$2" "$1/$2"; echo "bundled prisma wasm: $2"' _ "$SA" {} \;
 
 FROM node:24-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd AS runner
 ENV NODE_ENV=production
