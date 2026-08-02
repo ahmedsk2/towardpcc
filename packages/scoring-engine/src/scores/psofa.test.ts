@@ -164,6 +164,28 @@ describeScore(psofa, (ctx) => {
     ],
   );
 
+  // The SAME case entered in kPa. 250 mmHg = 250 × 101.325/760 = 33.3306 kPa,
+  // so this must reproduce the example directly above exactly — respiratory 2,
+  // total 2 — or the unit spec is not converting.
+  //
+  // Pins the fix for a real defect: this input previously declared a mmHg-only
+  // spec while every sibling PaO₂ in the engine (P/F, OI, Phoenix, PIM3, PRISM)
+  // accepted kPa, so an SI user got a clean rejection here and nowhere else and
+  // had to convert by hand. Reverting the spec turns this from a pass into an
+  // `unknown-unit` rejection, which fails on the `outcome.ok` assertion inside
+  // the harness rather than on the value — so the failure names the cause.
+  ctx.workedExample(
+    {
+      ...matics,
+      locator: "PaO₂:FiO₂ 200–299 → respiratory 2, entered in kPa (33.3306 kPa = 250 mmHg)",
+    },
+    { ...normal, pao2: { value: 33.3306, unit: "kPa" } },
+    [
+      { id: "total", value: 2 },
+      { id: "respiratory", value: 2 },
+    ],
+  );
+
   // --- Respiratory SpO₂:FiO₂ band sweep (Table 1). Used only when no PaO₂ and
   // SpO₂ ≤97%. Subscores 3–4 require respiratory support; a 3/4-band ratio
   // without support is capped at 2 (psofa.md non-support capping convention). ---

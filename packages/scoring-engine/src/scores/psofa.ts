@@ -2,6 +2,7 @@ import { defineScore } from "../define-score";
 import { defineText } from "../i18n/text";
 import { bilirubinMgdl, creatinineMgdl } from "../units/concentration";
 import { fractionWithPercent } from "../units/fraction";
+import { mmhgWithKpa } from "../units/pressure";
 import type { UnitSpec } from "../units/types";
 import { NO_UNIT } from "../units/types";
 
@@ -70,6 +71,13 @@ function respiratoryFromSf(sf: number, support: boolean): number {
 }
 
 const monthsUnit: UnitSpec = { canonical: "months" };
+/**
+ * Blood pressure — mmHg only, deliberately. kPa is a blood-GAS convention; no
+ * bedside monitor reports a mean arterial pressure in kPa, so an alternate here
+ * would invite a unit that is never entered. The PaO₂ input above uses the
+ * shared `mmhgWithKpa` spec instead, which is the distinction: tension vs
+ * pressure, not one score vs another.
+ */
 const mmHgUnit: UnitSpec = { canonical: "mmHg" };
 const vasoactiveUnit: UnitSpec = { canonical: "µg/kg/min" };
 // ×10³/µL is numerically equal to ×10⁹/L (psofa.md conversions), so the alternate
@@ -112,13 +120,21 @@ export const psofa = defineScore({
       label: defineText("psofa.pao2", "Arterial PaO₂"),
       required: false,
       type: "numeric",
-      unit: mmHgUnit,
+      // Blood-gas tension: the SHARED spec, so kPa is accepted here exactly as
+      // it is by every sibling that takes a PaO₂ (P/F, OI, Phoenix, PIM3,
+      // PRISM) and by PELOD-2's PaCO₂. This input previously declared a
+      // mmHg-only spec, which rejected kPa cleanly but made pSOFA the sole
+      // outlier and forced a hand conversion on SI users — the population most
+      // likely to make an arithmetic error. Canonical stays mmHg, so the
+      // thresholds in `respiratoryFromPf` are unchanged and no computed
+      // subscore moves.
+      unit: mmhgWithKpa,
       // Input-validity bound, not a cited threshold (psofa.md [NEEDS SOURCE]).
       min: 20,
       max: 600,
       helpText: defineText(
         "psofa.pao2.help",
-        "From an arterial blood gas. When present, PaO₂:FiO₂ is used for the respiratory subscore.",
+        "From an arterial blood gas. Accepts mmHg or kPa. When present, PaO₂:FiO₂ is used for the respiratory subscore.",
       ),
     },
     {
