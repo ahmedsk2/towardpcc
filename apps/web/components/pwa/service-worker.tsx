@@ -1,17 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { cn } from "@towardpcc/ui";
+import { useEffect, useRef, useState } from "react";
 import { site } from "@/content/site";
 
 /**
- * Registers the Serwist service worker, surfaces an "update available" toast
- * (PRD §6.5), and shows an offline banner. No user data is involved — the SW
- * only precaches public assets so the calculators work in bedside dead-zones.
+ * Registers the Serwist service worker and shows the offline banner. No user
+ * data is involved — the SW only precaches public assets so the calculators
+ * work in bedside dead-zones.
+ *
+ * Updates apply SILENTLY, as the reader leaves a page. There is deliberately no
+ * "a new version is available" prompt (PRD §6.5 asked for one; this is a
+ * considered departure, see below).
+ *
+ * Why no prompt: `next.config.ts` pins no `generateBuildId`, so Next mints a
+ * random build id per build and bakes it into precached paths. `sw.js` therefore
+ * changes on EVERY deploy — including one that touched only a markdown file —
+ * and every returning reader was told a new version was available. The toast had
+ * no dismiss control and lives in the root layout, which does not remount across
+ * client-side navigation, so once shown it stayed pinned over the content on
+ * every page until clicked. A prompt that fires on non-changes and cannot be
+ * refused is noise, and readers learn to ignore it.
+ *
+ * Why on pagehide, and not immediately: `sw.ts` keeps `skipWaiting: false` on
+ * purpose. Routes are code-split, so a worker that takes over mid-session leaves
+ * the running page asking for chunk URLs the new precache no longer lists and
+ * the origin no longer serves. Waiting until the document is being torn down
+ * means activation costs the reader nothing — the page they are on is already
+ * going away, and the next one is controlled by the new worker with assets that
+ * match it.
+ *
+ * Known limit: with several tabs open, one tab unloading activates the worker
+ * for the others, which are still running the previous build. Next recovers from
+ * a chunk-load failure with a hard navigation, so the cost is one slow route
+ * change in that case rather than a broken page. That is a better trade than
+ * reloading every reader, which is what the previous unconditional
+ * `controllerchange` reload did — measured as a second document request ~5.1s
+ * into every first visit.
  */
 export function ServiceWorker() {
-  const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
   const [offline, setOffline] = useState(false);
+  const waitingRef = useRef<ServiceWorker | null>(null);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -24,91 +52,51 @@ export function ServiceWorker() {
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
 
-    // Whether a worker was ALREADY driving this page when we mounted. Captured
-    // before register() so it describes the page as loaded, not as it ends up.
-    // `sw.ts` sets clientsClaim, so on a first visit the freshly installed
-    // worker claims this client and fires `controllerchange` even though there
-    // is no newer content to show — see onControllerChange below.
-    const hadController = Boolean(navigator.serviceWorker.controller);
-
-    let reg: ServiceWorkerRegistration | undefined;
     const track = (r: ServiceWorkerRegistration) => {
-      if (r.waiting) setWaiting(r.waiting);
+      if (r.waiting) waitingRef.current = r.waiting;
       r.addEventListener("updatefound", () => {
         const nw = r.installing;
         if (!nw) return;
         nw.addEventListener("statechange", () => {
-          if (nw.state === "installed" && navigator.serviceWorker.controller) setWaiting(nw);
+          // `controller` non-null means this is a genuine update rather than the
+          // first install, where there is no previous worker to replace.
+          if (nw.state === "installed" && navigator.serviceWorker.controller) {
+            waitingRef.current = nw;
+          }
         });
       });
     };
 
     navigator.serviceWorker
       .register("/sw.js")
-      .then((r) => {
-        reg = r;
-        track(r);
-      })
+      .then(track)
       .catch(() => {
         // Registration failure must never break the page; the site still works online.
       });
 
-    // Reload once a NEW worker takes over from a previous one — that is the
-    // only case where the document in front of the user is stale.
-    //
-    // Reloading unconditionally reloads first-time visitors too, because
-    // clientsClaim makes the initial worker claim the page a few seconds in.
-    // That cost a full extra document fetch on every first visit (measured at
-    // ~5.1s on production, roughly doubling time-to-settled), threw away scroll
-    // position and focus, and is why playwright.config.ts has to block service
-    // workers for the whole suite. On a first install there is nothing newer to
-    // show, so there is nothing to reload to.
-    let refreshing = false;
-    const onControllerChange = () => {
-      if (!hadController || refreshing) return;
-      refreshing = true;
-      window.location.reload();
+    // `pagehide` rather than `beforeunload`: it is the event that actually fires
+    // on mobile Safari, and it tells us whether the document is being frozen for
+    // the back/forward cache instead of destroyed. A bfcache'd page can be
+    // restored and keep running, so leave its worker alone.
+    const onPageHide = (event: PageTransitionEvent) => {
+      if (event.persisted) return;
+      waitingRef.current?.postMessage({ type: "SKIP_WAITING" });
+      waitingRef.current = null;
     };
-    navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+    window.addEventListener("pagehide", onPageHide);
 
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
-      navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
-      void reg;
+      window.removeEventListener("pagehide", onPageHide);
     };
   }, []);
 
-  const applyUpdate = () => {
-    waiting?.postMessage({ type: "SKIP_WAITING" });
-    setWaiting(null);
-  };
+  if (!offline) return null;
 
   return (
-    <>
-      {offline && (
-        <div role="status" className="bg-alert-bg px-4 py-2 text-center text-sm text-alert-text">
-          {site.pwa.offline}
-        </div>
-      )}
-      {waiting && (
-        <div
-          role="status"
-          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-4 rounded-lg border border-border bg-surface-raised p-4 shadow-md"
-        >
-          <p className="text-sm text-ink-body">{site.pwa.updateReady}</p>
-          <button
-            type="button"
-            onClick={applyUpdate}
-            className={cn(
-              "shrink-0 rounded-md bg-accent px-3.5 py-2 text-sm font-medium text-ink-on-accent",
-              "hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-            )}
-          >
-            {site.pwa.updateAction}
-          </button>
-        </div>
-      )}
-    </>
+    <div role="status" className="bg-alert-bg px-4 py-2 text-center text-sm text-alert-text">
+      {site.pwa.offline}
+    </div>
   );
 }
