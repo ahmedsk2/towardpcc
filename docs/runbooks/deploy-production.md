@@ -130,11 +130,26 @@ is the source of truth used to seed Coolify's env vars. It is **not** in git.
 
 ## Gotcha: Prisma WASM in the standalone image
 
-Next's standalone output tracer omits Prisma's `query_compiler_bg.wasm` (driver
-adapter, `engineType = "client"`), which makes every DB query fail with `ENOENT`
-at runtime while `/api/v1/health` still returns 200. `apps/web/Dockerfile` copies
-the file into the standalone tree explicitly. **`/api/v1/health` does not prove
-the database works — always check `/api/v1/ready`**, which runs `SELECT 1`:
+Under Prisma 6, Next's standalone output tracer omitted Prisma's
+`query_compiler_bg.wasm`, which made every DB query fail with `ENOENT` at runtime
+while `/api/v1/health` still returned 200. `apps/web/Dockerfile` copies the file
+into the standalone tree explicitly, and CI asserts it shipped.
+
+Two things changed with the Prisma 7 upgrade, both verified against a real
+container and a real Postgres:
+
+- **The file was renamed** — `query_compiler_bg.wasm` →
+  `query_compiler_fast_bg.wasm`. The Dockerfile copy and the CI assertion now
+  match `query_compiler*_bg.wasm` by glob so the next rename is not an outage.
+- **The copy is no longer load-bearing.** Prisma 7 inlines the query compiler
+  into the webpack server chunks, so the standalone output carries it already.
+  An image with every `.wasm` deleted still serves `/api/v1/ready` fine. The copy
+  is kept as cheap insurance and still fails the build loudly if the file
+  vanishes, but it is no longer the thing standing between you and the outage.
+  Retiring it (and its CI assertion) is a reasonable future cleanup.
+
+**`/api/v1/health` does not prove the database works — always check
+`/api/v1/ready`**, which runs `SELECT 1`:
 
 ```bash
 curl -s https://towardpcc.com/api/v1/ready   # {"status":"ready"} — 503 if the DB is unreachable
