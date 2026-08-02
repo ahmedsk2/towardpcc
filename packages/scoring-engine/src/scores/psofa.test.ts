@@ -87,6 +87,32 @@ describeScore(psofa, (ctx) => {
     ],
   );
 
+  // ---- Alternate-unit boundary: an UNPUBLISHED SI "equivalent" must not over-score ----
+  // pSOFA states its hepatic bands in mg/dL only and supplies a conversion
+  // FACTOR ("to convert to µmol/L, multiply by 17.104") — it does not print a
+  // µmol/L cut point (psofa.md §3 Hepatic + §Inputs). So 34.2 µmol/L is not a
+  // restatement of the 2.0 mg/dL band boundary (2.0 mg/dL is 34.208 µmol/L);
+  // 34.2 ÷ 17.104 = 1.99953 mg/dL sits in the published 1.2–1.9 band → hepatic 1.
+  // bilirubinMgdl therefore carries NO canonicalDecimals; this pins that adding
+  // one would move a real measurement into a worse subscore.
+  ctx.workedExample(
+    { ...matics, locator: "Table 1 hepatic band 1.2–1.9 mg/dL, entered as 34.2 µmol/L" },
+    { ...normal, bilirubin: { value: 34.2, unit: "µmol/L" } },
+    [
+      { id: "hepatic", value: 1 },
+      { id: "total", value: 1 },
+    ],
+  );
+  // 34.3 µmol/L is 2.0054 mg/dL — genuinely in the 2.0–5.9 band → hepatic 2.
+  ctx.workedExample(
+    { ...matics, locator: "Table 1 hepatic band 2.0–5.9 mg/dL, entered as 34.3 µmol/L" },
+    { ...normal, bilirubin: { value: 34.3, unit: "µmol/L" } },
+    [
+      { id: "hepatic", value: 2 },
+      { id: "total", value: 2 },
+    ],
+  );
+
   // Example B — 2-month-old (1–11 band); total 3 (psofa.md, Example B).
   // SpO₂ 95% (≤97, valid) with no PaO₂ → SpO₂:FiO₂ path.
   ctx.workedExample(
