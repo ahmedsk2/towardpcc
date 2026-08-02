@@ -24,7 +24,7 @@ export const sfRatio = defineScore({
   id: "sf-ratio",
   slug: "sf-ratio",
   name: "SpO₂/FiO₂ ratio (S/F)",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "respiratory",
   inputs: [
@@ -125,6 +125,13 @@ export const sfRatio = defineScore({
       summary:
         "Initial release: direct S/F ratio with PALICC-2 NIV-PARDS bands and the SpO₂ ≤ 97% validity guard.",
       reason: "initial-release",
+    },
+    {
+      version: "1.1.0",
+      date: "2026-08-01",
+      summary:
+        "Limitations now state that the bands are the PALICC-2 paediatric strata and that the 2024 global ARDS definition cuts the same ratio at S/F ≤ 315, so a value between 250 and 315 classifies differently under the two frameworks. No threshold, band or computed value changed; the page previously named PALICC-2 four times without disclosing that an adult tool would disagree.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

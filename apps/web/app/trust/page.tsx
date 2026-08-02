@@ -107,12 +107,13 @@ export default function TrustPage() {
           <Claim
             heading={`${scores.length} calculators, ${citations} citations, none of them decorative`}
             chip={<CountChip scores={scores.length} citations={citations} />}
-            how="Both figures are counted from the score definitions at build time. A score cannot be published without at least one locator (a PMID, a DOI or a URL), so a citation you cannot follow is not possible."
+            how="Both figures are counted from the score definitions at build time. The build fails if any score carries a reference without at least one locator — a PMID, a DOI or a URL. It checks that a locator is present, not that it still resolves: that would need a live network call, and the test suite is deliberately offline. Locators are re-checked by hand, and a source that has gone missing is said to have gone missing rather than left as a dead link."
           >
             <p>
-              Every score names the publication it comes from, with a link that resolves. Where a
-              value in a score has no published source, it is marked <code>[NEEDS SOURCE]</code> in
-              the limitations rather than quietly presented as evidence.
+              Every score names the publication it comes from, and gives you a way to look it up.
+              Where a value in a score has no published source — or had one that is no longer
+              retrievable — it is marked <code>[NEEDS SOURCE]</code> in the limitations rather than
+              quietly presented as evidence.
             </p>
           </Claim>
 

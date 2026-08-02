@@ -63,7 +63,7 @@ export const phoenix = defineScore({
   id: "phoenix",
   slug: "phoenix",
   name: "Phoenix Sepsis Score",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "sepsis",
   inputs: [
@@ -355,6 +355,13 @@ export const phoenix = defineScore({
       summary:
         "Initial release: four-organ Phoenix Sepsis Score with age-banded MAP, sepsis and septic-shock flags.",
       reason: "initial-release",
+    },
+    {
+      version: "1.1.0",
+      date: "2026-08-01",
+      summary:
+        "Limitations now state the SpO₂ 97/98 discontinuity outright: with no arterial gas, a child on invasive ventilation at FiO₂ 1.0 scores respiratory 3 at SpO₂ 97 but 0 at SpO₂ 98, because S/F is undefined above 97 and the missing-input convention then contributes 0 — so a well-saturated child on maximal support can fall below the total ≥ 2 sepsis threshold on respiratory grounds alone. Both halves are per the paper and neither was stated; a reader could have taken the 0 for reassurance. The four component maxima (respiratory 0–3, cardiovascular 0–6, coagulation 0–2, neurologic 0–2) are now declared for the result panel, and the inputs carry organ-system group headings. No threshold or computed value changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

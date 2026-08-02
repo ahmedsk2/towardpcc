@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { pim3 } from "./pim3";
 
@@ -232,4 +233,53 @@ describeScore(pim3, (ctx) => {
     { ...base, fio2: { value: 0.1, unit: "fraction" } },
     { inputId: "fio2", code: "out-of-range" },
   );
+});
+
+/**
+ * The ANZICS booklet was the only locator on this page not backed by a
+ * resolver, and it was already known dead — its published URL returns HTTP 404
+ * (re-verified 2026-08-02, as does every other anzics.org document path tried).
+ * A dead link sitting beside two working DOIs and a PMID made the citation list
+ * less trustworthy rather than more complete, and it falsified /trust's claim
+ * about following a score back to its source.
+ *
+ * Both halves are pinned, because fixing either one alone is the wrong fix:
+ * deleting the link must not also delete the citation, and keeping the citation
+ * must not mean keeping the link.
+ */
+describe("pim3 citations carry no dead locator", () => {
+  const DEAD_BOOKLET_URL = "ANZPICR-PIM2-PIM3-Information-Booklet.pdf";
+
+  it("does not ship the 404ing ANZICS booklet URL as a locator", () => {
+    for (const ref of pim3.references) {
+      const url = "url" in ref ? ref.url : "";
+      expect(
+        url,
+        "the ANZICS booklet URL returns HTTP 404 and must not ship as a locator",
+      ).not.toContain(DEAD_BOOKLET_URL);
+    }
+  });
+
+  it("still names the booklet as the source of the coding rules", () => {
+    // Removing the dead link must not lose the attribution. The booklet is the
+    // authoritative source for the SBP special values, the pupil and
+    // ventilation definitions and the first-hour timing; it is now named in a
+    // note on the derivation paper it supports rather than as its own entry.
+    const named = pim3.references.some((r) => (r.note ?? "").includes("Information Booklet"));
+    expect(named, "the ANZICS booklet must still be credited in the references").toBe(true);
+  });
+
+  it("keeps the rules that depended on it marked [NEEDS SOURCE]", () => {
+    // The point of removing the link is honesty, not tidiness: the rules it
+    // backed are still unsourced and must still say so.
+    expect(pim3.notes.en).toContain("[NEEDS SOURCE]");
+    expect(pim3.notes.en).toContain("ANZICS");
+  });
+
+  it("leaves every remaining reference traceable", () => {
+    for (const ref of pim3.references) {
+      const traceable = "pmid" in ref || "doi" in ref || "url" in ref;
+      expect(traceable, `"${ref.citation.slice(0, 40)}…" must keep a locator`).toBe(true);
+    }
+  });
 });

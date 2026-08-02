@@ -19,7 +19,13 @@ describeScore(correctedCalcium, (ctx) => {
       measuredCalcium: { value: 7.6, unit: "mg/dL" },
       albumin: { value: 2.0, unit: "g/dL" },
     },
-    [{ id: "corrected_calcium", value: 9.2, tolerance: 1e-9 }],
+    [
+      { id: "corrected_calcium", value: 9.2, tolerance: 1e-9 },
+      // Both conventions are emitted regardless of what was entered: 9.2 mg/dL
+      // ÷ 4.008 = 2.2954… mmol/L. Entered here in CONVENTIONAL units, so this
+      // is the direction that used to be silent for an SI reader.
+      { id: "corrected_calcium_mmol", value: 9.2 / 4.008, tolerance: 1e-9 },
+    ],
   );
 
   // Worked example 2 (corrected-calcium.md): SI inputs Ca 1.90 mmol/L, albumin
@@ -35,7 +41,14 @@ describeScore(correctedCalcium, (ctx) => {
       measuredCalcium: { value: 1.9, unit: "mmol/L" },
       albumin: { value: 25, unit: "g/L" },
     },
-    [{ id: "corrected_calcium", value: 8.8152, tolerance: 1e-6 }],
+    [
+      { id: "corrected_calcium", value: 8.8152, tolerance: 1e-6 },
+      // THE CASE THE SECOND OUTPUT EXISTS FOR: both inputs entered in SI, so
+      // before this the reader got 8.8152 mg/dL back and had to divide by 4.008
+      // themselves. 8.8152 / 4.008 = 2.1994 mmol/L — the research file's SI
+      // answer of ≈2.20 mmol/L, now returned rather than left as an exercise.
+      { id: "corrected_calcium_mmol", value: 2.1994, tolerance: 5e-4 },
+    ],
   );
 
   // Worked example 3 (corrected-calcium.md): at the reference albumin the
@@ -86,10 +99,12 @@ describeScore(correctedCalcium, (ctx) => {
 });
 
 /**
- * Round-trip coverage for the new calcium.ts unit specs. Validation/compute
- * only ever call `toCanonical` (exercised above via the mmol/L + g/L worked
- * example); `fromCanonical` is display-only, so it is exercised here to keep
- * the new unit file at 100% under the score-scoped coverage run.
+ * Round-trip coverage for the calcium.ts unit specs. Validation only ever calls
+ * `toCanonical` (exercised above via the mmol/L + g/L worked example).
+ * `mmolPerLForCalcium.fromCanonical` is now ALSO on the compute path — it
+ * produces the mmol/L output — but `gPerLForAlbumin.fromCanonical` remains
+ * display-only, so both are exercised here to keep the unit file at 100% under
+ * the score-scoped coverage run.
  */
 describe("calcium/albumin unit conversions (round-trip)", () => {
   it("calcium fromCanonical inverts toCanonical", () => {
@@ -105,5 +120,39 @@ describe("calcium/albumin unit conversions (round-trip)", () => {
     expect(gPerLForAlbumin.fromCanonical(gPerLForAlbumin.toCanonical(30))).toBeCloseTo(30, 10);
     // 4.0 g/dL × 10 = 40 g/L.
     expect(gPerLForAlbumin.fromCanonical(4.0)).toBeCloseTo(40, 10);
+  });
+});
+
+/**
+ * The two outputs must be ONE quantity in two conventions, not two numbers that
+ * happen to look related. The worked examples above assert each against a value
+ * derived by hand, which would still pass if the mmol/L row were computed from
+ * a second, drifted constant that agreed at those particular inputs. This
+ * asserts the relation itself, across the full declared input domain, so the
+ * only way to satisfy it is to derive one from the other.
+ *
+ * Also pins that BOTH rows are emitted at all — deleting the SI row fails here
+ * on `toBeDefined` rather than silently returning to the old behaviour.
+ */
+describe("corrected calcium reports both conventions consistently", () => {
+  it("emits mg/dL and mmol/L for the same value across the input domain", () => {
+    for (const ca of [4, 7.6, 9.6, 12, 20]) {
+      for (const alb of [1, 2.5, 4.0, 6]) {
+        const outcome = correctedCalcium.compute({
+          measuredCalcium: { value: ca, unit: "mg/dL" },
+          albumin: { value: alb, unit: "g/dL" },
+        });
+        expect(outcome.ok, `Ca ${ca} / alb ${alb} did not compute`).toBe(true);
+        if (!outcome.ok) continue;
+        const mgdl = outcome.result.values.find((v) => v.id === "corrected_calcium");
+        const mmol = outcome.result.values.find((v) => v.id === "corrected_calcium_mmol");
+        expect(mgdl, "mg/dL output must be emitted").toBeDefined();
+        expect(mmol, "mmol/L output must be emitted").toBeDefined();
+        expect(mgdl?.unit).toBe("mg/dL");
+        expect(mmol?.unit).toBe("mmol/L");
+        // Molar mass 40.08 g/mol ⇒ 1 mmol/L = 4.008 mg/dL.
+        expect(mmol?.value).toBeCloseTo((mgdl?.value ?? Number.NaN) / 4.008, 10);
+      }
+    }
   });
 });
