@@ -1,6 +1,6 @@
 import { defineScore } from "../define-score";
 import { defineText } from "../i18n/text";
-import { albuminGdl, calciumMgdl } from "../units/calcium";
+import { albuminGdl, calciumMgdl, mmolPerLForCalcium } from "../units/calcium";
 
 /**
  * Albumin-adjusted ("corrected") total calcium — Payne et al. 1973 (BMJ).
@@ -16,7 +16,7 @@ export const correctedCalcium = defineScore({
   id: "corrected-calcium",
   slug: "corrected-calcium",
   name: "Corrected calcium for albumin",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -81,6 +81,13 @@ export const correctedCalcium = defineScore({
         "Initial release: albumin-corrected calcium (Payne, de-facto 0.8/0.02 coefficient); no bands.",
       reason: "initial-release",
     },
+    {
+      version: "1.1.0",
+      date: "2026-08-02",
+      summary:
+        "Added a second output reporting the corrected calcium in mmol/L alongside mg/dL. The entered unit is discarded during canonicalisation, so a user working in SI previously had to convert the mg/dL answer back by hand; both conventions are now always shown. The mg/dL value is unchanged.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -89,7 +96,7 @@ export const correctedCalcium = defineScore({
   },
   formula: defineText(
     "cca.formula",
-    "Corrected calcium (mg/dL) = measured total calcium + 0.8 × (4.0 − serum albumin in g/dL). In SI units: corrected calcium (mmol/L) = measured + 0.02 × (40 − albumin in g/L). 4.0 g/dL (40 g/L) is the reference-normal albumin at which no correction is applied; below it the correction raises an artefactually low total calcium, above it it lowers it. The 0.8 (0.02) coefficient is the widely used rounded form of Payne's original 1.0 (0.025) slope.",
+    "Corrected calcium (mg/dL) = measured total calcium + 0.8 × (4.0 − serum albumin in g/dL). In SI units: corrected calcium (mmol/L) = measured + 0.02 × (40 − albumin in g/L). 4.0 g/dL (40 g/L) is the reference-normal albumin at which no correction is applied; below it the correction raises an artefactually low total calcium, above it it lowers it. The 0.8 (0.02) coefficient is the widely used rounded form of Payne's original 1.0 (0.025) slope. The result is reported in both conventions regardless of the units entered: the mmol/L figure is the mg/dL figure ÷ 4.008 (calcium molar mass 40.08 g/mol), the same constant used to convert an SI calcium on the way in, so the two are exactly consistent.",
   ),
   notes: defineText(
     "cca.notes",
@@ -115,6 +122,36 @@ export const correctedCalcium = defineScore({
         value: corrected,
         unit: "mg/dL",
         precision: 1,
+      },
+      // BOTH conventions, always — not the one the user happened to type.
+      //
+      // `runValidation` normalises every numeric input to canonical and stores
+      // `{ value, unit: canonical }`, so the unit the caller actually entered is
+      // gone before `calculate` runs. Emitting mg/dL only therefore left a
+      // clinician working in mmol/L — the SI convention across most of the world
+      // outside the US — to divide by 4.008 by hand, on a page whose entire
+      // point is to remove that arithmetic. The two inputs can also be entered
+      // in DIFFERENT conventions (calcium in mmol/L, albumin in g/dL), so even
+      // preserving the entered unit would not yield one unambiguous answer.
+      //
+      // Emitting both sidesteps that: it is correct regardless of what was
+      // typed, needs no change to `NumericValue`, `validation.ts` or any other
+      // score, and matches how this codebase already handles a quantity with no
+      // single right rendering — ideal body weight emits three methods,
+      // corrected sodium two, and neither picks for the reader.
+      //
+      // Derived from the SAME constant as the input conversion
+      // (CALCIUM_MGDL_PER_MMOL, via `fromCanonical`) rather than a second
+      // literal, so the two directions cannot drift apart. The mg/dL figure
+      // above is untouched — this row is additive.
+      {
+        id: "corrected_calcium_mmol",
+        label: defineText("cca.output.si", "Albumin-corrected calcium (SI)"),
+        value: mmolPerLForCalcium.fromCanonical(corrected),
+        unit: "mmol/L",
+        // 2 dp, not 1: 1 dp on a ~2.2 mmol/L value is ~10× coarser than 1 dp on
+        // the same quantity in mg/dL, which would throw away real precision.
+        precision: 2,
       },
     ];
   },
