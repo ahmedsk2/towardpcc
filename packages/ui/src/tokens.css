@@ -121,10 +121,14 @@
   --gradient-accent: linear-gradient(135deg, #cf1f3d 0%, #ff7a6b 100%);
   --gradient-soft: linear-gradient(180deg, #fff2ee 0%, #fffaf7 100%);
 
-  /* Type roles — all self-hosted, SIL OFL (see ADR-design-direction) */
-  --font-display: "Space Grotesk Variable", system-ui, sans-serif;
-  --font-body: "Inter Variable", system-ui, sans-serif;
-  --font-numeric: "IBM Plex Mono", ui-monospace, monospace;
+  /* Type roles — all self-hosted, SIL OFL (see ADR-design-direction).
+     The families come from next/font (apps/web/app/layout.tsx), which emits a
+     hashed family name plus a metric-matched fallback @font-face, so the swap
+     costs no layout shift. Named here as variables, with the generic stacks
+     kept as fallbacks so this file still renders standalone. */
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-numeric: var(--font-plex-mono), ui-monospace, monospace;
 
   /* Type scale — headings use --font-display, figures --font-numeric */
   --text-xs: 0.75rem;

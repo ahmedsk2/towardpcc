@@ -24,6 +24,13 @@ export function ServiceWorker() {
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
 
+    // Whether a worker was ALREADY driving this page when we mounted. Captured
+    // before register() so it describes the page as loaded, not as it ends up.
+    // `sw.ts` sets clientsClaim, so on a first visit the freshly installed
+    // worker claims this client and fires `controllerchange` even though there
+    // is no newer content to show — see onControllerChange below.
+    const hadController = Boolean(navigator.serviceWorker.controller);
+
     let reg: ServiceWorkerRegistration | undefined;
     const track = (r: ServiceWorkerRegistration) => {
       if (r.waiting) setWaiting(r.waiting);
@@ -46,10 +53,19 @@ export function ServiceWorker() {
         // Registration failure must never break the page; the site still works online.
       });
 
-    // Reload once the new worker takes control.
+    // Reload once a NEW worker takes over from a previous one — that is the
+    // only case where the document in front of the user is stale.
+    //
+    // Reloading unconditionally reloads first-time visitors too, because
+    // clientsClaim makes the initial worker claim the page a few seconds in.
+    // That cost a full extra document fetch on every first visit (measured at
+    // ~5.1s on production, roughly doubling time-to-settled), threw away scroll
+    // position and focus, and is why playwright.config.ts has to block service
+    // workers for the whole suite. On a first install there is nothing newer to
+    // show, so there is nothing to reload to.
     let refreshing = false;
     const onControllerChange = () => {
-      if (refreshing) return;
+      if (!hadController || refreshing) return;
       refreshing = true;
       window.location.reload();
     };
