@@ -19,10 +19,32 @@ export const umolPerLForCreatinine: UnitConversion = {
   fromCanonical: (mgdl) => mgdl * CREATININE_UMOL_PER_MGDL,
 };
 
-/** Serum creatinine: canonical mg/dL, accepts µmol/L. */
+/**
+ * Serum creatinine: canonical mg/dL, accepts µmol/L.
+ *
+ * `canonicalDecimals: 2` — serum creatinine is reported to two decimals in
+ * mg/dL by clinical convention, and every mg/dL cut point these scores apply is
+ * stated at one or two decimals (KDIGO 0.3 / 4.0; pSOFA age bands 0.3 … 5.0;
+ * PRISM 0.85 / 0.9 / 1.3). Two decimals is therefore the measurement's real
+ * precision in this unit, not a number tuned to a threshold.
+ *
+ * It is also the fix for a threshold-boundary defect on the µmol/L path. KDIGO
+ * Table 2 PRINTS its own SI equivalents — "≥0.3 mg/dL (≥26.5 µmol/L)" and
+ * "increase in SCr to ≥4.0 mg/dL (≥353.6 µmol/L)" (kdigo-aki.md §Step 1;
+ * corroborated by the Merck reproduction at 26.52 / 353.60). Unrounded, the
+ * guideline's own 353.6 µmol/L converts to 3.999095 mg/dL and FAILS `>= 4.0`,
+ * staging a Stage-3 creatinine as Stage 1. At two decimals it converts to 4.00
+ * and stages correctly, while a genuinely sub-threshold 349.3 µmol/L still
+ * converts to 3.95 and correctly does not cross. Same for the rise criterion:
+ * a 26.5 µmol/L rise resolves to a 0.30 mg/dL rise.
+ *
+ * Rounding applies only to a µmol/L entry; an mg/dL entry is the clinician's
+ * own figure and is passed through untouched (see UnitSpec.canonicalDecimals).
+ */
 export const creatinineMgdl: UnitSpec = {
   canonical: "mg/dL",
   alternates: [umolPerLForCreatinine],
+  canonicalDecimals: 2,
 };
 
 /**
@@ -37,7 +59,18 @@ export const umolPerLForBilirubin: UnitConversion = {
   fromCanonical: (mgdl) => mgdl * BILIRUBIN_UMOL_PER_MGDL,
 };
 
-/** Total bilirubin: canonical mg/dL, accepts µmol/L. */
+/**
+ * Total bilirubin: canonical mg/dL, accepts µmol/L.
+ *
+ * Deliberately NO `canonicalDecimals`. pSOFA states its hepatic bands in mg/dL
+ * only and supplies a conversion FACTOR ("to convert to µmol/L, multiply by
+ * 17.104"), not a printed µmol/L cut point (psofa.md §3 Hepatic + §Inputs) —
+ * unlike KDIGO, which prints its SI equivalents as thresholds. So 34.2 µmol/L
+ * is an arithmetic conversion of 2 mg/dL that nobody published, and 34.2 ÷
+ * 17.104 = 1.99953 mg/dL is genuinely below the 2.0 band. Rounding it up to
+ * 2.0 would move a real measurement into a worse subscore to satisfy a number
+ * no source states. See units/concentration.test.ts, which pins that.
+ */
 export const bilirubinMgdl: UnitSpec = {
   canonical: "mg/dL",
   alternates: [umolPerLForBilirubin],
@@ -58,7 +91,18 @@ export const mgdlPerLForLactate: UnitConversion = {
   fromCanonical: (mmol) => mmol * LACTATE_MGDL_PER_MMOL,
 };
 
-/** Blood lactate: canonical mmol/L, accepts mg/dL. */
+/**
+ * Blood lactate: canonical mmol/L, accepts mg/dL.
+ *
+ * Deliberately NO `canonicalDecimals`. Both scores that use it state their
+ * lactate bands in mmol/L only and neither prints an mg/dL equivalent —
+ * phoenix.md says the ×9.01 factor is a "general lab convention, not published
+ * in the Phoenix paper", and pelod2.md says the same of its conversions. So
+ * 45 mg/dL is not a published restatement of the 5 mmol/L cut point (5 mmol/L
+ * is 45.05 mg/dL); 45 ÷ 9.01 = 4.9945 mmol/L is genuinely below 5, and rounding
+ * it up would add a cardiovascular point to a real measurement that does not
+ * meet the published threshold. See units/concentration.test.ts.
+ */
 export const lactateMmol: UnitSpec = {
   canonical: "mmol/L",
   alternates: [mgdlPerLForLactate],

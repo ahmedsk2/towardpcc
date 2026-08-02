@@ -357,6 +357,31 @@ describeScore(phoenix, (ctx) => {
     [{ id: "cardiovascular", value: 1 }],
   );
 
+  // 2b, entered in mg/dL. Phoenix states its lactate bands in mmol/L only —
+  // phoenix.md records the ×9.01 factor as "a general lab convention, not
+  // published in the Phoenix paper" — so 45 mg/dL is NOT a published
+  // restatement of the 5 mmol/L cut point (5 mmol/L is 45.05 mg/dL). 45 ÷ 9.01
+  // = 4.9945 mmol/L, genuinely in the < 5 band → 0. Rounding lactate at
+  // conversion would add a cardiovascular point to a measurement that does not
+  // meet the published threshold; this pins that it must not.
+  ctx.workedExample(
+    {
+      ...jamaTable2,
+      locator: "JAMA Table 2 (phoenix.md §2b): 45 mg/dL = 4.9945 mmol/L, below the 5 mmol/L band",
+    },
+    { ...rr, lactate: { value: 45, unit: "mg/dL" } },
+    [{ id: "cardiovascular", value: 0 }],
+  );
+  // 45.1 mg/dL is 5.0055 mmol/L — genuinely at/over the published cut point → 1.
+  ctx.workedExample(
+    {
+      ...jamaTable2,
+      locator: "JAMA Table 2 (phoenix.md §2b): 45.1 mg/dL = 5.0055 mmol/L ∈ [5,11) → 1",
+    },
+    { ...rr, lactate: { value: 45.1, unit: "mg/dL" } },
+    [{ id: "cardiovascular", value: 1 }],
+  );
+
   // 2c. Age-banded MAP. Neonate band 0–<1 mo: MAP < 17 → 2 pts (also exercises the
   // "MAP < low → 2" arm). Bands 1–<12, 12–<24 and ≥144 mo each score 1 pt in-range.
   ctx.workedExample(

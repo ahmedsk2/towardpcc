@@ -43,6 +43,50 @@ describeScore(pelod2, (ctx) => {
     ],
   );
 
+  // ---- Alternate-unit boundary: an UNPUBLISHED equivalent must not over-score ----
+  // Leteurtre 2013 states PaCO₂ in mmHg only and lactate in mmol/L only;
+  // pelod2.md §Inputs records "1 kPa = 7.5 mmHg" and "1 mmol/L ≈ 9.01 mg/dL" as
+  // standard laboratory conversions, "not values from the paper". So neither
+  // 12.6 kPa nor 45 mg/dL is a published restatement of a cut point:
+  //   95 mmHg is 12.666 kPa → 12.6 kPa really is 94.5 mmHg → the 59–94 band → 1
+  //   5 mmol/L is 45.05 mg/dL → 45 mg/dL really is 4.9945 mmol/L → < 5 → 0
+  // mmhgWithKpa and lactateMmol therefore carry NO canonicalDecimals. Rounding
+  // PaCO₂ to whole mmHg would push 94.5 to 95 and cost this patient two points.
+  ctx.workedExample(
+    { ...leteurtre, locator: "Table 6 respiratory band 59–94 mmHg, entered as 12.6 kPa" },
+    { ...normal, paco2: { value: 12.6, unit: "kPa" } },
+    [
+      { id: "respiratory", value: 1 },
+      { id: "pelod2", value: 1 },
+    ],
+  );
+  // 12.7 kPa is 95.26 mmHg — genuinely at/over the published ≥ 95 cut point → 3.
+  ctx.workedExample(
+    { ...leteurtre, locator: "Table 6 respiratory band ≥ 95 mmHg, entered as 12.7 kPa" },
+    { ...normal, paco2: { value: 12.7, unit: "kPa" } },
+    [
+      { id: "respiratory", value: 3 },
+      { id: "pelod2", value: 3 },
+    ],
+  );
+  ctx.workedExample(
+    { ...leteurtre, locator: "Table 6 cardiovascular lactate < 5 mmol/L, entered as 45 mg/dL" },
+    { ...normal, lactate: { value: 45, unit: "mg/dL" } },
+    [
+      { id: "cardiovascular", value: 0 },
+      { id: "pelod2", value: 0 },
+    ],
+  );
+  // 45.1 mg/dL is 5.0055 mmol/L — genuinely in the published 5.0–10.9 band → 1.
+  ctx.workedExample(
+    { ...leteurtre, locator: "Table 6 cardiovascular lactate 5.0–10.9 mmol/L, as 45.1 mg/dL" },
+    { ...normal, lactate: { value: 45.1, unit: "mg/dL" } },
+    [
+      { id: "cardiovascular", value: 1 },
+      { id: "pelod2", value: 1 },
+    ],
+  );
+
   // Example 2 — 3-year-old (24–59 mo band), mixed dysfunction → total 9, ≈ 8.5%.
   // GCS 8→1, pupils reactive→0, lactate 6→1, MAP 40→3, creat 30→0, P/F 200→0,
   // PaCO₂ 50→0, invasive vent→3, WBC 10→0, platelets 100→1.

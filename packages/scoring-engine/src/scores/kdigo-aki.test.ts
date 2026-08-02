@@ -111,6 +111,53 @@ describeScore(kdigoAki, (ctx) => {
     [{ id: "kdigo_stage", value: 0 }],
   );
 
+  // ---- SI-unit entry: KDIGO's own printed µmol/L thresholds must stage the same ----
+  // KDIGO Table 2 prints the SI equivalents as thresholds, not as a footnote:
+  // "increase in SCr to ≥ 4.0 mg/dL (≥ 353.6 µmol/L)" and "≥ 0.3 mg/dL
+  // (≥ 26.5 µmol/L)" (kdigo-aki.md §Step 1; Merck reproduction 353.60 / 26.52).
+  // Before creatinineMgdl declared canonicalDecimals: 2, entering the guideline's
+  // own 353.6 converted to 3.999095 mg/dL, failed `>= 4`, and returned Stage 1.
+  // 353.6 → 4.00 and 309.4 → 3.50, so the absolute ≥ 4.0 branch fires.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 2 — Stage 3 SCr criterion, entered as ≥ 353.6 µmol/L" },
+    { scr: { value: 353.6, unit: "µmol/L" }, scr_baseline: { value: 309.4, unit: "µmol/L" } },
+    [{ id: "kdigo_stage", value: 3 }],
+  );
+
+  // Same in µmol/L with no baseline — the absolute-creatinine branch alone.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 2 — Stage 3 absolute SCr ≥ 353.6 µmol/L, no baseline" },
+    { scr: { value: 353.6, unit: "µmol/L" } },
+    [{ id: "kdigo_stage", value: 3 }],
+  );
+
+  // The other direction: 349.3 µmol/L is 3.95 mg/dL, genuinely BELOW ≥ 4.0, and
+  // must not be dragged over it. Against a 309.4 µmol/L (3.50) baseline the
+  // ratio is 1.13× — no ratio band — but the rise is 0.45 mg/dL, so KDIGO
+  // Stage 1 by the absolute-rise criterion. Not Stage 3.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 2 — 349.3 µmol/L (3.95 mg/dL) is below the ≥ 4.0 mg/dL branch" },
+    { scr: { value: 349.3, unit: "µmol/L" }, scr_baseline: { value: 309.4, unit: "µmol/L" } },
+    [{ id: "kdigo_stage", value: 1 }],
+  );
+
+  // ---- The ≥ 26.5 µmol/L rise (KDIGO's printed equivalent of ≥ 0.3 mg/dL) ----
+  // 70.7 → 0.80 and 97.2 → 1.10 mg/dL: a 26.5 µmol/L rise, ratio 1.375× (no
+  // ratio band), so the stage comes from the absolute-rise criterion alone.
+  ctx.workedExample(
+    { ...kdigo, locator: "Rec 2.1.1 / Table 2 — Stage 1 rise of ≥ 26.5 µmol/L (≥ 0.3 mg/dL)" },
+    { scr: { value: 97.2, unit: "µmol/L" }, scr_baseline: { value: 70.7, unit: "µmol/L" } },
+    [{ id: "kdigo_stage", value: 1 }],
+  );
+
+  // And a 26.0 µmol/L rise (96.7 → 1.09 vs 70.7 → 0.80 = 0.29 mg/dL) is below
+  // the published rise and must NOT stage — rounding widens no band.
+  ctx.workedExample(
+    { ...kdigo, locator: "Rec 2.1.1 — a rise of 26.0 µmol/L is below the ≥ 26.5 µmol/L criterion" },
+    { scr: { value: 96.7, unit: "µmol/L" }, scr_baseline: { value: 70.7, unit: "µmol/L" } },
+    [{ id: "kdigo_stage", value: 0 }],
+  );
+
   // ---- Required-input bounds: computes at each edge, rejects just past it ----
   ctx.boundaryTest("scr", "min", { scr: { value: 0.1, unit: "mg/dL" } });
   ctx.boundaryTest("scr", "max", { scr: { value: 15, unit: "mg/dL" } });
