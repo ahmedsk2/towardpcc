@@ -48,7 +48,7 @@ describe("structured data — calculators", () => {
   const slugs = listScores({ status: "published" }).map((s) => s.slug);
 
   it("covers every published score", () => {
-    expect(slugs.length).toBe(24);
+    expect(slugs.length).toBe(25);
   });
 
   it.each(slugs)("%s describes both the page and the tool", (slug) => {

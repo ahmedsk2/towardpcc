@@ -16,17 +16,17 @@ const pillars = [
   {
     href: "/calculators",
     title: site.pillars.calculators.title,
-    body: "Twenty-four Tier-A PICU scores. Every computation runs in your browser, proven by an automated zero-network test on every release.",
+    body: "Twenty-five Tier-A PICU scores. Every computation runs in your browser, proven by an automated zero-network test on every release.",
     chip: "Live now",
     chipTone: "live" as const,
     media: "from-accent-deep via-accent to-coral",
     stats: [
-      { label: "Scores", value: "24" },
+      { label: "Scores", value: "25" },
       // Typed, not derived: importing the engine for one number cost 45 KB of
       // route JS. figures.test.ts pins BOTH of these against the registry — it
       // did not until 2026-07-31, and these three figures sat at 22/22/87
       // against a real 23/23/91 for exactly as long as that gap existed.
-      { label: "Citations", value: "95" },
+      { label: "Citations", value: "103" },
       { label: "Coverage", value: "100%" },
     ],
     cta: "Open the calculators",

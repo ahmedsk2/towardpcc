@@ -7,6 +7,7 @@ import { correctedCalcium } from "./corrected-calcium";
 import { correctedSodium } from "./corrected-sodium";
 import { ettSize } from "./ett-size";
 import { fluidBalance } from "./fluid-balance";
+import { fourScore } from "./four-score";
 import { hollidaySegar } from "./holliday-segar";
 import { idealBodyWeight } from "./ideal-body-weight";
 import { kdigoAki } from "./kdigo-aki";
@@ -37,6 +38,7 @@ export const registry: readonly ScoreDefinition[] = [
   correctedSodium,
   ettSize,
   fluidBalance,
+  fourScore,
   hollidaySegar,
   idealBodyWeight,
   kdigoAki,
