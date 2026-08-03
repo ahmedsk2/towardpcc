@@ -832,9 +832,9 @@ export const site = {
   },
 
   pwa: {
+    // No update copy: service-worker.tsx applies updates silently as a page is
+    // torn down, so there is no prompt to word. See the note there.
     offline: "You're offline. The calculators still work.",
-    updateReady: "A new version is available.",
-    updateAction: "Update",
     installTitle: "Install",
     installHeading: "Install TowardPCC on your device",
     installLede:

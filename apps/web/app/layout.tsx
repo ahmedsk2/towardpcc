@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/inter";
-import "@fontsource-variable/space-grotesk";
-import "@fontsource/ibm-plex-mono/400.css";
-import "@fontsource/ibm-plex-mono/500.css";
+import localFont from "next/font/local";
 import "./globals.css";
 import { SiteHeader } from "@/components/nav/site-header";
 import { BackToTop } from "@/components/nav/back-to-top";
@@ -12,6 +9,73 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { site } from "@/content/site";
 import { SITE_URL } from "@/lib/site-url";
 import { graph, organizationSchema, webSiteSchema } from "@/lib/structured-data";
+
+/**
+ * Self-hosted type, loaded through next/font rather than @fontsource's plain
+ * stylesheets (SIL OFL either way — see ADR-design-direction and ./fonts/;
+ * the woff2 files there are the same ones @fontsource shipped).
+ *
+ * Two things do the work, and BOTH are needed.
+ *
+ * 1. next/font emits a companion @font-face for the system fallback with
+ *    size-adjust / ascent-override / descent-override derived from the real
+ *    font's metrics, so the fallback occupies roughly the same space.
+ *    @fontsource ships no such fallback, which is why swapping Inter in was
+ *    measured shifting PRISM's 6651px form by CLS 0.405 locally (0.206 on
+ *    production) — four times the PRD §10 budget. The shift scales with how
+ *    much content the reflow moves, so the longest calculator was worst hit.
+ *
+ * 2. `display: "optional"`, not "swap". The metric match is close but not
+ *    exact, and "swap" leaves the outcome to a race: whether the font beats
+ *    first paint varies per page and per run. Measured with "swap", the
+ *    residual mismatch still cost CLS 0.151 on anion-gap and 0.122 on phoenix
+ *    (reproduced 3/3 each), and tuning the mono fallback only moved the
+ *    problem between pages — 0.000 on PRISM traded for those two.
+ *    "optional" removes the race outright: the browser either has the font
+ *    within its short block period or keeps the fallback for that page view
+ *    and never swaps. Measured CLS 0.000 on all of home, /calculators,
+ *    anion-gap, prism, phoenix and trust, with no LCP cost.
+ *
+ * The trade is deliberate: on a cold first visit over a slow link a reader may
+ * get the metric-matched fallback rather than Inter for that page view, and
+ * the real face from the next navigation on. A clinician typing values into a
+ * form should never have it move under their finger; that outranks first-paint
+ * brand fidelity here. Revisit only WITH numbers.
+ *
+ * Variables (not family names) because next/font generates a hashed family;
+ * packages/ui/src/tokens.css consumes these and keeps the generic fallbacks.
+ */
+const fontBody = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+  style: "normal",
+  display: "optional",
+  variable: "--font-inter",
+});
+
+const fontDisplay = localFont({
+  src: "./fonts/space-grotesk-latin-wght-normal.woff2",
+  weight: "300 700",
+  style: "normal",
+  display: "optional",
+  variable: "--font-space-grotesk",
+});
+
+const fontNumeric = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
+  ],
+  display: "optional",
+  variable: "--font-plex-mono",
+  // Keep the default (Arial-derived) adjustment even though Arial is not
+  // monospaced: with it off, PRISM measured CLS 0.201 against 0.000 with it on.
+  // What matters is the vertical metric match, not the advance width, and the
+  // numeric face lands in enough of PRISM's 25 rows to move the form by itself.
+  // Under `display: "optional"` this now only governs how close the fallback
+  // sits when the font does not arrive in time — but that is still the case
+  // worth getting right, since it is the one a first-time reader sees.
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -58,7 +122,10 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${fontBody.variable} ${fontDisplay.variable} ${fontNumeric.variable}`}
+    >
       <body className="flex min-h-dvh flex-col">
         {/* Site-wide identity for search engines. Inline JSON-LD has no `src`,
             so it costs nothing against the route JS budget — the gate counts

@@ -15,6 +15,13 @@ export function Breadcrumbs({ trail }: { trail: Crumb[] }) {
         <li>
           <Link
             href="/"
+            // Breadcrumbs render on every inner page, so the default viewport
+            // prefetch pulled home's RSC payload — measured at 76 KB — on each
+            // one. Home is the largest flight payload on the site because the
+            // hero mesh geometry is inlined in it, and it is one tap away from
+            // anywhere, so paying for it up front on every page is the wrong
+            // trade. site-header.tsx and main-nav.tsx opt out the same way.
+            prefetch={false}
             className="rounded-sm transition-colors duration-150 hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {site.nav.breadcrumbHome}

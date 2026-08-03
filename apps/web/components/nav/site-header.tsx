@@ -50,6 +50,14 @@ export function SiteHeader() {
       <StickyShell>
         <Link
           href="/"
+          // The logo sits in the sticky header on every route, so Next's
+          // default viewport prefetch pulled home's RSC payload — measured at
+          // 68 KB — on every page view, including on home itself where the same
+          // flight data is already inlined in the document. It is the largest
+          // non-critical request on all nine measured routes. Home is one tap
+          // from anywhere and cheap to fetch on demand; main-nav.tsx already
+          // opts out the same way.
+          prefetch={false}
           aria-label={site.nav.homeAriaLabel}
           className="flex shrink-0 items-center gap-2.5 rounded-sm transition-[filter] duration-150 ease-[var(--motion-ease)] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
         >
