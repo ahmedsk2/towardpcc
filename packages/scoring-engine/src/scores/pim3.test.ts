@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { pim3 } from "./pim3";
+import type { InputValues } from "../types";
 
-// All three worked examples are the vectors published in
-// docs/research/scores/pim3.md "Worked examples", each derived step-by-step
-// from the Straney 2013 formula (PMID 23863821) and re-verified term-by-term
-// in that file's Verification section.
+/**
+ * Every expected value below is fixture A–G of docs/research/scores/pim3.md
+ * "Worked examples", each computed term-by-term from the coefficients in
+ * Straney 2013 Table 3, p677 (PMID 23863821). Fixture A is the paper's OWN
+ * worked example (p681) and reproduces its published logit and percentage to
+ * five decimal places; the rest are derived arithmetic from the same table and
+ * say so in their locators rather than claiming to be published examples.
+ */
 const straney = {
   citation:
     "Straney L, et al. Paediatric index of mortality 3. Pediatr Crit Care Med. 2013;14(7):673–681.",
@@ -13,198 +18,273 @@ const straney = {
   doi: "10.1097/PCC.0b013e31829760cf",
 };
 
-// A valid, fully-specified base used for boundary tests (values inside all bounds).
-const base = {
+/** The five required answers for a child with no flags and no risk diagnosis. */
+const noFlags = {
   pupils: { value: false },
   mechanical_ventilation: { value: false },
   elective_admission: { value: false },
   recovery_category: { value: "none" },
-  diagnosis_risk: { value: "none" },
+  very_high_risk_diagnosis: { value: "none" },
+  high_risk_diagnosis: { value: "none" },
+  low_risk_diagnosis: { value: "none" },
+} as const;
+
+/** A valid, fully-specified vector used for boundary tests (all values in bounds). */
+const base = {
+  ...noFlags,
   sbp: { value: 90, unit: "mmHg" },
   base_excess: { value: 0, unit: "mmol/L" },
   fio2: { value: 0.4, unit: "fraction" },
   pao2: { value: 100, unit: "mmHg" },
 } as const;
 
+type Pim3Inputs = Parameters<typeof pim3.compute>[0];
+
+/** Computes and unwraps, failing loudly rather than silently skipping. */
+function logitOf(inputs: Pim3Inputs): number {
+  const outcome = pim3.compute(inputs);
+  if (!outcome.ok)
+    throw new Error(`expected a computable vector: ${JSON.stringify(outcome.errors)}`);
+  const value = outcome.result.values.find((v) => v.id === "pim3_score");
+  if (!value) throw new Error("pim3_score was not emitted");
+  return value.value;
+}
+
 describeScore(pim3, (ctx) => {
-  // Example A — all-defaults / "unknowns" baseline (pim3.md, Example A):
-  // SBP unknown → 120, base excess unknown → 0, FiO₂/PaO₂ unknown → term 0.23.
-  // logit = -4.39684; P(death) = 0.01217.
+  /*
+   * FIXTURE A — the paper's own worked example, p681, and the one that pins the
+   * precedence rule. A six-year-old on chemotherapy for relapsed leukaemia
+   * (very high risk) admitted with febrile neutropenia and a known
+   * chemotherapy-induced cardiomyopathy (high risk). BOTH tiers are present;
+   * only the very high-risk term applies. SBP 70 is the value at first
+   * ICU-doctor contact, ventilated in the first hour, base excess −12,
+   * PaO₂ 65 on FiO₂ 0.70 → oxygenation term 70/65 = 1.07692.
+   *
+   *   +0.97630 vent  +0.80520 |BE|  −3.01700 SBP  +0.84084 SBP²/1000
+   *   +0.45382 oxygenation  +1.62250 very high risk  (high risk SUPPRESSED)
+   *   −1.79280 intercept                       = −0.11114 → 47.22%
+   */
   ctx.workedExample(
-    { ...straney, locator: "Worked example A (all-defaults baseline; corrected FiO₂/PaO₂ = 0.23)" },
+    { ...straney, locator: "Worked example, p681 (published logit −0.11114 → 47.22%)" },
     {
-      pupils: { value: false },
-      mechanical_ventilation: { value: false },
-      elective_admission: { value: false },
-      recovery_category: { value: "none" },
-      diagnosis_risk: { value: "none" },
+      ...noFlags,
+      mechanical_ventilation: { value: true },
+      very_high_risk_diagnosis: { value: "leukaemia_lymphoma" },
+      high_risk_diagnosis: { value: "cardiomyopathy_myocarditis" },
+      base_excess: { value: -12, unit: "mmol/L" },
+      sbp: { value: 70, unit: "mmHg" },
+      fio2: { value: 0.7, unit: "fraction" },
+      pao2: { value: 65, unit: "mmHg" },
     },
     [
-      { id: "pim3_score", value: -4.39684, tolerance: 0.001 },
-      { id: "mortality_probability", value: 0.01217, tolerance: 0.0005 },
+      { id: "pim3_score", value: -0.11114, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.4722424, tolerance: 1e-6 },
     ],
   );
 
-  // Example B — elective post-op non-cardiac recovery, mild derangement
-  // (pim3.md, Example B): BE −5 → |BE| 5; SBP 90; FiO₂ 0.40 & PaO₂ 100 → 0.40;
-  // recovery = non-cardiac. logit = -5.83198; P(death) = 0.00292.
+  // FIXTURE B — elective post-operative admission recovering from a cardiac
+  // procedure with bypass. Ventilated, SBP 95, pupils reactive, no blood gas,
+  // so the oxygenation term imputes 0.23 and |BE| imputes 0.
   ctx.workedExample(
-    { ...straney, locator: "Worked example B (elective non-cardiac recovery)" },
     {
-      pupils: { value: false },
-      mechanical_ventilation: { value: false },
+      ...straney,
+      locator:
+        "fixture B, derived from the coefficients in Table 3, p677 — bypass-cardiac recovery",
+    },
+    {
+      ...noFlags,
+      mechanical_ventilation: { value: true },
       elective_admission: { value: true },
-      recovery_category: { value: "non_cardiac" },
-      diagnosis_risk: { value: "none" },
-      base_excess: { value: -5.0, unit: "mmol/L" },
-      sbp: { value: 90, unit: "mmHg" },
-      fio2: { value: 0.4, unit: "fraction" },
-      pao2: { value: 100, unit: "mmHg" },
+      recovery_category: { value: "bypass_cardiac" },
+      sbp: { value: 95, unit: "mmHg" },
     },
     [
-      { id: "pim3_score", value: -5.83198, tolerance: 0.001 },
-      { id: "mortality_probability", value: 0.00292, tolerance: 0.0005 },
+      { id: "pim3_score", value: -5.02779, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0065106, tolerance: 1e-6 },
     ],
   );
 
-  // Example C — critically ill, ventilated, very-high-risk diagnosis
-  // (pim3.md, Example C): pupils fixed >3mm; ventilated; BE −12 → |BE| 12;
-  // SBP 40; FiO₂ 0.80 & PaO₂ 60 → 1.33333; very-high-risk.
-  // logit = 4.54693; P(death) = 0.9895.
+  // FIXTURE C — eight-month-old on nasal CPAP (which counts as mechanical
+  // ventilation), bronchiolitis as the main reason for admission (low risk),
+  // SBP 85, no blood gas.
   ctx.workedExample(
-    { ...straney, locator: "Worked example C (ventilated, very-high-risk)" },
     {
+      ...straney,
+      locator: "fixture C, derived from the coefficients in Table 3, p677 — low-risk bronchiolitis",
+    },
+    {
+      ...noFlags,
+      mechanical_ventilation: { value: true },
+      low_risk_diagnosis: { value: "bronchiolitis" },
+      sbp: { value: 85, unit: "mmHg" },
+    },
+    [
+      { id: "pim3_score", value: -5.31987, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0048696, tolerance: 1e-6 },
+    ],
+  );
+
+  // FIXTURE D — out-of-hospital cardiac arrest. The SBP 0 SENTINEL, fixed
+  // dilated pupils, BE −20, PaO₂ 60 on FiO₂ 1.0, ventilated. SBP 0 zeroes both
+  // blood-pressure terms, which is worth +2.70096 logit against the unknown
+  // default of 120 — see the sentinel block below.
+  ctx.workedExample(
+    {
+      ...straney,
+      locator: "fixture D, derived from the coefficients in Table 3, p677 — SBP 0 arrest sentinel",
+    },
+    {
+      ...noFlags,
       pupils: { value: true },
       mechanical_ventilation: { value: true },
-      elective_admission: { value: false },
-      recovery_category: { value: "none" },
-      diagnosis_risk: { value: "very_high" },
-      base_excess: { value: -12, unit: "mmol/L" },
-      sbp: { value: 40, unit: "mmHg" },
-      fio2: { value: 0.8, unit: "fraction" },
+      very_high_risk_diagnosis: { value: "cardiac_arrest" },
+      base_excess: { value: -20, unit: "mmol/L" },
+      sbp: { value: 0, unit: "mmHg" },
+      fio2: { value: 1, unit: "fraction" },
       pao2: { value: 60, unit: "mmHg" },
     },
     [
-      { id: "pim3_score", value: 4.54693, tolerance: 0.001 },
-      { id: "mortality_probability", value: 0.9895, tolerance: 0.0005 },
+      { id: "pim3_score", value: 6.67363, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.9987378, tolerance: 1e-6 },
     ],
   );
 
-  // Unit-conversion equivalent of Example B: PaO₂ entered in kPa and FiO₂ in %
-  // must normalise before computing. 100 mmHg ≈ 13.3322 kPa; 40% → 0.40.
+  // FIXTURE E — every optional input absent, so all three imputations fire at
+  // once: SBP 120, |BE| 0, oxygenation term 0.23. This is the COMMON path, not
+  // an edge case (PaO₂ was missing for 55.8% of the derivation cohort), and it
+  // is the fixture that fails if PIM2's oxygenation default of 0 is inherited:
+  // that mistake gives −4.49376 → 1.11% instead of −4.39684 → 1.22%.
   ctx.workedExample(
-    { ...straney, locator: "Worked example B via kPa/percent unit entry" },
     {
-      pupils: { value: false },
-      mechanical_ventilation: { value: false },
-      elective_admission: { value: true },
+      ...straney,
+      locator: "fixture E, derived from the coefficients in Table 3, p677 — full imputation floor",
+    },
+    noFlags,
+    [
+      { id: "pim3_score", value: -4.39684, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0121664, tolerance: 1e-6 },
+    ],
+  );
+
+  // FIXTURE F — the paper's other precedence illustration (Methods, p674):
+  // hypoplastic left heart syndrome (high risk) admitted with acute
+  // bronchiolitis (low risk) is coded high risk ONLY. Otherwise as fixture E.
+  ctx.workedExample(
+    {
+      ...straney,
+      locator:
+        "fixture F — precedence illustration, Methods p674; arithmetic from Table 3, p677 (high risk wins over low risk)",
+    },
+    {
+      ...noFlags,
+      high_risk_diagnosis: { value: "hypoplastic_left_heart" },
+      low_risk_diagnosis: { value: "bronchiolitis" },
+    },
+    [
+      { id: "pim3_score", value: -3.32434, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0347456, tolerance: 1e-6 },
+    ],
+  );
+
+  // FIXTURE G — shocked with a blood pressure that could not be measured: the
+  // SBP 30 SENTINEL. Ventilated, BE −8, no blood gas.
+  ctx.workedExample(
+    {
+      ...straney,
+      locator: "fixture G, derived from the coefficients in Table 3, p677 — SBP 30 shock sentinel",
+    },
+    {
+      ...noFlags,
+      mechanical_ventilation: { value: true },
+      base_excess: { value: -8, unit: "mmol/L" },
+      sbp: { value: 30, unit: "mmHg" },
+    },
+    [
+      { id: "pim3_score", value: -1.32134, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.2105958, tolerance: 1e-6 },
+    ],
+  );
+
+  // The two recovery categories fixtures A–G leave unexercised, each one
+  // coefficient away from the fixture E baseline of −4.396838.
+  ctx.workedExample(
+    {
+      ...straney,
+      locator: "fixture E + non-bypass-cardiac recovery (−0.8762), from Table 3, p677",
+    },
+    { ...noFlags, recovery_category: { value: "non_bypass_cardiac" } },
+    [
+      { id: "pim3_score", value: -5.27304, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0051019, tolerance: 1e-6 },
+    ],
+  );
+  ctx.workedExample(
+    { ...straney, locator: "fixture E + non-cardiac recovery (−1.5164), from Table 3, p677" },
+    { ...noFlags, recovery_category: { value: "non_cardiac" } },
+    [
+      { id: "pim3_score", value: -5.91324, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0026961, tolerance: 1e-6 },
+    ],
+  );
+
+  // Appendix 1, p680: an obstructive-sleep-apnoea admission after
+  // adenotonsillectomy carries BOTH the low-risk term and a procedure-recovery
+  // term. The tier precedence rule applies WITHIN the diagnosis variable only;
+  // it must not suppress an unrelated recovery term.
+  ctx.workedExample(
+    {
+      ...straney,
+      locator:
+        "fixture E + low-risk OSA (−2.1766) + non-cardiac recovery (−1.5164), from Table 3, p677 and the OSA coding rule, Appendix 1 p680",
+    },
+    {
+      ...noFlags,
       recovery_category: { value: "non_cardiac" },
-      diagnosis_risk: { value: "none" },
-      base_excess: { value: -5.0, unit: "mmol/L" },
-      sbp: { value: 90, unit: "mmHg" },
-      fio2: { value: 40, unit: "%" },
-      pao2: { value: 13.3322, unit: "kPa" },
+      low_risk_diagnosis: { value: "obstructive_sleep_apnoea" },
     },
     [
-      { id: "pim3_score", value: -5.83198, tolerance: 0.002 },
-      { id: "mortality_probability", value: 0.00292, tolerance: 0.0005 },
+      { id: "pim3_score", value: -8.08984, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0003065, tolerance: 1e-6 },
     ],
   );
 
-  // Recovery-category and diagnosis-risk single-term variants of the Example A
-  // baseline (pim3.md, Example A: logit -4.396838 before any recovery/diagnosis
-  // term). Each adds exactly one published coefficient to that baseline, so the
-  // expected logit and probability are a pure arithmetic consequence of the
-  // Straney 2013 formula (PMID 23863821). These cover the recovery_category and
-  // diagnosis_risk branches (bypass_cardiac, non_bypass_cardiac, high, low) that
-  // Examples A–C leave unexercised.
-
-  // Baseline A + recovery = bypass_cardiac (coefficient -1.2246):
-  // logit = -4.396838 + (-1.2246) = -5.621438; P(death) = 0.003606.
+  // A FiO₂ with no PaO₂ beside it cannot form a ratio, so the whole oxygenation
+  // term imputes 0.23 — identical to fixture E, where neither was supplied.
   ctx.workedExample(
     {
       ...straney,
-      locator:
-        "derived from formula in Straney 2013 (PMID 23863821); Example A + bypass-cardiac recovery",
+      locator: "fixture E with FiO₂ supplied but PaO₂ absent — oxygenation term still 0.23",
     },
-    {
-      pupils: { value: false },
-      mechanical_ventilation: { value: false },
-      elective_admission: { value: false },
-      recovery_category: { value: "bypass_cardiac" },
-      diagnosis_risk: { value: "none" },
-    },
+    { ...noFlags, fio2: { value: 0.5, unit: "fraction" } },
     [
-      { id: "pim3_score", value: -5.62144, tolerance: 0.001 },
-      { id: "mortality_probability", value: 0.003606, tolerance: 0.0005 },
+      { id: "pim3_score", value: -4.39684, tolerance: 1e-5 },
+      { id: "mortality_probability", value: 0.0121664, tolerance: 1e-6 },
     ],
   );
 
-  // Baseline A + recovery = non_bypass_cardiac (coefficient -0.8762):
-  // logit = -4.396838 + (-0.8762) = -5.273038; P(death) = 0.005102.
+  // Unit-conversion path: PaO₂ entered in kPa and FiO₂ in percent must
+  // normalise before computing. Fixture A restated — 65 mmHg ≈ 8.6660 kPa,
+  // 70% → 0.70.
   ctx.workedExample(
+    { ...straney, locator: "Worked example, p681, entered via kPa and percent" },
     {
-      ...straney,
-      locator:
-        "derived from formula in Straney 2013 (PMID 23863821); Example A + non-bypass-cardiac recovery",
-    },
-    {
-      pupils: { value: false },
-      mechanical_ventilation: { value: false },
-      elective_admission: { value: false },
-      recovery_category: { value: "non_bypass_cardiac" },
-      diagnosis_risk: { value: "none" },
+      ...noFlags,
+      mechanical_ventilation: { value: true },
+      very_high_risk_diagnosis: { value: "leukaemia_lymphoma" },
+      high_risk_diagnosis: { value: "cardiomyopathy_myocarditis" },
+      base_excess: { value: -12, unit: "mmol/L" },
+      sbp: { value: 70, unit: "mmHg" },
+      fio2: { value: 70, unit: "%" },
+      pao2: { value: 8.66595, unit: "kPa" },
     },
     [
-      { id: "pim3_score", value: -5.27304, tolerance: 0.001 },
-      { id: "mortality_probability", value: 0.005102, tolerance: 0.0005 },
+      { id: "pim3_score", value: -0.11114, tolerance: 1e-4 },
+      { id: "mortality_probability", value: 0.4722424, tolerance: 1e-4 },
     ],
   );
 
-  // Baseline A + diagnosis = high-risk (coefficient +1.0725):
-  // logit = -4.396838 + 1.0725 = -3.324338; P(death) = 0.034746.
-  ctx.workedExample(
-    {
-      ...straney,
-      locator:
-        "derived from formula in Straney 2013 (PMID 23863821); Example A + high-risk diagnosis",
-    },
-    {
-      pupils: { value: false },
-      mechanical_ventilation: { value: false },
-      elective_admission: { value: false },
-      recovery_category: { value: "none" },
-      diagnosis_risk: { value: "high" },
-    },
-    [
-      { id: "pim3_score", value: -3.32434, tolerance: 0.001 },
-      { id: "mortality_probability", value: 0.034746, tolerance: 0.0005 },
-    ],
-  );
-
-  // Baseline A + diagnosis = low-risk (coefficient -2.1766):
-  // logit = -4.396838 + (-2.1766) = -6.573438; P(death) = 0.001395.
-  ctx.workedExample(
-    {
-      ...straney,
-      locator:
-        "derived from formula in Straney 2013 (PMID 23863821); Example A + low-risk diagnosis",
-    },
-    {
-      pupils: { value: false },
-      mechanical_ventilation: { value: false },
-      elective_admission: { value: false },
-      recovery_category: { value: "none" },
-      diagnosis_risk: { value: "low" },
-    },
-    [
-      { id: "pim3_score", value: -6.57344, tolerance: 0.001 },
-      { id: "mortality_probability", value: 0.001395, tolerance: 0.0005 },
-    ],
-  );
-
-  // Input-validity bounds (research [NEEDS SOURCE] physiologic bounds).
-  ctx.boundaryTest("sbp", "min", base); // SBP 0 = cardiac arrest coding, must compute
+  // Input-validity bounds. SBP min is 0 BY DESIGN — see the sentinel block.
+  ctx.boundaryTest("sbp", "min", base);
   ctx.boundaryTest("sbp", "max", base);
   ctx.boundaryTest("base_excess", "min", base);
   ctx.boundaryTest("base_excess", "max", base);
@@ -213,8 +293,8 @@ describeScore(pim3, (ctx) => {
   ctx.boundaryTest("pao2", "min", base);
   ctx.boundaryTest("pao2", "max", base);
 
-  // Required categoricals reject unrecognised values (satisfies the §6.3.3 floor
-  // for required non-boolean inputs). Cast bypasses the literal-union type only
+  // Required categoricals reject unrecognised values (the §6.3.3 floor for every
+  // required non-boolean input). The cast bypasses the literal-union type only
   // to feed the deliberately-invalid value the validator must catch at runtime.
   ctx.rejectsImplausible(
     "an unrecognised recovery category",
@@ -222,9 +302,19 @@ describeScore(pim3, (ctx) => {
     { inputId: "recovery_category", code: "invalid-category" },
   );
   ctx.rejectsImplausible(
-    "an unrecognised diagnosis-risk tier",
-    { ...base, diagnosis_risk: { value: "extreme" as unknown as "none" } },
-    { inputId: "diagnosis_risk", code: "invalid-category" },
+    "an unrecognised very high-risk diagnosis",
+    { ...base, very_high_risk_diagnosis: { value: "dragon_pox" as unknown as "none" } },
+    { inputId: "very_high_risk_diagnosis", code: "invalid-category" },
+  );
+  ctx.rejectsImplausible(
+    "an unrecognised high-risk diagnosis",
+    { ...base, high_risk_diagnosis: { value: "septic_shock" as unknown as "none" } },
+    { inputId: "high_risk_diagnosis", code: "invalid-category" },
+  );
+  ctx.rejectsImplausible(
+    "an unrecognised low-risk diagnosis",
+    { ...base, low_risk_diagnosis: { value: "hiccups" as unknown as "none" } },
+    { inputId: "low_risk_diagnosis", code: "invalid-category" },
   );
 
   // An out-of-range optional numeric is rejected, never silently computed.
@@ -236,10 +326,157 @@ describeScore(pim3, (ctx) => {
 });
 
 /**
+ * THE PORTING DEFECT THIS SCORE EXISTS TO AVOID.
+ *
+ * PIM2 let a high-risk and a low-risk diagnosis both count. PIM3 replaced that
+ * with ONE categorical resolved by precedence — very high > high > low
+ * (Straney 2013, Methods p674). Carrying the PIM2 behaviour forward is the
+ * single most likely defect when porting, and it is not a rounding error: on
+ * the paper's own worked example it returns 72.34% where the published answer
+ * is 47.22%.
+ *
+ * Coverage cannot catch this and neither can the worked examples on their own —
+ * fixture A passing proves the total is right, but not that it is right for the
+ * right reason. These assert the suppression directly, in both directions:
+ * adding a lower-tier condition must change NOTHING, and the additive answer
+ * must not be reachable.
+ */
+describe("pim3 diagnosis tiers resolve by precedence and are never additive", () => {
+  const VERY_HIGH = 1.6225;
+  const HIGH = 1.0725;
+  const LOW = -2.1766;
+
+  const withTiers = (veryHigh: string, high: string, low: string): Pim3Inputs =>
+    ({
+      ...base,
+      very_high_risk_diagnosis: { value: veryHigh },
+      high_risk_diagnosis: { value: high },
+      low_risk_diagnosis: { value: low },
+    }) as unknown as Pim3Inputs;
+
+  const noneAtAll = logitOf(withTiers("none", "none", "none"));
+
+  it("applies exactly one coefficient when only one tier is present", () => {
+    expect(logitOf(withTiers("liver_failure", "none", "none")) - noneAtAll).toBeCloseTo(
+      VERY_HIGH,
+      10,
+    );
+    expect(logitOf(withTiers("none", "neurodegenerative", "none")) - noneAtAll).toBeCloseTo(
+      HIGH,
+      10,
+    );
+    expect(logitOf(withTiers("none", "none", "asthma")) - noneAtAll).toBeCloseTo(LOW, 10);
+  });
+
+  it("suppresses the high-risk term when a very high-risk diagnosis is also present", () => {
+    const veryHighOnly = logitOf(withTiers("bone_marrow_transplant", "none", "none"));
+    const both = logitOf(withTiers("bone_marrow_transplant", "cerebral_haemorrhage", "none"));
+    expect(both).toBe(veryHighOnly);
+    expect(both).not.toBeCloseTo(veryHighOnly + HIGH, 6);
+  });
+
+  it("suppresses the low-risk term beneath either higher tier", () => {
+    const veryHighOnly = logitOf(withTiers("scid", "none", "none"));
+    expect(logitOf(withTiers("scid", "none", "croup"))).toBe(veryHighOnly);
+
+    const highOnly = logitOf(withTiers("none", "necrotising_enterocolitis", "none"));
+    expect(logitOf(withTiers("none", "necrotising_enterocolitis", "croup"))).toBe(highOnly);
+  });
+
+  it("applies only the very high-risk term when all three tiers are present", () => {
+    const allThree = logitOf(withTiers("liver_failure", "cardiomyopathy_myocarditis", "asthma"));
+    expect(allThree).toBe(logitOf(withTiers("liver_failure", "none", "none")));
+    expect(allThree - noneAtAll).toBeCloseTo(VERY_HIGH, 10);
+  });
+
+  /**
+   * The paper's own numbers, stated as the failure they guard: fixture A with
+   * the high-risk term left in produces logit +0.96136 → 72.34%.
+   */
+  it("returns the published 47.22% for the paper's example, not the additive 72.34%", () => {
+    const outcome = pim3.compute({
+      ...noFlags,
+      mechanical_ventilation: { value: true },
+      very_high_risk_diagnosis: { value: "leukaemia_lymphoma" },
+      high_risk_diagnosis: { value: "cardiomyopathy_myocarditis" },
+      base_excess: { value: -12, unit: "mmol/L" },
+      sbp: { value: 70, unit: "mmHg" },
+      fio2: { value: 0.7, unit: "fraction" },
+      pao2: { value: 65, unit: "mmHg" },
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const probability = outcome.result.values.find((v) => v.id === "mortality_probability")?.value;
+    expect(probability).toBeCloseTo(0.4722, 4);
+    expect(probability).not.toBeCloseTo(0.7234, 4);
+  });
+
+  /** Precedence is scoped to the diagnosis variable; a recovery term is separate. */
+  it("does not let a diagnosis tier suppress an unrelated recovery term", () => {
+    const lowRiskOnly = logitOf(withTiers("none", "none", "obstructive_sleep_apnoea"));
+    const withRecovery = pim3.compute({
+      ...(withTiers("none", "none", "obstructive_sleep_apnoea") as unknown as Record<
+        string,
+        unknown
+      >),
+      recovery_category: { value: "non_cardiac" },
+    } as unknown as Pim3Inputs);
+    expect(withRecovery.ok).toBe(true);
+    if (!withRecovery.ok) return;
+    const logit =
+      withRecovery.result.values.find((v) => v.id === "pim3_score")?.value ?? Number.NaN;
+    expect(logit - lowRiskOnly).toBeCloseTo(-1.5164, 10);
+  });
+});
+
+/**
+ * SBP 0 AND SBP 30 ARE PUBLISHED SENTINELS, NOT MEASUREMENTS.
+ *
+ * Appendix 1, p680 codes cardiac arrest as SBP 0 and shock with an unmeasurable
+ * blood pressure as SBP 30. A range guard with a physiologic floor — anything
+ * above 0 — silently breaks the score for its two sickest input vectors, and it
+ * breaks them by REJECTING, so the failure is loud in the UI and invisible in a
+ * suite that never tries it. The `min: 0` on the input is therefore load-bearing
+ * and these assert it from both ends.
+ */
+describe("pim3 admits the SBP sentinels and gives them their published weight", () => {
+  const atSbp = (mmhg: number): number => logitOf({ ...base, sbp: { value: mmhg, unit: "mmHg" } });
+
+  it("computes at the cardiac-arrest sentinel of 0", () => {
+    expect(pim3.compute({ ...base, sbp: { value: 0, unit: "mmHg" } }).ok).toBe(true);
+  });
+
+  it("computes at the shocked/unmeasurable sentinel of 30", () => {
+    expect(pim3.compute({ ...base, sbp: { value: 30, unit: "mmHg" } }).ok).toBe(true);
+  });
+
+  it("gives SBP 0 the published +2.70096 logit over the unknown default of 120", () => {
+    expect(atSbp(0) - atSbp(120)).toBeCloseTo(2.70096, 5);
+  });
+
+  it("imputes exactly 120 for an absent SBP", () => {
+    expect(logitOf(noFlags)).toBe(logitOf({ ...noFlags, sbp: { value: 120, unit: "mmHg" } }));
+  });
+
+  /**
+   * The two SBP terms are U-shaped with a minimum near 125.6 mmHg, which is why
+   * neonates — who sit well below it — are systematically over-predicted. A
+   * dropped quadratic term would make the curve monotonic and this fails.
+   */
+  it("is U-shaped: both hypotension and hypertension raise the score", () => {
+    const nadir = atSbp(125.6);
+    expect(atSbp(70)).toBeGreaterThan(nadir);
+    expect(atSbp(200)).toBeGreaterThan(nadir);
+    expect(atSbp(120)).toBeGreaterThan(nadir);
+    expect(atSbp(160)).toBeGreaterThan(atSbp(120));
+  });
+});
+
+/**
  * The ANZICS booklet was the only locator on this page not backed by a
  * resolver, and it was already known dead — its published URL returns HTTP 404
  * (re-verified 2026-08-02, as does every other anzics.org document path tried).
- * A dead link sitting beside two working DOIs and a PMID made the citation list
+ * A dead link sitting beside working DOIs and a PMID made the citation list
  * less trustworthy rather than more complete, and it falsified /trust's claim
  * about following a score back to its source.
  *
@@ -260,20 +497,21 @@ describe("pim3 citations carry no dead locator", () => {
     }
   });
 
-  it("still names the booklet as the source of the coding rules", () => {
-    // Removing the dead link must not lose the attribution. The booklet is the
-    // authoritative source for the SBP special values, the pupil and
-    // ventilation definitions and the first-hour timing; it is now named in a
-    // note on the derivation paper it supports rather than as its own entry.
+  it("still names the booklet in the references", () => {
+    // Removing the dead link must not lose the attribution. Since v1.1.0 the
+    // coding rules are sourced to Appendix 1 of the paper itself and the
+    // booklet is only the source of the registry code numbers, which this
+    // implementation deliberately does not consume — but it is still named.
     const named = pim3.references.some((r) => (r.note ?? "").includes("Information Booklet"));
     expect(named, "the ANZICS booklet must still be credited in the references").toBe(true);
   });
 
-  it("keeps the rules that depended on it marked [NEEDS SOURCE]", () => {
-    // The point of removing the link is honesty, not tidiness: the rules it
-    // backed are still unsourced and must still say so.
+  it("keeps the one rule it still backs marked [NEEDS SOURCE]", () => {
+    // The mechanical-ventilation tracheostomy exclusion is the last claim with
+    // no source but the unreachable booklet. Appendix 1 closed the others.
     expect(pim3.notes.en).toContain("[NEEDS SOURCE]");
     expect(pim3.notes.en).toContain("ANZICS");
+    expect(pim3.notes.en).toContain("tracheostomy");
   });
 
   it("leaves every remaining reference traceable", () => {
@@ -281,5 +519,79 @@ describe("pim3 citations carry no dead locator", () => {
       const traceable = "pmid" in ref || "doi" in ref || "url" in ref;
       expect(traceable, `"${ref.citation.slice(0, 40)}…" must keep a locator`).toBe(true);
     }
+  });
+});
+
+/**
+ * The diagnosis lists are stated COMPLETE as published (Straney 2013,
+ * Appendix 1, p680): five very high-risk conditions, five high-risk, six
+ * low-risk. Silently gaining or losing one is a clinical change that no
+ * arithmetic test would notice, so the counts are pinned to the publication.
+ */
+describe("pim3 ships the published diagnosis lists complete", () => {
+  const optionCount = (id: string): number => {
+    const input = pim3.inputs.find((i) => i.id === id);
+    if (!input || input.type !== "categorical") throw new Error(`${id} is not categorical`);
+    // Every list carries a leading "none", which is not a published condition.
+    expect(input.options[0]?.value).toBe("none");
+    return input.options.length - 1;
+  };
+
+  it("carries 5 very high-risk, 5 high-risk and 6 low-risk conditions", () => {
+    expect(optionCount("very_high_risk_diagnosis")).toBe(5);
+    expect(optionCount("high_risk_diagnosis")).toBe(5);
+    expect(optionCount("low_risk_diagnosis")).toBe(6);
+  });
+
+  /**
+   * Septic shock is collected by the ANZPIC registry under high-risk code 5 —
+   * the slot the PAPER gives to necrotising enterocolitis — and is explicitly
+   * NOT used by PIM3. Anyone reading registry data into this calculator would
+   * introduce it; it must never appear as a selectable condition here.
+   */
+  it("does not offer septic shock, which the registry collects but PIM3 does not use", () => {
+    const highRisk = pim3.inputs.find((i) => i.id === "high_risk_diagnosis");
+    const values =
+      highRisk?.type === "categorical" ? highRisk.options.map((o) => o.value) : ([] as string[]);
+    expect(values).toContain("necrotising_enterocolitis");
+    expect(values).not.toContain("septic_shock");
+  });
+});
+
+/**
+ * PIM3 is validated for groups, not individuals (Straney 2013). That belongs
+ * beside the number, not in a limitations tab the reader has to open — which is
+ * what `cautions` is for. Asserted structurally because it is the one statement
+ * whose absence would change how a clinician reads the result.
+ */
+describe("pim3 surfaces its group-level-only warning beside the result", () => {
+  it("declares a caution naming the individual-patient limit", () => {
+    const cautions = (pim3.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toContain("GROUPS");
+    expect(cautions).toContain("individual");
+  });
+
+  it("states the age range as under 16 and flags the paper's own contradiction", () => {
+    expect(pim3.notes.en).toContain("younger than 16");
+    expect(pim3.notes.en).toContain("younger than 18");
+    expect(pim3.notes.en).toContain("CONTRADICTS");
+  });
+});
+
+/** The registry gate reads `version` against the changelog; this reads it against reality. */
+describe("pim3 version tracks its user-visible text", () => {
+  it("declares the version its newest changelog entry describes", () => {
+    const newest = pim3.changelog[pim3.changelog.length - 1];
+    expect(pim3.version).toBe(newest?.version);
+    expect(pim3.version).toBe("1.1.0");
+  });
+
+  it("keeps InputValues in step with the declared inputs", () => {
+    // A compile-time assertion with a runtime body: if an input id is renamed
+    // in pim3.ts without updating this file, `base` stops satisfying
+    // InputValues and `pnpm typecheck` fails — which is the failure this line
+    // exists to force, since vitest does not typecheck.
+    const typed: InputValues<typeof pim3.inputs> = base;
+    expect(Object.keys(typed)).toHaveLength(pim3.inputs.length);
   });
 });

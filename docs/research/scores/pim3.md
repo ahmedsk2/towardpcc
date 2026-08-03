@@ -6,6 +6,19 @@
 > device. Derivation/validation: Straney et al., _Pediatr Crit Care Med_ 2013
 > (PMID 23863821; DOI 10.1097/PCC.0b013e31829760cf).
 
+**Source status (2026-08-03).** The full text of Straney 2013 — pages 673–681,
+including Table 1 (p675), Table 3 (p677), Table 4 (p678) and **Appendix 1
+(pp 679–681)** — has now been read, together with Supplemental Digital Content 1
+and the ANZICS registry information booklet. Appendix 1 carries the diagnosis
+lists, their qualifying rules and every coding and missing-value convention, so
+the rules that this file previously carried as `[NEEDS SOURCE]` on the strength
+of the unreachable booklet are now sourced to the paper itself. **One clause is
+not** — see [Open gaps](#open-gaps--needs-source).
+
+Derivation cohort: 53,112 admissions, 60 ICUs, Australia / New Zealand / Ireland
+/ UK, 2010–2011 (ANZPIC registry and PICANet). 1,962 observed deaths against
+1,889 expected, SMR 1.00 (0.99–1.01) — Table 4, p678.
+
 ---
 
 ## Formula / algorithm (exact — every coefficient, every branch)
@@ -18,16 +31,16 @@ function.
 
 ```
 PIM3 score =
-    (3.8233  × pupillary reaction)
+    (3.8233  × pupils fixed to light)
   + (-0.5378 × elective admission)
-  + (0.9763  × mechanical ventilation)
+  + (0.9763  × mechanical ventilation, first hour)
   + (0.0671  × absolute[base excess])
   + (-0.0431 × SBP)
   + (0.1716  × (SBP^2 / 1000))
   + (0.4214  × ((FiO2 × 100) / PaO2))
-  - (1.2246  × bypass cardiac procedure)
-  - (0.8762  × non-bypass cardiac procedure)
-  - (1.5164  × non-cardiac procedure)
+  - (1.2246  × recovery, bypass cardiac procedure)
+  - (0.8762  × recovery, non-bypass cardiac procedure)
+  - (1.5164  × recovery, non-cardiac procedure)
   + (1.6225  × very high-risk diagnosis)
   + (1.0725  × high-risk diagnosis)
   - (2.1766  × low-risk diagnosis)
@@ -42,137 +55,467 @@ Probability of death = exp(PIM3 score) / (1 + exp(PIM3 score))
 
 Equivalently `1 / (1 + exp(-PIM3 score))`.
 
-Notes on the terms (all binary indicators are coded 1 = present, 0 = absent):
+### Coefficient table — Straney 2013, Table 3, p677
 
-- `pupillary reaction` = 1 if pupils are **both fixed AND > 3 mm** to bright
-  light; otherwise 0 (including unknown). Fixed dilated pupils due to drugs,
-  toxins or local eye injury are **not** scored as 1. (Source: ANZICS booklet.)
-- `elective admission` = 1 if the ICU admission was elective (e.g. elective
-  surgery or elective monitoring/procedure); 0 otherwise. Unexpected admissions
-  after elective surgery that could not have been foreseen are **not** elective.
-- `mechanical ventilation` = 1 if ventilated at any time during the first hour
-  in ICU; PIM's definition of mechanical ventilation **includes CPAP and BiPAP**
-  (mask or endotracheal). Tracheostomy while breathing spontaneously is **not**
-  ventilation.
-- `absolute[base excess]` = the absolute value |BE| of arterial or capillary
-  base excess in mmol/L. Unknown = 0.
-- `SBP` = systolic blood pressure in mmHg (see special values below). The term
-  is entered twice: linearly (`-0.0431 × SBP`) and quadratically
-  (`+0.1716 × SBP^2/1000`).
-- `(FiO2 × 100) / PaO2` — FiO2 as a fraction (e.g. 0.6), PaO2 arterial in mmHg,
-  measured at the same time as FiO2. **Correction (verified):** if FiO2/PaO2 is
-  not measured, PIM3 substitutes **0.23** for this whole term (a "normal"
-  value equivalent to PaO2 ≈ 91 mmHg / 12 kPa on room air), **not 0** as an
-  earlier version of this note stated. PIM2 used 0 for the missing-value
-  substitution; PIM3 changed this to 0.23. See Verification section below.
-- The three "recovery from procedure" indicators (`bypass cardiac`,
-  `non-bypass cardiac`, `non-cardiac procedure`) are **mutually exclusive**: set
-  the one matching the reason for ICU admission; if the admission is not a
-  recovery-from-procedure admission, all three are 0.
-- The three diagnosis-risk indicators (`very high-risk`, `high-risk`,
-  `low-risk`) are the **main reason for ICU admission**; at most one is 1. If the
-  reason is not on any list, all three are 0.
+All terms p < 0.001; coefficients are on the logit scale.
+
+| Term                                    | Coefficient | 95% CI             | Odds ratio | Transformation          |
+| --------------------------------------- | ----------: | ------------------ | ---------: | ----------------------- |
+| Intercept                               | **−1.7928** | −2.2763 to −1.3093 |     0.1665 | —                       |
+| Pupils fixed to light                   | **+3.8233** | 3.4581 to 4.1885   |    45.7554 | none                    |
+| Elective admission                      | **−0.5378** | −0.7234 to −0.3522 |     0.5840 | none                    |
+| Mechanical ventilation, first hour      | **+0.9763** | 0.8234 to 1.1293   |     2.6547 | none                    |
+| Base excess (mmol/L)                    | **+0.0671** | 0.0576 to 0.0766   |     1.0694 | **absolute value**      |
+| SBP, linear (mmHg)                      | **−0.0431** | −0.0524 to −0.0338 |     0.9578 | none                    |
+| SBP, quadratic                          | **+0.1716** | 0.1248 to 0.2183   |     1.1872 | **SBP² ÷ 1000**         |
+| Oxygenation                             | **+0.4214** | 0.3313 to 0.5115   |     1.5241 | **(FiO₂ × 100) ÷ PaO₂** |
+| Recovery — bypass cardiac procedure     | **−1.2246** | −1.4915 to −0.9576 |     0.2939 | none                    |
+| Recovery — non-bypass cardiac procedure | **−0.8762** | −1.2418 to −0.5106 |     0.4164 | none                    |
+| Recovery — non-cardiac procedure        | **−1.5164** | −1.7998 to −1.2330 |     0.2195 | none                    |
+| Very high-risk diagnosis                | **+1.6225** | 1.4706 to 1.7744   |     5.0657 | none                    |
+| High-risk diagnosis                     | **+1.0725** | 0.9071 to 1.2380   |     2.9228 | none                    |
+| Low-risk diagnosis                      | **−2.1766** | −2.4825 to −1.8708 |     0.1134 | none                    |
+
+Three transformations are easy to lose in a port and each is asserted by a
+fixture below: base excess enters as an **absolute value**; SBP enters
+**twice**, linearly and as SBP²/1000; oxygenation is **(FiO₂ × 100) ÷ PaO₂**
+with FiO₂ a fraction and PaO₂ in mmHg.
+
+The three recovery indicators are mutually exclusive. The three diagnosis
+indicators are one variable, not three — see
+[Diagnosis tiers](#diagnosis-tiers--one-variable-highest-wins-never-additive).
+Elective admission is independent and may co-occur with any of them.
+
+---
+
+## Diagnosis tiers — ONE variable, highest wins, never additive
+
+**Straney 2013, Methods, p674.** Unlike PIM2 — where a high-risk and a low-risk
+condition could both be counted — PIM3 assigns a patient with conditions in more
+than one tier to **exactly one** group, in the order:
+
+```
+very high risk  >  high risk  >  low risk
+```
+
+The paper illustrates the rule twice:
+
+- **p674** — hypoplastic left heart syndrome (high risk) admitted with acute
+  bronchiolitis (low risk) is coded high risk only. This is fixture F.
+- **p681** — the paper's own worked example is deliberately built with both a
+  very high-risk and a high-risk condition, and applies only the very high-risk
+  term. This is fixture A.
+
+**This is the single most likely defect when porting from a PIM2
+implementation.** On fixture A, leaving the high-risk term in place returns
+**72.34%** where the published answer is **47.22%** — a 25-percentage-point
+error on the one case the paper supplies with the correct answer. The
+implementation resolves the tiers itself in `calculate` and
+`pim3.test.ts` pins the suppression from both directions.
+
+### How the tiers were built — Methods, p674
+
+Diagnoses were assigned by their odds ratio in an interim multivariable model:
+very high risk = OR above 5, high risk = a statistically significant OR between
+1 and 5, low risk = a statistically significant OR below 1. The fitted odds
+ratios in Table 3 (5.0657 / 2.9228 / 0.1134) sit either side of those
+thresholds as expected.
+
+### The lists — Appendix 1, p680. Complete as published.
+
+Five, five and six conditions respectively. Nothing is elided here; a list that
+gains or loses a condition is a clinical change, and `pim3.test.ts` pins the
+counts.
+
+**Very high-risk (+1.6225)** — cardiac arrest preceding ICU admission; severe
+combined immune deficiency; leukaemia or lymphoma after first induction; bone
+marrow transplant recipient; liver failure.
+
+**High-risk (+1.0725)** — spontaneous cerebral haemorrhage; cardiomyopathy or
+myocarditis; hypoplastic left heart syndrome; neurodegenerative disorder;
+necrotising enterocolitis.
+
+**Low-risk (−2.1766)** — asthma; bronchiolitis; croup; obstructive sleep apnoea;
+diabetic ketoacidosis; seizure disorder.
+
+### Qualifying rules — Appendix 1 coding rules f–n, p680, paraphrased
+
+Paraphrased deliberately: the facts (which condition, which tier, which
+qualifier) are usable, the paper's sentences are not ours to transcribe. See
+[IP status](#ip-status).
+
+- **All tiers** — the condition must be the **main reason for the ICU
+  admission**. Where that is in doubt, record none.
+- **Spontaneous cerebral haemorrhage** — spontaneous only, e.g. from an aneurysm
+  or an arteriovenous malformation. Traumatic bleeds are out, and so are
+  intracranial bleeds outside the brain itself, such as a subdural.
+- **Hypoplastic left heart syndrome** — counts at any age, but only where a
+  Norwood operation or an equivalent was needed in the newborn period to keep
+  the child alive.
+- **Neurodegenerative disorder** — needs a progressive loss of milestones, or a
+  diagnosis in which that loss is certain. A specific named diagnosis is not
+  required.
+- **Cardiac arrest** — in-hospital and out-of-hospital both count. Needs a
+  documented absent pulse or external cardiac compression. A past history of
+  arrest does not count.
+- **Leukaemia or lymphoma** — only where the admission is about the malignancy
+  or its treatment.
+- **Liver failure** — acute or chronic, but admission following a _planned_
+  liver transplant is excluded. (The registry reads this exclusion more broadly;
+  see [registry divergence](#anzpic-registry-code-numbers--documented-deliberately-not-implemented).)
+- **Bronchiolitis** — covers a child presenting with either respiratory distress
+  or central apnoea where the clinical diagnosis is bronchiolitis.
+- **Obstructive sleep apnoea** — covers admission after adenoidectomy or
+  tonsillectomy where the apnoea is the main reason. **Such a case also carries
+  a procedure-recovery term** — both apply; the tier precedence rule is scoped
+  to the diagnosis variable and never suppresses a recovery term. Fixture in
+  `pim3.test.ts`.
+- **Seizure disorder** — status epilepticus, epilepsy, a febrile convulsion or
+  another epileptic syndrome, where the admission is to control the seizures or
+  to recover from them or from their treatment.
+
+### Changes from PIM2 — Results, p676
+
+| Change                                   | Direction                                          |
+| ---------------------------------------- | -------------------------------------------------- |
+| HIV infection                            | **removed** (was PIM2 high-risk)                   |
+| Recovery after elective liver transplant | **removed** from the liver-failure definition      |
+| Bone marrow transplant recipient         | **added** — very high risk                         |
+| Necrotising enterocolitis                | **added** — high risk                              |
+| Seizure disorder                         | **added** — low risk                               |
+| High- and low-risk both countable        | **replaced** by a single categorical, highest wins |
+
+Migration is not cosmetic: recoding an Italian PIM2 cohort to PIM3 moved 649
+seizure patients (5.8%) into low risk and reclassified 389 PIM2 high-risk
+children (3.5%) as very high risk — roughly one admission in eleven changes tier
+(Wolfler 2016, p253).
 
 ---
 
 ## Inputs (id, label, type, units + conversions, plausible min/max with source)
 
-| id                       | label                                 | type         | units / coding                                                                                                                                                       | plausible min/max                                                                                  |
-| ------------------------ | ------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `sbp`                    | Systolic blood pressure               | number       | mmHg. Special values per PIM rules: **cardiac arrest → 0**; **shocked, BP unmeasurable → 30**; **unknown → 120**                                                     | 0–300 mmHg engineering bound; the coded default 120 is the "unknown" substitution (ANZICS booklet) |
-| `base_excess`            | Base excess (absolute value used)     | number       | mmol/L, arterial or capillary; equation uses \|BE\|. Unknown → 0                                                                                                     | approx −40 to +40 mmol/L physiological plausibility; unknown default 0 (ANZICS booklet)            |
-| `fio2`                   | FiO2 at time of PaO2                  | number       | fraction 0.21–1.0 (21%–100%). Convert % → fraction by /100. Used as `FiO2×100` (i.e. as a percent) in the ratio. Unknown → term = 0.23 (corrected; see Verification) | 0.21–1.0                                                                                           |
-| `pao2`                   | Arterial PaO2                         | number       | mmHg. Must be arterial and simultaneous with FiO2. Unknown → term = 0.23 (corrected; see Verification). Convert kPa → mmHg ×7.5006                                   | ~20–600 mmHg physiological plausibility                                                            |
-| `pupils`                 | Pupillary reaction to bright light    | boolean/enum | 1 = both pupils fixed AND >3 mm; 0 = reactive/other/unknown; drug- or injury-related fixed pupils = 0                                                                | 0 or 1                                                                                             |
-| `mechanical_ventilation` | Mechanically ventilated in first hour | boolean      | 1 = yes (includes CPAP/BiPAP, mask or ETT); 0 = no                                                                                                                   | 0 or 1                                                                                             |
-| `elective_admission`     | Elective ICU admission                | boolean      | 1 = elective; 0 = emergency/unplanned                                                                                                                                | 0 or 1                                                                                             |
-| `recovery_category`      | Recovery from procedure               | enum         | one of: none / `bypass_cardiac` / `non_bypass_cardiac` / `non_cardiac` (mutually exclusive)                                                                          | enum                                                                                               |
-| `diagnosis_risk`         | Main-reason risk category             | enum         | one of: none / `very_high` / `high` / `low` (mutually exclusive)                                                                                                     | enum                                                                                               |
+| id                         | label                                 | type    | units / coding                                                                                                            | plausible min/max                                                                    |
+| -------------------------- | ------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `pupils`                   | Pupils fixed to bright light          | boolean | 1 = both **> 3 mm and fixed**; 0 = anything else, including unknown                                                       | 0 or 1                                                                               |
+| `mechanical_ventilation`   | Mechanically ventilated in first hour | boolean | 1 = any of invasive ventilation, mask or nasal CPAP, BiPAP, negative-pressure ventilation, at any point in the first hour | 0 or 1                                                                               |
+| `elective_admission`       | Elective ICU admission                | boolean | 1 = the admission could have been postponed more than six hours without harm                                              | 0 or 1                                                                               |
+| `recovery_category`        | Recovery from a procedure             | enum    | `none` / `bypass_cardiac` / `non_bypass_cardiac` / `non_cardiac` (mutually exclusive)                                     | enum                                                                                 |
+| `very_high_risk_diagnosis` | Very high-risk diagnosis              | enum    | `none` + the 5 published conditions                                                                                       | enum                                                                                 |
+| `high_risk_diagnosis`      | High-risk diagnosis                   | enum    | `none` + the 5 published conditions                                                                                       | enum                                                                                 |
+| `low_risk_diagnosis`       | Low-risk diagnosis                    | enum    | `none` + the 6 published conditions                                                                                       | enum                                                                                 |
+| `sbp`                      | Systolic blood pressure               | number  | mmHg. **Unknown → 120**; **cardiac arrest → 0**; **shocked, BP unmeasurable → 30**                                        | **min 0 is load-bearing** (sentinel); max 300 is an engineering bound, not published |
+| `base_excess`              | Base excess (absolute value used)     | number  | mmol/L, arterial or capillary; the equation uses \|BE\|. **Unknown → 0**                                                  | −40 to +40 engineering bound, not published                                          |
+| `fio2`                     | FiO₂ at the time of the PaO₂          | number  | fraction 0.21–1.0; entered as % is converted by ÷100. Used as `FiO2 × 100` in the ratio                                   | 0.21 (room air) to 1.0 engineering bound, not published                              |
+| `pao2`                     | Arterial PaO₂                         | number  | mmHg; kPa accepted and converted. Must be simultaneous with the FiO₂                                                      | 20–600 engineering bound, not published                                              |
+
+**The three diagnosis tiers are collected as three questions, not one.** This
+matches how the data actually exists — the ANZPIC registry carries three
+dedicated PIM fields, `PIM3_VHR`, `PIM3_HR` and `PIM3_LR` — and it is the only
+shape in which the precedence rule is the _model's_ job rather than the
+clinician's. A single "pick your risk tier" control silently delegates the
+paper's most consequential rule to the person least equipped to know it applies,
+and makes the defect it guards against untestable. Superseded design: v1.0.x
+shipped one `diagnosis_risk` enum; see the v1.1.0 changelog entry.
 
 **Units / conversion notes:**
 
-- FiO2 in the equation is entered as a **percentage** via the `FiO2 × 100` term
-  (FiO2 fraction 0.60 → 60). PaO2 is in **mmHg**. If a PaO2 is recorded in kPa,
-  multiply by 7.5006 to get mmHg before use.
-- **If FiO2 or PaO2 is unknown/not measured, the whole `(FiO2×100)/PaO2` term
-  is set to 0.23** (a "normal" substitute value, equivalent to a PaO2 of about
-  91 mmHg / 12 kPa on room air), **not 0**. This corrects an earlier version
-  of this document, which stated the term defaults to 0 (that is PIM2's
-  convention, not PIM3's). See Verification section.
-- The SBP quadratic term divides SBP² by 1000 (e.g. SBP 120 → 120²/1000 = 14.4).
+- FiO₂ enters the equation as a **percentage** via `FiO₂ × 100` (fraction 0.60 →
+  60). PaO₂ is in **mmHg**; a PaO₂ recorded in kPa is converted at
+  1 mmHg = 101.325/760 kPa before use.
+- The SBP quadratic term divides SBP² by 1000 (SBP 120 → 120²/1000 = 14.4).
 - Base excess enters as its **absolute value**, so sign does not matter.
+- No `canonicalDecimals` on any input: the paper prints no alternate-unit
+  restatement of any of its own values.
 
-**Timing rule (both PIM2 and PIM3):** use the **first** value of each variable
-obtained from the time of first ICU contact (which may be outside the ICU, e.g.
-in the emergency department or at another hospital during retrieval) up to 1 hour
-after admission to the ICU. Use the first value in that window, not the worst.
-(Source: ANZICS booklet.)
+### Missing values and coding — Appendix 1, p680
+
+| Input             | Unknown / special coding                                                  |
+| ----------------- | ------------------------------------------------------------------------- |
+| Systolic BP       | **unknown = 120**; **cardiac arrest = 0**; **shocked, unmeasurable = 30** |
+| Oxygenation ratio | **FiO₂ or PaO₂ unknown → the whole term is 0.23**                         |
+| Base excess       | **unknown = 0**                                                           |
+| Pupils            | both > 3 mm and fixed = 1; anything else, **including unknown** = 0       |
+
+**The 0.23 substitution is part of the published model**, not a registry
+convention. Methods, p674 derives it from a normal PaO₂ in room air —
+(0.21 × 100) / 90 — and identifies the selected model form explicitly as the one
+that imputes 0.23. **PIM2 imputed 0 for this ratio; inheriting that default is a
+real porting defect.** On the all-missing fixture it moves the result from 1.22%
+to 1.11% — small in absolute terms, systematic, and applied to the large
+majority of admissions.
+
+**Missingness is the ordinary case, not the exception.** In the derivation
+cohort PaO₂ was missing for 55.8% and FiO₂ for 41.1% of admissions (Table 1,
+p675); a single-centre US series reported base excess missing in 97.2% and the
+oxygenation ratio in 97.3% (Baloglu 2021). Fixture E exercises the full
+imputation path and exists to be a regression fixture.
+
+**Measurement window.** Observations at or about the first face-to-face (not
+telephone) contact between the patient and a doctor from the ICU or a specialist
+paediatric transport team, through to one hour after ICU arrival. Use the
+**first** value of each variable in that window — not the worst. First contact
+may be in the ICU, the emergency department, a ward, or another hospital during
+retrieval.
+
+**Further definitional notes.** Pupillary findings are not recorded as abnormal
+where they can be attributed to drugs, toxins or local eye injury. Recovery from
+a procedure includes radiology procedures and cardiac catheterisation, but
+excludes a patient arriving from theatre where the recovery is not the main
+reason for admission — a head-injury patient admitted after insertion of an ICP
+monitor is admitted for the head injury.
+
+### The SBP terms are U-shaped, and 0 / 30 are sentinels
+
+`−0.0431·SBP + 0.1716·SBP²/1000` reaches its minimum at **SBP ≈ 125.6 mmHg**.
+Both hypotension and hypertension raise predicted mortality.
+
+| SBP (mmHg)            |     0 |     30 |     50 |     70 |     90 |    120 |  **125.6** |    160 |    200 |
+| --------------------- | ----: | -----: | -----: | -----: | -----: | -----: | ---------: | -----: | -----: |
+| Contribution to logit | 0.000 | −1.139 | −1.726 | −2.176 | −2.489 | −2.701 | **−2.706** | −2.503 | −1.756 |
+
+Two consequences, both asserted in `pim3.test.ts`:
+
+- **Recording SBP = 0 for cardiac arrest contributes +2.70096 logit relative to
+  the unknown default of 120.** That is how the arrest case acquires its weight.
+  Any plausibility guard that rejects SBP 0 or SBP 30 **breaks the score** —
+  these are coded sentinels, not measurements, and the `min: 0` on the `sbp`
+  input exists for exactly this reason.
+- **Newborns are systematically over-predicted.** Neonates sit physiologically
+  well below the nadir, so the blood-pressure terms inflate their score.
+  Observed for both PIM2 and PIM3 in the Italian validation.
 
 ---
 
 ## Worked examples
 
-The Straney 2013 paper does **not** publish a numeric worked example. The three
-vectors below are **derived step-by-step from the published formula in Straney
-et al. 2013 (PMID 23863821)** and are intended as unit tests. Arithmetic uses the
-exact coefficients above; probabilities rounded to 2 significant figures.
+All seven fixtures are implemented in `packages/scoring-engine/src/scores/pim3.test.ts`.
+Fixture A is the paper's own; the rest are computed term-by-term from the
+coefficient table above and are labelled as derived rather than published.
 
-### Example A — all-defaults / "unknowns" baseline (derived from formula)
+### A — the paper's own worked example (p681) · pins the precedence rule
 
-Inputs: pupils reactive (0); not elective (0); not ventilated (0); base excess
-unknown → |BE| 0; SBP unknown → 120; FiO2/PaO2 unknown → term **0.23**
-(corrected — see Verification section; an earlier version of this example used
-0 and is wrong); no recovery category; no risk diagnosis.
+Six-year-old on chemotherapy for relapsed leukaemia, presenting with febrile
+neutropenia, with a known chemotherapy-induced cardiomyopathy. SBP 70 mmHg at
+first ICU-doctor contact, pupils reactive. Admitted, intubated and ventilated;
+an arterial gas within the first hour shows PaO₂ 65 mmHg on FiO₂ 0.7 and a base
+excess of −12 mmol/L.
 
-```
--0.0431 × 120                = -5.17200
- 0.1716 × (120^2 / 1000)     = 0.1716 × 14.4 = +2.47104
- 0.4214 × 0.23  (FiO2/PaO2 unknown default) = +0.09692
- intercept                   = -1.79280
- PIM3 score (logit)          = -4.39684
- P(death) = 1 / (1 + e^4.39684) = 0.01217  ≈ 1.2%
-```
-
-(Previous version of this example omitted the +0.09692 term, giving an
-incorrect logit of -4.49376 and P ≈ 1.1%.)
-
-### Example B — elective post-op non-cardiac recovery, mild derangement (derived from formula)
-
-Inputs: pupils reactive (0); elective (1); not ventilated (0); base excess
-−5.0 mmol/L → |BE| 5.0; SBP 90 mmHg; FiO2 0.40 & PaO2 100 mmHg →
-(0.40×100)/100 = 0.40; recovery = non-cardiac procedure (1); no risk diagnosis.
+Inputs: pupils 0 · elective 0 · ventilated 1 · |BE| 12 · SBP 70 · oxygenation
+(0.7 × 100)/65 = 1.07692 · **very high risk 1 (leukaemia after first induction)
+AND high risk 1 (cardiomyopathy) → very high risk only**.
 
 ```
--0.5378 × 1                  = -0.53780
- 0.0671 × 5.0                = +0.33550
--0.0431 × 90                 = -3.87900
- 0.1716 × (90^2 / 1000)      = 0.1716 × 8.1 = +1.38996
- 0.4214 × 0.40               = +0.16856
--1.5164 × 1  (non-cardiac)   = -1.51640
- intercept                   = -1.79280
- PIM3 score (logit)          = -5.83198
- P(death) = 1 / (1 + e^5.83198) = 0.00292  ≈ 0.29%
-```
-
-### Example C — critically ill, ventilated, very-high-risk diagnosis (derived from formula)
-
-Inputs: pupils both fixed & >3 mm (1); not elective (0); ventilated (1); base
-excess −12 mmol/L → |BE| 12; SBP 40 mmHg (shocked but measured); FiO2 0.80 &
-PaO2 60 mmHg → (0.80×100)/60 = 1.33333; no recovery category; very-high-risk
-diagnosis (1) (e.g. cardiac arrest preceding ICU admission).
-
-```
- 3.8233 × 1                  = +3.82330
  0.9763 × 1                  = +0.97630
  0.0671 × 12                 = +0.80520
--0.0431 × 40                 = -1.72400
- 0.1716 × (40^2 / 1000)      = 0.1716 × 1.6 = +0.27456
- 0.4214 × 1.33333            = +0.56187
- 1.6225 × 1  (very high-risk)= +1.62250
+-0.0431 × 70                 = -3.01700
+ 0.1716 × (70^2 / 1000)      = +0.84084
+ 0.4214 × 1.07692            = +0.45382
+ 1.6225 × 1  (very high risk)= +1.62250
+ 1.0725 × 0  (high risk SUPPRESSED) = 0.00000
  intercept                   = -1.79280
- PIM3 score (logit)          = +4.54693
- P(death) = e^4.54693 / (1 + e^4.54693) = 0.9895  ≈ 98.9%
+ PIM3 score (logit)          = -0.11114
+ P(death)                    = 0.472242  ≈ 47.22%
 ```
+
+Published values: −0.11114 → 47.22%. **Match to five decimal places.** With the
+high-risk term left in, the logit is +0.96136 and the answer 72.34%.
+
+The SBP used is 70, the value at first ICU-doctor contact — not an earlier
+emergency-department reading. The registry booklet's variant of this case drops
+the cardiomyopathy and therefore exercises nothing; the paper's version is the
+one to use.
+
+### B — elective post-operative, recovery from a bypass cardiac procedure
+
+Ventilated, SBP 95, pupils reactive, no blood gas (so |BE| imputes 0 and the
+oxygenation term imputes 0.23).
+
+```
+-0.5378 + 0.9763 - 4.0945 + 1.54869 + 0.09692 - 1.2246 - 1.7928
+ PIM3 score (logit) = -5.02779    P(death) = 0.006511  ≈ 0.65%
+```
+
+### C — bronchiolitis as the main reason for admission (low risk)
+
+Eight-month-old on nasal CPAP (which counts as mechanical ventilation), SBP 85,
+no blood gas.
+
+```
+ 0.9763 - 3.6635 + 1.23981 + 0.09692 - 2.1766 - 1.7928
+ PIM3 score (logit) = -5.31987    P(death) = 0.004870  ≈ 0.49%
+```
+
+### D — out-of-hospital cardiac arrest, the SBP = 0 sentinel
+
+Fixed dilated pupils, SBP recorded 0, base excess −20, PaO₂ 60 on FiO₂ 1.0,
+ventilated, very high-risk diagnosis (cardiac arrest before admission).
+
+```
+ 3.8233 + 0.9763 + 1.3420 + 0.00000 + 0.00000 + 0.70233 + 1.6225 - 1.7928
+ PIM3 score (logit) = +6.67363    P(death) = 0.998738  ≈ 99.87%
+```
+
+Both SBP terms are zero here, which is the point: the arrest weight comes from
+their _absence_ relative to a normal pressure.
+
+### E — the imputation floor: every optional input absent
+
+Exercises SBP = 120, |BE| = 0 and oxygenation = 0.23 with no flags set.
+
+```
+-5.17200 + 2.47104 + 0.09692 - 1.79280
+ PIM3 score (logit) = -4.39684    P(death) = 0.012166  ≈ 1.22%
+```
+
+A wrong default fails silently here. Inheriting PIM2's oxygenation default of 0
+gives −4.49376 → 1.11% and nothing else changes, which is why this is a
+regression fixture.
+
+### F — precedence, low-severity variant (paper, p674)
+
+Hypoplastic left heart syndrome (high risk) admitted with acute bronchiolitis
+(low risk); otherwise as fixture E. Resolves to (very high, high, low) =
+(0, 1, 0).
+
+```
+ fixture E baseline -4.396838  +1.0725 (high risk, low risk suppressed)
+ PIM3 score (logit) = -3.32434    P(death) = 0.034746  ≈ 3.47%
+```
+
+### G — shocked with an unmeasurable BP, the SBP = 30 sentinel
+
+SBP recorded 30, ventilated, base excess −8, no blood gas.
+
+```
+ 0.9763 + 0.5368 - 1.2930 + 0.15444 + 0.09692 - 1.7928
+ PIM3 score (logit) = -1.32134    P(death) = 0.210596  ≈ 21.06%
+```
+
+### Machine-readable fixture set
+
+```json
+[
+  {
+    "id": "A",
+    "source": "Straney 2013 p681",
+    "in": {
+      "pupils": 0,
+      "elective": 0,
+      "mechvent": 1,
+      "be": -12,
+      "sbp": 70,
+      "fio2": 0.7,
+      "pao2": 65,
+      "recov": null,
+      "vhr": 1,
+      "hr": 1,
+      "lr": 0
+    },
+    "expect": { "resolved": [1, 0, 0], "logit": -0.11114, "pct": 47.22 }
+  },
+  {
+    "id": "B",
+    "in": { "elective": 1, "mechvent": 1, "sbp": 95, "recov": "bypass" },
+    "expect": { "resolved": [0, 0, 0], "logit": -5.02779, "pct": 0.65 }
+  },
+  {
+    "id": "C",
+    "in": { "mechvent": 1, "sbp": 85, "lr": 1 },
+    "expect": { "resolved": [0, 0, 1], "logit": -5.31987, "pct": 0.49 }
+  },
+  {
+    "id": "D",
+    "in": { "pupils": 1, "mechvent": 1, "be": -20, "sbp": 0, "fio2": 1.0, "pao2": 60, "vhr": 1 },
+    "expect": { "resolved": [1, 0, 0], "logit": 6.67363, "pct": 99.87 }
+  },
+  { "id": "E", "in": {}, "expect": { "resolved": [0, 0, 0], "logit": -4.39684, "pct": 1.22 } },
+  {
+    "id": "F",
+    "source": "Straney 2013 p674",
+    "in": { "hr": 1, "lr": 1 },
+    "expect": { "resolved": [0, 1, 0], "logit": -3.32434, "pct": 3.47 }
+  },
+  {
+    "id": "G",
+    "in": { "mechvent": 1, "be": -8, "sbp": 30 },
+    "expect": { "resolved": [0, 0, 0], "logit": -1.32134, "pct": 21.06 }
+  }
+]
+```
+
+---
+
+## Implementation traps
+
+1. **Additive diagnosis terms.** Fixture A returns 72.34% instead of 47.22% if
+   the high-risk term is not suppressed. Highest tier wins; never sum.
+2. **SBP sentinels rejected by range validation.** 0 and 30 are legal inputs
+   carrying real weight. `min: 0` on the `sbp` input is not negotiable.
+3. **PIM2's imputation inherited.** The oxygenation ratio imputes **0.23**,
+   not 0.
+4. **A FiO₂ without a PaO₂ (or vice versa) is not half a ratio.** If either is
+   missing the whole term is 0.23; a supplied FiO₂ alone contributes nothing.
+5. **Worst value instead of first value.** The score takes the _first_ recorded
+   value in the window.
+6. **Regional recalibrations mistaken for the published model.** ANZICS also
+   publishes PIM3-anz13 and PIM3-anz15, with entirely different coefficients
+   (anz13 pupils 4.371172, intercept −2.299542). This implementation is the
+   published international model; the authors' own naming convention appends
+   region and final data year (PIM3-ANZ11).
+7. **Individual-patient use.** PIM3 is validated for groups. It should not be
+   used to describe, or to make decisions about, an individual patient — which
+   is why that statement ships as a `caution`, beside the number, rather than in
+   the limitations prose.
+
+---
+
+## ANZPIC registry code numbers — documented, deliberately not implemented
+
+**This calculator ingests no registry data, so it maps no registry codes.** The
+divergence is recorded here so that nobody later writes a single mapper and
+believes it is correct.
+
+The three tiers map to dedicated PIM fields in the ANZPIC registry — `PIM3_VHR`,
+`PIM3_HR`, `PIM3_LR` — separate from the registry's general hierarchical
+diagnosis list (a record carries a primary and an underlying diagnosis from the
+ANZPIC Diagnostic Codes Table _as well as_ these small PIM-specific
+enumerations). **The code numbers are not the paper's.**
+
+| Tier         | Straney 2013, p680        | ANZPIC registry                                                              |
+| ------------ | ------------------------- | ---------------------------------------------------------------------------- |
+| High risk 5  | Necrotising enterocolitis | **Septic shock** — collected by the registry, **not used** by PIM3           |
+| High risk 6  | —                         | Necrotising enterocolitis                                                    |
+| Very high 6  | —                         | Necrotising enterocolitis — retired, use high-risk 6                         |
+| Very high 7  | —                         | SCID **and** bone marrow transplant recipient (combination code)             |
+| Very high 8  | —                         | Leukaemia/lymphoma after first induction **and** BMT recipient (combination) |
+| Low risk 1–6 | identical in both         | identical in both                                                            |
+
+Consequences for anyone who later ingests registry records:
+
+1. **One mapper is wrong.** A `code == 5 → high risk` test is correct against the
+   paper and _inverted_ against the registry: it would score septic shock as
+   high risk and necrotising enterocolitis as none. Two mappers, explicitly
+   labelled by source.
+2. **Septic shock must be excluded** from the PIM3 high-risk term. Where it
+   coexists with another high-risk code, registry guidance prefers the other
+   code so the high-risk factor is still captured.
+3. **Very-high-risk codes 7 and 8 are combination codes.** A naive `code in 1..5`
+   membership test silently drops two of the highest-risk categories.
+4. **The liver-transplant exclusion differs.** The paper excludes admission after
+   an _elective_ liver transplant; the registry excludes recovery after
+   transplantation for acute or chronic liver failure generally, and resolves
+   the edge case in the other direction — a readmission where graft liver
+   failure is the primary reason _does_ qualify. Pick one reading and say which.
+
+The registry also derives its recovery terms centrally, combining a PIM2-format
+`Recovery` / `Bypass` pair with the primary-diagnosis procedure code, rather than
+collecting the three PIM3 recovery terms directly. Another reason a naive
+field-for-field mapping does not exist.
+
+Source: ANZICS, _PIM2 & PIM3 for the ANZPIC Registry — Information Booklet_
+(version Jan 2019). Grey literature, no DOI, and its published URL returns HTTP
+404 (re-verified 2026-08-02), so it is named in the implementation's references
+rather than linked. Nothing this calculator computes depends on it.
 
 ---
 
@@ -182,17 +525,24 @@ PIM3 outputs a **continuous predicted probability of death (0–1)**; the
 derivation paper defines **no diagnostic cut-points or risk bands** for
 individual patients. It is designed for aggregate use: the sum of individual
 predicted probabilities across a cohort estimates the expected number of deaths,
-which is compared with observed deaths as a **Standardised Mortality Ratio
-(SMR = observed / expected)** to benchmark unit performance. Model discrimination
-in the derivation cohort was AUC-ROC ≈ 0.88 overall. (Source: Straney 2013,
-PMID 23863821.)
+compared with observed deaths as a **Standardised Mortality Ratio
+(SMR = observed / expected)** to benchmark unit performance. Discrimination in
+the derivation cohort was AUC-ROC ≈ 0.88.
 
 Non-directive framing for display: report the value as "PIM3 predicted mortality
 = X%", describing the estimated probability of death for a patient with these
 admission characteristics in the derivation population. Do **not** present it as
-an individual treatment threshold. Calibration should be checked locally before
-any comparative interpretation (validation studies report varying calibration by
-setting).
+an individual treatment threshold, and surface the group-level-only limitation
+beside the number rather than below it. Calibration should be checked locally
+before any comparative interpretation.
+
+`interpretationStatus` is `not-applicable`, corrected 2026-08-03. It previously
+read `pending`, on the claim that PIM3 has published mortality strata not yet
+authored here. Straney 2013 publishes no cut-points and no risk bands, so there
+are none to author — the absence is a property of the score, not a content gap.
+The old value promised a page that could never be written, and contradicted the
+line directly above it in `pim3.ts`, which already said the paper defines no
+bands.
 
 ---
 
@@ -202,177 +552,217 @@ setting).
    ANZICS Paediatric Study Group and the Paediatric Intensive Care Audit Network.**
    Paediatric index of mortality 3: an updated model for predicting mortality in
    pediatric intensive care. _Pediatr Crit Care Med._ 2013;14(7):673–681.
-   **PMID: 23863821. DOI: 10.1097/PCC.0b013e31829760cf.** — Primary
-   derivation/validation paper; source of all coefficients and the intercept.
+   **PMID 23863821. DOI 10.1097/PCC.0b013e31829760cf.** Primary source: all
+   coefficients and the intercept (Table 3, p677), the diagnosis lists,
+   qualifying rules, precedence rule and every coding/missing-value convention
+   (Appendix 1, p680). Supplemental Digital Content 1 at `links.lww.com/PCC/A68`.
 
-2. **ANZICS Centre for Outcome and Resource Evaluation.** _PIM2 & PIM3 for the
-   ANZPIC Registry — Information Booklet_ (Version Jan 2019).
-   https://www.anzics.org/wp-content/uploads/2019/07/ANZPICR-PIM2-PIM3-Information-Booklet.pdf
-   — Authoritative source for variable definitions/coding (SBP special values,
-   pupil criteria, mechanical-ventilation/CPAP definition, FiO2–PaO2 timing, base
-   excess source, elective definition, first-hour timing rule).
+2. **Wolfler A, Osello R, Gualino J, et al; Italian Network of Pediatric Intensive
+   Care Units.** The importance of mortality risk assessment: validation of the
+   Pediatric Index of Mortality 3 score. _Pediatr Crit Care Med._
+   2016;17(3):251–256. DOI 10.1097/PCC.0000000000000657. — Italian multicentre
+   validation (AUC 0.88, SMR 0.98, H-L p = 0.21); neonatal over-prediction; the
+   measured cost of migrating a PIM2 cohort.
 
 3. **Lee OJ, Jung M, Kim M, Yang HK, Cho J.** Validation of the Pediatric Index of
    Mortality 3 in a Single Pediatric Intensive Care Unit in Korea.
-   _J Korean Med Sci._ 2017;32(2):365–370. DOI: 10.3346/jkms.2017.32.2.365. PMC5220006.
-   — Independent reproduction of the full PIM3 equation, probability formula, and
-   the very-high-/high-/low-risk diagnosis lists (secondary confirmation).
+   _J Korean Med Sci._ 2017;32(2):365–370. DOI 10.3346/jkms.2017.32.2.365.
+   PMC5220006. — Independent reproduction of the full equation, probability
+   transform and diagnosis lists; haemato-oncology under-prediction.
 
-**Diagnosis lists (from Straney 2013, as reproduced in refs 2 & 3):**
+4. **Arias López MdP, Fernández AL, Ratto ME, et al.** Pediatric Index of Mortality
+   3: an evaluation of function among ICUs in Argentina. _Pediatr Crit Care Med._
+   2018;19(12):e653–e661. DOI 10.1097/PCC.0000000000001741. — Argentine
+   multicentre evaluation (AUC 0.83, SMR 1.3, H-L p < 0.001); HIV and
+   post-liver-transplant admissions still carrying local mortality risk.
 
-- **Low-risk diagnoses:** asthma; bronchiolitis; croup; obstructive sleep apnoea;
-  diabetic ketoacidosis; seizure disorder.
-- **High-risk diagnoses:** spontaneous cerebral haemorrhage; cardiomyopathy or
-  myocarditis; hypoplastic left heart syndrome; neurodegenerative disorder;
-  necrotising enterocolitis.
-- **Very high-risk diagnoses:** cardiac arrest preceding ICU admission; severe
-  combined immunodeficiency (SCID); leukaemia or lymphoma after first induction;
-  bone marrow transplant recipient; liver failure (as the reason for ICU
-  admission).
+5. **Solomon LJ, Morrow BM, Argent AC.** Paediatric Index of Mortality scores: an
+   evaluation of function in the Paediatric Intensive Care Units of a South
+   African province. _Pediatr Crit Care Med._ 2021;22(9):813–821.
+   DOI 10.1097/PCC.0000000000002693. — South African multicentre evaluation
+   (AUC 0.81, SMR 1.28, H-L p < 0.001, highest SMR 6.67 in the lowest-risk
+   decile). **The closest published comparator for a Gulf-region deployment**,
+   being the only multicentre evaluation of PIM3 in a resource-varied setting.
+
+6. **Baloglu O, Nagy LR, Sonawane A, et al.** Simplified Pediatric Index of
+   Mortality 3 score by explainable machine learning algorithm. _Crit Care
+   Explor._ 2021;3(10):e0561. DOI 10.1097/CCE.0000000000000561. — Scale of
+   real-world missingness in the blood-gas inputs.
+
+7. **Slater A, Shann F, Pearson G.** PIM2: a revised version of the Paediatric
+   Index of Mortality. _Intensive Care Med._ 2003;29:278–285.
+   DOI 10.1007/s00134-002-1601-2. — The predecessor whose additive diagnosis
+   handling and oxygenation default of 0 are the two behaviours PIM3 changed.
+   Cited for the contrast; not implemented.
+
+8. **ANZICS Centre for Outcome and Resource Evaluation.** _PIM2 & PIM3 for the
+   ANZPIC Registry — Information Booklet_, version Jan 2019. Grey literature, no
+   DOI; its published URL returns HTTP 404 (re-verified 2026-08-02). Normative
+   only for the registry code numbers in the section above, which this
+   implementation does not consume.
 
 ---
 
 ## Limitations & notes
 
-- **Population/scope:** derived on 53,112 admissions across 60 PICUs in
-  Australia, New Zealand, UK and Ireland (2010–2011). Intended for children
-  admitted to specialist PICUs; not validated for neonatal-only units, adult
-  patients, or as an individual prognostic/triage device.
-- **Benchmarking tool, not a bedside prognosis:** designed to estimate expected
-  mortality across cohorts (SMR), not to guide individual treatment decisions.
-- **First-value rule:** uses the _first_ value from first ICU contact to +1 hour,
-  which can include pre-ICU (ED / retrieval) data. Using worst values instead of
-  first values will bias the score.
-- **Missing-data conventions matter:** unknown SBP defaults to 120, unknown base
-  excess and unknown FiO2/PaO2 default to a 0 contribution — different
-  missing-value handling changes the result. Cardiac arrest → SBP 0 pushes the
-  SBP terms strongly positive; verify special-value handling in implementation.
-- **Calibration drift:** multiple external validations report AUC roughly 0.80–0.90
-  but variable calibration (over- or under-prediction) by region and era; local
-  recalibration/monitoring is advised before comparative use. (Not re-derived here
-  — [NEEDS SOURCE] for any specific external SMR you cite.)
-- **Not independently re-verified in this note:** the derivation-cohort AUC (0.88)
-  is taken from the abstract of ref 1; per-region AUCs and calibration statistics
-  were not transcribed. The exact ANZPIC diagnosis-code mappings for each
-  risk-list entry live in the ANZICS Data Dictionary (ref 2 family) and were not
-  transcribed field-by-field here — consult it when mapping local diagnosis codes.
+- **The paper contradicts itself on the age range, and this is not resolved
+  here.** The abstract describes admissions of children younger than 18 at
+  admission; the inclusion criteria in Methods state younger than 16. State it
+  as **under 16** — how the field reads it — and record the discrepancy rather
+  than silently picking. The Korean group extended validation to under-18s
+  precisely because the developmental data covered under-16s.
+- **Neonatal over-prediction.** Neonates sit well below the 125.6 mmHg SBP nadir,
+  so the paired blood-pressure terms inflate their score. Documented in the
+  Italian validation for both PIM2 and PIM3.
+- **Haemato-oncology under-prediction, and badly.** Discrimination in this
+  subgroup fell to c-index 0.66 against 0.74–0.83 in others, with observed
+  mortality 18.73% against 7.13% predicted (Lee 2017). Note the interaction with
+  the tier lists: leukaemia/lymphoma and bone marrow transplant are both very
+  high-risk terms, and the model still under-predicts this group.
+- **Neurological admissions were under-predicted in the derivation cohort
+  itself** — SMR 1.32 (1.16–1.50), Table 4, p678. The only diagnostic group
+  significantly off in the original data.
+- **Calibration travels far worse than discrimination.** Italy AUC 0.88 /
+  SMR 0.98 (H-L p = 0.21, good); Argentina AUC 0.83 / SMR 1.3 (p < 0.001);
+  South Africa AUC 0.81 / SMR 1.28 (p < 0.001), with the **highest SMR (6.67) in
+  the LOWEST risk decile** — the model is least trustworthy exactly where a
+  reader is most likely to be reassured by it. **For a Gulf-region deployment the
+  South African study is the most relevant comparator**, being the only
+  multicentre evaluation in a resource-varied setting. Recalibrate and monitor
+  locally before comparative interpretation.
+- **Conditions dropped from the model that still carry local mortality risk.**
+  HIV infection and post-liver-transplant admissions were removed as
+  non-predictive in the derivation population; the Argentine authors flag both as
+  still associated with higher mortality in their setting.
+- **Benchmarking tool, not a bedside prognosis.** Validated for groups. Ships as
+  a `caution`, beside the result.
+- **Population/scope.** Derived on 53,112 admissions across 60 PICUs in
+  Australia, New Zealand, the UK and Ireland (2010–2011). Not validated for
+  neonatal-only units, adult patients, or as an individual triage device.
+- **First-value rule.** Uses the _first_ value from first contact to +1 hour,
+  which may include pre-ICU data. Using worst values instead biases the score.
+- **Missing-data conventions matter**, and the imputation path is the common
+  path — see the missing-values table above.
+
+### Open gaps — [NEEDS SOURCE]
+
+One clause, down from seven. The other six were closed on 2026-08-03 — four of
+them by Appendix 1, p680, the rest as the table below records.
+
+- **Whether a tracheostomy with unassisted spontaneous breathing is excluded from
+  the mechanical-ventilation criterion. [NEEDS SOURCE].** Appendix 1 states what
+  the criterion _includes_ — invasive ventilation, mask or nasal CPAP, BiPAP,
+  negative-pressure ventilation — and is silent on tracheostomy. The exclusion is
+  widely repeated and traces to the ANZICS booklet, which is not retrievable
+  (HTTP 404, re-verified 2026-08-02). It is carried unsourced in the input help
+  text rather than asserted, because a clinician deciding this case needs to know
+  the answer is not backed by a source we could read.
+
+**Closed on 2026-08-03** (each was previously `[NEEDS SOURCE]` because it had
+been attributed to the unreachable booklet):
+
+| Was unsourced                                       | Now sourced to                                           |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| Pupil exclusion for drugs, toxins, local eye injury | Appendix 1, p680                                         |
+| Mechanical ventilation includes CPAP / BiPAP        | Appendix 1, p680 (also negative-pressure ventilation)    |
+| The elective-admission definition                   | Appendix 1, p680 — postponable > 6 hours without harm    |
+| SBP special values 0 / 30 / 120                     | Appendix 1, p680                                         |
+| Per-region calibration statistics                   | Wolfler 2016, Arias López 2018, Solomon 2021             |
+| The ANZPIC diagnosis-code mappings                  | ANZICS booklet, transcribed in full in the section above |
+
+The engineering plausibility bounds on `sbp` (upper), `base_excess`, `fio2` and
+`pao2` remain what they always were — input-validity limits chosen here, not
+published thresholds — and are labelled as such in the implementation. They are
+not gaps to close; the paper publishes no ranges.
 
 ---
 
 ## IP status
 
-- **Formula, coefficients, thresholds, and the logistic equation are not
-  copyrightable** — they are mathematical facts / a method, freely implementable.
-- **Potentially protectable expression to review before verbatim reuse:**
-  - The **descriptive wording of the diagnosis lists** (very-high / high / low
-    risk) and the exact phrasing of variable definitions are transcribed from the
-    Straney 2013 paper and the ANZICS Information Booklet. The underlying facts
-    (which diagnoses fall in which risk tier, the coding rules) are usable, but
-    **paraphrase the descriptive prose** rather than copying the booklet's
-    sentences verbatim into product text. **FLAG.**
-  - The **pupil descriptor** ("both fixed and > 3 mm to bright light") and the
-    **SBP special-value instructions** ("cardiac arrest → 0; shocked/unmeasurable
-    → 30; unknown → 120") are short factual coding rules — almost certainly not
-    protectable, but reproduce as coding logic/labels rather than copied
-    instructional paragraphs. **FLAG (low risk).**
-- No verbatim scored **response-descriptor scale** (like a GCS-style worded item
-  bank) exists in PIM3 beyond the above; the model is numeric.
+- **Formula, coefficients, intercept, the logistic transform and the tier
+  precedence rule are not copyrightable** — mathematical facts / a method,
+  freely implementable.
+- **Which conditions sit in which tier is a fact and is used.** The condition
+  names as implemented are ordinary clinical terms (asthma, croup, necrotising
+  enterocolitis); nothing distinctive to the paper's expression is carried.
+- **Potentially protectable expression, paraphrased rather than transcribed.**
+  The Appendix 1 qualifying rules, the pupil descriptor and the SBP
+  special-value instructions are written in this project's own words in both
+  this note and the implementation's help text. The underlying facts are usable;
+  the sentences are not ours. **FLAG.**
+- No verbatim scored **response-descriptor scale** exists in PIM3 — the model is
+  numeric — so there is no item bank to license, unlike the coma-scale family.
 
 ---
 
 ## Verification
 
-Independent-source check performed 2026-07-25 against sources other than (or in
-addition to) the file's primary citation (Straney et al. 2013).
+### 2026-08-03 — primary source read in full; diagnosis model rebuilt on it
 
-**Sources fetched and cross-checked:**
+**What was read.** Straney 2013 complete, pages 673–681, including Table 1
+(p675), Table 2 (p676), Table 3 (p677), Table 4 and Figure 1 (p678) and
+**Appendix 1 (pp 679–681)**; Supplemental Digital Content 1
+(`pcc_14_7_2013_04_18_straney_201438_sdc1.xls`, sheet "Model forms"); the ANZICS
+_PIM2 & PIM3 for the ANZPIC Registry_ Information Booklet (version Jan 2019) in
+full, including the code enumerations, the coding Q&A, the ANZ recalibrations and
+the ANZPIC Diagnostic Codes Table 2019; Slater 2003 (PIM2); Wolfler 2016;
+Lee 2017; Arias López 2018; Solomon 2021; Baloglu 2021.
 
-1. **Lee OJ et al., _J Korean Med Sci._ 2017;32(2):365–370 (PMID/PMC5220006)**
-   — already listed as reference 3 in this file; fetched in full (open-access
-   PMC). Independently reproduces the entire PIM3 equation.
-2. **Straney L et al., _Pediatr Crit Care Med._ 2013;14(7):673–681 — PubMed
-   abstract (PMID 23863821)** — the primary paper's own abstract, fetched
-   directly, used to check the derivation-cohort numbers and AUC.
-3. **Ray S, Rogers L, Pagel C, et al. "PaO2/FiO2 ratio derived from the
-   SpO2/FiO2 ratio to improve mortality prediction using the Paediatric Index
-   of Mortality-3 score in transported intensive care admissions."**
-   (UCL Discovery preprint, Ray et al., cites Straney 2013 and Slater 2003 as
-   refs 4/12) — fetched in full as a PDF and read directly. This is an
-   independent peer-reviewed paper (not previously cited in this file) whose
-   entire purpose is analysing the PIM3 FiO2/PaO2 missing-value handling, so
-   it is authoritative on that specific point.
-4. Multiple web searches attempting to reach the **ANZICS PIM2/PIM3
-   Information Booklet** (cited as reference 2) directly — the booklet PDF
-   returned HTTP 404 at its published URL and via the ANZICS Data Dictionary
-   URL at the time of this check, and web.archive.org could not be fetched
-   from this environment. Could not independently re-verify the booklet's
-   exact wording; see [NEEDS SOURCE] items below.
+**Confirmed unchanged.** All 13 coefficients and the intercept, the logistic
+transform, the three diagnosis lists, and the imputation defaults (SBP 120,
+|BE| 0, oxygenation 0.23) — every one re-read from Table 3 and Appendix 1 rather
+than recalled. No value in this file changed as a result.
 
-**What was confirmed to match exactly (no changes needed):**
+**Corrected.** The diagnosis model. This file previously described the three
+tiers only as "at most one is 1", which is true of the _result_ but says nothing
+about how a patient with conditions in two tiers is resolved — and the
+implementation delegated that resolution to the user through a single
+`diagnosis_risk` picker. Methods p674 states the precedence rule explicitly and
+the paper's own worked example (p681) is built to exercise it. The tiers are now
+three inputs resolved by the model, and the failure mode is pinned by fixture A
+in both directions (47.22% published, 72.34% additive).
 
-- All 13 regression coefficients and the intercept (3.8233, −0.5378, 0.9763,
-  0.0671, −0.0431, 0.1716, 0.4214, −1.2246, −0.8762, −1.5164, 1.6225, 1.0725,
-  −2.1766, −1.7928) — confirmed verbatim against source 1.
-- The probability-of-death logistic transform — confirmed against source 1.
-- The three diagnosis-risk lists (low/high/very-high) — confirmed verbatim
-  against source 1, matches the file's reference 3 note.
-- SBP unknown → 120 — confirmed against source 1 ("unknown = 120") and
-  independent web corroboration.
-- Base excess unknown → 0 — confirmed against source 1 ("unknown = 0").
-- Pupillary reaction coding (both fixed & >3mm = 1; other/unknown = 0) —
-  confirmed against source 1.
-- Derivation cohort: 53,112 admissions, 60 PICUs, Australia/NZ/UK/Ireland,
-  2010–2011, overall AUC-ROC 0.88 (range 0.88–0.89 across regions cited in the
-  abstract) — confirmed against source 2 (PubMed abstract).
-- All three worked-example arithmetic chains (Examples A, B, C) were
-  independently recomputed term-by-term from the confirmed coefficients;
-  Examples B and C reproduce exactly as originally written. Example A
-  required a correction (see below).
+**Two observations from the supplement worth recording.** Its footnote states
+that all 48 candidate models contained the pupils, elective, respiratory-support
+and three risk-diagnosis terms — the diagnostic tiers were structural throughout
+model selection and were never candidates for removal; only the four
+transformations varied. And the selected model 18 (mean AUC 0.8853565, median
+χ² 9.43154, matching the paper's reported 0.89 and 9.43) was marginally beaten on
+mean AUC by model 34 (0.8853750, a difference of 1.85 × 10⁻⁵, adding a cubic SBP
+term) which calibrated worse (median χ² 11.141). The choice was parsimony and
+calibration at an immaterial discrimination cost. This does not affect the
+published coefficients.
 
-**Correction made:**
+**Not accessed:** Supplemental Table 1 of Arias López 2018
+(`links.lww.com/PCC/A772`), which reproduces the PIM3 coefficients with odds
+ratios — redundant now that Table 3 has been read directly.
 
-- **FiO2/PaO2 missing-value handling was wrong and has been corrected.** The
-  original text of this file stated that when FiO2/PaO2 is not measured, the
-  `(FiO2×100)/PaO2` term is **0**. Source 3 (Ray et al., which cites Straney
-  2013 directly on this point) states explicitly: _"PIM-2 assumes a PF value
-  of 0, while PIM-3 assumes a 'normal' PF value of 0.23 (based on a PaO2 value
-  of 91 mm Hg or 12 kPa when breathing room air)"_ and gives the coefficient
-  application as _"0.4214\*100/PF or 0.4214\*0.23 if PF missing."_ Source 1
-  independently corroborates ("FiO2 or PaO2 unknown, term = 0.23"). This file
-  had conflated the **PIM2** convention (0) with **PIM3** (0.23). Fixed in:
-  the formula notes, the `fio2`/`pao2` input-table rows, the units/conversion
-  notes, and **Example A**, whose logit and probability have been recomputed
-  (old: logit −4.49376, P≈1.1%; corrected: logit −4.39684, P≈1.2%). Examples B
-  and C already had known, non-missing FiO2/PaO2 values, so they were
-  unaffected and needed no change.
+### 2026-07-25 — independent cross-check (retained)
 
-**[NEEDS SOURCE] — could not independently confirm, left as-is (not deleted,
-not asserted as newly verified):**
+Performed against sources other than the primary citation. Fetched: Lee 2017 in
+full (open-access PMC), the PubMed abstract of Straney 2013, and Ray et al.
+(UCL Discovery preprint) whose entire subject is the PIM3 FiO₂/PaO₂
+missing-value handling.
 
-- The **pupil exclusion clause** ("fixed dilated pupils due to drugs, toxins
-  or local eye injury are not scored as 1") — this level of granular coding
-  guidance lives in the ANZICS Information Booklet (reference 2), which was
-  not accessible during this check (404 at the published URL; archive.org not
-  reachable from this environment). Plausible and consistent with standard
-  PIM/PIM2 practice, but not independently re-confirmed here. **[NEEDS
-  SOURCE]**
-- The **mechanical-ventilation CPAP/BiPAP inclusion detail** and the
-  **tracheostomy-while-spontaneously-breathing exclusion** — same booklet
-  dependency as above, not independently re-confirmed. **[NEEDS SOURCE]**
-- The **elective-admission "could not have been foreseen" exclusion wording**
-  — same booklet dependency, not independently re-confirmed. **[NEEDS
-  SOURCE]**
-- The **exact SBP special values for cardiac arrest (→0) and shocked/
-  unmeasurable (→30)** — these appeared consistently across multiple
-  secondary web sources during this check, but no single source with quotable,
-  traceable full text could be fetched to confirm the exact wording against
-  the ANZICS booklet itself. Numerically plausible and consistent with prior
-  PIM/PIM2 convention; treat as **[NEEDS SOURCE]** for a verbatim-wording
-  citation even though the values themselves are widely repeated.
-- **Per-region calibration statistics and the ANZPIC diagnosis-code mappings**
-  — already flagged as [NEEDS SOURCE] in the Limitations section prior to
-  this check; not re-verified here, no change made.
+**Correction made then, and still standing.** The FiO₂/PaO₂ missing-value
+substitution was wrong in this file: it stated the term is **0** when
+unmeasured. That is **PIM2's** convention. PIM3 substitutes **0.23**, a normal
+value based on a PaO₂ of about 91 mmHg / 12 kPa on room air. Ray et al. state the
+coefficient application directly, and Lee 2017 corroborates. Fixed then in the
+formula notes, the `fio2` / `pao2` rows, the conversion notes and the
+all-defaults worked example (old: logit −4.49376, P ≈ 1.1%; corrected: −4.39684,
+P ≈ 1.22%). Now independently re-confirmed against Methods p674, which derives
+0.23 as (0.21 × 100) / 90 and names the selected model form as the one imputing
+it.
 
-No citations were removed. No new coefficients were invented; the one
-numeric correction (0.23 default) is sourced to an independent peer-reviewed
-paper (source 3) that itself cites Straney 2013 for the same figure.
+The 2026-07-25 attempt to reach the ANZICS booklet failed (404 at the published
+URL and at the Data Dictionary URL; web.archive.org unreachable from that
+environment), which is why the variable-coding rules were carried as
+`[NEEDS SOURCE]` until Appendix 1 was read. All but one are now closed from the
+paper itself; the exception is listed under
+[Open gaps](#open-gaps--needs-source).
+
+**Nothing in this file is inferred.** The diagnostic code ordinals flagged as
+uncertain in earlier drafts are read directly from Appendix 1, p680. All three
+lists are confirmed complete and independently corroborated across the paper, the
+registry manual and three peer-reviewed validation studies.

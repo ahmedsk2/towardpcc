@@ -14,8 +14,13 @@ import { mmhgWithKpa } from "../units/pressure";
  * Septic shock = sepsis AND cardiovascular component ≥ 1 (a cardiovascular
  * point specifically — not merely total ≥ 2).
  *
- * Missing inputs contribute 0 to their component (reference-package convention);
- * the score therefore reflects DOCUMENTED dysfunction, not proven absence of it.
+ * MISSING INPUTS ARE IMPUTED AT THEIR NORMAL-END SENTINEL, each independently
+ * of every other input — not "the component scores 0". The distinction is the
+ * whole of the 2026-08-03 neurologic correction: a missing GCS imputes to 15,
+ * which must not suppress the 2 points that bilaterally fixed pupils score on
+ * their own. The score therefore reflects DOCUMENTED dysfunction, not proven
+ * absence of it, and a half-entered Phoenix reads falsely low BY DESIGN — hence
+ * `missingAsNormal` and the caution rendered beside the number.
  *
  * Only the numeric total GCS (3–15) is consumed — no GCS response-descriptor
  * wording is reproduced (that is a separate instrument; see notes/ipStatus).
@@ -26,11 +31,23 @@ import { mmhgWithKpa } from "../units/pressure";
 const VASOACTIVE_UNIT = NO_UNIT; // count of distinct agents (dimensionless)
 
 /**
+ * Normal-end sentinel for an oxygenation ratio that cannot be computed —
+ * P/F and S/F both impute to 500 in the reference package, independently of
+ * each other. 500 is above every published cut point, so an absent ratio can
+ * never trigger a tier while a present one still can.
+ */
+const RATIO_ABSENT = 500;
+
+/**
  * Age-banded MAP sub-score (2c). Age bands are left-inclusive, half-open
  * [low, high); thresholds are JAMA 2024 Table 2 (cross-checked against the
  * `phoenix` reference package). 2 pts if MAP < low, 1 pt if low ≤ MAP < high,
  * 0 pts if MAP ≥ high. The half-open form scores non-integer MAP (e.g. 43.67)
- * exactly as the reference code does.
+ * exactly as the reference code does — and is the first of the four places
+ * where the software convention and the printed integer band disagree: at
+ * age < 1 month the table's 0-point band starts at 31, so MAP 30.5 reads 0
+ * from the table and 1 from the software. This implementation follows the
+ * software at all four (see `formula`).
  */
 function mapPoints(ageMonths: number, map: number): number {
   let low: number;
@@ -63,7 +80,7 @@ export const phoenix = defineScore({
   id: "phoenix",
   slug: "phoenix",
   name: "Phoenix Sepsis Score",
-  version: "1.1.0",
+  version: "2.0.0",
   status: "published",
   category: "sepsis",
   inputs: [
@@ -74,13 +91,21 @@ export const phoenix = defineScore({
       required: true,
       type: "numeric",
       unit: { canonical: "months" },
-      // Validated cohort was < 18 y (< 216 months); MAP bands start at 0 months.
+      // The criteria exclude age 18 and over, i.e. the eligible domain is
+      // [0, 216) months — the reference R code's `<= 216` admits exactly 18.0 y
+      // and is the divergence, not the rule. `NumericInput.max` is INCLUSIVE and
+      // there is no exclusive-bound facility, so over the whole-month domain
+      // this input declares (`step: 1`) the last eligible value is 215 and 216
+      // is rejected, which is exactly "reject at ≥ 216 months". The residual: a
+      // fractional age in (215, 216) months is also rejected, though the
+      // criteria would admit it. Expressing that would need an exclusive bound
+      // in validation.ts, which is shared. MAP bands start at 0 months.
       min: 0,
       max: 215,
       step: 1,
       helpText: defineText(
         "phoenix.age.help",
-        "In months. Determines the age-adjusted MAP band. The criteria were derived in children < 18 years and exclude newborns and infants < 37 weeks post-conceptional age.",
+        "In whole months. Determines the age-adjusted MAP band. The criteria were derived in children under 18 years — age 216 months (18.0 years) and over is outside them and is rejected — and exclude newborns during the birth hospitalization and infants under 37 weeks post-conceptional age.",
       ),
     },
     {
@@ -133,7 +158,7 @@ export const phoenix = defineScore({
       max: 700,
       helpText: defineText(
         "phoenix.pao2.help",
-        "From an arterial blood gas. Used for the PaO₂:FiO₂ (P/F) ratio when available; otherwise SpO₂:FiO₂ is used. Accepts mmHg or kPa.",
+        "From an arterial blood gas. Gives the PaO₂:FiO₂ (P/F) ratio. P/F and SpO₂:FiO₂ are evaluated together and either can trigger a tier, so supplying both is not redundant. Accepts mmHg or kPa.",
       ),
     },
     {
@@ -164,7 +189,7 @@ export const phoenix = defineScore({
       max: 100,
       helpText: defineText(
         "phoenix.spo2.help",
-        "Used for the SpO₂:FiO₂ (S/F) ratio only when SpO₂ ≤ 97% (above that the ratio saturates and is uninformative). Prefer PaO₂:FiO₂ when an arterial gas is available.",
+        "Gives the SpO₂:FiO₂ (S/F) ratio, which is valid only when SpO₂ ≤ 97% (above that the ratio saturates and is uninformative). S/F and PaO₂:FiO₂ are evaluated together and either can trigger a tier.",
       ),
     },
     {
@@ -286,7 +311,7 @@ export const phoenix = defineScore({
       step: 1,
       helpText: defineText(
         "phoenix.gcs.help",
-        "Total GCS 3–15. Contributes 1 neurologic point when ≤ 10. Only the numeric total is used.",
+        "Total GCS 3–15. Scores 1 neurologic point when ≤ 10 — but bilaterally fixed pupils score 2 whatever the GCS, so this value only decides between 0 and 1. Left blank it is taken as 15, which is why it cannot mask a fixed-pupils score. Only the numeric total is used.",
       ),
     },
     {
@@ -297,7 +322,7 @@ export const phoenix = defineScore({
       type: "boolean",
       helpText: defineText(
         "phoenix.fixed_pupils.help",
-        "Contributes 1 neurologic point (additive with the GCS point; neurologic component caps at 2).",
+        "Scores the full 2 neurologic points on its own, whatever the GCS — it is not additive with the GCS point. Left blank it is taken as not fixed.",
       ),
     },
   ] as const,
@@ -363,6 +388,13 @@ export const phoenix = defineScore({
         "Limitations now state the SpO₂ 97/98 discontinuity outright: with no arterial gas, a child on invasive ventilation at FiO₂ 1.0 scores respiratory 3 at SpO₂ 97 but 0 at SpO₂ 98, because S/F is undefined above 97 and the missing-input convention then contributes 0 — so a well-saturated child on maximal support can fall below the total ≥ 2 sepsis threshold on respiratory grounds alone. Both halves are per the paper and neither was stated; a reader could have taken the 0 for reassurance. The four component maxima (respiratory 0–3, cardiovascular 0–6, coagulation 0–2, neurologic 0–2) are now declared for the result panel, and the inputs carry organ-system group headings. No threshold or computed value changed.",
       reason: "clarification",
     },
+    {
+      version: "2.0.0",
+      date: "2026-08-03",
+      summary:
+        "TWO COMPUTED RESULTS CHANGE, both in the direction of a HIGHER score — a patient may now meet the Phoenix sepsis threshold who did not before, and no patient scores lower than before. (1) NEUROLOGIC. Bilaterally fixed pupils now score the full 2 points outright, whatever the GCS. The rule was implemented as GCS ≤ 10 (+1) plus fixed pupils (+1) capped at 2, which returned 1 for fixed pupils with a GCS above 10 and 1 for fixed pupils with no GCS entered. All four published tables print the neurologic row as three mutually exclusive columns, and the task force's own reference software returns 2 for fixed pupils at GCS 15, at GCS 8, and with GCS missing. The missing case is the consequential one: a missing GCS is imputed to 15 INDEPENDENTLY of pupil status, so a child with bilaterally fixed pupils and no GCS recorded scored 1 here — below the threshold — and now scores 2, which meets it. (2) RESPIRATORY. The PaO₂:FiO₂ and SpO₂:FiO₂ ratios are now evaluated together as the source expression writes them, either one able to trigger a tier, rather than the arterial ratio being used alone whenever a blood gas was present. Where the two disagree — non-simultaneous sampling being the usual reason — the respiratory component can only rise. Missing inputs are now imputed at their documented normal-end sentinels (unusable ratio 500, GCS 15, pupils not fixed, no ventilation, no other support, 0 vasoactive agents, lactate 0, INR 0, D-dimer 0, platelets and fibrinogen normal), each independently of the others. Also, without changing any number: the continuous-comparison convention is now stated for the four boundaries where the published integer bands and the reference software disagree (MAP 30.5 under 1 month, lactate 10.95, and P/F exactly 200 or S/F exactly 220 on invasive ventilation); a missing-data caution renders beside the result, because a half-entered Phoenix reads falsely low by design and a total below 2 on an incomplete entry is not evidence against sepsis; the age bound is documented as excluding 216 months (18.0 years) and over; and the limitations add the authors' own sedation caveat and the derivation-cohort generalisability caveat.",
+      reason: "formula-correction",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -370,13 +402,28 @@ export const phoenix = defineScore({
       "Threshold/branch-rule clinical score — cutoffs, arithmetic, and age bands are facts/procedures, not copyrightable expression. The authors additionally released an open-source reference implementation (CRAN/PyPI) and open-access papers. Only the numeric total GCS is consumed; no GCS response-descriptor item wording is reproduced (phoenix.md IP status).",
   },
   missingAsNormal: true,
+  cautions: [
+    defineText(
+      "phoenix.caution.partial",
+      "A half-entered Phoenix reads FALSELY LOW, by design. Every unentered value is scored at its normal end — an unusable oxygenation ratio as 500, GCS as 15, pupils as not fixed, lactate and vasoactive agents as none, platelets and fibrinogen as normal — so the total measures DOCUMENTED organ dysfunction, never absence of it. A total below 2 on an incomplete entry is not evidence against sepsis. Enter every value that was actually measured before reading the total, and read a blank as 'not measured', never as 'normal'.",
+    ),
+  ],
   formula: defineText(
     "phoenix.formula",
-    "Total (0–13) = respiratory (0–3) + cardiovascular (0–6) + coagulation (0–2) + neurologic (0–2), each per JAMA 2024 Table 2. Respiratory is scored only when respiratory support is present, from the PaO₂:FiO₂ (P/F) ratio when an arterial gas is available, otherwise the SpO₂:FiO₂ (S/F) ratio when SpO₂ ≤ 97%: on invasive mechanical ventilation, 3 pts if P/F < 100 (S/F < 148) or 2 pts if P/F < 200 (S/F < 220); on any support, 1 pt if P/F < 400 (S/F < 292); otherwise 0 (PaO₂ and MAP in mmHg, FiO₂ a fraction). Cardiovascular sums vasoactive points (0 agents → 0, 1 → 1, ≥ 2 → 2), lactate points (< 5 → 0, 5 to < 11 → 1, ≥ 11 → 2 mmol/L), and age-banded MAP points (2 if MAP < low, 1 if low ≤ MAP < high, 0 if MAP ≥ high, with half-open [low, high) thresholds by age band). Coagulation adds 1 point each — platelets < 100 ×10³/µL, INR > 1.3, D-dimer > 2 mg/L FEU, fibrinogen < 100 mg/dL — capped at 2; neurologic adds 1 point for GCS ≤ 10 and 1 for bilaterally fixed pupils, capped at 2. A missing input contributes 0 to its component. Sepsis is reported as 1 when infection is suspected/confirmed and total ≥ 2; septic shock as 1 when sepsis is met and the cardiovascular component ≥ 1.",
+    "Total (0–13) = respiratory (0–3) + cardiovascular (0–6) + coagulation (0–2) + neurologic (0–2), each per JAMA 2024 Table 2 (PaO₂ and MAP in mmHg, FiO₂ a fraction). RESPIRATORY is cumulative and scored only when respiratory support is present. The PaO₂:FiO₂ (P/F) and SpO₂:FiO₂ (S/F) ratios are evaluated together — S/F only when SpO₂ ≤ 97% — and either can trigger a tier: 1 point for any support with P/F < 400 or S/F < 292, 1 more for invasive mechanical ventilation with P/F < 200 or S/F < 220, and 1 more for invasive ventilation with P/F < 100 or S/F < 148. Invasive ventilation can therefore reach 3 and non-invasive support cannot exceed 1. CARDIOVASCULAR sums three independent 0–2 sub-scores with no overall cap: vasoactive agents (0 → 0, 1 → 1, ≥ 2 → 2), lactate (< 5 → 0, 5 to < 11 → 1, ≥ 11 → 2 mmol/L), and age-banded MAP (2 if MAP < low, 1 if low ≤ MAP < high, 0 if MAP ≥ high, with half-open [low, high) thresholds by age band). COAGULATION adds 1 point each — platelets < 100 ×10³/µL, INR > 1.3, D-dimer > 2 mg/L FEU, fibrinogen < 100 mg/dL — capped at 2. NEUROLOGIC is hierarchical, not additive: bilaterally fixed pupils score 2 outright whatever the GCS; otherwise GCS ≤ 10 scores 1; otherwise 0. BOUNDARIES are compared continuously, matching the reference software rather than the integer bands printed for bedside use, at the four values where the two disagree: MAP 30.5 under 1 month scores 1 where the printed band reads 0; lactate 10.95 scores 1 where the printed band (5–10.9) leaves a gap; and a P/F of exactly 200 or an S/F of exactly 220 on invasive ventilation scores 1 where the printed 2-point bands (100–200, 148–220) read 2. MISSING INPUTS are each imputed at their own normal-end sentinel, independently of every other input — an uncomputable ratio as 500, GCS as 15, pupils as not fixed, ventilation and other support as absent, vasoactive agents 0, lactate 0, INR 0, D-dimer 0, platelets and fibrinogen normal — so a missing GCS never suppresses a fixed-pupils score. Sepsis is reported as 1 when infection is suspected/confirmed and total ≥ 2; septic shock as 1 when sepsis is met and the cardiovascular component ≥ 1.",
   ),
   notes: defineText(
     "phoenix.notes",
-    "Diagnostic criterion, not a graded severity ladder: sepsis = suspected/confirmed infection AND total ≥ 2; septic shock = sepsis AND cardiovascular component ≥ 1 (a cardiovascular point, not merely total ≥ 2). The vasoactive sub-score is a COUNT of distinct agents (0/1/≥2), not the VIS. Missing inputs contribute 0 to their component (reference-package convention), so the score reflects documented dysfunction — a teaching UI should show a missing input as missing, not as normal. The S/F ratio is used only when SpO₂ ≤ 97%; P/F is preferred when an arterial gas is available. That gate has a consequence worth stating outright, because it runs against intuition: with no arterial gas, a child on invasive ventilation at FiO₂ 1.0 scores respiratory 3 at SpO₂ 97 but 0 at SpO₂ 98 — the ratio simply is not computable above 97, and the missing-input convention then contributes 0. A well-saturated child on maximal support can therefore fall below the total ≥ 2 sepsis threshold on respiratory grounds alone. Read that as ‘not measurable’, never as ‘not hypoxaemic’, and obtain a blood gas. Only the numeric total GCS (3–15) is consumed; the GCS response-descriptor wording is a separate instrument (Teasdale & Jennett) and is not reproduced or licensed by the Phoenix papers. The validated cohort was children < 18 years and excluded newborns during the birth hospitalization and infants < 37 weeks post-conceptional age — applying the score to those groups is outside the validated population. The 8-organ research extension Phoenix-8 is out of scope. The MAP age bands are implemented as half-open [low, high) intervals (matching the reference package) so non-integer MAP scores exactly. The per-input plausible min/max are input-validity guardrails, not published Phoenix thresholds (the research labels these ranges as heuristics, not published thresholds); pao2/spo2/map upper bounds were widened beyond the research's 'typical' ranges to avoid false rejections and are annotated in code.",
+    "Diagnostic criterion, not a graded severity ladder: sepsis = suspected/confirmed infection AND total ≥ 2; septic shock = sepsis AND cardiovascular component ≥ 1 (a cardiovascular point, not merely total ≥ 2). The vasoactive sub-score is a COUNT of distinct agents (0/1/≥2), not the VIS. " +
+      "NEUROLOGIC IS HIERARCHICAL, NOT ADDITIVE. Bilaterally fixed pupils score 2 outright, whatever the GCS; a GCS ≤ 10 with pupils not fixed scores 1; anything else scores 0. All four published tables print this row as three mutually exclusive columns, and the neurologic sub-score the task force selected came from PELOD-2, whose own neurologic component is a maximum-type rule over GCS and pupillary reactivity. The reference software writes the rule as an additive expression capped at 2, which is observationally identical because fixed pupils alone already saturate the cap — but an UNCAPPED sum would return 3 for fixed pupils at GCS 8 and is wrong. Until 2026-08-03 this calculator returned 1 for fixed pupils whenever the GCS was above 10 or was not entered; that was a defect, and it is the reason for the v2.0.0 bump. " +
+      "MISSING INPUTS ARE IMPUTED AT THEIR NORMAL END, EACH INDEPENDENTLY of every other input — the rule is per input, not 'the component scores 0'. A missing GCS imputes to 15 and missing pupil status to 'not fixed', separately, so a child with bilaterally fixed pupils and no GCS recorded still scores the full 2 neurologic points and still meets the total ≥ 2 threshold. Both JAMA tables state the general rule in their first table footnote: an unmeasured variable contributes no points. One honest qualification, so the claim is not overstated as the whole of the published method: in the derivation cohort missing values were first carried forward from physiologically appropriate earlier time windows, and only values still absent after that contributed zero. That is a property of how the development dataset was built and has no bearing on a single-timepoint bedside calculator, where only the second half applies. The consequence is that the total reflects DOCUMENTED dysfunction — a teaching UI should show a missing input as missing, not as normal. " +
+      "RESPIRATORY USES BOTH RATIOS. P/F and S/F are evaluated together and either can trigger a tier, exactly as the source expression writes it; a ratio that cannot be computed imputes to 500 and so triggers nothing. S/F is valid only when SpO₂ ≤ 97%. That gate has a consequence worth stating outright, because it runs against intuition: with no arterial gas, a child on invasive ventilation at FiO₂ 1.0 scores respiratory 3 at SpO₂ 97 but 0 at SpO₂ 98 — the ratio simply is not computable above 97, and the missing-input convention then contributes 0. A well-saturated child on maximal support can therefore fall below the total ≥ 2 sepsis threshold on respiratory grounds alone. Read that as ‘not measurable’, never as ‘not hypoxaemic’, and obtain a blood gas. " +
+      "BOUNDARY CONVENTION. The published tables are written for bedside use (integers, one-decimal lactate) while the software treats every input as continuous, and the two disagree at exactly four values. This calculator follows the software at all four, consistently: MAP 30.5 in a child under 1 month scores 1 where the printed band reads 0 (the same shape recurs at every age band's 0/1 edge); lactate 10.95 scores 1, where the printed 1-point band of 5–10.9 leaves it in a gap; P/F exactly 200 on invasive ventilation scores 1, where the printed 2-point band of 100–200 reads 2; S/F exactly 220 on invasive ventilation scores 1, where the printed 2-point band of 148–220 reads 2. There is no divergence at any coagulation or neurologic boundary, nor at P/F 100, S/F 148, MAP 17, MAP 30, lactate 5 or lactate 11. " +
+      "OUT-OF-RANGE INPUT IS REJECTED RATHER THAN COMPUTED, and that is the source behaviour rather than a local choice: the reference R package halts on a GCS outside 3–15 and on ventilation/support flags outside {0, 1}. The criteria exclude age 18 and over, so 216 months and above is rejected here; note that the reference R code's own `<= 216` bound admits exactly 18.0 years and diverges from the criteria it implements. Because the age bound is inclusive and the field is in whole months, the last accepted value is 215. " +
+      "SEDATION. The neurologic sub-score was pragmatically validated in sedated and non-sedated patients, with and without invasive ventilation. The derivation paper separately acknowledges that some organ-dysfunction measures may reflect iatrogenic effects or clinician choices rather than sepsis-related dysfunction, and names a reduced GCS under sedation as its example. A sedated child's neurologic point may therefore be measuring the sedation; that caveat comes from the authors, not from commentary. " +
+      "GENERALISABILITY. The higher-resource derivation data came exclusively from US tertiary paediatric centres. Some lower-resource sites did not record respiratory support or neurologic status even when it had been assessed, which constrained both the achievable score range and the score's measured performance at those sites. " +
+      "‘REMOTE ORGAN DYSFUNCTION’ IS NOT PART OF THE CRITERIA and is deliberately not implemented: the derivation paper uses it as a descriptive subgroup (respiratory or neurologic dysfunction plus at least one point in a different organ system) to characterise a higher-mortality population, not as a diagnostic gate. " +
+      "Only the numeric total GCS (3–15) is consumed; the GCS response-descriptor wording is a separate instrument (Teasdale & Jennett) and is not reproduced or licensed by the Phoenix papers. The validated cohort was children < 18 years and excluded newborns during the birth hospitalization and infants < 37 weeks post-conceptional age — applying the score to those groups is outside the validated population, and age in months is not adjusted for prematurity. The 8-organ research extension Phoenix-8 is research-only, is not the diagnostic criterion and is out of scope. The MAP age bands are implemented as half-open [low, high) intervals (matching the reference package) so non-integer MAP scores exactly. The per-input plausible min/max are input-validity guardrails, not published Phoenix thresholds (the research labels these ranges as heuristics, not published thresholds); pao2/spo2/map upper bounds were widened beyond the research's 'typical' ranges to avoid false rejections and are annotated in code.",
   ),
   /**
    * Component maxima are JAMA 2024 Table 2 as transcribed in phoenix.md, NOT
@@ -395,28 +442,34 @@ export const phoenix = defineScore({
     ],
   },
   calculate: (values) => {
-    // ---- 1. Respiratory (0–3) ----
+    // ---- 1. Respiratory (0–3), CUMULATIVE ----
+    // Written as the source expression is written — three independent tier
+    // tests summed — rather than as a first-match ladder. The two agree
+    // (pf < 100 implies pf < 200 implies pf < 400), and the cumulative form
+    // makes the two structural facts visible: invasive ventilation is the only
+    // way past 1 point, and a child on non-invasive support therefore cannot
+    // exceed 1 however bad the ratio.
+    //
+    // BOTH ratios are tested at every tier and either can trigger it. An
+    // uncomputable ratio imputes to RATIO_ABSENT (500), which is above every
+    // cut point, so it can never trigger a tier while the other ratio still
+    // can. This is why the two are not "P/F preferred, S/F as fallback": the
+    // published rows read "P/F < 100 or S/F < 148", and a gas drawn at a
+    // different moment from the saturation can legitimately disagree with it.
     const support = values.resp_support?.value ?? "none";
-    let respiratory = 0;
-    if (support !== "none") {
-      const imv = support === "imv";
-      const fio2 = values.fio2?.value;
-      const pao2 = values.pao2?.value;
-      const spo2 = values.spo2?.value;
-      if (fio2 !== undefined && pao2 !== undefined) {
-        const pf = pao2 / fio2; // both canonical: mmHg / fraction
-        if (imv && pf < 100) respiratory = 3;
-        else if (imv && pf < 200) respiratory = 2;
-        else if (pf < 400) respiratory = 1;
-        else respiratory = 0;
-      } else if (fio2 !== undefined && spo2 !== undefined && spo2 <= 97) {
-        const sf = spo2 / fio2; // SpO₂ (%) / fraction; valid only when SpO₂ ≤ 97
-        if (imv && sf < 148) respiratory = 3;
-        else if (imv && sf < 220) respiratory = 2;
-        else if (sf < 292) respiratory = 1;
-        else respiratory = 0;
-      }
-    }
+    const imv = support === "imv" ? 1 : 0;
+    const anySupport = support === "none" ? 0 : 1;
+    const fio2 = values.fio2?.value;
+    const pao2 = values.pao2?.value;
+    const spo2 = values.spo2?.value;
+    // Canonical units: mmHg / fraction, and % / fraction.
+    const pf = fio2 === undefined || pao2 === undefined ? RATIO_ABSENT : pao2 / fio2;
+    // S/F is only valid at SpO₂ ≤ 97 — above that the ratio saturates and stops
+    // discriminating, so it is treated as absent rather than as reassuring.
+    const sf = fio2 === undefined || spo2 === undefined || spo2 > 97 ? RATIO_ABSENT : spo2 / fio2;
+    const respiratory =
+      imv * ((pf < 100 || sf < 148 ? 1 : 0) + (pf < 200 || sf < 220 ? 1 : 0)) +
+      anySupport * (pf < 400 || sf < 292 ? 1 : 0);
 
     // ---- 2. Cardiovascular (0–6) = vasoactives + lactate + age-banded MAP ----
     const nVaso = values.n_vasoactives?.value ?? 0;
@@ -442,12 +495,21 @@ export const phoenix = defineScore({
     if (fibrinogen !== undefined && fibrinogen < 100) coag += 1;
     const coagulation = Math.min(coag, 2);
 
-    // ---- 4. Neurologic (0–2): additive, capped at 2 ----
-    let neuro = 0;
-    const gcs = values.gcs_total?.value;
-    if (gcs !== undefined && gcs <= 10) neuro += 1;
-    if (values.fixed_pupils?.value === true) neuro += 1;
-    const neurologic = Math.min(neuro, 2);
+    // ---- 4. Neurologic (0–2): HIERARCHICAL, not additive ----
+    // Bilaterally fixed pupils are worth 2 outright, whatever the GCS. The
+    // published tables print three mutually exclusive columns; the reference
+    // software writes an additive-then-capped expression, which agrees with
+    // this at every input because fixed pupils alone already saturate the cap.
+    // An uncapped sum would return 3 for fixed pupils at GCS 8 and is wrong.
+    //
+    // The two sentinels are imputed INDEPENDENTLY — missing GCS → 15, missing
+    // pupil status → not fixed — so a missing GCS cannot suppress a
+    // fixed-pupils score. Before 2026-08-03 this returned 1 for fixed pupils
+    // with no GCS entered, putting that child BELOW the total ≥ 2 sepsis
+    // threshold that the published algorithm has them meeting.
+    const gcs = values.gcs_total?.value ?? 15;
+    const pupilsFixed = values.fixed_pupils?.value ?? false;
+    const neurologic = pupilsFixed ? 2 : gcs <= 10 ? 1 : 0;
 
     const total = respiratory + cardiovascular + coagulation + neurologic;
     const sepsis = values.suspected_infection.value && total >= 2 ? 1 : 0;

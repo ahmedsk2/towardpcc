@@ -340,6 +340,21 @@ _(derived from Holliday & Segar 1957)_
 - 26 kg: 10 × 100 + 10 × 50 + 6 × 20 = 1000 + 500 + 120 = **1620 mL/day**
   (= 67.5 mL/h). 4-2-1 check: 40 + 20 + 6 = 66 mL/h (rounding of 1620/24). ✓
 
+**Example 7 — Pisano's five-centre spread, and where this score sits in it**
+_(Pisano C, et al. Burns 2021;47(3):545–550, DOI 10.1016/j.burns.2020.04.013 —
+the worked example in §7.3 of the 2016–2026 review; see R.4)_
+
+- Child: **5 years old, 25 kg, 20% TBSA**. Pisano's point is that the estimated
+  24-hour requirement for this one child ranges **1500–3560 mL (3.0–7.1
+  mL/kg/%TBSA)** depending only on which of five ABA-verified paediatric burn
+  centres they arrive at.
+- This score's pediatric-Parkland output = 3 × 25 × 20 = **1500 mL** — the
+  **bottom** of that span, i.e. 3.0 mL/kg/%TBSA. First 8 h = **750 mL**.
+- Holliday–Segar maintenance at 25 kg = 1000 + 500 + 5 × 20 = **1600 mL/day**;
+  combined = **3100 mL**, which lands inside the span but still below its top.
+- This is the honest way to show the number: not "1500 mL is the answer" but
+  "1500 mL is one end of a published 2.4-fold spread for this exact child".
+
 ---
 
 ## Interpretation bands (non-directive, with source)
@@ -360,6 +375,14 @@ literature is not uniform):
   ≥30 kg** (StatPearls NBK534227). **Infants** are sometimes targeted higher
   (~1–2 mL/kg/h). Sources disagree by ~0.5 mL/kg/h; carry the range, do not pick
   one silently.
+- **Reconciled against the 2016–2026 table in R.3, which widens this further.**
+  The **>30 kg target spans 0.3–1.0 mL/kg/h** once Stevens 2023's 0.3–0.7 is
+  included — a threefold range, and Stevens sits below even the adult 0.5–1.0.
+  The **banding variable itself is disputed**: AWMF 006/128 bands by
+  developmental stage (infants and toddlers 1–2, school-age 0.5–1), North
+  American sources band by weight, and the switch weight ranges 20–40 kg. Carry
+  all of it; the "<30 kg = 1, ≥30 kg = 0.5" split above is one line through a
+  disagreement, not the disagreement.
 
 **Threshold to start formal resuscitation:** ≥20% TBSA (ABLS/ABA, adults); many
 pediatric centers ≥15%; some >10% in children (see Formula section).
@@ -368,6 +391,378 @@ The formula volume is explicitly a **starting estimate to be titrated**, not a
 volume to be delivered rigidly — over-resuscitation ("fluid creep") is a
 recognized harm and is the reason the 2024 ABA CPG lowered the adult starting
 coefficient to 2 mL/kg/%TBSA. (Cartotto et al. 2024.)
+
+---
+
+## The 2016–2026 evidence review (added 2026-08-03)
+
+A second sourcing pass, deliberately restricted to evidence published 2016–2026.
+Its first finding governs everything below it.
+
+### R.0 Inside a ten-year window there is no derivation of anything
+
+**No primary derivation exists in-window for any coefficient this score uses.**
+Parkland (Baxter & Shires 1968), Galveston (Carvajal 1980), Cincinnati
+(Shriners, via a 2009 textbook chapter), Brooke (Reiss 1953), the Ivy index
+(2000) and the "children need ~6 mL/kg/%TBSA" figure (Graves 1988) all predate
+2016 by decades. Everything in-window is **restatement, practice audit, or
+consensus synthesis**. Any coefficient a clinical tool displays is a convention
+with 40–70-year-old provenance and no modern re-derivation. That is not a reason
+to reject it; it is a reason to label it accurately, which is what this section
+exists to make possible.
+
+**Provenance of this section.** The figures below are taken from this project's
+compiled burn-resuscitation evidence review of 2026-08-03, which records the
+seven sources in R.0.1 as read in full. The originals were **not re-fetched**
+for this pass, so every number here is at one remove and is attributed to the
+named study, never to a reading of it done here.
+
+#### R.0.1 Sources of the review
+
+| Source                                                                                                                                        | Type                                | Population                   |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------- |
+| Cartotto R, et al. ABA CPG on Burn Shock Resuscitation. _J Burn Care Res_ 2024;45(3):565–589                                                  | Systematic-review CPG               | Adults ≥20% TBSA             |
+| Greenhalgh DG, Cartotto R, Taylor SL, et al. Burn resuscitation practices in North America: ABRUPT. _Ann Surg_ 2023;277(3):512–519            | Prospective observational, 21 sites | Adults ≥20% TBSA             |
+| Vasileiadis V, Najem S, Reinshagen K, et al. Fluid and burns in children — German Burn Registry 2015–2022. _Eur J Pediatr_ 2024;183:5479–5488 | Registry cohort, 30 centres         | Children <16 y, ≥15% TBSA    |
+| Pisano C, Fabia R, Shi J, et al. Variation in acute fluid resuscitation among pediatric burn centers. _Burns_ 2021;47(3):545–550              | Protocol comparison, 5 centres      | Children ≥15% TBSA           |
+| Stevens JV, Prieto NS, Ridelman E, et al. Weight-based vs BSA-based fluid resuscitation predictions. _Burns_ 2023;49(1):120–128               | Retrospective, single centre        | Children ≤18 y, ≥15% TBSA    |
+| DGKCH et al. AWMF S2k-Leitlinie 006/128, Version 3.0, 15.08.2024                                                                              | National consensus guideline        | Children, birth to adulthood |
+| Romanowski KS, Palmieri TL. _Burns Trauma_ 2017;5:26                                                                                          | Narrative review                    | Children                     |
+
+**Not accessed.** The **ABLS Provider Manual** — ABA course material, no DOI,
+cited second-hand by ABRUPT, by Pisano's "ABA" column and by StatPearls. It is
+the source most clinicians actually follow and the apparent origin of the 30 kg
+figure. **No ABA or ISBI clinical practice guideline covering _paediatric_ burn
+shock resuscitation was located**; the 2024 ABA CPG makes no reference to a
+companion paediatric document.
+
+### R.1 The 30 kg maintenance threshold — real, traceable, and not universal
+
+**Pisano 2021, Table 2** is the primary tabulation. Five ABA-verified paediatric
+burn centres in the Pediatric Injury Quality Improvement Collaborative, plus the
+ABA position, side by side:
+
+| Parameter                                    | ABA       | Centre 1  | Centre 2  | Centre 3  | Centre 4  | Centre 5                   |
+| -------------------------------------------- | --------- | --------- | --------- | --------- | --------- | -------------------------- |
+| TBSA threshold to start resuscitation        | 20%       | 15%       | 20%       | 15%       | 20%       | 10% (0–12 y) / 15% (13+ y) |
+| Parkland coefficient (no / with inhalation)  | 3 or 4    | 3 or 4    | 2 or 3    | 4         | 3 or 6    | 4 or 6                     |
+| **Maintenance IV fluid started below**       | **30 kg** | **20 kg** | **40 kg** | **30 kg** | **20 kg** | **age <1 year**            |
+| Urine-output goal of 1 mL/kg/h applies below | 30 kg     | 30 kg     | 40 kg     | 30 kg     | 20 kg     | 30 kg                      |
+
+**What this establishes.**
+
+1. The 30 kg figure is **real and traceable to the ABA** (i.e. to ABLS course
+   material), as tabulated by Pisano et al.
+2. It is a threshold **below which maintenance is added**, not above which it is
+   withdrawn — a framing difference that matters.
+3. Actual practice ranges **20 kg to 40 kg**, plus one centre using **age <1
+   year** instead of any weight.
+4. One centre supplies **no additional maintenance IVF at all**.
+
+**What it does not establish: any derivation.** Pisano et al. tabulated the ABA
+position; they did not test it, and the ABA source is a course manual, not a
+systematic review. The threshold is consensus. **Derivation of any maintenance
+weight threshold (20, 30 or 40 kg): [NO SOURCE].**
+
+**The counter-position — no threshold at all.** AWMF S2k 006/128 (valid
+15.08.2024–14.08.2029) takes a different structure entirely:
+
+- Maintenance (_Grundbedarf_) is Holliday–Segar 100/50/20 mL/kg/day, and **no
+  weight threshold for maintenance appears anywhere in the guideline** —
+  maintenance applies to all children.
+- From **15% TBSA**, an additional burn requirement of **3–4 mL/kg/%TBSA** is
+  indicated _on top of_ basal requirement, flagged particularly for children who
+  cannot drink adequately because of analgosedation.
+- Below 15% TBSA without ventilation, maintenance-level fluid is generally
+  needed only while the child cannot meet needs orally; above 10% TBSA urine
+  output should be monitored regularly through the first 24 h.
+- Enteral fluid counts against basal requirement; enteral nutrition should begin
+  on day 1.
+- The guideline states explicitly that the paediatric evidence base is
+  insufficient and that its fluid statements rest on **expert consensus,
+  evidence level IV**.
+
+This is consistent with the German Burn Registry's method, which applied
+Parkland + Holliday–Segar ("Parkland\*") to every child <16 y with ≥15% TBSA
+with no weight cutoff.
+
+**Handling here.** Do not display a single threshold as fact. This score adds
+Holliday–Segar maintenance with **no weight threshold** — the AWMF structure —
+and states the range with its sources: ABA/ABLS <30 kg; published paediatric
+burn-centre practice 20–40 kg (Pisano 2021), one centre using age <1 y and one
+adding none; AWMF 006/128 (2024) applying maintenance to all children. No
+derivation exists for any of these values.
+
+### R.2 The clock, and the fluid already given
+
+**Confirmed in-window: the 8-hour window runs from time of injury, not
+presentation, and pre-arrival fluid is subtracted.**
+
+- **ABRUPT** designated the time of burn injury as time 0 and anchored all
+  hourly data collection there. Mean time from burn to burn-centre admission was
+  **2.9 ± 2.6 h**, and patients had already received **1553 ± 1782 mL** before
+  arrival. The correction is not a rounding matter.
+- **Children's Hospital of Michigan algorithm** (Stevens 2023, Fig. A.1) — the
+  most fully specified paediatric algorithm in the accessed set: %TBSA by
+  age-appropriate Lund–Browder and establish time of injury (TOI) → Parkland at
+  4 mL/kg/%TBSA → **subtract any fluid received before admission** → half the LR
+  over the first 8 h post-TOI, half over the next 16, with 25% albumin at
+  2 g/kg/h from the 8-hour mark → hourly urine, target **0.8–1.2 mL/kg/h if
+  ≤30 kg, 0.3–0.7 mL/kg/h if >30 kg** → ±15% rate step after 2 consecutive hours
+  outside target, then albumin, then dopamine 3 mcg/kg/min. (A pre-2019 step
+  escalating the coefficient to 6 mL/kg/%TBSA for inhalation injury was
+  **withdrawn in 2019**.)
+
+The rate arithmetic that follows from it:
+
+```
+rate₁ (mL/h) = (0.5 × total volume − fluid already given) ÷ (8 − hours since injury)
+rate₂ (mL/h) = (0.5 × total volume) ÷ 16
+```
+
+- The denominator of rate₁ approaches zero or goes negative on delayed
+  presentation. Any implementation must handle that explicitly rather than
+  divide by zero or emit an absurd rate.
+- "Fluid already given" must be a **required** input wherever a rate is emitted.
+- **Maintenance is not titrated.** Titration acts on resuscitation fluid only;
+  maintenance runs at the weight-based rate.
+
+**Derivation of the 8 h / 16 h split itself: [NO SOURCE].** Absent from the 1968
+original; absent from ABA CPG 2024, which does not address the split in any of
+its ten PICO questions; absent from every in-window source reviewed. Universal
+in practice, derived nowhere.
+
+**What this score implements, stated so the gap is not mistaken for
+completeness.** It has no `time_since_burn_h` input, no fluid-already-given
+input and emits no infusion rates. Its first-8-hour figure is exactly half the
+24-hour volume — a **gross volume measured from the time of injury, not the
+volume still to be given**. A child who received 500 mL in the ambulance needs
+that subtracted by hand, and one arriving 3 hours after the burn has the
+remainder to run over 5 hours, not 8.
+
+### R.3 Urine-output targets — the disagreement, quantified
+
+| Source                                     | Infant / small child        | Mid range                                       | Larger child                           |
+| ------------------------------------------ | --------------------------- | ----------------------------------------------- | -------------------------------------- |
+| Stevens 2023 protocol                      | —                           | ≤30 kg: **0.8–1.2**                             | >30 kg: **0.3–0.7**                    |
+| Pisano 2021 (1 mL/kg/h goal applies below) | —                           | <20 kg (C4), <30 kg (ABA/C1/C3/C5), <40 kg (C2) | —                                      |
+| AWMF S2k 006/128 (2024)                    | Infants & toddlers: **1–2** | —                                               | School-age: **0.5–1**                  |
+| Romanowski & Palmieri 2017                 | —                           | <30 kg: **1**                                   | >30 kg: **0.5**                        |
+| ABRUPT (adults, achieved)                  | —                           | —                                               | **0.87 ± 0.51** against a 0.5–1.0 goal |
+
+Three separate disagreements are visible:
+
+1. **The >30 kg target spans 0.3–1.0 mL/kg/h.** Stevens' 0.3–0.7 is markedly
+   lower than every other source and lower than the adult 0.5–1.0. Displaying
+   "0.5 mL/kg/h" for a 35 kg child is picking one end of a threefold range.
+2. **The banding variable itself differs.** German guidance bands by
+   **developmental stage** (infant/toddler vs school-age); North American
+   guidance bands by **weight**. They are not interchangeable — a large
+   5-year-old and a small 9-year-old fall differently.
+3. **The weight at which the band switches ranges 20–40 kg.**
+
+Additional endpoint notes:
+
+- **Electrical injury:** AWMF directs volume escalation — with diuretics and/or
+  urine alkalinisation if needed — until urine output is roughly **double** the
+  usual burn target. Persistent dark urine under that regimen indicates
+  extensive muscle necrosis or ongoing ischaemia.
+- **Which weight to index to is unsettled.** In ABRUPT, actual body weight
+  exceeded predicted in 84% of adults (90.0 ± 24.8 vs 69.5 ± 10.4 kg); urine
+  output indexed to actual weight was 0.87 vs 1.1 mL/kg/h to predicted.
+- **Urine output can mislead.** Oliguria in intra-abdominal hypertension
+  reflects renal hypoperfusion, not hypovolaemia. AWMF pairs urine output with
+  CVP, MAP and blood gas/lactate rather than treating it as a single trigger.
+- **Titration asymmetry**, stated in the German registry discussion: in practice
+  low urine output prompts rapid rate increases, but high urine output does not
+  prompt correspondingly rapid reductions.
+- Both the ABA CPG (in adults) and AWMF (in children, largely because
+  pulse-contour/thermodilution device size is impractical) land on urine output
+  as the practical endpoint rather than invasive or semi-invasive monitoring.
+
+**Optimal hourly urine-output goal in children: [NO SOURCE].** Stated as
+undefined by Romanowski & Palmieri 2017 and by AWMF 006/128, which grades all
+its fluid statements at evidence level IV.
+
+### R.4 Delivered volume — and both directions of failure
+
+**North America is over-delivering.**
+
+| Source                      | Population              | 24-h volume delivered                           |
+| --------------------------- | ----------------------- | ----------------------------------------------- |
+| Stevens 2023, single centre | 110 children, ≥15% TBSA | **6.6–7.6 mL/kg/%TBSA** by weight group         |
+| Pisano 2021, 5 centres      | 52 children, ≥15% TBSA  | **6.35 mL/kg/%TBSA** overall                    |
+| Pisano 2021, by centre      |                         | 5.10, 5.13, 6.15, 6.53, **9.09** (ANOVA p=0.02) |
+| ABRUPT 2023, adults         | 379 adults, ≥20% TBSA   | 4.6 ± 2.2                                       |
+
+Pisano's per-centre gap between received and estimated volume was −0.15 ± 1.33,
++0.37 ± 1.19, +2.53 ± 2.53, +3.57 ± 3.32 and **+5.19 ± 4.30** mL/kg/%TBSA
+(ANOVA p=0.0002); three of five centres' own guidelines produced estimates
+significantly below what was actually delivered.
+
+**The single most useful line for a limitations panel** is Pisano's worked
+example: a **5-year-old, 25 kg, 20% TBSA** burn would have an estimated 24-hour
+requirement ranging from **1500 mL to 3560 mL (3.0–7.1 mL/kg/%TBSA)** depending
+only on which of those five centres they arrived at. **This score's own
+pediatric-Parkland output for that child is 3 × 25 × 20 = 1500 mL — the bottom
+of that span**, and its combined figure with Holliday–Segar maintenance
+(1500 + 1600) is 3100 mL, still inside it.
+
+**Europe is under-delivering — the counter-signal, and it must be carried.** In
+the German Burn Registry (407 children, 30 centres, Germany/Switzerland/Austria,
+≥15% TBSA), **86.5% received less than Parkland\*** (Parkland at 4 mL/kg/%TBSA
+plus Holliday–Segar maintenance). Mixed-effect negative binomial regression on
+length of stay:
+
+| Deviation                    | Rate ratio | 95% CI                    |
+| ---------------------------- | ---------- | ------------------------- |
+| Giving twice Parkland\*      | 1.42       | **0.83–2.33** (crosses 1) |
+| Giving half Parkland\*       | 0.89       | 0.81–0.97                 |
+| _Multiple imputation:_ twice | 1.20       | **0.24–5.98**             |
+| _Multiple imputation:_ half  | 0.89       | **0.68–1.16**             |
+
+Only the restriction arm reaches significance, only in the unimputed model, at
+an 11% reduction. The authors note the over-resuscitation effect is probably
+overestimated and can only be estimated imprecisely — **do not build a warning
+threshold on this finding**. Three caveats before citing it against the North
+American data:
+
+- The cohort is **scald-predominant toddlers**: median age 1 (IQR 1–6), median
+  TBSA 20 (IQR 16–25), 74.2% scalds. Not a severe-flame-burn PICU population.
+- **The denominators differ.** Parkland\* includes maintenance, so the German
+  comparator is a higher bar and "below Parkland\*" is easier to reach than
+  "above Parkland".
+- **Six of the seven children who died were under-resuscitated** relative to
+  Parkland\*, which cuts against the paper's own headline.
+
+**No guideline-endorsed volume ceiling exists.** ABA CPG 2024 recommends
+selective monitoring of intra-abdominal and intra-ocular pressure — a monitoring
+trigger, not a cap. The Ivy index (250 mL/kg/24 h) and the 6 mL/kg/%TBSA trigger
+both originate outside the window and are not endorsed as thresholds by any
+current guideline, though both remain in use as outcome measures. The one hard
+in-window numeric bound is **AWMF 006/128 Empfehlung 10** (100% consensus,
+12/12): in children with ≥10% TBSA, volume replacement should use isotonic
+crystalloid and **10 mL/kg body weight per hour should not initially be
+exceeded** — a prehospital/early-phase cap.
+
+### R.5 BSA versus weight, and the obesity signal (Stevens 2023)
+
+110 children ≥15% TBSA at one ABA-verified paediatric centre over 12 years, all
+resuscitated by Parkland, with Galveston and Cincinnati predictions computed
+retrospectively:
+
+- **Galveston significantly underpredicted** the fluid actually given at 24 h
+  (p=0.042), across all weight groups.
+- **Parkland and Cincinnati predictions did not differ significantly** from
+  fluid given at 24 h.
+- At 8 h none of the three differed significantly (p=0.098, 0.078, 0.109).
+
+**The caveat that matters:** this compares prediction against what was
+_delivered_, not against outcome — and R.4 suggests what was delivered was not
+right. Stratified by CDC percentile (11 underweight, 60 normal, 18 overweight,
+21 obese), total fluid was 7.4 / 7.6 / 6.6 / 6.6 mL/kg/%TBSA (p=0.554) and urine
+output 1.8 / 1.5 / 1.5 / 1.3 mL/kg/h (p=0.674); **overweight children received
+more total fluid than obese children** (p=0.023) while Parkland _predicted_ more
+for the obese, and ventilator days differed by group (1.7 / 2.5 / 12.4 / 5.0,
+p=0.030). A prior suggestion that BSA-based formulas suit patients ≤20 kg is a
+second weight threshold, distinct from the 30 kg one and equally unvalidated.
+
+**Head-to-head outcome comparison of Cincinnati vs Galveston vs Parkland in
+children: [NO SOURCE].** Stevens compares predictions against delivered volume,
+not outcomes. No trial exists.
+
+### R.6 The inhalation-injury modifier, and why none is shipped
+
+| Source                           | No inhalation injury | With inhalation injury              |
+| -------------------------------- | -------------------- | ----------------------------------- |
+| Stevens 2023 (Michigan protocol) | 4 mL/kg/%TBSA        | **6** (pre-2019 only; discontinued) |
+| Pisano 2021, Centre 4            | 3                    | **6**                               |
+| Pisano 2021, Centre 5            | 4                    | **6**                               |
+| Pisano 2021, Centre 2            | 2                    | **3**                               |
+| Pisano 2021, ABA column          | 3                    | **4**                               |
+
+The Michigan centre abandoned its 6 mL/kg adjustment in 2019. Any tool offering
+an inhalation modifier should carry a date and a source with it, because at
+least one centre withdrew theirs. This score offers none.
+
+### R.7 Never trust the formula name
+
+"Modified/revised Brooke" resolves to three different coefficients across three
+peer-reviewed in-window sources: **2** (ABA CPG 2024, PICO Q3), **"2–3"**
+(ABRUPT 2023 discussion), **3** (Romanowski & Palmieri 2017, Table 1). Milner
+2024 splits the label, giving modified Brooke 2 and _paediatric_ Brooke 3.
+Implementation consequence: **display the coefficient explicitly; never let the
+formula name carry it.** This score prints "3 mL/kg/%TBSA" in every output
+label, which is the mitigation.
+
+### R.8 The eight live controversies — present as controversies
+
+| #   | Question                          | Position A                                                   | Position B                                                                                   |
+| --- | --------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| 1   | Adult starting coefficient        | **2 mL/kg/%TBSA** — ABA CPG 2024, on 2 studies / 88 patients | **4 mL/kg/%TBSA is accurate; 2 may not be feasible** — ABRUPT 2023, 379 patients, 21 centres |
+| 2   | "Modified Brooke" coefficient     | 2 (ABA CPG 2024)                                             | 3 (Romanowski 2017); "2–3" (ABRUPT)                                                          |
+| 3   | Maintenance threshold in children | <30 kg (ABA, per Pisano Table 2); 20–40 kg across centres    | No threshold; maintenance for all (AWMF 006/128, 2024)                                       |
+| 4   | Urine-output banding variable     | Weight (North American)                                      | Developmental stage (German)                                                                 |
+| 5   | >30 kg urine-output target        | 0.3–0.7 (Stevens protocol)                                   | 0.5–1.0 (most other sources)                                                                 |
+| 6   | Direction of paediatric error     | Over-resuscitation, 6.35–7.6 mL/kg/%TBSA (US)                | Under-resuscitation, 86.5% below Parkland\* (DACH)                                           |
+| 7   | BSA vs weight basis               | Galveston underpredicts real practice (Stevens 2023)         | BSA better suited ≤20 kg (cited in Stevens discussion)                                       |
+| 8   | Inhalation-injury coefficient     | 6 mL/kg/%TBSA (2 centres)                                    | 3–4 (ABA); one centre withdrew its 6 in 2019                                                 |
+
+**Controversy 1 is the important one**, and it is not a fringe dispute. ABA CPG
+2024 recommends starting at **2 mL/kg/%TBSA**; its PICO Q3 asked specifically
+whether starting at 2 versus 4 reduces total volume, affects AKI or reduces
+oedema-related complications, and the recommendation rests on **exactly two
+studies, 88 adults**:
+
+| Study       | Design       | n   | Result                                                                                                                                         |
+| ----------- | ------------ | --- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chung 2009  | Case-control | 52  | Modified Brooke 3.8 ± 1.2 vs Parkland 5.9 ± 1.1 mL/kg/%TBSA (p<0.001). No difference in PaO₂:FiO₂, ventilator-free days, ACS, AKI or mortality |
+| Saitoh 2021 | RCT          | 36  | Modified Brooke 3.6 ± 1.1 vs Baxter 4.59 ± 1.58 (p=0.05). No difference in AKI at 48 h, ACS or survival                                        |
+
+Neither showed an outcome difference; the CPG excluded mortality as a formal
+PICO outcome because available studies were too small and heterogeneous.
+**ABRUPT 2023 concludes the opposite** — in 379 adults across 21 US and Canadian
+burn centres documented hourly for 48 h, delivered 24-hour volume was
+**4.6 ± 2.2 mL/kg/%TBSA** (crystalloid-only subgroup 3.7 ± 1.7, albumin subgroup
+5.2 ± 2.3; 48-h total 7.4 ± 3.7), and the authors state that for burns >20% TBSA
+the Parkland target of 4 is accurate and that attaining a 2 mL/kg/%TBSA goal may
+not be feasible.
+
+**Why the CPG did not resolve it.** ABRUPT _was_ in the CPG evidence table, but
+only against the albumin questions (Q1, Q2). It could not address Q3 because it
+had no 2-versus-4 comparator arm — every patient started from centre-specific
+protocols. That exclusion is methodologically defensible, and the substantive
+tension is not thereby resolved: the guideline recommends a starting rate that
+the largest contemporaneous prospective dataset suggests clinicians do not in
+practice achieve. Present it as a live controversy with both citations, **not**
+as a superseded-and-current pair. Both figures are adult; neither licenses a
+paediatric starting coefficient.
+
+### R.9 Still [NO SOURCE] after this review
+
+- **Derivation of the 8 h / 16 h split.** In use universally, derived nowhere.
+- **Derivation of any maintenance weight threshold** (20, 30 or 40 kg).
+  Documented in practice; never tested.
+- **Optimal hourly urine-output goal in children.**
+- **Any paediatric equivalent of the ABA CPG.** None located. The 2024 CPG is
+  explicitly adults ≥20% TBSA and every PICO question is framed "among adults" —
+  this **confirms**, rather than closes, the marker this score already carried.
+- **Head-to-head outcome comparison of Cincinnati vs Galveston vs Parkland in
+  children.**
+
+### R.10 Residual gaps this review could not close
+
+- **ABLS Provider Manual** — see R.0.1. The apparent origin of the 30 kg figure,
+  and not accessed.
+- **German Burn Registry, self-declared:** no data on urine output or arterial
+  pressure monitoring, the specific formula used at each contributing centre was
+  unknown, and no data on oral feeding or on the method of calculating daily
+  fluid requirement were collected. The last two have since been added to the
+  registry protocol, so that gap closes in a future registry year, not in
+  anything currently published.
+- **Pisano sample size:** 52 patients across 5 centres, 10–12 each. The protocol
+  comparison (Table 2) is robust because protocols are documents; the outcome
+  analysis is not powered for anything.
 
 ---
 
@@ -440,6 +835,42 @@ coefficient to 2 mL/kg/%TBSA. (Cartotto et al. 2024.)
     measurement for a pediatric cohort. _J Surg Res._ 2018;221:275–284.
     DOI: **10.1016/j.jss.2017.08.019**.
 
+14. **Greenhalgh DG, Cartotto R, Taylor SL, et al.** Burn resuscitation
+    practices in North America: results of the Acute Burn ResUscitation
+    Multicenter Prospective Trial (ABRUPT). _Ann Surg._ 2023;277(3):512–519.
+    (379 adults ≥20% TBSA, 21 centres; delivered 4.6 ± 2.2 mL/kg/%TBSA at 24 h;
+    time 0 = time of injury; pre-arrival volume 1553 ± 1782 mL; 4 accurate and 2
+    possibly not feasible.) DOI: **10.1097/SLA.0000000000005166**.
+
+15. **Pisano C, Fabia R, Shi J, et al.** Variation in acute fluid resuscitation
+    among pediatric burn centers. _Burns._ 2021;47(3):545–550. (Table 2: five
+    PIQIC centres plus the ABA column; maintenance initiated <30 kg per ABA,
+    20–40 kg across centres, one centre by age <1 y; the 25 kg / 20% TBSA
+    1500–3560 mL worked example.) DOI: **10.1016/j.burns.2020.04.013**.
+
+16. **Vasileiadis V, Najem S, Reinshagen K, et al.** Fluid management and
+    outcomes in children with burns — German Burn Registry 2015–2022. _Eur J
+    Pediatr._ 2024;183:5479–5488. (407 children <16 y ≥15% TBSA, 30 centres;
+    86.5% below Parkland\*; six of seven deaths under-resuscitated.)
+    DOI: **10.1007/s00431-024-05797-9**.
+
+17. **Stevens JV, Prieto NS, Ridelman E, et al.** Weight-based versus body
+    surface area-based fluid resuscitation predictions in pediatric burn
+    patients. _Burns._ 2023;49(1):120–128. (110 children; Galveston
+    underpredicts delivered volume; CDC-percentile strata; Fig. A.1 Children's
+    Hospital of Michigan algorithm with pre-arrival subtraction, TOI clock and
+    the 0.8–1.2 / 0.3–0.7 mL/kg/h urine targets.)
+    DOI: **10.1016/j.burns.2022.03.007**.
+
+18. **DGKCH, DGV, DGKJ et al.** Behandlung thermischer Verletzungen im
+    Kindesalter (Verbrennung, Verbrühung). AWMF S2k-Leitlinie 006/128, Version
+    3.0, 15.08.2024, valid to 14.08.2029. (Holliday–Segar maintenance for all
+    children with **no** weight threshold; 3–4 mL/kg/%TBSA burn requirement from
+    15% TBSA; urine 1–2 mL/kg/h infants and toddlers, 0.5–1 school-age;
+    Empfehlung 10 — do not initially exceed 10 mL/kg/h; all fluid statements
+    expert consensus, evidence level IV.) AWMF register 006/128;
+    URL: https://register.awmf.org/de/leitlinien/detail/006-128.
+
 Primary-source note: the **Galveston** formula originates with Carvajal HF
 (pediatric surface-area resuscitation, 1980s Shriners–Galveston) and the
 **Cincinnati** (Shriners–Cincinnati) formula with the Cincinnati Shriners group;
@@ -476,7 +907,25 @@ fetched in the original — flagged in Limitations.
   encouraging albumin to cap volumes. The CPG is **adults-only** — it does **not**
   license a 2 mL pediatric starting rate. [Pediatric-specific high-grade CPG for
   the starting coefficient: **NEEDS SOURCE** — current pediatric practice rests
-  on 3–4 mL formulas + maintenance, not a graded RCT-backed pediatric CPG.]
+  on 3–4 mL formulas + maintenance, not a graded RCT-backed pediatric CPG.
+  R.9 confirms this marker rather than closing it: no paediatric equivalent of
+  the ABA CPG was located in a 2016–2026 search.]
+- **Over-resuscitation is not the only failure direction**, and presenting it as
+  such would be a one-sided reading of the evidence. R.4: 86.5% of children in
+  the German registry received **less** than Parkland\*, and six of the seven
+  who died were **under**-resuscitated. The ABA's own 2 mL starting figure is
+  itself contested by ABRUPT within a year (R.8, controversy 1).
+- **The 30 kg maintenance threshold is real but not universal** (R.1): ABA/ABLS
+  <30 kg, published centre practice 20–40 kg, one centre by age <1 y, one adding
+  none, and AWMF 006/128 applying maintenance to all children with no threshold.
+  Display the range, never a single threshold as fact. This score adds
+  maintenance with no threshold, matching the AWMF structure.
+- **Pre-arrival fluid is not subtracted and no rate is emitted** (R.2). The
+  clock runs from injury and pre-arrival volume should be deducted — ABRUPT
+  measured a mean 1553 ± 1782 mL already given before arrival in adults — but
+  this score takes neither an elapsed-time nor a fluid-given input, so its
+  first-8-hour figure is a gross volume, not a remaining one. State the gap
+  rather than implying completeness.
 
 ### Lund–Browder — sourcing gap closed 2026-08-03, with one caveat that stays open
 

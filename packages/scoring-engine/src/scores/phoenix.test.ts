@@ -23,6 +23,20 @@ const jamaTable2 = {
   doi: "10.1001/jama.2024.0196",
 };
 
+// Expected values that are OUTPUT OF THE TASK FORCE'S OWN SOFTWARE, executed
+// against the stated inputs, rather than read off a printed table. Used for the
+// two places where the published tables cannot settle the question by
+// themselves: the neurologic row (whose three mutually exclusive columns do not
+// say what a fixed pupil with a normal or unrecorded GCS scores) and the four
+// boundary values where the printed integer bands and the continuous software
+// comparisons disagree. Provenance is recorded in
+// docs/research/scores/phoenix.md; the module is CU-DBMI-Peds/phoenix, MIT.
+const phoenixModule = {
+  citation:
+    "DeWitt PE, Russell S, Rebull MN, Sanchez-Pinto LN, Bennett TD. phoenix: an R package and Python module for calculating the Phoenix pediatric sepsis score and criteria. JAMIA Open. 2024;7(3):ooae066 — official Python module (CU-DBMI-Peds/phoenix) executed against these inputs.",
+  doi: "10.1093/jamiaopen/ooae066",
+};
+
 describeScore(phoenix, (ctx) => {
   // Worked example 1 — septic shock (phoenix.md, package clinical vignette 1):
   // previously healthy 3-yr-old (36 mo), BP 67/32 → MAP ≈ 43.67, on norepinephrine
@@ -457,18 +471,244 @@ describeScore(phoenix, (ctx) => {
     [{ id: "coagulation", value: 2 }],
   );
 
-  // ---------------------------------------------------------------------------
-  // Neurologic (0–2) — additive, capped at 2 (phoenix.md §4). GCS ≤ 10 (1 pt) +
-  // bilaterally fixed pupils (1 pt) = 2. Covers the fixed-pupils arm and the cap.
-  // ---------------------------------------------------------------------------
+  /**
+   * NEUROLOGIC (0–2) — HIERARCHICAL, and this is the row the calculator got
+   * wrong until 2026-08-03.
+   *
+   * It was implemented as GCS ≤ 10 (+1) plus fixed pupils (+1), capped at 2.
+   * That agrees with the published rule at exactly one input — fixed pupils
+   * with a GCS ≤ 10 — and disagrees everywhere else a pupil is fixed, which is
+   * why a single passing "GCS 8 + fixed pupils → 2" case (the only neurologic
+   * case this file used to carry) could not see it.
+   *
+   * The published tables print three mutually exclusive columns and cannot be
+   * read as an addition. The whole edge-case table below is real output from
+   * the task force's Python module, so it settles the two questions the printed
+   * table leaves open: a fixed pupil with a NORMAL GCS, and a fixed pupil with
+   * NO GCS at all.
+   *
+   * The missing-GCS row is the clinically load-bearing one. GCS imputes to 15
+   * and pupil status imputes to 'not fixed' INDEPENDENTLY, so a child with
+   * bilaterally fixed pupils and no GCS recorded scores the full 2 — which on
+   * its own reaches the total ≥ 2 sepsis threshold. The old additive-with-cap
+   * form scored that child 1 and put them below it.
+   */
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: fixed pupils, GCS 15 → 2" },
+    { ...rr, gcs_total: { value: 15, unit: "" }, fixed_pupils: { value: true } },
+    [{ id: "neurologic", value: 2 }],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: fixed pupils, GCS 8 → 2" },
+    { ...rr, gcs_total: { value: 8, unit: "" }, fixed_pupils: { value: true } },
+    [{ id: "neurologic", value: 2 }],
+  );
+  // The one that changes a diagnosis: no GCS entered at all, pupils fixed.
+  // Nothing else abnormal, so the neurologic 2 IS the total, and the total
+  // crossing 2 is what the sepsis criterion turns on.
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "phoenix_neurologic executed: fixed pupils, GCS missing (imputed 15) → 2",
+    },
+    { ...rr, fixed_pupils: { value: true } },
+    [
+      { id: "neurologic", value: 2 },
+      { id: "phoenix_total", value: 2 },
+      { id: "sepsis", value: 1 },
+      { id: "septic_shock", value: 0 },
+    ],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 15 → 0" },
+    { ...rr, gcs_total: { value: 15, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 0 }],
+  );
+  // 11 and 10 straddle the published cut point from below.
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 11 → 0" },
+    { ...rr, gcs_total: { value: 11, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 0 }],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 10 → 1" },
+    { ...rr, gcs_total: { value: 10, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 1 }],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 3 → 1" },
+    { ...rr, gcs_total: { value: 3, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 1 }],
+  );
+  // The mirror of the load-bearing case: pupil status missing must not suppress
+  // the GCS point either. Imputation is per input, in both directions.
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "phoenix_neurologic executed: GCS 8, pupil status missing (imputed not fixed) → 1",
+    },
+    { ...rr, gcs_total: { value: 8, unit: "" } },
+    [{ id: "neurologic", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "phoenix_neurologic executed: GCS and pupil status both missing → 0",
+    },
+    { ...rr },
+    [{ id: "neurologic", value: 0 }],
+  );
+
+  /**
+   * The neurologic component must never exceed 2. An uncapped sum of the two
+   * criteria would return 3 for fixed pupils at GCS 8 — out of range for the
+   * subscore and an inflated total — and the reference package guards against
+   * it with an explicit cap. The hierarchical form here makes 3 unreachable by
+   * construction rather than by a cap, so this asserts the property directly
+   * across every combination of the two inputs.
+   */
+  it("neurologic is 0-2 for every combination of GCS and pupil status", () => {
+    const observed = new Set<number>();
+    for (const gcs of [undefined, 3, 10, 11, 15]) {
+      for (const fixed of [undefined, false, true]) {
+        const outcome = phoenix.compute({
+          age_months: { value: 36, unit: "months" },
+          suspected_infection: { value: true },
+          ...(gcs === undefined ? {} : { gcs_total: { value: gcs, unit: "" } }),
+          ...(fixed === undefined ? {} : { fixed_pupils: { value: fixed } }),
+        } as never);
+        expect(outcome.ok).toBe(true);
+        if (!outcome.ok) continue;
+        const neuro = outcome.result.values.find((v) => v.id === "neurologic")!.value;
+        expect(neuro, `GCS ${gcs}, fixed pupils ${fixed}`).toBeGreaterThanOrEqual(0);
+        expect(neuro, `GCS ${gcs}, fixed pupils ${fixed}`).toBeLessThanOrEqual(2);
+        observed.add(neuro);
+      }
+    }
+    // All three points of the range are reachable — otherwise "never exceeds 2"
+    // would pass on a subscore that had silently stopped scoring.
+    expect([...observed].sort()).toEqual([0, 1, 2]);
+  });
+
+  /**
+   * THE FOUR BOUNDARY DIVERGENCES, PINNED.
+   *
+   * The published tables are written for the bedside — integer MAP bands, a
+   * one-decimal lactate band — while the reference software compares every
+   * input continuously. That produces a small, complete, enumerable set of
+   * values where the printed table and the software disagree. There are exactly
+   * four, and this calculator follows the software at all four; the choice is
+   * stated in `formula` so a reader who checks against the printed table finds
+   * the discrepancy explained rather than surprising.
+   *
+   * These cases exist because "we follow the software" is otherwise a claim in
+   * prose with nothing holding it: every other test in this file sits inside a
+   * band where the two conventions agree, so a future edit to a comparison
+   * operator would move all four of these silently and break nothing.
+   */
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: MAP 30.5 at age < 1 mo → 1 (printed 0-point band starts at 31)",
+    },
+    {
+      age_months: { value: 0, unit: "months" },
+      suspected_infection: { value: true },
+      map: { value: 30.5, unit: "mmHg" },
+    },
+    [{ id: "cardiovascular", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: lactate 10.95 → 1 (printed 1-point band 5-10.9 leaves it in a gap)",
+    },
+    { ...rr, lactate: { value: 10.95, unit: "mmol/L" } },
+    [{ id: "cardiovascular", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: P/F exactly 200 on IMV → 1 (printed 2-point band 100-200 reads 2)",
+    },
+    {
+      ...rr,
+      resp_support: { value: "imv" },
+      pao2: { value: 200, unit: "mmHg" },
+      fio2: { value: 1, unit: "fraction" },
+    },
+    [{ id: "respiratory", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: S/F exactly 220 on IMV → 1 (printed 2-point band 148-220 reads 2)",
+    },
+    {
+      ...rr,
+      resp_support: { value: "imv" },
+      spo2: { value: 88, unit: "%" },
+      fio2: { value: 0.4, unit: "fraction" },
+    },
+    [{ id: "respiratory", value: 1 }],
+  );
+
+  /**
+   * BOTH oxygenation ratios are tested at every tier, and either can trigger
+   * one. The published respiratory rows are disjunctions ("P/F < 200 OR
+   * S/F < 220") and the reference expression evaluates both terms; a ratio that
+   * cannot be computed imputes to 500, above every cut point, so it contributes
+   * nothing rather than vetoing the other one.
+   *
+   * Until 2026-08-03 this calculator used P/F ALONE whenever an arterial gas
+   * was present and only fell back to S/F when it was not, so an S/F that
+   * crossed a tier was discarded the moment a PaO₂ existed. The two ratios do
+   * disagree in practice, because a gas and a saturation are rarely drawn at
+   * the same instant: below, P/F 250/0.6 = 417 clears the 400 cut point while
+   * S/F 96/0.6 = 160 sits inside the 2-point band. The published rule scores
+   * that child 2; the old code scored 0 and left them below the sepsis
+   * threshold. The correction can only ever raise a respiratory score.
+   */
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator:
+        "executed: IMV, P/F 417 (no points on its own) with S/F 160 → 2, per the disjunction in the respiratory rows",
+    },
+    {
+      ...rr,
+      resp_support: { value: "imv" },
+      pao2: { value: 250, unit: "mmHg" },
+      spo2: { value: 96, unit: "%" },
+      fio2: { value: 0.6, unit: "fraction" },
+    },
+    [
+      { id: "respiratory", value: 2 },
+      { id: "phoenix_total", value: 2 },
+      { id: "sepsis", value: 1 },
+      { id: "septic_shock", value: 0 },
+    ],
+  );
+
+  /**
+   * Respiratory is cumulative, and the ceiling that matters clinically is the
+   * one on NON-invasive support: it is 1, however bad the ratio gets, because
+   * the 2- and 3-point tiers are gated on invasive ventilation. A ratio deep
+   * below the 3-point cut point still scores 1 without a tube.
+   */
   ctx.workedExample(
     {
       ...jamaTable2,
       locator:
-        "derived from formula in JAMA Table 2 (phoenix.md §4): GCS 8 ≤ 10 + fixed pupils → 2",
+        "JAMA Table 2 respiratory row: P/F 50 on non-invasive support → 1, the 2- and 3-point tiers requiring IMV",
     },
-    { ...rr, gcs_total: { value: 8, unit: "" }, fixed_pupils: { value: true } },
-    [{ id: "neurologic", value: 2 }],
+    {
+      ...rr,
+      resp_support: { value: "any-support" },
+      pao2: { value: 50, unit: "mmHg" },
+      fio2: { value: 1, unit: "fraction" },
+    },
+    [{ id: "respiratory", value: 1 }],
   );
 
   // ---------------------------------------------------------------------------
@@ -599,7 +839,7 @@ describeScore(phoenix, (ctx) => {
         map: { value: 40, unit: "mmHg" },
       },
       // The ceiling: resp 3 (S/F 97 < 148 on IMV) + cardio 6 (2 + 2 + 2) +
-      // coag 2 (capped) + neuro 2 (capped) = 13.
+      // coag 2 (capped) + neuro 2 (fixed pupils, which is the whole 2) = 13.
       {
         ...ventilatedOnPureOxygen,
         spo2: { value: 97, unit: "%" },

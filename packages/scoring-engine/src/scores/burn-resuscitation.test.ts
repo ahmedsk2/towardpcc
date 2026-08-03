@@ -86,6 +86,30 @@ describeScore(burnResuscitation, (ctx) => {
     [{ id: "maintenance_24h_ml", value: 800 }],
   );
 
+  // Worked example 7 (burn-resuscitation.md §Worked examples, and R.4): Pisano's
+  // own published child — 5 years old, 25 kg, 20% TBSA — whose estimated 24-hour
+  // requirement runs 1500-3560 mL depending only on which of five ABA-verified
+  // paediatric burn centres they reach. This score returns the BOTTOM of that
+  // span: 3 x 25 x 20 = 1500 mL, first 8 h 750 mL, maintenance
+  // 1000 + 500 + 5x20 = 1600 mL, combined 3100 mL.
+  ctx.workedExample(
+    {
+      citation:
+        "Pisano C, Fabia R, Shi J, et al. Variation in acute fluid resuscitation among pediatric burn centers. Burns. 2021;47(3):545-550.",
+      doi: "10.1016/j.burns.2020.04.013",
+      locator:
+        "Worked example 7 — 5-year-old, 25 kg, 20% TBSA (the five-centre 1500-3560 mL spread)",
+    },
+    { weight_kg: { value: 25, unit: "kg" }, tbsa_pct: { value: 20, unit: "%" } },
+    [
+      { id: "parkland_peds_24h_ml", value: 1500 },
+      { id: "parkland_peds_first8h_ml", value: 750 },
+      { id: "mod_brooke_peds_24h_ml", value: 1500 },
+      { id: "maintenance_24h_ml", value: 1600 },
+      { id: "parkland_peds_plus_maint_24h_ml", value: 3100 },
+    ],
+  );
+
   const base = { weight_kg: { value: 15, unit: "kg" }, tbsa_pct: { value: 25, unit: "%" } };
   ctx.boundaryTest("weight_kg", "min", base);
   ctx.boundaryTest("weight_kg", "max", base);
@@ -338,6 +362,229 @@ describe("Lund-Browder chart (src/data/lund-browder.ts)", () => {
       expect(lundBrowderPercent("head", band)).toBe(halfHead[band] * 2);
       expect(lundBrowderPercent("thigh_left", band)).toBe(halfThigh[band] * 2);
       expect(lundBrowderPercent("leg_left", band)).toBe(halfLeg[band] * 2);
+    }
+  });
+});
+
+/**
+ * The 2016-2026 evidence review, asserted as content rules.
+ *
+ * These are not coverage — every one of them is a statement the review says a
+ * tool MUST make, or a number a tool must not silently pick. Each is asserted
+ * on the shortest distinctive fragment rather than a whole sentence, so the
+ * prose can be rewritten but the claim cannot be dropped.
+ *
+ * The numeric guards below matter more than the text ones. The coefficient is
+ * the live controversy (§8.1): the ABA CPG says start adults at 2, ABRUPT says
+ * 4 is what actually gets delivered and 2 may not be feasible, and a future
+ * editor reading either one could reach for this file. The sweep pins 3 and
+ * rejects both adult numbers explicitly.
+ */
+describe("2016-2026 evidence review — content and numeric rules", () => {
+  const notes = burnResuscitation.notes.en;
+  const cautions = burnResuscitation.cautions?.map((c) => c.en).join("\n") ?? "";
+  const prose = `${notes}\n${cautions}`;
+
+  const outputsAt = (weightKg: number, tbsaPct: number): Map<string, number> => {
+    const outcome = burnResuscitation.compute({
+      weight_kg: { value: weightKg, unit: "kg" },
+      tbsa_pct: { value: tbsaPct, unit: "%" },
+    });
+    expect(outcome.ok, outcome.ok ? "" : JSON.stringify(outcome.errors)).toBe(true);
+    if (!outcome.ok) return new Map();
+    return new Map(outcome.result.values.map((v) => [v.id, v.value]));
+  };
+
+  // ── The coefficient, pinned against both sides of the adult dispute ────────
+  it("uses 3 mL/kg/%TBSA everywhere, and never the adult 2 or 4", () => {
+    for (const weight of [0.5, 5, 12, 25, 40, 70, 150]) {
+      for (const tbsa of [1, 15, 20, 55, 100]) {
+        const out = outputsAt(weight, tbsa);
+        const denominator = weight * tbsa;
+        const parkland = out.get("parkland_peds_24h_ml") ?? Number.NaN;
+        const brooke = out.get("mod_brooke_peds_24h_ml") ?? Number.NaN;
+        expect(
+          parkland / denominator,
+          `${weight} kg / ${tbsa}% is not on 3 mL/kg/%TBSA`,
+        ).toBeCloseTo(3, 10);
+        // Both named methods must converge, or the UI is showing two numbers
+        // that differ for no reason a clinician could name.
+        expect(brooke).toBe(parkland);
+        // The two adult figures, rejected by name.
+        expect(parkland).not.toBeCloseTo(2 * denominator, 6);
+        expect(parkland).not.toBeCloseTo(4 * denominator, 6);
+        // The 8-h figure is exactly half — a gross volume, not a remainder.
+        expect(out.get("parkland_peds_first8h_ml")).toBe(parkland / 2);
+        expect(out.get("mod_brooke_peds_first8h_ml")).toBe(parkland / 2);
+      }
+    }
+  });
+
+  // ── Maintenance is added at every accepted weight, with no threshold ───────
+  it("adds maintenance at every weight it accepts, including above 20, 30 and 40 kg", () => {
+    // The three circulating thresholds, plus the weights either side of each.
+    // If any of them were ever implemented, maintenance would drop to zero on
+    // the far side of it and the combined total would collapse onto Parkland.
+    for (const weight of [0.5, 19, 20, 21, 29, 30, 31, 39, 40, 41, 150]) {
+      const out = outputsAt(weight, 20);
+      const maintenance = out.get("maintenance_24h_ml") ?? Number.NaN;
+      const parkland = out.get("parkland_peds_24h_ml") ?? Number.NaN;
+      expect(
+        maintenance,
+        `maintenance vanished at ${weight} kg — a threshold has been added`,
+      ).toBeGreaterThan(0);
+      expect(out.get("parkland_peds_plus_maint_24h_ml")).toBe(parkland + maintenance);
+    }
+  });
+
+  it("states the threshold as a range with its sources, not as a single fact", () => {
+    for (const figure of ["20", "30", "40"]) {
+      expect(prose, `the maintenance-threshold range must name ${figure} kg`).toContain(figure);
+    }
+    expect(prose).toContain("Pisano");
+    expect(prose).toMatch(/age under 1 year/i);
+    expect(prose).toMatch(/no weight threshold/i);
+    expect(prose).toContain("AWMF");
+  });
+
+  // ── §5 — the clock, and the gap this calculator has ───────────────────────
+  it("says plainly that pre-arrival fluid is not subtracted and no rate is emitted", () => {
+    expect(notes).toMatch(/TIME OF THE BURN/);
+    // ABRUPT's measured pre-arrival volume is the number that makes the gap
+    // concrete rather than theoretical.
+    expect(prose, "the mean pre-arrival volume must be stated").toContain("1553");
+    expect(prose).toMatch(/no infusion rate|emits no infusion rate/i);
+    expect(notes).toMatch(/gross volume/i);
+    // And it must be true: no rate output exists, and no time or fluid input.
+    const emitted = [...outputsAt(25, 20).keys()];
+    expect(emitted.some((id) => /rate/i.test(id))).toBe(false);
+    const inputIds = burnResuscitation.inputs.map((i) => i.id);
+    expect(inputIds).toEqual(["weight_kg", "tbsa_pct"]);
+  });
+
+  // ── §6.1 — the urine-output targets disagree, in three separate ways ──────
+  it("carries the full urine-output disagreement rather than one number", () => {
+    expect(prose, "the >30 kg span must be stated").toContain("0.3-1.0");
+    expect(prose, "the Stevens protocol band must be named").toContain("0.3-0.7");
+    expect(prose).toContain("0.8-1.2");
+    expect(prose, "the banding variable is itself disputed").toMatch(/developmental stage/i);
+    expect(prose).toMatch(/1-2 mL\/kg\/h/);
+  });
+
+  // ── §7.3 — the best limitations line available ────────────────────────────
+  it("carries Pisano's five-centre spread, and lands this score at the bottom of it", () => {
+    expect(prose).toContain("1500 mL to 3560 mL");
+    expect(prose).toContain("3.0 to 7.1");
+
+    // The claim, verified rather than asserted: 25 kg / 20% TBSA is the low end.
+    const out = outputsAt(25, 20);
+    expect(out.get("parkland_peds_24h_ml")).toBe(1500);
+    expect(out.get("parkland_peds_plus_maint_24h_ml")).toBe(3100);
+    // Bottom of the span, and the combined figure still inside it.
+    expect(out.get("parkland_peds_24h_ml")).toBeLessThan(3560);
+    expect(out.get("parkland_peds_plus_maint_24h_ml")).toBeLessThan(3560);
+    expect(out.get("parkland_peds_plus_maint_24h_ml")).toBeGreaterThan(1500);
+  });
+
+  // ── §7.4 — over-resuscitation is not the only failure direction ───────────
+  it("presents under-resuscitation as a real failure direction too", () => {
+    expect(prose, "the German registry proportion must be stated").toContain("86.5%");
+    expect(prose).toMatch(/six of the seven/i);
+    expect(prose).toMatch(/under-resuscitat/i);
+    // And the harm it is set against is still named, so neither replaces the other.
+    expect(notes).toMatch(/FLUID CREEP/);
+  });
+
+  // ── §8 — the eight controversies, surfaced as controversies ───────────────
+  it("surfaces the adult-coefficient controversy with both sides and both sample sizes", () => {
+    expect(prose, "the ABA CPG evidence base must be quantified").toContain("88 patients");
+    expect(prose, "ABRUPT's cohort must be quantified").toContain("379");
+    expect(prose).toContain("21");
+    expect(prose).toMatch(/may not be feasible/i);
+    // Neither side may be presented as having superseded the other.
+    expect(prose).toMatch(/one year apart|same organisation/i);
+    // Both are adult findings.
+    expect(prose).toMatch(/adults-only|ADULT findings|adults only/i);
+  });
+
+  it("names all eight controversies", () => {
+    const marks = [
+      /modified Brooke/i, // 2 — the coefficient the name does not fix
+      /maintenance/i, // 3 — the weight threshold
+      /banding variable|developmental stage/i, // 4
+      /0\.3-0\.7/, // 5 — the >30 kg target
+      /under-resuscitat/i, // 6 — direction of error
+      /Galveston/i, // 7 — BSA vs weight
+      /inhalation/i, // 8 — the withdrawn 6 mL modifier
+    ];
+    for (const mark of marks) expect(prose, `controversy marker ${mark} missing`).toMatch(mark);
+    // And controversy 1, which has its own test above.
+    expect(prose).toMatch(/2 mL\/kg\/%TBSA/);
+  });
+
+  it("offers no inhalation-injury modifier, and says why", () => {
+    expect(prose).toMatch(/no inhalation modifier|offers no inhalation/i);
+    expect(prose).toContain("2019");
+    // The output count is fixed at six; an inhalation branch would change it.
+    expect(outputsAt(25, 20).size).toBe(6);
+  });
+
+  // ── §0 and §9 — what the window shows, and what is still unsourced ────────
+  it("states that no coefficient has an in-window derivation", () => {
+    expect(notes).toContain("2016-2026");
+    expect(notes).toMatch(
+      /restatement, practice audit or consensus|restatement, practice audit, or consensus|restatement, audit or consensus/i,
+    );
+  });
+
+  it("keeps every [NO SOURCE] marker the review leaves open", () => {
+    // The four this review opens, plus the one it CONFIRMS rather than closes.
+    expect(notes).toMatch(
+      /8-h\/16-h split[\s\S]{0,120}\[NO SOURCE\]|\[NO SOURCE\][\s\S]{0,200}8-h\/16-h split/,
+    );
+    expect(notes).toMatch(/20, 30 or 40 kg/);
+    expect(notes).toMatch(/optimal hourly urine-output goal/i);
+    expect(notes).toMatch(/head-to-head/i);
+    // The pre-existing marker survives: no paediatric equivalent of the ABA CPG
+    // was located, which is confirmation, not closure.
+    expect(notes, "the paediatric starting-coefficient gap must stay marked").toContain(
+      "[NEEDS SOURCE]",
+    );
+    expect((notes.match(/\[NO SOURCE\]/g) ?? []).length).toBeGreaterThanOrEqual(3);
+  });
+
+  // ── The five new references must actually be there and be traceable ───────
+  it("cites the five sources this review rests on", () => {
+    const refs = burnResuscitation.references;
+    const blob = refs.map((r) => r.citation).join("\n");
+    for (const name of ["ABRUPT", "Pisano", "German Burn Registry", "Stevens", "AWMF"]) {
+      expect(blob, `the ${name} source must be cited`).toContain(name);
+    }
+    for (const doi of [
+      "10.1097/SLA.0000000000005166",
+      "10.1016/j.burns.2020.04.013",
+      "10.1007/s00431-024-05797-9",
+      "10.1016/j.burns.2022.03.007",
+    ]) {
+      expect(
+        refs.some((r) => "doi" in r && r.doi === doi),
+        `reference with DOI ${doi} is missing`,
+      ).toBe(true);
+    }
+    for (const ref of refs) {
+      const traceable = "pmid" in ref || "doi" in ref || "url" in ref;
+      expect(traceable, `untraceable reference: ${ref.citation.slice(0, 60)}`).toBe(true);
+    }
+  });
+
+  it("declares a caution for each rule the review states as a rule", () => {
+    expect(burnResuscitation.cautions).toHaveLength(5);
+    // Every caution is non-trivial and uniquely keyed.
+    const keys = burnResuscitation.cautions?.map((c) => c.key) ?? [];
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const c of burnResuscitation.cautions ?? []) {
+      expect(c.key, "caution keys are namespaced under burn.caution").toMatch(/^burn\.caution\./);
+      expect(c.en.length).toBeGreaterThan(120);
     }
   });
 });
