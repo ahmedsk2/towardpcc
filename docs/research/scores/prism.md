@@ -8,10 +8,12 @@
 >
 > **PRISM IV:** Pollack MM, Holubkov R, Funai T, et al. _The Pediatric Risk of Mortality Score: Update 2015._ **Pediatr Crit Care Med.** 2016;17(1):2-9. **PMID: 26492059** · **DOI: 10.1097/PCC.0000000000000558**.
 >
-> **Two things a reader must meet before anything else.**
+> **Three things a reader must meet before anything else.**
 >
-> 1. **NO PUBLISHED WORKED EXAMPLE EXISTS** for either PRISM III or PRISM IV — not in the 1996 paper, the 2016 paper, the patent, or any secondary source located. Every example on this page is **constructed from the threshold table** and labelled as such. See [`[NEEDS SOURCE]`](#needs-source--the-genuinely-open-items).
-> 2. **The PRISM III age bands have already been challenged once, incorrectly.** Read [The 2026-08-01 age-band challenge](#the-2026-08-01-age-band-challenge-primary-text-vs-page-copy) **before** acting on any external report about them. The bands below are the patent's, quoted verbatim.
+> 1. **PRISM III NO LONGER PRODUCES A MORTALITY PROBABILITY**, as of 2026-08-03. Its mortality equations are **not published in the derivation article** and are separately licensed. Read [The 2026-08-03 finding](#the-2026-08-03-finding--prism-iiis-mortality-equations-are-not-published) before adding one back. The **score** is unaffected and unchanged.
+> 2. **NO PUBLISHED WORKED EXAMPLE EXISTS** for either PRISM III or PRISM IV — not in the 1996 paper, the 2016 paper, the patent, or any secondary source located. Every example on this page is **constructed from the threshold table** and labelled as such. See [`[NEEDS SOURCE]`](#needs-source--the-genuinely-open-items).
+> 3. **The PRISM III age bands have already been challenged once, incorrectly.** Read [The 2026-08-01 age-band challenge](#the-2026-08-01-age-band-challenge-primary-text-vs-page-copy) **before** acting on any external report about them. The bands below are the patent's, quoted verbatim.
+> 4. **A BLANK PRISM IV COVARIATE IS NEVER READ AS THE REFERENCE LEVEL.** All four admission-context covariates are worth 0 at their reference level, so defaulting a blank to "no contribution" returns the reference-patient curve rather than omitting a term. On the 4-hour window a single blank withholds the probability entirely. Read [A blank covariate withholds the probability](#a-blank-covariate-withholds-the-probability--it-is-never-read-as-the-reference-level) before making any of them optional in the equation.
 >
 > No value on this page is inferred or invented. Where the source is ambiguous, unreadable, or silent, the page says so rather than choosing.
 
@@ -19,10 +21,10 @@
 
 PRISM III and PRISM IV are **not two scores**. Pollack 2016's abstract states, verbatim, "Although the physiologic ranges for the Pediatric Risk of Mortality variables have not changed" — PRISM IV reuses PRISM III's physiologic variables and thresholds **unchanged** and revises three other things: the **collection window**, the **outcome definition**, and the **mortality equation**.
 
-So one set of physiologic entries yields one score, and the collection window decides which published equation turns that score into a probability. The equations differ in **shape**, not merely in coefficients:
+So one set of physiologic entries yields one score, and the collection window decides whether a published, citable equation exists to turn that score into a probability at all.
 
-- **PRISM III** is quadratic in the **total**.
-- **PRISM IV does not use the total at all.** It splits the score into a **neurologic subscore** (pupils + mental status, 0–16) and a **non-neurologic subscore** (the other 15 variables, 0–58), weights them **separately** at 0.197 and 0.163 per point — a deliberate published finding that neurologic derangement carries more risk per point — and adds five non-physiologic terms.
+- **PRISM IV** (4-hour window) has one. It does **not** use the total: it splits the score into a **neurologic subscore** (pupils + mental status, 0–16) and a **non-neurologic subscore** (the other 15 variables, 0–58), weights them **separately** at 0.197 and 0.163 per point — a deliberate published finding that neurologic derangement carries more risk per point — and adds five non-physiologic terms. Its coefficients are printed in full in Pollack 2016.
+- **PRISM III** (12- and 24-hour windows) does **not**. Its mortality equations appear nowhere in the 1996 article and are separately licensed, so those windows produce the score and its two subscores and nothing else. See [The 2026-08-03 finding](#the-2026-08-03-finding--prism-iiis-mortality-equations-are-not-published).
 
 Implemented as `packages/scoring-engine/src/scores/prism.ts`, tested in `packages/scoring-engine/src/scores/prism.test.ts`.
 
@@ -169,49 +171,122 @@ These are the rules that separate a correct implementation from a plausible one.
 
 The worst-tier sum verifies the ceiling: 7 + 3 + 5 + 4 + 11 + 6 + 3 + 3 + 4 + 6 + 2 + 3 + 2 + 3 + 4 + 3 + 5 = **74**, of which the two neurologic items contribute 5 + 11 = **16**, leaving **58**. This is declared as the score's `composition` and pinned by a test that requires both maxima to be **attained**, not merely respected.
 
-### PRISM III mortality equations (score-only, as implemented)
+### The 2026-08-03 finding — PRISM III's mortality equations are not published
 
-Both quoted verbatim from the patent, then `P(death) = 1 / (1 + e^−R)`.
+**Until 2026-08-03 this calculator turned the PRISM III score into a predicted mortality percentage, using a quadratic logistic equation for the 12-hour window and another for 24 hours. That output has been removed.** The score is untouched.
 
-**PRISM III-12 (first 12 hours):**
+The reason is not that the equations were computed wrongly. They were computed correctly — the removed implementation reproduced its own model to three significant figures. The reason is that **the platform could not cite them**, and that they were the wrong model besides.
 
-```
-R = -5.5434 + 0.3441 × (PRISM III-12) − 0.00267 × (PRISM III-12)²
-```
+#### 1. The 1996 paper contains no coefficients
 
-**PRISM III-24 (first 24 hours):**
+The derivation article publishes the **score** completely and the **equations** not at all. Every table and figure was enumerated against the full text (Ovid, retrieved 2026-08-03, all 16 pages):
 
-```
-R = -6.0396 + 0.3544 × (PRISM III-24) − 0.00304 × (PRISM III-24)²
-```
+| Item        | Page    | Contents                                                      |
+| ----------- | ------- | ------------------------------------------------------------- |
+| Table 1     | 3       | Study site and patient characteristics                        |
+| Table 2     | 5       | Systolic BP ranges by age group                               |
+| Table 3     | 7       | Model fit and performance — χ², df, AIC, AUC, Hosmer-Lemeshow |
+| Table 4     | 7       | Hosmer-Lemeshow goodness of fit, training sample, III-12 full |
+| Table 5     | 10      | Performance measures, validation sample                       |
+| Table 6     | 10      | Goodness of fit, validation sample, III-24 full               |
+| Table 7     | 11      | Goodness of fit by diagnosis, total sample                    |
+| Table 8     | 12      | Goodness of fit by age group, total sample                    |
+| Figure 1    | 6       | **The score sheet** — variables, ranges, point values, notes  |
+| Figures 2–4 | 8–9, 11 | Observed vs. expected plots; ROC curves                       |
 
-### PRISM III full-covariate equations (published, NOT implemented)
+Table 3 — the table the Results text points to when it describes the risk-factor models — is a **model comparison** table. Chi-square, degrees of freedom, AIC, AUC, Hosmer-Lemeshow p-value. **No regression coefficient appears in it, or anywhere else in the paper, and there is no supplement.**
 
-The patent also publishes eight-covariate versions. They are recorded here so the choice is visible and the numbers are not lost, but they are **deliberately not implemented**: they require admission-context variables this calculator does not collect for the PRISM III windows, and the score-only quadratic model is the one that matches what a user actually enters.
+Figure 1 (p. 6) _is_ the whole score: every variable, every range, every point value, and the collection rules. That is what this calculator ships.
 
-**PRISM III-12, full model:**
+#### 2. The values were single-sourced to a patent, with no page to cite
 
-```
-R = -5.8294 + 0.3318(PRISM III-12) − 0.00265(PRISM III-12)²
-    + 0.4899(pre-ICU care area) − 0.6619(operative status)
-    + 0.6620(previous ICU admission) − 1.7463(acute diagnosis of diabetes)
-    + 0.5148(chromosomal anomaly) + 0.7634(acute or chronic oncologic disease)
-    + 0.6737(acute nonoperative cardiovascular disease)
-    + 1.1103(pre-ICU cardiac massage)
-```
+The equations that were implemented came from **US patent 5,809,477** (same author, same derivation dataset). The paper corroborates the patent's **structure** exactly — Table 3 lists model tiers at 1, 2 and 10 degrees of freedom, which matches score + score² + 8 binary factors; Table 3's footnote and Figure 1's "Other Factors" box name the same eight factors; the squared term is deliberate, the paper citing Kay & Little (_Biometrika_ 1987;74:495–501) as its methodological basis; and age is not a covariate because it enters through the age-adjusted physiologic ranges.
 
-**PRISM III-24, full model:**
+**Structure verified, values unverified.** The patent's machine transcription carries at least three internal inconsistencies (a sign error on the APS intercept, a disagreement on the original PRISM quadratic term, and a sign disagreement on one PRISM-I term). No page or table citation was possible because no such page exists. That fails the standing rule that **no clinical number ships without a citation and a cited worked example**.
 
-```
-R = -6.2833 + 0.3377(PRISM III-24) − 0.00283(PRISM III-24)²
-    + 0.4536(pre-ICU care area) − 0.6966(operative status)
-    + 0.6650(previous ICU admission) − 1.6763(acute diagnosis of diabetes)
-    + 0.5568(chromosomal anomaly) + 0.7746(acute or chronic oncologic disease)
-    + 0.6467(acute nonoperative cardiovascular disease)
-    + 1.1197(pre-ICU cardiac massage)
-```
+**The coefficient values are deliberately not reproduced on this page.** They are in the patent, which is cited in full below, for anyone who needs to check this finding. Restating them here would invite exactly the copy-back this section exists to prevent.
 
-The patent contains **14 equations in total** across four scoring methodologies (PRISM III-12, PRISM III-24, PRISM III-APS, and the original PRISM), differing by scoring system, time window, and covariate inclusion.
+#### 3. Licensing, and the authors' own practice
+
+The author note on the first page of the 1996 paper states that PRISM III and the updated PRISM algorithms are copyrighted and may be covered by one or more patents held by Children's Research Institute; that **the equations are available at no charge for _research_ uses**, including independent verification of their accuracy and reliability; and that Children's National Medical Center may receive compensation arising from **non-research** uses.
+
+A free public clinical calculator is a non-research use. No source of the numbers — patent, third-party site, JavaScript bundle — confers a licence.
+
+The authors' own network draws the same line. Checked 2026-08-03:
+
+| CPCCRN calculator | Inputs                              | Outputs                                                |
+| ----------------- | ----------------------------------- | ------------------------------------------------------ |
+| PRISM III         | 17 physiologic variables + age band | SCORE / NEUROLOGIC / NON-NEUROLOGIC — **no mortality** |
+| PRISM IV          | 7 subscores and risk factors        | **Estimated probability of mortality**                 |
+
+The CPCCRN PRISM III calculator collects no risk factors at all, so it structurally cannot produce a mortality estimate. Pollack's own network had the coefficients and shipped the score without them.
+
+#### 4. It was also the wrong model, by the paper's own criterion
+
+Table 3, p. 7. The authors' stated inclusion criterion was Hosmer-Lemeshow p > .10:
+
+| Model                  | AIC      | AUC  | HL χ² (12 df) | p     | Verdict                   |
+| ---------------------- | -------- | ---- | ------------- | ----- | ------------------------- |
+| PRISM III-12 alone     | 1970.878 | .929 | 35.877        | .0003 | **fails**                 |
+| III-12 + squared term  | 1964.421 | .929 | 17.683        | .1257 | passes — **what shipped** |
+| III-12 + all variables | 1867.762 | .946 | 14.854        | .2496 | passes                    |
+| PRISM III-24 alone     | 1827.405 | .947 | 39.300        | .0001 | **fails**                 |
+| III-24 + squared term  | 1814.818 | .947 | 19.966        | .0677 | **fails**                 |
+| III-24 + all variables | 1723.773 | .958 | 17.335        | .1374 | passes                    |
+
+Two problems follow. The 12-hour model that shipped was the **weakest passing model in the table**, with the lowest AUC of the three III-12 variants. And the 24-hour model that shipped — III-24 with the squared term, at p = .0677 — **does not meet the authors' own criterion at all**.
+
+The Discussion makes two recommendations the removed implementation contradicted on both counts: use the models **with** the additional variables, for wider applicability across case mixes; and treat III-12 as a quality-assessment instrument while III-24 is the more accurate one for **individual patient** risk. The abstract quantifies the split — the additional risk variables contributed 5% of explained variance and PRISM III itself 95% — and that 5% is precisely what distinguishes a post-operative child from one admitted after CPR.
+
+#### 5. One score, nine different answers
+
+Effect of dropping the covariates, at a fixed score of 19, computed on the risk-adjusted III-12 model:
+
+| Covariate present              | p at score 19 | Score at p = 50% |
+| ------------------------------ | ------------- | ---------------- |
+| none (reference)               | 38.2%         | 21.1             |
+| acute diabetes / DKA           | 9.7%          | 30.0             |
+| post-operative                 | 24.2%         | 24.3             |
+| admitted from inpatient ward   | 50.2%         | 19.0             |
+| chromosomal anomaly            | 50.8%         | 18.9             |
+| previous ICU admission         | 54.5%         | 18.2             |
+| acute non-operative CV disease | 54.8%         | 18.2             |
+| cancer                         | 57.0%         | 17.8             |
+| pre-ICU cardiac massage        | 65.2%         | 16.4             |
+
+**A spread of 9.7% to 65.2% at one score.** The removed implementation returned **50.8%** for every one of those patients — over-predicting after surgery and in diabetic ketoacidosis, under-predicting after CPR, with cancer, and after a previous ICU admission.
+
+#### Why no "score at which mortality reaches 50%" is quoted anywhere on this page
+
+Every calibration table in the paper bins by **predicted probability**, never by score. That is the correct design for a model containing covariates, because there is no single score-to-mortality mapping: the same score maps to different probabilities depending on the eight risk factors. The question presupposes a one-dimensional curve, and the published model does not have one.
+
+#### What was changed
+
+|                                 | Before                        | After                      |
+| ------------------------------- | ----------------------------- | -------------------------- |
+| 4-hour window (PRISM IV)        | score, subscores, probability | **unchanged**              |
+| 12-hour window                  | score, subscores, probability | score, subscores           |
+| 24-hour window                  | score, subscores, probability | score, subscores           |
+| Thresholds, bands, point values | —                             | **unchanged, all windows** |
+
+The absence is rendered as an absence. Never a zero, never an error state. The guard is `prism.test.ts` → `"emits no probability for the 12- or 24-hour window, from any vector"`, which asserts the exact output id list rather than merely the absence of one id, so a probability smuggled back under a different name fails too.
+
+#### Provenance of this finding
+
+| Claim                                              | Source                                                               | Confidence                                     |
+| -------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| Absence of any coefficient table in the 1996 paper | Full text read, all tables and figures enumerated (Ovid, 2026-08-03) | High                                           |
+| Licensing position                                 | Author note, first page of the 1996 paper                            | Verified                                       |
+| Table 3 model-fit statistics                       | Ovid full text, p. 7                                                 | Verified                                       |
+| CPCCRN calculator input/output sets                | cpccrn.org, retrieved 2026-08-03                                     | Verified                                       |
+| PRISM III coefficient **values**                   | US patent 5,809,477 only — structure confirmed, values unverified    | **Single-sourced; not for implementation**     |
+| Covariate-effect spread at score 19                | Arithmetic on the patent's risk-adjusted III-12 model                | Reproducible, inherits the patent's provenance |
+
+Source document: `C:/Users/ahmed/Downloads/calculators/prism-findings-and-implementation-spec.md`, 2026-08-03, accepted by the founder without re-litigation.
+
+#### What has NOT been decided
+
+The spec that produced this finding also proposes splitting PRISM IV into its own calculator, with its own inputs, its own limitations tab and cross-links. **That restructuring is not approved and has not been done.** PRISM IV stays where it is, inside this calculator, on the 4-hour window.
 
 ### PRISM IV — the covariate categories that DIFFER from the PRISM III bands
 
@@ -252,15 +327,31 @@ An **unplanned deterioration on an inpatient unit carries the heaviest weight of
 
 **Low-risk system of primary dysfunction** (endocrine, haematologic, musculoskeletal, or renal) at **−1.697** is the model's **only protective term**, and a large one.
 
+### A blank covariate withholds the probability — it is never read as the reference level
+
+**Every one of PRISM IV's four admission-context covariates is worth 0 at its reference level.** Read the three tables above: OR/PACU is the admission-source reference at 0, and no CPR, no cancer and no low-risk system are all the absent limb of a binary term. So an implementation that treats a blank as "contributes nothing" does not compute a probability _without_ that term — **it computes the reference patient**, and hands the OR/PACU, no-CPR, no-cancer, no-low-risk-system curve to every clinician who skipped a question.
+
+That is the **same defect** as the score-only quadratic removed on 2026-08-03, which returned one curve for every patient. It merely picks a different single curve.
+
+**The rule, as implemented:** on the 4-hour window, if **any** of `admission_source`, `cpr_24h`, `cancer` or `low_risk_system` is blank, **no `mortality_probability` output is emitted at all**. The PRISM score, the neurologic subscore and the non-neurologic subscore still render. The absence is rendered as an absence — never a zero, never an error state — exactly as on the 12- and 24-hour windows. Age is the fifth covariate and cannot be blank: the score itself requires it.
+
+**Why the four inputs are still declared `required: false`.** They belong to PRISM IV alone and are meaningless on the 12- and 24-hour windows, where they are not collected. An unconditional requirement would reject a legitimate score-only entry. The requirement is therefore **conditioned on the window**, inside `calculate`, rather than declared on the inputs.
+
+This follows the pattern the spec calls for — _"Require every categorical input and reject blanks outright rather than defaulting them to the reference level. Silently defaulting five covariates to zero reproduces the exact failure mode being fixed"_ — with one deliberate divergence: because this calculator carries all three windows rather than being split into a separate PRISM IV calculator, the requirement is enforced per window instead of per input. The guarantee is the same one, and it is stronger than a partial-result warning.
+
+Guarded by `prism.test.ts` → `"withholds the PRISM IV probability when any admission-context answer is blank"`, which omits each covariate **individually** with the other three answered, asserts the exact output id list rather than merely the absence of one id, and carries a non-vacuity leg proving a fully answered vector still yields a probability.
+
 ### Collection windows are not interchangeable
 
-| Window                                                                                      | Model        | Equation available |
-| ------------------------------------------------------------------------------------------- | ------------ | ------------------ |
-| First **4 hours** of PICU care (laboratory values from 2 h before admission through hour 4) | **PRISM IV** | Yes                |
-| First **12 hours**                                                                          | PRISM III-12 | Yes                |
-| First **24 hours**                                                                          | PRISM III-24 | Yes                |
+| Window                                                                                      | Model        | Mortality equation shown                          |
+| ------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------- |
+| First **4 hours** of PICU care (laboratory values from 2 h before admission through hour 4) | **PRISM IV** | **Yes** — coefficients published in full, Table 3 |
+| First **12 hours**                                                                          | PRISM III-12 | No — not published in the source article          |
+| First **24 hours**                                                                          | PRISM III-24 | No — not published in the source article          |
 
-There is **no published PRISM III equation for a 4-hour window** and **no published PRISM IV equation for 12 or 24 hours**. The calculator therefore **asks** which window was collected and shows only the matching equation. Inventing a cross-window figure would be fabrication; showing a probability off its own window would be worse, because it would look correct.
+There is **no published PRISM IV equation for 12 or 24 hours** and none is substituted. Showing a probability off its own window would be worse than showing none, because it would look correct.
+
+The window changes **nothing about the score**, which is computed identically for all three. It decides only whether a mortality estimate can honestly be shown.
 
 ## Inputs (id, label, type, units + conversions, plausible min/max with source)
 
@@ -313,24 +404,28 @@ These are quoted in the calculator's help text and are reproduced here as the re
 
 Every laboratory component is optional and a blank one contributes **0**. A partially entered PRISM therefore **reads lower than the patient is**. The implementation sets `missingAsNormal: true` and the form's partial-result cue exists for exactly this reason and must stay on.
 
+**The four PRISM IV admission-context covariates are the exception, and deliberately so.** They are not physiologic rows and they do not score into the total; they are terms in a probability. A blank one is **not** treated as its reference level — it withholds the probability outright. See [A blank covariate withholds the probability](#a-blank-covariate-withholds-the-probability--it-is-never-read-as-the-reference-level). The partial-result cue is the right control for an unentered laboratory value, which understates a score the clinician can see; it is the wrong control for an unanswered covariate, which silently substitutes a specific clinical claim inside a number the clinician cannot audit.
+
 ## Worked examples
 
 **No published worked example exists.** The five cases below are **constructed from the patent's threshold table**; each scoring decision is annotated with the row that produced it, so the arithmetic is auditable line by line even though the case itself is not citable to a published patient. All five were recomputed by hand during verification and reproduce exactly.
 
 Each case doubles as a trap for a specific way this score is easy to get wrong.
 
+**No case here carries a PRISM III mortality figure, and none may be added.** Examples A, B and C previously asserted one; those assertions were deleted on 2026-08-03 along with the equations that produced them.
+
 ### Example A — 3-year-old, entirely normal physiology (PRISM III-12); total = 0
 
 All 26 ranges miss. Inputs: SBP 95, temp 36.5–37.5, no mental-status entry, pupils reactive, HR 120, pH 7.35–7.42, tCO₂ 22–24, PCO₂ 40, PaO₂ 90, glucose 100, K 4.0, creatinine 0.4, BUN 10, WBC 9,000, platelets 250,000, PT 12, PTT 30.
 
-| Output              | Value                            |
-| ------------------- | -------------------------------- |
-| PRISM total         | **0**                            |
-| Neurologic subscore | 0                                |
-| Non-neurologic      | 0                                |
-| Predicted mortality | **0.39%** — `1 / (1 + e^5.5434)` |
+| Output              | Value                     |
+| ------------------- | ------------------------- |
+| PRISM total         | **0**                     |
+| Neurologic subscore | 0                         |
+| Non-neurologic      | 0                         |
+| Predicted mortality | **none** — 12-hour window |
 
-**What it pins:** the floor is **not zero**. A logistic model with a finite intercept always returns a positive probability, and this must never be displayed as 0%.
+**What it pins:** the honest absence, on a patient whose data are perfectly complete. Three outputs and no fourth. The rail must render nothing there, not 0%.
 
 ### Example B — 8-month-old, bronchiolitis (PRISM III-12); total = 7
 
@@ -345,7 +440,7 @@ All 26 ranges miss. Inputs: SBP 95, temp 36.5–37.5, no mental-status entry, pu
 | Platelets            | 180,000   | 100,000–200,000                                              | 2      |
 | **Total**            |           |                                                              | **7**  |
 
-Predicted mortality **3.68%**.
+No predicted mortality — 12-hour window.
 
 **What it pins:** two near-miss age traps, in opposite directions.
 
@@ -364,7 +459,7 @@ Predicted mortality **3.68%**.
 | Mental status | GCS 13                 | Assessed but ≥8                                     | 0      |
 | **Total**     |                        |                                                     | **11** |
 
-Predicted mortality **11.09%**.
+No predicted mortality — 12-hour window.
 
 **What it pins:** the shared acidosis row. Double-counting pH and total CO₂ gives **13** — the wrong answer this case exists to catch.
 
@@ -412,9 +507,37 @@ Predicted mortality **11.09%**.
 | **PT/PTT**    | PT 30, PTT 95          | Both over the neonate cutoffs — **still 3 once** | —      | 3         |
 | **Totals**    |                        |                                                  | **16** | **51**    |
 
-**Total 67.** Non-physiologic terms active: admission source = another hospital, CPR within 24 h = true.
+**Total 67.** Non-physiologic terms: admission source = another hospital, CPR within 24 h = **yes**, cancer = **no**, low-risk system = **no**. The last two are _answered_ rather than left blank — they contribute nothing either way, but a blank is not an answer and would withhold the probability entirely.
 
-**What it pins:** the PRISM IV equation with a maxed neurologic subscore, and the **14-day age boundary** — this patient is on the young side of a split PRISM III does not have at all.
+`R = −5.776 + 1.311 (under 14 days) + 1.012 (another hospital) + 1.082 (CPR) + 0.197×16 + 0.163×51 = 9.094`, so **P = 99.9888%**.
+
+**What it pins:** the PRISM IV equation with a maxed neurologic subscore, and the **14-day age boundary** — this patient is on the young side of a split PRISM III does not have at all. It is the only worked example that asserts a probability, because the 4-hour window is the only one that produces one.
+
+The probability is saturated at that score, so it is a weak place to catch a wrong coefficient. Four mid-range anchors carry that load instead (probes, not patients — see below).
+
+### PRISM IV anchors (threshold probes, not clinical cases)
+
+Every value is `P = 1 / (1 + e^−R)` over Table 3's coefficients with the patient at **every reference level** — age ≥ 12 months, admitted from OR/PACU, no CPR, no cancer, no low-risk system — so only the two subscore weights move. Those four are **answered at their reference level, not left blank**; blank withholds the probability, so an anchor built on blanks would have nothing to assert.
+
+| Neurologic | Non-neurologic | R                                    | P(death)    |
+| ---------- | -------------- | ------------------------------------ | ----------- |
+| 0          | 0              | −5.776                               | **0.3092%** |
+| 0          | 10             | −5.776 + 0.163×10 = −4.146           | **1.5581%** |
+| 11         | 0              | −5.776 + 0.197×11 = −3.609           | **2.6365%** |
+| 5          | 10             | −5.776 + 0.197×5 + 0.163×10 = −3.161 | **4.0660%** |
+
+**Provenance is weaker than the platform's usual pattern and is recorded as such.** The 2016 paper contains no worked example, so these are **arithmetic on the published coefficient table**, not figures reproduced from a publication. They were cross-checked against an independent recomputation of the same table rather than being this file's own arithmetic marking its own work.
+
+The first row is the one worth reading twice: a **completely normal child still carries a non-zero probability**, because that is what a logistic intercept does. It must never be displayed as 0%.
+
+**The split cannot be collapsed into the total.** Two patients at the same total of 12:
+
+| Split                 | R      | P(death)    |
+| --------------------- | ------ | ----------- |
+| neuro 7 / non-neuro 5 | −3.582 | **2.7067%** |
+| neuro 5 / non-neuro 7 | −3.650 | **2.5333%** |
+
+An implementation that summed to a total before applying weights would return one number for both. (The spec's own split-sensitivity pair, neuro 5/10 against neuro 10/5, is not usable here: the neurologic subscore is built from pupils 0/7/11 plus mental status 0/5, so it can only take the values 0, 5, 7, 11, 12 and 16 — **10 is not attainable**. The pair above is the equal-total substitute.)
 
 ### Ceiling vector (threshold probe, not a clinical case)
 
@@ -422,7 +545,14 @@ Every row at its worst tier simultaneously: **74 = 16 neurologic + 58 non-neurol
 
 ## Interpretation bands (non-directive wording, with source)
 
-**No severity bands are authored.** This is recorded in the implementation as `interpretationStatus: "pending"` — a **content gap, not an absence by design**. Published mortality strata exist for this score and simply have not been written yet. Saying so is the difference between "no band applies" and "we have not written one."
+**No severity bands are authored, and none is owed.** This is recorded in the implementation as `interpretationStatus: "not-applicable"` — an **absence by design, not a content gap**. It read `"pending"` until 2026-08-03; that was wrong, and the correction matters because `pending` asserts that a published stratification exists and has simply not been transcribed yet.
+
+**Neither model has one.**
+
+- **PRISM IV outputs a continuous probability, not a band** (source spec §2.3: _"PRISM IV outputs a continuous probability, not a band. No interpretation table."_). Its calibration data — the decile-style table that an earlier version of this page pointed at as "something to author" — bins by **predicted probability**, never by score, which is the correct design for a covariate-adjusted model and is exactly why [no score-to-mortality curve is quotable](#why-no-score-at-which-mortality-reaches-50-is-quoted-anywhere-on-this-page). A calibration table is a check on the model's own output; it is not a severity stratification of the score and cannot be turned into one.
+- **PRISM III score-only has no published severity band at all**, and none may be invented. With the mortality output gone there is nothing left here to band.
+
+So nothing is awaiting a later pass, which is precisely what `not-applicable` declares. Same call, for the same reason, as `fluid-balance` and `four-score`. Pinned by `prism.test.ts` → `"declares no interpretation bands, and declares that as not-applicable"`, so restoring `pending` requires deleting that test on purpose.
 
 The published quantitative anchors, for reference and not as bands:
 
@@ -430,16 +560,23 @@ The published quantitative anchors, for reference and not as bands:
 
 **PRISM IV (Pollack 2016):** 10,078 admissions, unadjusted mortality **2.7%** (site range 1.3–5.0%), 75/25 derivation/validation split. AUROC **0.88 ± 0.013** (development) and **0.90 ± 0.018** (validation). Hosmer-Lemeshow p = 0.39 (development) and 0.50 (validation).
 
-### The calibration gap is large and must be visible
+### Only one model produces a probability, and only for its own window
 
-PRISM III was derived on early-1990s data and **over-predicts substantially in modern cohorts** — which is precisely why PRISM IV was recalibrated on the 2011–2013 cohort. The size of that gap is worth seeing rather than being told. Using **Example D** (total 35, split 5 / 30) and the published equations:
+PRISM III was derived on early-1990s practice; PRISM IV was recalibrated on the 2011–2013 cohort. That gap used to be documented here with a side-by-side of the two predictions for the same physiology. **That comparison is gone with the PRISM III equations** — there is no longer a PRISM III figure to compare against, and reconstructing one to make the point would reintroduce exactly the number that was removed.
 
-| Model        | Predicted mortality for the same physiology |
-| ------------ | ------------------------------------------- |
-| PRISM III-12 | **≈ 96.2%**                                 |
-| PRISM IV     | **≈ 52.5%**                                 |
+What survives is the scope statement, which matters at the bedside more than the calibration story:
 
-The PRISM III-12 equation crosses **50% at a score of about 19** and reaches **96% by 35**. Both models are implemented exactly as published — **the divergence is the recalibration, not an error** — but it means a PRISM III figure should not be read as a current estimate of anything. Where both are available, **PRISM IV is the current model and PRISM III the historical comparator.**
+|                                 | PRISM III (1996)                | PRISM IV (2016)                        |
+| ------------------------------- | ------------------------------- | -------------------------------------- |
+| Outcome                         | PICU mortality                  | **Hospital** mortality                 |
+| Admissions                      | Readmissions counted separately | **First PICU admission only**          |
+| Physiologic window              | first 12 or 24 hr               | **first 4 hr**                         |
+| Laboratory window               | first 12 or 24 hr               | **2 hr before admission → 4 hr after** |
+| Reference cohort                | 32 US PICUs, 1990s              | 7 CPCCRN sites, 2011–2013              |
+| Unadjusted mortality            | —                               | 2.7% (site range 1.3–5.0%)             |
+| Mortality equation shipped here | **none**                        | yes                                    |
+
+So the PRISM IV number must be read with all three qualifiers attached: the estimated probability of **hospital** mortality, for a **first PICU admission**, from data collected in the **first 4 hours** of PICU care. Its age ceiling is 18 years, and performance in a different case mix or region may differ from the reference sample.
 
 ### Population instrument, not a bedside prognosis
 
@@ -449,27 +586,31 @@ PRISM estimates mortality risk for a **population**. It is a case-mix and benchm
 
 Listed plainly. None of these is papered over, and none is a placeholder for a value that was invented instead.
 
-1. **No published worked example exists for either model.** Not in Pollack 1996, Pollack 2016, the patent, or any secondary source located. The test cases are constructed from the threshold table and labelled as such. **The natural oracle is the authors' own CPCCRN calculators** (https://www.cpccrn.org/calculators/prismivcalculator/ and `/prismiiicalculator/`), which have returned **HTTP 503 behind a rate limit at every attempt** — during research, during implementation, and again on **2026-08-01** (`Retry-After: 3600`). **Unreconciled.** This is the single most valuable outstanding verification for this score: one successful round-trip against either calculator would convert all five constructed cases into reconciled ones.
-2. **The neonate heart-rate 3-point band.** The patent's rendering prints **"215-255"**, which is internally inconsistent with the **">225"** cutoff on the same row. **215–225** is used, matching the infant band and independent reproductions. The value **as printed in the 1996 paper's own Table 1 is unverified** — the paper is paywalled and was not obtained. This is a source-defect resolution, not a sourced value, and is flagged as such in the code.
-3. **The glucose mg/dL vs mmol/L discrepancy.** The source prints **200 mg/dL** and **11.0 mmol/L** as if equivalent, but **200 mg/dL = 11.1 mmol/L**. The two limbs are not the same threshold. The **mg/dL limb is treated as authoritative** here. Which limb the authors intended, and whether the mmol/L figure is a rounding of the mg/dL one or a separately chosen cut point, is **not stated in any source located**.
-4. **PRISM IV Table 3 coefficients were not independently re-extracted.** Pollack 2016 is paywalled; the Medscape mirror returned HTTP 402 and no open-access reproduction of the full coefficient table was located. The coefficients in the implementation are cited to Table 3 and are **structurally corroborated** only — PRISM 4-C (Alvarez Elias et al., _J Pediatr Hematol Oncol_ 2020;42(7):e563-e568, **PMID 32986390**) recalibrates the same two-weight form, publishing `logit = −4.110 + 0.219 × neurologic + 0.177 × non-neurologic`, which confirms the **shape** of the PRISM IV model but not its **values**. Obtaining Table 3 is the second outstanding verification.
-5. **Interpretation bands are unauthored** (`interpretationStatus: "pending"`). Published mortality strata exist and have not been transcribed.
+1. **No published worked example exists for either model.** Not in Pollack 1996 (now read in full), Pollack 2016, the patent, or any secondary source located. The test cases are constructed from the threshold table and labelled as such, and the PRISM IV probabilities are arithmetic on the published coefficient table rather than figures reproduced from a publication. **The natural oracle is the authors' own CPCCRN calculators** (https://www.cpccrn.org/calculators/prismivcalculator/ and `/prismiiicalculator/`). Their **input and output sets** were read on 2026-08-03 and are recorded above, but **no case has been round-tripped through either one**, so the constructed cases remain unreconciled. That round-trip is still the single most valuable outstanding verification for this score.
+2. **The neonate heart-rate 3-point band.** The patent's rendering prints **"215-255"**, which is internally inconsistent with the **">225"** cutoff on the same row. **215–225** is used, matching the infant band and independent reproductions. The 1996 paper was obtained on 2026-08-03, so **this is now checkable against Figure 1 and has not yet been checked.** Until it is, this remains a source-defect resolution rather than a sourced value, and is flagged as such in the code.
+3. **The glucose mg/dL vs mmol/L discrepancy.** The source prints **200 mg/dL** and **11.0 mmol/L** as if equivalent, but **200 mg/dL = 11.1 mmol/L**. The two limbs are not the same threshold. The **mg/dL limb is treated as authoritative** here. Which limb the authors intended, and whether the mmol/L figure is a rounding of the mg/dL one or a separately chosen cut point, is **not stated in any source located**. Also now checkable against Figure 1 and not yet checked.
+4. ~~**PRISM IV Table 3 coefficients were not independently re-extracted.**~~ **CLOSED 2026-08-03.** Obtained from the PCCM 2016 author manuscript (PMC, nihms817698), Table 3, p. 12, and the implementation's coefficients match. The earlier structural corroboration via PRISM 4-C (Alvarez Elias et al., _J Pediatr Hematol Oncol_ 2020;42(7):e563-e568, **PMID 32986390**, publishing `logit = −4.110 + 0.219 × neurologic + 0.177 × non-neurologic`) is retained as a second, independent confirmation of the two-weight **shape**.
+5. ~~**Interpretation bands are unauthored** (`interpretationStatus: "pending"`).~~ **CLOSED 2026-08-03 — and it was not a gap.** The declaration is now `not-applicable`. PRISM IV outputs a **continuous probability, not a band**, so it has no interpretation table; its calibration data bins by predicted probability rather than by score and therefore cannot become one. PRISM III score-only has no published severity band at all. Nothing is awaiting a later pass, and `pending` was asserting strata that do not exist. See [Interpretation bands](#interpretation-bands-non-directive-wording-with-source).
 6. **Input plausibility bounds** (`min`/`max` on every numeric field) are UI validation limits with **no published basis**. The source specifies no data-entry ranges. Use institutional analyser limits rather than treating these as clinical bounds.
-7. **PRISM III's full eight-covariate equations are published but not implemented.** Recorded above. Implementing them would require collecting pre-ICU care area, operative status, previous ICU admission, acute diabetes, chromosomal anomaly, oncologic disease, acute non-operative cardiovascular disease, and pre-ICU cardiac massage — none of which this calculator asks for in the PRISM III windows. **Not a source gap; a scope decision.**
+7. **PRISM III mortality is not a source gap that can be closed by finding a better source.** The equations are absent from the derivation article and the paper's author note reserves them for research use. What would settle it is a written answer from the rights holder, not another search — see item 8. Until then the platform ships the score only, and no `[NEEDS SOURCE]` marker is warranted, because nothing here is asserted without a source; a whole output was withdrawn instead.
+8. **Write to the rights holder.** The 1996 paper states the equations are free for research uses including independent verification. One enquiry could obtain the authoritative coefficients _and_ a written answer on whether a free public clinical calculator is a non-research use. Worth having in writing either way. Note there are **at least two possible counterparties**: the patent assignment chain runs Children's Research Institute → Children's Hospital of Los Angeles (2007-11-01) → **VPS LLC** (2008-04-07), while the copyright footnote names Children's National. Tracked in `docs/research/source-requests-2026-08-03.md` if that file is in the tree.
+9. **Audit the other calculators for the same failure mode.** If the PRISM III coefficients entered this codebase from a secondary source, that source may have seeded others. The provenance of every mortality or risk equation currently shipping is worth tracing. **Open, not started here.**
 
 ## References (full citations, PMID/DOI)
 
-1. **Pollack MM.** _Method, apparatus and medium for allocating beds in a pediatric intensive care unit and for evaluating quality of care._ **US patent 5,809,477**, issued 1998-09-15. https://patents.google.com/patent/US5809477A/en — **primary source** for the complete PRISM III threshold table, the age-band definitions, the scoring notes quoted in the calculator help text, and all mortality equations. Status **"Expired - Lifetime"**, anticipated expiration **2015-09-21**.
-2. **Pollack MM, Patel KM, Ruttimann UE.** _PRISM III: an updated Pediatric Risk of Mortality score._ **Crit Care Med.** 1996;24(5):743-752. **PMID: 8706448** · **DOI: 10.1097/00003246-199605000-00004.** The derivation paper. **Paywalled**; abstract fetched and reconciled, full table not obtained — the patent (ref. 1) supplies it.
-3. **Pollack MM, Holubkov R, Funai T, et al.** _The Pediatric Risk of Mortality Score: Update 2015._ **Pediatr Crit Care Med.** 2016;17(1):2-9. **PMID: 26492059** · **DOI: 10.1097/PCC.0000000000000558.** PRISM IV — source of the subscore split and every coefficient in Table 3. **Paywalled**; abstract fetched, Table 3 not independently re-extracted (see `[NEEDS SOURCE]` item 4).
-4. **Collaborative Pediatric Critical Care Research Network.** PRISM IV calculator. https://www.cpccrn.org/calculators/prismivcalculator/ — the authors' own implementation and the natural reconciliation oracle. **HTTP 503 at every attempt, most recently 2026-08-01. Not yet reconciled.**
+1. **Pollack MM.** _Method, apparatus and medium for allocating beds in a pediatric intensive care unit and for evaluating quality of care._ **US patent 5,809,477**, issued 1998-09-15. https://patents.google.com/patent/US5809477A/en — source for the complete PRISM III threshold table, the age-band definitions and the scoring notes quoted in the calculator help text, all of which the 1996 paper also publishes. Status **"Expired - Lifetime"**, anticipated expiration **2015-09-21**. It also states mortality equations the paper does not; **those are not implemented and are not reproduced on this page** — see the finding section for why.
+2. **Pollack MM, Patel KM, Ruttimann UE.** _PRISM III: an updated Pediatric Risk of Mortality score._ **Crit Care Med.** 1996;24(5):743-752. **PMID: 8706448** · **DOI: 10.1097/00003246-199605000-00004.** The derivation paper, and the source of the score. **Full text obtained 2026-08-03** (Ovid / University of Toronto Libraries, all 16 pages). Publishes the score sheet in full at Figure 1, p. 6, and **no regression coefficients anywhere**. Its author note, p. 1, reserves the mortality equations for research use.
+3. **Pollack MM, Holubkov R, Funai T, et al.** _The Pediatric Risk of Mortality Score: Update 2015._ **Pediatr Crit Care Med.** 2016;17(1):2-9. **PMID: 26492059** · **DOI: 10.1097/PCC.0000000000000558.** PRISM IV — source of the subscore split and every coefficient in Table 3. Table 3 **obtained and reconciled 2026-08-03** via the author manuscript (PMC, nihms817698), p. 12. Its stated objective included placing the algorithms in the public domain.
+4. **Collaborative Pediatric Critical Care Research Network.** PRISM IV calculator (https://www.cpccrn.org/calculators/prismivcalculator/) and PRISM III calculator (`/prismiiicalculator/`) — the authors' own implementations. **Input and output sets read 2026-08-03**: PRISM III returns SCORE / NEUROLOGIC / NON-NEUROLOGIC and no mortality; PRISM IV's inputs match Table 3 one-to-one. **No case round-tripped; the constructed examples remain unreconciled.**
 5. **Alvarez Elias AC, et al.** _PRISM 4-C: An Adapted PRISM IV Algorithm for Children With Cancer._ **J Pediatr Hematol Oncol.** 2020;42(7):e563-e568. **PMID: 32986390.** Used **only** as structural corroboration of the PRISM IV two-weight form; contributes no threshold or coefficient to this page.
 6. Independent validation cohort corroborating the PRISM IV 4-hour collection window ("laboratory data from 2 hours prior to 4 hours after admission, and physiological data within 4 hours of admission were collected"): _Comparative Performance of Pediatric Risk of Mortality IV and Pediatric Index of Mortality 3 in Critically Ill Children with Cancer._ PMC12186081. Window corroboration only; contributes no threshold.
 
 ## Limitations & notes
 
 - **Population instrument.** PRISM is for case-mix adjustment and benchmarking, not individual prognosis. See [Interpretation bands](#interpretation-bands-non-directive-wording-with-source).
-- **PRISM III is a historical comparator.** Derived on 1990s practice; over-predicts markedly in modern cohorts. Do not present a PRISM III probability as a current estimate.
+- **PRISM III has no mortality output here, and that is deliberate.** Its equations are not published in the source article and are separately licensed. The 12- and 24-hour windows give the score and its two subscores. Do not restore a probability without the finding above being overturned in writing.
+- **PRISM IV predicts something specific.** Hospital mortality, first PICU admission, first 4 hours. Not PICU mortality, not a readmission, not a 24-hour picture.
+- **PRISM IV shows no probability until all four admission-context questions are answered.** Each is worth 0 at its reference level, so a blank read as "no contribution" is not a neutral omission — it is the reference patient, asserted about someone who was never asked. The estimate is withheld instead. See [A blank covariate withholds the probability](#a-blank-covariate-withholds-the-probability--it-is-never-read-as-the-reference-level).
 - **Blank components score zero**, so a partially entered score reads lower than the patient is. The partial-result cue is a safety control, not decoration.
 - **Mental status is conditional.** Enter it **only** for known or suspected acute CNS disease, and **not within 2 hours** of sedation, paralysis, or anaesthesia. Entering a sedation-depressed GCS inflates the neurologic subscore — the subscore PRISM IV weights most heavily.
 - **Whole-blood chemistry needs correcting before entry**: glucose +10%, potassium +0.4 mmol/L. (The source also prescribes sodium +3 mmol/L, but sodium is not a scored PRISM III variable — see above.)
@@ -477,7 +618,7 @@ Listed plainly. None of these is papered over, and none is a placeholder for a v
 - **The bidirectional rows are the most common implementation error.** The patent explicitly permits scoring both a low and a high range of the same analyte. An implementation that treats pH as one row will silently under-score every patient whose pH swung.
 - **Age bands differ between PRISM III and PRISM IV** and must never be unified. See the two tables above.
 - **The neonate heart-rate band rests on a source-defect resolution**, not a clean citation. Flagged in `[NEEDS SOURCE]` item 2.
-- **The mortality output is a population estimate off a specific window.** The calculator refuses to show a probability for a window whose model does not exist.
+- **The mortality output is a population estimate off a specific window.** The calculator refuses to show a probability for a window whose model it cannot cite.
 
 ## Verification
 
@@ -488,8 +629,8 @@ Independent re-check performed **2026-08-01**, against the primary sources direc
 - Age bands — **confirmed verbatim**: "Ages: Neonate=0-<1 month; Infant=1 month-<12 months; Child=12 months-<144 months; Adolescent ≧144 months."
 - Full threshold table (all 17 variables) — **matches this page row for row**, including the infant/child shared creatinine cutoff and the neonate-vs-everyone-else BUN split.
 - Bidirectional scoring rule — **confirmed verbatim**: "When there are both low and high ranges, PRISM III points may be assigned for the low and the high ranges."
-- Both implemented score-only equations — **confirmed verbatim**: `R = −5.5434 + 0.3441(PRISM III-12) − 0.00267(PRISM III-12)²` and `R = −6.0396 + 0.3544(PRISM III-24) − 0.00304(PRISM III-24)²`.
-- Both full-covariate equations — **confirmed verbatim** as transcribed above. Patent contains **14 equations** across four methodologies.
+- Both score-only equations, then implemented — **confirmed verbatim against the patent**, which is the only thing that check established. **Superseded 2026-08-03:** confirming that a transcription matches the patent is not the same as confirming the values, and the paper that the citation names contains no such equation to check them against. Both are now removed; the values are not restated on this page. See [The 2026-08-03 finding](#the-2026-08-03-finding--prism-iiis-mortality-equations-are-not-published).
+- Both full-covariate equations — **confirmed verbatim against the patent**, same caveat, also not restated. Patent contains **14 equations** across four methodologies.
 - All seven scoring notes (pupil >3 mm, mental-status conditions, heart-rate exclusion, temperature sites, whole-blood corrections, blood-gas sample types, bicarbonate substitution) — **confirmed verbatim**.
 - **Sodium confirmed absent** from the PRISM III-12 and PRISM III-24 tables, despite the whole-blood note prescribing a sodium correction.
 - Patent status — **confirmed** "Expired - Lifetime", anticipated expiration **2015-09-21**.
@@ -514,12 +655,69 @@ Independent re-check performed **2026-08-01**, against the primary sources direc
 - **CPCCRN calculators.** Re-attempted 2026-08-01 → **HTTP 503, `Retry-After: 3600`**. Third documented failure. No worked example reconciled.
 - **Independent reproduction of the 215–225 neonate band.** Located at search-snippet strength (a PRISM III validation paper reproducing the table with "Neonate 215-225"); the source PDF was not machine-extractable, so this is corroboration, not a citation, and item 2 stays open.
 
-**Worked examples A–E** — all five recomputed by hand against the verified table: row selection, the shared-row rules, the subscore split, and both logistic equations. **All five reproduce exactly** (0, 7, 11, 35, 67; subscores 0/0, 0/7, 0/11, 5/30, 16/51; probabilities 0.39%, 3.68%, 11.09%). The 74-point ceiling was recomputed independently from the worst tier of every row and **sums to 74 = 16 + 58**.
+**Worked examples A–E** — all five recomputed by hand against the verified table: row selection, the shared-row rules, the subscore split, and the logistic equations. **All five reproduce exactly** (0, 7, 11, 35, 67; subscores 0/0, 0/7, 0/11, 5/30, 16/51). The 74-point ceiling was recomputed independently from the worst tier of every row and **sums to 74 = 16 + 58**.
 
-**Result:** no numeric correction was necessary to the threshold table, the age bands, or the PRISM III equations. One documentation correction is recorded above (the paraphrased quotation in the implementation's docblock). Two verification gaps remain genuinely open and are listed in `[NEEDS SOURCE]`; they are absent from the accessible sources, not merely unchecked.
+**Result of the 2026-08-01 pass:** no numeric correction was necessary to the threshold table or the age bands. One documentation correction is recorded above (the paraphrased quotation in the implementation's docblock).
+
+### 2026-08-03 pass — the full text of Pollack 1996
+
+The 1996 article was obtained in full for the first time (Ovid / University of Toronto Libraries, all 16 pages). Every prior pass had worked from the abstract plus the patent, which is how a coefficient with no citable page survived four reviews.
+
+- **Citation details** — confirmed: volume **24**, issue **5**, pages 743–752. A common miscitation renders this as volume 25 issue 4, and at least one indexing site propagates that error. This page and the implementation both have it right.
+- **Absence of any regression coefficient** — established by enumerating all eight tables and four figures. No supplement exists. See the finding section for the table-by-table enumeration.
+- **The author note on page 1** — read in context for the first time. Copyright asserted, patents possible, equations free for **research** uses, compensation possible for **non-research** uses.
+- **Table 3 model-fit statistics** — confirmed, p. 7, and they are what showed that the shipped III-24 variant failed the authors' own Hosmer-Lemeshow criterion (p = .0677 against a stated threshold of .10).
+- **Tables 4, 6, 7 and 8 calibration data** — confirmed, and confirmed to bin by **predicted probability**, never by score, which is why no score-to-mortality curve is quotable.
+- ⚠️ Table 6's header reads "Probability of Death (%)" while its row values are **proportions** (0.03 = 3%), per Table 5's footnote. Noted so the next reader does not misread it.
+- **CPCCRN calculators** — retrieved 2026-08-03. The PRISM III calculator returns SCORE / NEUROLOGIC / NON-NEUROLOGIC and collects no risk factors; the PRISM IV calculator returns a mortality probability and its input list is a one-to-one match with Table 3 of the 2016 paper. Its reference age band tops out at **≤18 years**.
+- **PRISM IV Table 3 coefficients** — obtained from the PCCM 2016 author manuscript (PMC, nihms817698), p. 12. This closes `[NEEDS SOURCE]` item 4 as it was written: the coefficients in the implementation match the published table. The implementation was not changed.
+
+**Result of the 2026-08-03 pass:** one output removed — the PRISM III mortality probability, on both windows. **No change to any threshold, age band, point value, subscore or the total.** The score computes exactly as it did before, in every window.
+
+### 2026-08-03, second pass — three defects found by verification of the first
+
+A verification pass over the change above found three defects in it. All three are fixed; the score is again untouched.
+
+1. **The PRISM IV covariates were silently defaulting to the reference level.** All four were declared optional and read with optional chaining, contributing 0 when absent — so a clinician on the 4-hour window who left admission source blank was handed the OR/PACU reference curve. This is the reference-patient form of the very defect the first pass removed. **Fixed** by withholding the probability outright when any of the four is blank; see [A blank covariate withholds the probability](#a-blank-covariate-withholds-the-probability--it-is-never-read-as-the-reference-level). Flipping the inputs to `required: true` was rejected: they are meaningless on the 12- and 24-hour windows and would have blocked a legitimate score-only entry.
+2. **The provenance strings contradicted each other.** The implementation's notes and one reference note claimed the CPCCRN calculators _"returned HTTP 503 behind a rate limit at every attempt"_ while a sibling reference recorded _"Retrieved 2026-08-03"_, and the source document records **both calculators' input and output sets as VERIFIED, retrieved 3 Aug 2026**. This page already had it right. **Fixed** in the implementation: both input and output sets were read on 2026-08-03; what is still outstanding is that **no case has been round-tripped** through either, so the constructed fixtures remain unreconciled against the authors' implementation. (The 2026-08-01 HTTP 503 records elsewhere on this page are dated observations of that pass and stand as written.)
+3. **`interpretationStatus: "pending"` asserted strata that do not exist.** **Fixed** to `not-applicable`; see [Interpretation bands](#interpretation-bands-non-directive-wording-with-source) and `[NEEDS SOURCE]` item 5.
+
+**Implementation version 2.1.0.** No threshold, age band, point value, subscore or coefficient moved in this pass either, and a fully answered 4-hour entry returns exactly the probability it returned before.
+
+**The transferable lesson**, and it is the second one this page has recorded: "verified against the patent" and "verified" are not the same claim. The patent was treated as a proxy for a paywalled paper for four review passes. It is a proxy for the parts the paper publishes. It is not a proxy for the parts the paper withholds — and the difference between those two categories is exactly where the uncitable number was hiding.
 
 ## IP status
 
+> ## NARROWED 2026-08-03 — the score publishes; PRISM III's mortality equations do not
+>
+> The 2026-08-02 decision below stands **for the score**, which is what this
+> calculator ships: a table of physiologic cut-points, published in full at
+> Figure 1 of the derivation paper, plus PRISM IV's equation, whose authors
+> placed it in the public domain and whose coefficients are printed in Table 3.
+>
+> **PRISM III's mortality equations are removed, and the reason is not primarily
+> the licence.** It is that they are **not published in the article the platform
+> cites**, so no page could be given for them — the project's own rule that no
+> clinical number ships without a citation. Once the full text was read, the
+> licence question stopped being the load-bearing one. See
+> [The 2026-08-03 finding](#the-2026-08-03-finding--prism-iiis-mortality-equations-are-not-published).
+>
+> Two things this does **not** mean. It is not a reversal of the 2026-08-02
+> decision — nothing about 17 USC 102(b) changed, and the score still publishes
+> on exactly that reasoning. And it is not a claim that the equations are
+> unavailable: they are in the patent, cited below, for anyone verifying this
+> finding. They are simply not something this platform can cite to a page, and
+> the author note puts a free public clinical calculator on the non-research
+> side of a line the authors themselves drew.
+>
+> **What would reopen it:** the authoritative coefficients supplied by the
+> rights holder together with written clearance for this use — which the paper
+> itself invites, offering the equations free for research uses including
+> independent verification. See `[NEEDS SOURCE]` item 8. Finding the numbers on
+> another site or in another bundle reopens nothing.
+>
+> ---
+>
 > ## DECIDED 2026-08-02 — publish, treating the algorithms as uncopyrightable
 >
 > **Founder decision:** publish PRISM III and PRISM IV with full attribution to

@@ -8,9 +8,10 @@ import { prism } from "./prism";
  *
  * This is stated plainly rather than papered over. Neither the 1996 derivation
  * paper, the 2016 update, the patent that reproduces the full table, nor any
- * secondary source works a case end to end. The natural oracle would be the
- * authors' own CPCCRN calculators; they returned HTTP 503 behind a rate limit
- * on every attempt, both during research and at implementation.
+ * secondary source works a case end to end. The natural oracle is the authors'
+ * own CPCCRN calculators: both calculators' input and output sets were read on
+ * 2026-08-03, but NO CASE HAS BEEN ROUND-TRIPPED through either one, so every
+ * case below is unreconciled against the authors' own implementation.
  *
  * So these cases are CONSTRUCTED from the patent's threshold table: each
  * scoring decision below is annotated with the row that produced it, so the
@@ -21,6 +22,13 @@ import { prism } from "./prism";
  * wrong — the shared acidosis row, the independent alkalosis row, the age
  * bands that differ between PRISM III and PRISM IV, and the PT/PTT row that
  * must award three points once rather than twice.
+ *
+ * NO CASE HERE ASSERTS A PRISM III MORTALITY FIGURE, and none may be added.
+ * Those equations were removed on 2026-08-03: they are absent from the 1996
+ * article, which publishes the score sheet in full and no regression
+ * coefficients, and they are separately licensed. See the guard test
+ * "emits no probability for the 12- or 24-hour window", which is what stops
+ * one coming back by accident.
  */
 const constructed = {
   citation:
@@ -29,21 +37,36 @@ const constructed = {
   locator: "constructed from the threshold table — no published worked example exists",
 };
 
+/**
+ * The PRISM IV source, and a note on how strong the probabilities below are.
+ *
+ * The coefficients are Table 3 of Pollack 2016, published in full. The paper
+ * contains no worked example, so every probability asserted here is ARITHMETIC
+ * ON THAT PUBLISHED TABLE rather than a figure reproduced from a publication —
+ * a weaker provenance than the platform's usual pattern, recorded here rather
+ * than presented as publication-derived. The four exact anchors in the probe
+ * block below were cross-checked against an independent recomputation of the
+ * same table (0.3092%, 1.5581%, 2.6365%, 4.0660%), so they are at least not
+ * this file's own arithmetic marking its own work.
+ */
 const prismIv = {
   citation:
     "Pollack MM, Holubkov R, Funai T, et al. The Pediatric Risk of Mortality Score: Update 2015. Pediatr Crit Care Med. 2016;17(1):2-9, Table 3.",
   pmid: "26492059",
   doi: "10.1097/PCC.0000000000000558",
-  locator: "coefficients from Table 3; case constructed — no published worked example exists",
+  locator:
+    "coefficients from Table 3; case and probability computed from them — no published worked example exists",
 };
 
 type PrismInputs = (typeof prism)["inputs"];
 
 /**
  * A 3-year-old with entirely normal physiology. Every one of the 26 ranges
- * misses, so this pins the floor: the model still predicts a non-zero
- * probability of death, which is a property of a logistic intercept and not a
- * bug.
+ * misses, so this pins the floor of the score at 0 on both sides of the
+ * subscore split.
+ *
+ * The window is a PRISM III one, so it also pins the honest absence: three
+ * outputs and no probability, for a patient whose data are perfectly complete.
  */
 const normal = {
   collection_window: { value: "first_12h" },
@@ -76,8 +99,6 @@ describeScore(prism, (t) => {
     { id: "prism_total", value: 0 },
     { id: "neurologic_subscore", value: 0 },
     { id: "non_neurologic_subscore", value: 0 },
-    // 1 / (1 + e^5.5434). The floor is not zero and should never be shown as zero.
-    { id: "mortality_probability", value: 0.39, tolerance: 0.01 },
   ]);
 
   /**
@@ -112,7 +133,6 @@ describeScore(prism, (t) => {
       { id: "prism_total", value: 7 },
       { id: "neurologic_subscore", value: 0 },
       { id: "non_neurologic_subscore", value: 7 },
-      { id: "mortality_probability", value: 3.68, tolerance: 0.05 },
     ],
   );
 
@@ -152,7 +172,6 @@ describeScore(prism, (t) => {
       { id: "prism_total", value: 11 },
       { id: "neurologic_subscore", value: 0 },
       { id: "non_neurologic_subscore", value: 11 },
-      { id: "mortality_probability", value: 11.09, tolerance: 0.05 },
     ],
   );
 
@@ -204,6 +223,18 @@ describeScore(prism, (t) => {
    * subscore at its maximum of 16, three of the five non-physiologic terms
    * active, and the 14-day age boundary — this patient is on the young side of
    * a split that PRISM III does not have at all.
+   *
+   * It is also the only worked example that asserts a probability, because the
+   * 4-hour window is the only one that produces one. R = -5.776 + 1.311 (under
+   * 14 days) + 1.012 (another hospital) + 1.082 (CPR) + 0.197x16 + 0.163x51 =
+   * 9.094, so P = 1 / (1 + e^-9.094) = 99.9888%. Saturated, and deliberately
+   * paired with the mid-range anchors in the probe block below, which are where
+   * a wrong coefficient would actually show.
+   *
+   * Note that cancer and low-risk system are answered NO rather than left
+   * blank. They contribute nothing either way, so the arithmetic is unchanged
+   * — but a blank is not an answer, and on this window a blank withholds the
+   * probability outright. See the guard test below.
    */
   t.workedExample(
     prismIv,
@@ -233,11 +264,14 @@ describeScore(prism, (t) => {
       ptt_max: { value: 95, unit: "s" }, // >85.0 neonate — same row, still 3
       admission_source: { value: "another_hospital" },
       cpr_24h: { value: true },
+      cancer: { value: false },
+      low_risk_system: { value: false },
     } as unknown as InputValues<PrismInputs>,
     [
       { id: "prism_total", value: 67 },
       { id: "neurologic_subscore", value: 16 },
       { id: "non_neurologic_subscore", value: 51 },
+      { id: "mortality_probability", value: 99.9888, tolerance: 0.001 },
     ],
   );
 
@@ -265,7 +299,7 @@ describeScore(prism, (t) => {
 });
 
 /**
- * Branch coverage for every scoring row and both equations.
+ * Branch coverage for every scoring row, and for the one surviving equation.
  *
  * Separate from the worked examples above on purpose. Those are clinical cases
  * and each one must be citable; these are threshold probes, and dressing a
@@ -277,23 +311,55 @@ describe("PRISM threshold rows", () => {
   const at = (patch: Record<string, unknown>) => {
     const outcome = prism.compute({ ...base, ...patch } as never);
     if (!outcome.ok) throw new Error(JSON.stringify(outcome.errors));
-    const get = (id: string) => outcome.result.values.find((v) => v.id === id)!.value;
+    const values = outcome.result.values;
+    const get = (id: string) => values.find((v) => v.id === id)!.value;
     return {
+      ids: values.map((v) => v.id),
       total: get("prism_total"),
       neuro: get("neurologic_subscore"),
       nonNeuro: get("non_neurologic_subscore"),
-      pct: get("mortality_probability"),
+      // `undefined` on the PRISM III windows, which is the whole point — the
+      // probability is absent there, not zero. Read it with `ivPct` when a test
+      // means to assert a number.
+      pct: values.find((v) => v.id === "mortality_probability")?.value,
     };
   };
   const yrs = (v: number) => ({ value: v, unit: "years" });
   const mo = (v: number) => ({ value: v, unit: "months" });
 
   /**
+   * PRISM IV's four admission-context answers, every one at the model's
+   * reference level.
+   *
+   * Supplied EXPLICITLY on every 4-hour vector below rather than left blank,
+   * because a blank now withholds the probability entirely — see
+   * "withholds the PRISM IV probability when any admission-context answer is
+   * blank". The two are different statements about a patient: "admitted from
+   * the operating room, no CPR, no cancer, no low-risk system" is an answer
+   * worth 0 to the equation; a blank is no answer at all. Every anchor in this
+   * block means the first, so it says the first.
+   */
+  const ivReference = {
+    admission_source: { value: "or_pacu" },
+    cpr_24h: { value: false },
+    cancer: { value: false },
+    low_risk_system: { value: false },
+  };
+
+  /** The PRISM IV probability, on the only window that has one. */
+  const ivPct = (patch: Record<string, unknown>): number => {
+    const r = at({ ...ivReference, ...patch, collection_window: { value: "first_4h" } });
+    expect(r.pct, "the 4-hour window must emit a probability").toBeDefined();
+    return r.pct as number;
+  };
+
+  /**
    * Every scoring row at its worst tier at once — the 74-point ceiling, which
    * decomposes as neurologic 16 + non-neurologic 58. Hoisted to describe scope
-   * because two tests need it: the cap case below, and the composition sweep at
+   * because three tests need it: the cap case below, the composition sweep at
    * the end, whose maxima-are-attainable assertion has no teeth without a
-   * vector that actually attains them.
+   * vector that actually attains them, and the no-probability guard, which
+   * would be a weak guard if it only ever tried a healthy patient.
    */
   const worstCase = {
     age: mo(0.5),
@@ -431,32 +497,260 @@ describe("PRISM threshold rows", () => {
     expect(at({ platelets_min: { value: 300_000, unit: "cells/mm³" } }).total).toBe(0);
   });
 
-  it("uses the 24-hour equation when that window is chosen", () => {
-    const twelve = at({ collection_window: { value: "first_12h" } }).pct;
-    const twentyFour = at({ collection_window: { value: "first_24h" } }).pct;
-    expect(twentyFour).toBeLessThan(twelve);
-    expect(twentyFour).toBeCloseTo(0.24, 1);
+  /**
+   * Vectors the two window guards below sweep.
+   *
+   * Deliberately spans the range rather than probing one patient: an untouched
+   * normal child, single-row derangements on each side of the subscore split,
+   * every admission-context input set (they are PRISM IV's, and supplying them
+   * must not conjure a PRISM III probability either), and the 74-point ceiling.
+   * If any path could still produce a probability on a PRISM III window, one of
+   * these finds it.
+   */
+  const windowVectors: Record<string, unknown>[] = [
+    {},
+    { sbp_min: { value: 30, unit: "mmHg" } },
+    { pupils: { value: "both_fixed" } },
+    { mental_status_gcs: { value: 3, unit: "" } },
+    {
+      admission_source: { value: "inpatient" },
+      cpr_24h: { value: true },
+      cancer: { value: true },
+      low_risk_system: { value: true },
+    },
+    worstCase,
+  ];
+
+  /**
+   * THE GUARD. Removed on 2026-08-03, and this is what keeps it removed.
+   *
+   * The PRISM III mortality equations are not published in the source article —
+   * Pollack 1996 prints the score sheet in full and no regression coefficients,
+   * in any table, with no supplement — and are separately licensed. So the 12-
+   * and 24-hour windows must emit the score and its two subscores and NOTHING
+   * else. Asserting the exact id list rather than "does not contain
+   * mortality_probability" also catches a probability smuggled back under a new
+   * id, which the narrower assertion would not.
+   *
+   * The absence is what the rail renders as nothing at all. A zero here would
+   * be a clinical claim, and a false one.
+   */
+  it("emits no probability for the 12- or 24-hour window, from any vector", () => {
+    for (const window of ["first_12h", "first_24h"]) {
+      for (const patch of windowVectors) {
+        const r = at({ ...patch, collection_window: { value: window } });
+        expect(r.ids, `${window} must emit the score and nothing else`).toEqual([
+          "prism_total",
+          "neurologic_subscore",
+          "non_neurologic_subscore",
+        ]);
+        expect(r.pct, `${window} must not carry a probability`).toBeUndefined();
+      }
+    }
+
+    // Not vacuous: the SAME vectors do produce one on the 4-hour window, whose
+    // coefficients are published in full. Without this the assertion above
+    // would pass just as happily against a score that computed nothing. The
+    // reference answers are spread in first so the vectors are fully specified
+    // — the one vector that sets its own admission-context values overrides
+    // them, which is the point of the ordering.
+    for (const patch of windowVectors) {
+      const r = at({ ...ivReference, ...patch, collection_window: { value: "first_4h" } });
+      expect(r.ids, "the 4-hour window must still emit its probability").toContain(
+        "mortality_probability",
+      );
+      expect(r.pct).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * THE OTHER HONEST ABSENCE — and the defect this change set exists to remove.
+   *
+   * PRISM IV's four admission-context covariates are each worth ZERO at their
+   * reference level: admitted from the operating room or post-anaesthesia
+   * care, no CPR, no cancer, no low-risk system of primary dysfunction. So an
+   * implementation that reads a blank as "contributes nothing" does not
+   * compute a probability without that term — it computes the REFERENCE
+   * PATIENT, and returns the OR/PACU curve to every clinician who left a
+   * question unanswered. That is the same defect as the quadratic that
+   * returned one curve for every patient, wearing a different hat, and it is
+   * why flipping these inputs to `required: true` was not the fix either:
+   * they are meaningless on the 12- and 24-hour windows, so an unconditional
+   * requirement would reject a legitimate score-only entry.
+   *
+   * Each covariate is therefore omitted INDIVIDUALLY here — the other three
+   * answered, so nothing but that one blank can explain the outcome — and the
+   * probability must be withheld rather than defaulted. The patient carries
+   * points on both sides of the subscore split so a withheld probability can
+   * never be confused with a floor value, and the exact id list is asserted so
+   * that a probability smuggled back under another name fails too.
+   */
+  it("withholds the PRISM IV probability when any admission-context answer is blank", () => {
+    // 3-year-old, pupils both fixed (11 neurologic) and SBP 30 (child <55, 7
+    // non-neurologic): total 18, and neither half is zero.
+    const patient = {
+      ...ivReference,
+      pupils: { value: "both_fixed" },
+      sbp_min: { value: 30, unit: "mmHg" },
+      collection_window: { value: "first_4h" },
+    };
+    const covariates = ["admission_source", "cpr_24h", "cancer", "low_risk_system"] as const;
+
+    for (const blank of covariates) {
+      const vector: Record<string, unknown> = { ...patient };
+      delete vector[blank];
+      const r = at(vector);
+
+      expect(r.ids, `a blank ${blank} must withhold the probability, not default it`).toEqual([
+        "prism_total",
+        "neurologic_subscore",
+        "non_neurologic_subscore",
+      ]);
+      expect(r.pct, `a blank ${blank} must not produce a probability`).toBeUndefined();
+      // The score still renders. Withholding the estimate is an absence, not
+      // an error state and not a refusal to compute.
+      expect([r.total, r.neuro, r.nonNeuro], `a blank ${blank} must not touch the score`).toEqual([
+        18, 11, 7,
+      ]);
+    }
+
+    /**
+     * NOT VACUOUS. The same patient with all four answered does get a
+     * probability, and it is a real number rather than a floor:
+     * R = -5.776 + 0.197x11 + 0.163x7 = -2.468, P = 7.8132%.
+     *
+     * Without this leg the loop above would pass just as happily against an
+     * implementation that had stopped emitting a probability at all.
+     */
+    const complete = at(patient);
+    expect(complete.ids, "a fully answered 4-hour entry must emit its probability").toContain(
+      "mortality_probability",
+    );
+    expect(complete.pct).toBeCloseTo(7.8132, 3);
+  });
+
+  /**
+   * The other half of the claim the changelog makes: the SCORE never changed.
+   *
+   * Withdrawing the probability must not have moved a threshold, a band or a
+   * subscore — and the window must not reach the score at all. Same inputs,
+   * three windows, identical totals and identical halves.
+   */
+  it("computes an identical score in all three windows", () => {
+    for (const patch of windowVectors) {
+      const four = at({ ...patch, collection_window: { value: "first_4h" } });
+      for (const window of ["first_12h", "first_24h"]) {
+        const three = at({ ...patch, collection_window: { value: window } });
+        expect(
+          [three.total, three.neuro, three.nonNeuro],
+          `${window} must score identically to the 4-hour window`,
+        ).toEqual([four.total, four.neuro, four.nonNeuro]);
+      }
+    }
+  });
+
+  /**
+   * PRISM IV's equation, pinned to four exact values rather than to directions.
+   *
+   * Each is `P = 1 / (1 + e^-R)` over Table 3's coefficients, with the patient
+   * at every reference level (age >=12 months, admitted from OR/PACU, no CPR,
+   * no cancer, no low-risk system) so that only the two subscore weights move:
+   *
+   *   score 0                   R = -5.776                     ->  0.3092%
+   *   neuro 0  / non-neuro 10   R = -5.776 + 0.163x10 = -4.146 ->  1.5581%
+   *   neuro 11 / non-neuro 0    R = -5.776 + 0.197x11 = -3.609 ->  2.6365%
+   *   neuro 5  / non-neuro 10   R = -3.161                     ->  4.0660%
+   *
+   * The floor case is the one worth reading twice: a completely normal child
+   * still carries a non-zero probability, because that is what a logistic
+   * intercept does. It must never be displayed as 0%.
+   */
+  it("reproduces the PRISM IV equation at four exact points", () => {
+    // Non-neurologic 10, built from three rows in a 3-year-old: pH 7.15 (2),
+    // total CO2 35 (4), WBC 2,200 (4). Neurologic stays 0.
+    const nonNeuro10 = {
+      ph_min: { value: 7.15, unit: "" },
+      tco2_max: { value: 35, unit: "mmol/L" },
+      wbc_min: { value: 2200, unit: "cells/mm³" },
+    };
+
+    expect(at({ ...nonNeuro10, collection_window: { value: "first_4h" } }).nonNeuro).toBe(10);
+
+    expect(ivPct({})).toBeCloseTo(0.3092, 3);
+    expect(ivPct(nonNeuro10)).toBeCloseTo(1.5581, 3);
+    expect(ivPct({ pupils: { value: "both_fixed" } })).toBeCloseTo(2.6365, 3);
+    expect(ivPct({ ...nonNeuro10, mental_status_gcs: { value: 3, unit: "" } })).toBeCloseTo(
+      4.066,
+      3,
+    );
+  });
+
+  /**
+   * The subscore split cannot be collapsed back into the total.
+   *
+   * PRISM IV weights the neurologic half at 0.197 and the non-neurologic at
+   * 0.163, so two patients with the SAME total score get different
+   * probabilities depending on where the points sit. Both cases below total 12.
+   *
+   *   neuro 7 / non-neuro 5   R = -5.776 + 1.379 + 0.815 = -3.582 -> 2.7067%
+   *   neuro 5 / non-neuro 7   R = -5.776 + 0.985 + 1.141 = -3.650 -> 2.5333%
+   *
+   * An implementation that summed to a total first would return one number for
+   * both, and this is the test that would catch it.
+   */
+  it("weights the neurologic half more heavily at an identical total", () => {
+    // pupils one fixed (7 neuro); pH 7.15 (2) + PCO2 55 (1) + platelets 180k (2).
+    const neuroHeavy = {
+      pupils: { value: "one_fixed" },
+      ph_min: { value: 7.15, unit: "" },
+      pco2_max: { value: 55, unit: "mmHg" },
+      platelets_min: { value: 180_000, unit: "cells/mm³" },
+    };
+    // GCS 3 (5 neuro); pH 7.15 (2) + PCO2 80 (3) + platelets 180k (2).
+    const bodyHeavy = {
+      mental_status_gcs: { value: 3, unit: "" },
+      ph_min: { value: 7.15, unit: "" },
+      pco2_max: { value: 80, unit: "mmHg" },
+      platelets_min: { value: 180_000, unit: "cells/mm³" },
+    };
+
+    const a = at({ ...neuroHeavy, collection_window: { value: "first_4h" } });
+    const b = at({ ...bodyHeavy, collection_window: { value: "first_4h" } });
+    expect([a.total, a.neuro, a.nonNeuro]).toEqual([12, 7, 5]);
+    expect([b.total, b.neuro, b.nonNeuro]).toEqual([12, 5, 7]);
+
+    expect(ivPct(neuroHeavy)).toBeCloseTo(2.7067, 3);
+    expect(ivPct(bodyHeavy)).toBeCloseTo(2.5333, 3);
+    expect(ivPct(neuroHeavy)).toBeGreaterThan(ivPct(bodyHeavy));
   });
 
   it("applies every PRISM IV term", () => {
-    const four = { collection_window: { value: "first_4h" } };
-    const floor = at({ ...four, age: yrs(3) }).pct;
+    const floor = ivPct({ age: yrs(3) });
     // Each covariate must move the probability in its published direction.
-    expect(at({ ...four, age: mo(0.7) }).pct).toBeGreaterThan(floor); // 14 d - 1 mo
-    expect(at({ ...four, age: mo(6) }).pct).toBeGreaterThan(floor); // 1 - 12 mo
-    expect(
-      at({ ...four, age: yrs(3), admission_source: { value: "inpatient" } }).pct,
-    ).toBeGreaterThan(floor);
-    expect(at({ ...four, age: yrs(3), admission_source: { value: "ed" } }).pct).toBeGreaterThan(
-      floor,
-    );
-    expect(at({ ...four, age: yrs(3), admission_source: { value: "or_pacu" } }).pct).toBeCloseTo(
-      floor,
-      6,
-    );
-    expect(at({ ...four, age: yrs(3), cancer: { value: true } }).pct).toBeGreaterThan(floor);
+    expect(ivPct({ age: mo(0.7) })).toBeGreaterThan(floor); // 14 d - 1 mo
+    expect(ivPct({ age: mo(6) })).toBeGreaterThan(floor); // 1 - 12 mo
+    expect(ivPct({ age: yrs(3), admission_source: { value: "inpatient" } })).toBeGreaterThan(floor);
+    expect(ivPct({ age: yrs(3), admission_source: { value: "ed" } })).toBeGreaterThan(floor);
+    expect(ivPct({ age: yrs(3), admission_source: { value: "or_pacu" } })).toBeCloseTo(floor, 6);
+    expect(ivPct({ age: yrs(3), cancer: { value: true } })).toBeGreaterThan(floor);
     // The only protective term in the model.
-    expect(at({ ...four, age: yrs(3), low_risk_system: { value: true } }).pct).toBeLessThan(floor);
+    expect(ivPct({ age: yrs(3), low_risk_system: { value: true } })).toBeLessThan(floor);
+  });
+
+  /**
+   * No bands, and "not-applicable" rather than "pending".
+   *
+   * "pending" says a published stratification exists and has not been
+   * transcribed yet. PRISM IV has none to transcribe: it outputs a continuous
+   * probability, and its calibration tables bin by predicted probability
+   * rather than by score, so there is no score-to-band curve there either.
+   * PRISM III score-only has no published severity band at all. A future edit
+   * that adds bands, or that puts "pending" back, should have to delete this
+   * test on purpose.
+   */
+  it("declares no interpretation bands, and declares that as not-applicable", () => {
+    expect(prism.interpretation).toEqual([]);
+    expect(prism.interpretationStatus).toBe("not-applicable");
   });
 
   it("treats every optional physiologic input as absent without throwing", () => {
