@@ -31,25 +31,29 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
     /**
-     * THE FIX FOR THE "UNIDENTIFIED FLAKE", identified 2026-08-01.
+     * Kept for determinism. The flake it was introduced for is now fixed at
+     * source, so read the history before assuming this is load-bearing.
      *
-     * `components/pwa/service-worker.tsx:54` is the ONLY `location.reload()` in
-     * the entire application: when the Serwist worker takes control it fires
-     * `controllerchange` and the page reloads itself. That reload detaches the
-     * document, so any Playwright call in flight dies with "Element is not
-     * attached to the DOM".
+     * ORIGINALLY (2026-08-01) this was THE FIX FOR THE "UNIDENTIFIED FLAKE".
+     * `service-worker.tsx` reloaded the page on `controllerchange`, which
+     * detached the document and killed any Playwright call in flight with
+     * "Element is not attached to the DOM". Whether it landed harmlessly
+     * depended purely on machine speed: probed across 8 fresh contexts, the
+     * worker was already controlling by the time `networkidle` resolved (8/8)
+     * so local runs passed, while a busier CI runner activated it later and
+     * `evidence-rail.spec.ts:49` failed all three attempts. No amount of
+     * waiting could fix it — there is no event meaning "the reload is not
+     * coming" — so registration was blocked instead (worker controls 0/8).
      *
-     * Whether it lands harmlessly depends purely on machine speed. Measured on
-     * the dev box across 8 fresh contexts: by the time `networkidle` resolves
-     * the worker is ALREADY controlling (8/8) and the reload has been and gone,
-     * which is why local runs pass. A busier CI runner activates it later — and
-     * on 2026-08-01 `evidence-rail.spec.ts:49` failed all three CI attempts in
-     * exactly that call, in a `beforeEach` that had waited for `networkidle`.
+     * SINCE 2026-08-03 that reload no longer exists: updates apply silently on
+     * `pagehide`, and the `controllerchange` handler was removed outright. The
+     * race is gone whatever this setting says.
      *
-     * Waiting harder cannot fix this: there is no event that means "the reload
-     * is not coming". Blocking registration removes the reload outright, so the
-     * race cannot exist at any speed. Same probe with `block`: worker controls
-     * 0/8.
+     * Blocking still earns its place: a worker precaching in the background
+     * adds requests and timing the specs did not ask for, and several assert on
+     * network behaviour. But if you ever need to unblock it, you are no longer
+     * fighting the reload — check `service-worker.tsx` first rather than
+     * trusting this paragraph.
      *
      * `calculator-privacy.spec.ts` opts back IN, because the service worker's
      * own network behaviour is exactly what that spec exists to police.

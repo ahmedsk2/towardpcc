@@ -117,9 +117,18 @@ surfaces" is not licence to use count-up on another marketing page.
   `/calculators/[slug]`, `/trust`, `/validation`. The last two are listed
   specifically so that making an evidence chip a client component fails the
   budget.
-- **Playwright blocks service workers globally**, because the app's only
-  `location.reload()` fires on `controllerchange` and detaches the document
-  mid-call. `calculator-privacy.spec.ts` is the single spec that opts back in.
+- **Playwright blocks service workers globally**, now for determinism rather
+  than necessity: a worker precaching in the background adds requests and timing
+  the specs did not ask for. It was originally the fix for a reload fired on
+  `controllerchange` that detached the document mid-call, but that reload was
+  removed on 2026-08-03 — updates apply silently on `pagehide`.
+  `calculator-privacy.spec.ts` is the single spec that opts back in.
+- **There is no "update available" prompt, deliberately.** Next mints a random
+  build id per build, so `sw.js` changes on every deploy including a docs-only
+  one; a prompt that fires on non-changes and (as built) could not be dismissed
+  is noise. `sw.ts` keeps `skipWaiting: false` because routes are code-split and
+  a worker taking over mid-session leaves the running page asking for chunks the
+  new precache no longer lists.
 - **Keep `workers: 1`.** The privacy specs assert on network timing; parallel
   Chromium instances against one server reorder requests and flake for reasons
   unrelated to the invariant.
