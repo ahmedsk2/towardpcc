@@ -169,8 +169,18 @@ worth more than 5–7 combined.
 > I can mark it as settled-absent rather than merely unfound. If one does exist,
 > that is obviously the more valuable answer.
 >
-> a) The **8-hour / 16-hour split** in burn resuscitation. Absent from Baxter &
-> Shires 1968 and from the 2024 ABA CPG. Universal in practice.
+> a) ~~The **8-hour / 16-hour split** in burn resuscitation. Absent from Baxter &
+> Shires 1968 and from the 2024 ABA CPG. Universal in practice.~~
+>
+> **ANSWERED 2026-08-03, and the premise was wrong.** The founder supplied the
+> 1968 PDF. The split IS in Baxter & Shires and IS derived there (p883): the
+> optimum response came from 16–20% of body weight over the first eight hours
+> and a further 8–10% over the next sixteen, in a 50%-flame-burn canine model.
+> Two things follow. The derivation is animal, at one burn size, on
+> plasma-volume and ECF endpoints — no human or paediatric re-derivation exists,
+> and the 2024 ABA CPG still addresses the split in none of its ten PICO
+> questions. And the derived ratio is **two-thirds in the first eight hours,
+> not half** — which is not what practice or this calculator does.
 > b) Any derivation for a burn **maintenance weight threshold** at 20, 30 or 40 kg.
 > c) The **optimal hourly urine-output goal in children** during burn
 > resuscitation.

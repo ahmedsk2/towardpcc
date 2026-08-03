@@ -80,7 +80,7 @@ export const phoenix = defineScore({
   id: "phoenix",
   slug: "phoenix",
   name: "Phoenix Sepsis Score",
-  version: "2.0.0",
+  version: "2.1.0",
   status: "published",
   category: "sepsis",
   inputs: [
@@ -93,15 +93,16 @@ export const phoenix = defineScore({
       unit: { canonical: "months" },
       // The criteria exclude age 18 and over, i.e. the eligible domain is
       // [0, 216) months — the reference R code's `<= 216` admits exactly 18.0 y
-      // and is the divergence, not the rule. `NumericInput.max` is INCLUSIVE and
-      // there is no exclusive-bound facility, so over the whole-month domain
-      // this input declares (`step: 1`) the last eligible value is 215 and 216
-      // is rejected, which is exactly "reject at ≥ 216 months". The residual: a
-      // fractional age in (215, 216) months is also rejected, though the
-      // criteria would admit it. Expressing that would need an exclusive bound
-      // in validation.ts, which is shared. MAP bands start at 0 months.
+      // and is the divergence, not the rule. Declared as an EXCLUSIVE ceiling,
+      // which states that domain directly. Until v2.1.0 it read `max: 215`,
+      // because `max` is inclusive and no exclusive facility existed: right for
+      // whole months, but it also rejected a fractional age in (215, 216) that
+      // the criteria admit. `step: 1` remains the ENTRY convention (whole
+      // months, matching the published bands) and is not a validation bound —
+      // 215.5 is now accepted, as it should be. MAP bands start at 0 months.
       min: 0,
-      max: 215,
+      max: 216,
+      maxExclusive: 216,
       step: 1,
       helpText: defineText(
         "phoenix.age.help",
@@ -395,6 +396,13 @@ export const phoenix = defineScore({
         "TWO COMPUTED RESULTS CHANGE, both in the direction of a HIGHER score — a patient may now meet the Phoenix sepsis threshold who did not before, and no patient scores lower than before. (1) NEUROLOGIC. Bilaterally fixed pupils now score the full 2 points outright, whatever the GCS. The rule was implemented as GCS ≤ 10 (+1) plus fixed pupils (+1) capped at 2, which returned 1 for fixed pupils with a GCS above 10 and 1 for fixed pupils with no GCS entered. All four published tables print the neurologic row as three mutually exclusive columns, and the task force's own reference software returns 2 for fixed pupils at GCS 15, at GCS 8, and with GCS missing. The missing case is the consequential one: a missing GCS is imputed to 15 INDEPENDENTLY of pupil status, so a child with bilaterally fixed pupils and no GCS recorded scored 1 here — below the threshold — and now scores 2, which meets it. (2) RESPIRATORY. The PaO₂:FiO₂ and SpO₂:FiO₂ ratios are now evaluated together as the source expression writes them, either one able to trigger a tier, rather than the arterial ratio being used alone whenever a blood gas was present. Where the two disagree — non-simultaneous sampling being the usual reason — the respiratory component can only rise. Missing inputs are now imputed at their documented normal-end sentinels (unusable ratio 500, GCS 15, pupils not fixed, no ventilation, no other support, 0 vasoactive agents, lactate 0, INR 0, D-dimer 0, platelets and fibrinogen normal), each independently of the others. Also, without changing any number: the continuous-comparison convention is now stated for the four boundaries where the published integer bands and the reference software disagree (MAP 30.5 under 1 month, lactate 10.95, and P/F exactly 200 or S/F exactly 220 on invasive ventilation); a missing-data caution renders beside the result, because a half-entered Phoenix reads falsely low by design and a total below 2 on an incomplete entry is not evidence against sepsis; the age bound is documented as excluding 216 months (18.0 years) and over; and the limitations add the authors' own sedation caveat and the derivation-cohort generalisability caveat.",
       reason: "formula-correction",
     },
+    {
+      version: "2.1.0",
+      date: "2026-08-03",
+      summary:
+        "The age field stops rejecting the last month of eligibility. An age above 215 and below 216 months — 215.5, say, for a child a fortnight short of 18 — was rejected as out of range, though the criteria (children under 18 years) plainly admit it. The cause was the input declaration, not the score: the shared numeric type could only state an INCLUSIVE maximum, and the closest whole-month expression of 'under 216' was 215. An exclusive ceiling of 216 months is now declared, so every age below 216 is accepted and 216.0 itself — exactly 18.0 years, which the criteria exclude — is still rejected. NO POINT VALUE, THRESHOLD, AGE BAND OR TOTAL CHANGED, and no age that was accepted before is rejected now; the only difference is that fractional ages in the final month are computed rather than refused. Whole months remain the entry convention, matching the published MAP bands. The out-of-range message for an ineligible age now reads 'must be at least 0 and less than 216 months' rather than naming 215 as the last acceptable value.",
+      reason: "formula-correction",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -419,7 +427,7 @@ export const phoenix = defineScore({
       "MISSING INPUTS ARE IMPUTED AT THEIR NORMAL END, EACH INDEPENDENTLY of every other input — the rule is per input, not 'the component scores 0'. A missing GCS imputes to 15 and missing pupil status to 'not fixed', separately, so a child with bilaterally fixed pupils and no GCS recorded still scores the full 2 neurologic points and still meets the total ≥ 2 threshold. Both JAMA tables state the general rule in their first table footnote: an unmeasured variable contributes no points. One honest qualification, so the claim is not overstated as the whole of the published method: in the derivation cohort missing values were first carried forward from physiologically appropriate earlier time windows, and only values still absent after that contributed zero. That is a property of how the development dataset was built and has no bearing on a single-timepoint bedside calculator, where only the second half applies. The consequence is that the total reflects DOCUMENTED dysfunction — a teaching UI should show a missing input as missing, not as normal. " +
       "RESPIRATORY USES BOTH RATIOS. P/F and S/F are evaluated together and either can trigger a tier, exactly as the source expression writes it; a ratio that cannot be computed imputes to 500 and so triggers nothing. S/F is valid only when SpO₂ ≤ 97%. That gate has a consequence worth stating outright, because it runs against intuition: with no arterial gas, a child on invasive ventilation at FiO₂ 1.0 scores respiratory 3 at SpO₂ 97 but 0 at SpO₂ 98 — the ratio simply is not computable above 97, and the missing-input convention then contributes 0. A well-saturated child on maximal support can therefore fall below the total ≥ 2 sepsis threshold on respiratory grounds alone. Read that as ‘not measurable’, never as ‘not hypoxaemic’, and obtain a blood gas. " +
       "BOUNDARY CONVENTION. The published tables are written for bedside use (integers, one-decimal lactate) while the software treats every input as continuous, and the two disagree at exactly four values. This calculator follows the software at all four, consistently: MAP 30.5 in a child under 1 month scores 1 where the printed band reads 0 (the same shape recurs at every age band's 0/1 edge); lactate 10.95 scores 1, where the printed 1-point band of 5–10.9 leaves it in a gap; P/F exactly 200 on invasive ventilation scores 1, where the printed 2-point band of 100–200 reads 2; S/F exactly 220 on invasive ventilation scores 1, where the printed 2-point band of 148–220 reads 2. There is no divergence at any coagulation or neurologic boundary, nor at P/F 100, S/F 148, MAP 17, MAP 30, lactate 5 or lactate 11. " +
-      "OUT-OF-RANGE INPUT IS REJECTED RATHER THAN COMPUTED, and that is the source behaviour rather than a local choice: the reference R package halts on a GCS outside 3–15 and on ventilation/support flags outside {0, 1}. The criteria exclude age 18 and over, so 216 months and above is rejected here; note that the reference R code's own `<= 216` bound admits exactly 18.0 years and diverges from the criteria it implements. Because the age bound is inclusive and the field is in whole months, the last accepted value is 215. " +
+      "OUT-OF-RANGE INPUT IS REJECTED RATHER THAN COMPUTED, and that is the source behaviour rather than a local choice: the reference R package halts on a GCS outside 3–15 and on ventilation/support flags outside {0, 1}. The criteria exclude age 18 and over, so 216 months and above is rejected here; note that the reference R code's own `<= 216` bound admits exactly 18.0 years and diverges from the criteria it implements. The age ceiling is exclusive: every age below 216 months is accepted, including a fractional one such as 215.5, and 216.0 itself is not. " +
       "SEDATION. The neurologic sub-score was pragmatically validated in sedated and non-sedated patients, with and without invasive ventilation. The derivation paper separately acknowledges that some organ-dysfunction measures may reflect iatrogenic effects or clinician choices rather than sepsis-related dysfunction, and names a reduced GCS under sedation as its example. A sedated child's neurologic point may therefore be measuring the sedation; that caveat comes from the authors, not from commentary. " +
       "GENERALISABILITY. The higher-resource derivation data came exclusively from US tertiary paediatric centres. Some lower-resource sites did not record respiratory support or neurologic status even when it had been assessed, which constrained both the achievable score range and the score's measured performance at those sites. " +
       "‘REMOTE ORGAN DYSFUNCTION’ IS NOT PART OF THE CRITERIA and is deliberately not implemented: the derivation paper uses it as a descriptive subgroup (respiratory or neurologic dysfunction plus at least one point in a different organ system) to characterise a higher-mortality population, not as a diagnostic gate. " +

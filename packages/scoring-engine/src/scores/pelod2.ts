@@ -49,31 +49,25 @@ function ageBandFor(months: number): AgeBand {
 }
 
 /**
- * Largest age this score accepts, in months: the largest IEEE-754 double
- * strictly below 216.
+ * First age this score REJECTS, in months: 216 = 18.0 years, exactly.
  *
  * Leteurtre 2013's exclusion criterion is "age 18 years or older", so the
- * eligible domain is [0, 216) months — EXCLUSIVE of 216. `NumericInput.max` is
- * INCLUSIVE (validation.ts rejects only `converted > input.max`) and the shared
- * validator has no exclusive-bound facility, so the closest domain this
- * declaration can express is the closed interval [0, x] with x the largest
- * representable value below 216. The previous `max: 216` was one month wrong at
- * the top: it admitted exactly 18.0 years, the first age the derivation cohort
- * excluded.
+ * eligible domain is the half-open [0, 216) months and 216 is the first value
+ * outside it. Declared as `maxExclusive`, which rejects the value it names.
  *
- * The value is 216 − 2⁻⁴⁵ = 215.99999999999997. 216 sits in the binade
- * [128, 256), where adjacent doubles are 2⁻⁴⁵ ≈ 2.84e-14 apart, so NO
- * representable age lies between this and 216 — the closed interval and the
- * intended half-open one contain exactly the same set of inputs, and the
- * approximation costs nothing.
+ * In v1.1.0 this was written as `max: 215.99999999999997`, the largest double
+ * below 216, because `NumericInput.max` is inclusive and there was then no
+ * exclusive facility. That was exact — 216 sits in the binade
+ * [128, 256) where doubles are 2⁻⁴⁵ apart, so no representable age lies between
+ * the two and the closed interval [0, 216−2⁻⁴⁵] accepted precisely the same set
+ * as the intended [0, 216) — but it read as a typo, and the reason it was
+ * correct took a paragraph. The accepted set is unchanged by the migration.
  *
- * Phoenix solves the same problem differently (`max: 215, step: 1`) because its
- * age field is declared in whole months, where 215 IS the last eligible value.
- * This field accepts fractional months, so 215 would wrongly reject a
- * legitimate 215.5-month-old — hence the exact predecessor rather than a round
- * number. Pinned in both directions by pelod2.test.ts.
+ * Whole-month 215 would NOT do here: this field takes fractional months, so it
+ * would wrongly reject a legitimate 215.5-month-old. Pinned from both sides in
+ * pelod2.test.ts.
  */
-const AGE_MAX_MONTHS = 215.99999999999997;
+const AGE_REJECT_FROM_MONTHS = 216;
 
 /** Neurologic — GCS (lowest): ≥11 → 0, 5–10 → 1, 3–4 → 4. */
 function gcsPoints(gcs: number): number {
@@ -134,7 +128,7 @@ export const pelod2 = defineScore({
   id: "pelod2",
   slug: "pelod2",
   name: "PELOD-2 (Pediatric Logistic Organ Dysfunction-2)",
-  version: "1.1.0",
+  version: "1.1.1",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -147,11 +141,12 @@ export const pelod2 = defineScore({
       unit: { canonical: "months" },
       // Bounds from the paper's inclusion window: premature newborns and
       // patients aged 18 years or older were excluded (Leteurtre 2013,
-      // Methods), i.e. the eligible domain is [0, 216) months. See
-      // AGE_MAX_MONTHS above for why the ceiling is the double just below 216
-      // rather than 216 itself.
+      // Methods), i.e. the eligible domain is [0, 216) months. `max` and
+      // `maxExclusive` name the same number deliberately: the ceiling is 216
+      // months and 216 itself is out. See AGE_REJECT_FROM_MONTHS above.
       min: 0,
-      max: AGE_MAX_MONTHS,
+      max: AGE_REJECT_FROM_MONTHS,
+      maxExclusive: AGE_REJECT_FROM_MONTHS,
       helpText: defineText(
         "pelod2.age.help",
         "In months. Selects the age band for mean arterial pressure and creatinine. The derivation cohort excluded patients aged 18 years or older, so 216 months (18.0 years) and above is outside the score and is rejected.",
@@ -327,6 +322,13 @@ export const pelod2 = defineScore({
       summary:
         "Age ceiling corrected from inclusive 216 months to exclusive. Leteurtre 2013's exclusion criterion is 'age 18 years or older', so the eligible domain is [0, 216) months; the previous inclusive `max: 216` admitted exactly 18.0 years — the first age the derivation cohort excluded — and now rejects it. The declared maximum is the largest double below 216 (216 − 2⁻⁴⁵ = 215.99999999999997), because the shared numeric validator's `max` is inclusive and offers no exclusive bound; no representable age lies between that value and 216, so the accepted set is exactly the intended half-open interval. Only ages of exactly 216.000000 months change behaviour, from accepted to rejected. No computed value changed for any age that was already accepted. The age help text and limitations now state the bound.",
       reason: "formula-correction",
+    },
+    {
+      version: "1.1.1",
+      date: "2026-08-03",
+      summary:
+        "NO AGE IS ACCEPTED OR REJECTED THAT WAS NOT BEFORE, and no computed value changed. The age ceiling is now declared as an exclusive bound (216 months, rejected) instead of as 215.99999999999997, the largest floating-point number below 216. Both express the identical domain — no representable age lies between those two numbers — but the old form was a workaround for a shared input type that could only state an INCLUSIVE maximum, and it read as a typo. What does change is the message an out-of-range age produces: it read 'must be between 0 and 215.99999999999997 months' and now reads 'must be at least 0 and less than 216 months', which is what the bound has always done.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

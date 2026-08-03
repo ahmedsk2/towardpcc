@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { registry } from "./registry";
+import { boundaryValues } from "../testing/harness";
 import type { ScoreDefinition } from "../types";
 
 /**
@@ -37,7 +38,12 @@ function sweepInputs(s: ScoreDefinition): Record<string, unknown>[] {
   const vectors = [base];
   for (const i of s.inputs) {
     if (i.type === "numeric") {
-      vectors.push({ ...base, [i.id]: { value: i.max, unit: i.unit.canonical } });
+      // The largest ACCEPTED value, which is not `i.max` on an input with a
+      // half-open ceiling — pushing 216 at PELOD-2's `maxExclusive: 216` would
+      // be rejected, and the vector would silently drop out of the sweep below
+      // instead of exercising the top of the range it was added for.
+      const { bound } = boundaryValues(i, "max");
+      vectors.push({ ...base, [i.id]: { value: bound, unit: i.unit.canonical } });
     } else if (i.type === "boolean") {
       vectors.push({ ...base, [i.id]: { value: true } });
     } else {

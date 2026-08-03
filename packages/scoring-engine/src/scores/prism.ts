@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.1.0",
+  version: "2.1.1",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -854,26 +854,34 @@ export const prism = defineScore({
     {
       version: "2.0.0",
       date: "2026-08-03",
-      // The closest available reason. The type offers initial-release,
-      // formula-correction, new-reference and clarification; withdrawing a
-      // computed clinical output is none of those exactly, and inventing a
-      // fifth value would be a change to the shared type rather than to this
-      // score. "formula-correction" is used because an equation left the
-      // formula, and the summary carries the precision the label cannot.
-      reason: "formula-correction",
+      // The exact reason, since v2.1.1. This entry carried
+      // "formula-correction" from 2026-08-03 as the closest available label,
+      // with a note saying it was wrong: correcting a formula leaves the
+      // reader with the same output, better computed, and this removed one
+      // outright. `output-withdrawn` was added to the shared type for it.
+      reason: "output-withdrawn",
       summary:
         "REMOVED: the PRISM III predicted-mortality percentage. The 12-hour and 24-hour windows no longer show any mortality figure — they now show the PRISM score, the neurologic subscore and the non-neurologic subscore, and nothing else. The 4-hour PRISM IV window is unchanged and still shows its probability. Why: the PRISM III mortality equations are not published in the source article. Pollack 1996 prints the score sheet in full but contains no regression coefficients in any of its eight tables and has no supplement, and the paper's author note reserves the equations for research use while stating that non-research uses may attract compensation — they are separately licensed. There is consequently no page this platform could cite for the numbers it was showing. Two further reasons the figure was worse than it looked: it came from the score-only model, which carries no risk-factor adjustment at all, so against the published risk-adjusted model it OVER-predicts for post-operative admissions and for an acute diagnosis of diabetes, and UNDER-predicts after pre-ICU cardiac massage, with cancer, and after a previous ICU admission; and one score maps to a spread of roughly 10% to 65% once those factors are applied, where a single number was shown to every patient. THE SCORE ITSELF NEVER CHANGED. No threshold, no age band, no point value and no subscore moved, in any window; only the mortality overlay was withdrawn. Where a mortality estimate is needed, PRISM IV is the model with published coefficients — collect the first 4 hours and select that window.",
     },
     {
       version: "2.1.0",
       date: "2026-08-03",
-      // Same label choice as 2.0.0, and for the same reason: the type offers
-      // initial-release, formula-correction, new-reference and clarification,
-      // and changing when an equation may be applied is none of them exactly.
-      // "formula-correction" is the closest; the summary carries the precision.
-      reason: "formula-correction",
+      // Same label as 2.0.0, and now for a positive reason rather than for
+      // want of a better one. This is a CONDITIONAL withdrawal: the PRISM IV
+      // probability is not removed from the score, it stops being shown when
+      // an admission-context question is blank. From the reader's side that is
+      // the same event — a number that appeared last week does not appear now
+      // — which is the case `output-withdrawn` is documented to cover.
+      reason: "output-withdrawn",
       summary:
         "WITHHELD: the PRISM IV probability, whenever an admission-context question is left blank. On the 4-hour window, admission source, CPR within the 24 hours before admission, cancer, and low-risk system of primary dysfunction must now each carry an answer. If any one of them is blank the calculator shows the PRISM score, the neurologic subscore and the non-neurologic subscore and no probability at all — the same honest absence the 12- and 24-hour windows already carry. Why: every one of those four contributes zero at its reference level, so a blank falling through to the equation did not compute a probability without that term, it computed the REFERENCE PATIENT — admitted from the operating room or post-anaesthesia care, no CPR, no cancer, no low-risk system — and handed that curve to every clinician who skipped a question. That is the reference-patient form of the defect removed on 2026-08-03, where one number stood in for every patient. An unanswered question is now answered with nothing rather than with a default. The four inputs are deliberately still NOT declared required: they belong to PRISM IV alone and mean nothing on the 12- and 24-hour windows, so an unconditional requirement would reject a legitimate score-only entry; the requirement is conditioned on the window instead. NO NUMBER MOVED. No threshold, age band, point value, subscore or coefficient changed, and a fully answered 4-hour entry returns exactly the probability it returned before. Also in this version: interpretationStatus moves from 'pending' to 'not-applicable', because PRISM IV outputs a continuous probability rather than a band and its calibration tables bin by predicted probability rather than by score, while PRISM III score-only has no published severity band at all — so nothing is awaiting a later pass and 'pending' was asserting strata that do not exist. And the provenance note about the authors' CPCCRN calculators is corrected: both calculators' input and output sets were read on 2026-08-03; what remains outstanding is that no case has been round-tripped through either, so the constructed fixtures stay unreconciled against the authors' own implementation.",
+    },
+    {
+      version: "2.1.1",
+      date: "2026-08-03",
+      summary:
+        "Relabels the two entries above. NOTHING ABOUT THE SCORE CHANGED — no threshold, age band, point value, subscore, coefficient or output — and the two summaries are word for word what they were. Both entries were tagged 'Formula correction', which was the closest label the platform had and was wrong in a way worth correcting: correcting a formula leaves the reader with the same output computed better, while v2.0.0 removed the PRISM III mortality percentage outright and v2.1.0 stops showing the PRISM IV probability when an admission-context question is blank. Both are withdrawals of a number a clinician previously read, which is a materially larger event than a corrected equation, and both now carry 'Output withdrawn'. The label is a new one, added to the platform's shared changelog vocabulary for exactly this case, so no other score's history is affected.",
+      reason: "clarification",
     },
   ],
 });

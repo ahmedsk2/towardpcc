@@ -25,6 +25,38 @@ Key pediatric differences vs. adults, up front:
 
 ---
 
+## Correction — 2026-08-03: the 8 h / 16 h split IS in Baxter & Shires 1968
+
+**Read this before citing anything below about the split.** A previous revision
+of this note, and every version of the shipped score up to and including v1.2.1,
+asserted that the 8-hour/16-hour split was **absent from the 1968 Baxter & Shires
+original** and derived nowhere, carried as `[SETTLED-ABSENT]` with the single
+qualifier that the 1968 primary had not been read directly.
+
+**That assertion was wrong.** Baxter CR, Shires T. _Physiological response to
+crystalloid resuscitation of severe burns._ Ann N Y Acad Sci 1968;150(3):874–894,
+DOI 10.1111/j.1749-6632.1968.tb14738.x, was subsequently obtained and **read
+directly from the source PDF on 2026-08-03** — not consulted through a secondary
+review, and not a review finding. **Page 883 states the split explicitly and
+reports it as the experimentally derived optimum**, in what the paper calls "the
+optimum response": 16–20% of body weight in the first eight hours after the burn
+(20 cc/kg/h), maintained with a further 8–10% of body weight as lactated Ringer's
+(5 cc/kg/h) across the next sixteen hours. A figure legend on the same page
+describes a treatment schedule divided the same way, eight hours then sixteen.
+
+The split therefore **originates in the 1968 original and is derived there.**
+This correction is recorded rather than quietly reworded, because anyone who read
+the earlier claim — in this note, in the score's notes panel, or in
+`docs/research/source-requests-round-2.md`, which still repeats it in its
+question (a) — is owed the retraction, not a silently different sentence.
+
+What the correction does **not** do is turn the split into settled human
+evidence. See **R.2** for the full statement: the derivation is canine, the two
+consequences that limit how far it travels, and the residual gap that survives it
+in narrowed form.
+
+---
+
 ## Formula / algorithm (exact — every coefficient and branch)
 
 ### Common structure
@@ -37,11 +69,18 @@ Key pediatric differences vs. adults, up front:
   given over the time left. (StatPearls NBK534227, NBK537190.)
 - Standard temporal split (Parkland, modified Brooke, Galveston, Cincinnati):
   **half of the 24-hour resuscitation volume in the first 8 hours, the remaining
-  half over the next 16 hours.** (StatPearls; Romanowski & Palmieri 2017.)
+  half over the next 16 hours.** (StatPearls; Romanowski & Palmieri 2017.) The
+  **two-phase 8 h / 16 h structure** is primary-sourced to **Baxter & Shires
+  1968, p883** (read directly 2026-08-03; DOI 10.1111/j.1749-6632.1968.tb14738.x)
+  — but the **50/50 halving is not**: in that canine experiment the first eight
+  hours carried **two-thirds** of the 24-hour volume. See R.2.
 - %TBSA counts **second- and third-degree (partial- and full-thickness) burn
   only**; superficial (first-degree/erythema) is excluded. (StatPearls.)
 
 ### 1. Parkland formula (Baxter)
+
+_Primary: Baxter & Shires, Ann N Y Acad Sci 1968;150(3):874–894, DOI
+10.1111/j.1749-6632.1968.tb14738.x — read directly 2026-08-03 (ref. 19)._
 
 ```
 Adult:      24-h LR volume = 4 mL × weight(kg) × %TBSA
@@ -529,20 +568,68 @@ rate₂ (mL/h) = (0.5 × total volume) ÷ 16
 - **Maintenance is not titrated.** Titration acts on resuscitation fluid only;
   maintenance runs at the weight-based rate.
 
-**Derivation of the 8 h / 16 h split itself: [SETTLED-ABSENT]** (relabelled
-2026-08-03 — previously carried as `[NO SOURCE]`, i.e. as an unfinished search).
-**No controlled derivation of the split exists.** It is absent from ABA CPG 2024,
-which does not address it in any of its ten PICO questions, and absent from every
-in-window source reviewed. Universal in practice, derived nowhere.
+#### Derivation of the 8 h / 16 h split — CORRECTED 2026-08-03
 
-**One qualifier travels with this, and must not be dropped:** the 1968 primary
-(Baxter & Shires) has **not been read directly**, so "absent from the original"
-rests on the secondary literature that restates it rather than on the paper
-itself. That is why the finding is stated as settled-absent _pending that one
-primary_ — stronger than "we could not find it", weaker than "we read the
-original and it is not there". Obtaining Baxter & Shires 1968 is the only thing
-that would change the statement, and it would change it from qualified to
-unqualified, not from open to closed.
+**What this section said before, and why it was wrong.** Up to and including the
+2026-08-03 relabelling pass, this section read: _"No controlled derivation of the
+split exists. It is absent from ABA CPG 2024 … and absent from every in-window
+source reviewed. Universal in practice, derived nowhere,"_ qualified only by the
+1968 primary not having been read. It first carried the claim as `[NO SOURCE]`
+and then as `[SETTLED-ABSENT]`. **The clause about the 1968 original was false**,
+and it is retracted here in place rather than reworded, so that the record shows
+what was claimed and what replaced it.
+
+**Baxter & Shires 1968 was obtained and read directly from the source PDF on
+2026-08-03** (Ann N Y Acad Sci 1968;150(3):874–894, DOI
+10.1111/j.1749-6632.1968.tb14738.x). This is a reading of the primary, **not** a
+secondary review's account of it and **not** a review finding — the distinction
+is the whole reason the correction is worth recording.
+
+**p883 states the split, and states it as the experimentally derived optimum.**
+Paraphrasing the paper's figures rather than reproducing its prose: what the
+authors call "the optimum response" came from giving **16–20% of body weight in
+the first eight hours** after the burn (**20 cc/kg/h**), then maintaining with a
+further **8–10% of body weight as lactated Ringer's** (**5 cc/kg/h**) **across the
+next sixteen hours**. A **figure legend on the same page** independently
+describes a treatment schedule divided the same way — a first eight-hour phase
+and then a sixteen-hour phase.
+
+**So the accurate statement has three parts.**
+
+1. **The split originates in Baxter & Shires 1968, and it is derived there** —
+   experimentally, as the dose producing the best measured response. It is not a
+   convention of unknown parentage.
+2. **The derivation is in DOGS**, at **50% TBSA flame burn**, with **plasma
+   volume and functional extracellular fluid** as the endpoints. It is not a
+   human outcome trial, not a randomised comparison of one split against
+   another, and nothing about it is paediatric.
+3. **What remains genuinely absent is the human and paediatric evidence**, and
+   any guideline-level statement. No human re-derivation of the split exists, no
+   paediatric derivation exists at any age, and the **2024 ABA CPG does not
+   address the split in any of its ten PICO questions**. That narrowed residual
+   is what stays **[SETTLED-ABSENT]**; the split's origin and its animal
+   derivation are no longer part of it.
+
+**Two consequences of the paper's own figures**, recorded as this project's
+arithmetic on the doses it prints and **not** as claims the paper makes:
+
+- The doses are expressed as **percent of body weight**, not as mL/kg/%TBSA. What
+  1968 fixes is the **two-phase shape of the schedule**, not the 3 mL/kg/%TBSA
+  coefficient this score uses or the adult 4 mL.
+- **The optimum was not a 50/50 split.** 16% in the first eight hours against 8%
+  in the next sixteen is **two to one** — the first eight hours carried
+  **two-thirds** of the 24-hour volume, and the rates say the same thing
+  (20 cc/kg/h for 8 h = 160 cc/kg; 5 cc/kg/h for 16 h = 80 cc/kg). Clinical
+  practice, and this score, give **half** in the first eight hours. **No
+  publication reconciling the derived 2:1 ratio with the practised 1:1 was
+  located.** This is now the sharpest reason the human re-derivation gap matters:
+  it is not that the split came from nowhere, it is that the ratio in use is not
+  the ratio the experiment selected.
+
+Note also the internal spread within the paper: the p883 text (20 then
+5 cc/kg/h) and the same page's figure legend (50 cc/kg over the first eight
+hours, then 10 cc/kg/h) do not print the same rates, so the paper fixes a
+schedule shape and an order of magnitude, not one canonical rate.
 
 **What this score implements, stated so the gap is not mistaken for
 completeness.** It has no `time_since_burn_h` input, no fluid-already-given
@@ -762,9 +849,25 @@ which reads as a search that could still succeed. It cannot: each was establishe
 found". **Do not re-search them.** What they mean for the calculator is unchanged
 — each is a place where a printed number is convention rather than evidence.
 
-- **Derivation of the 8 h / 16 h split.** In use universally, derived nowhere. No
-  controlled derivation exists. _Qualifier:_ Baxter & Shires 1968 was not read
-  directly, so this is settled-absent **pending that one primary** (see R.2).
+**Gap 1 has since been NARROWED, and gaps 2–5 have not.** Obtaining a primary is
+the one thing that can shrink an entry on this list, and it happened to gap 1 the
+same day: Baxter & Shires 1968 was read directly, and the half of gap 1 that
+claimed the split was underived turned out to be false. That is the standing
+warning against treating this list as permanently closed — "settled-absent" means
+_searched and established not to exist_, and it stays true only for as long as
+the statement of it is accurate.
+
+- **Human or paediatric re-derivation of the 8 h / 16 h split, and any
+  guideline-level statement of it.** **NARROWED 2026-08-03 — this entry used to
+  read "derivation of the 8 h / 16 h split", and that was wrong.** The split
+  **is** derived: Baxter & Shires 1968, p883, derives it experimentally in a 50%
+  TBSA flame-burn **canine** model measuring plasma volume and functional
+  extracellular fluid, and that primary has now been read directly (see the
+  Correction section at the top of this file, and R.2). What is genuinely absent
+  is any **human** re-derivation, any **paediatric** derivation, and any
+  guideline statement — the 2024 ABA CPG does not address the split in any of its
+  ten PICO questions. The practised 50/50 halving also differs from the **2:1**
+  ratio that canine optimum used, and nothing published reconciles them.
 - **Derivation of any maintenance weight threshold** (20, 30 or 40 kg).
   Pragmatic brackets, documented in practice, never tested.
 - **Optimal hourly urine-output goal in children.** Expert and review consensus
@@ -898,6 +1001,23 @@ found". **Do not re-search them.** What they mean for the calculator is unchange
     expert consensus, evidence level IV.) AWMF register 006/128;
     URL: https://register.awmf.org/de/leitlinien/detail/006-128.
 
+19. **Baxter CR, Shires T.** Physiological response to crystalloid resuscitation
+    of severe burns. _Ann N Y Acad Sci._ 1968;150(3):874–894.
+    DOI: **10.1111/j.1749-6632.1968.tb14738.x**. **THE PARKLAND PRIMARY — READ
+    DIRECTLY FROM THE SOURCE PDF, 2026-08-03**, not via a secondary review and
+    not a review finding. Added late and numbered last for that reason; by
+    standing it belongs at the head of this list. **p883 derives the 8 h / 16 h
+    split experimentally** in a 50% TBSA flame-burn **canine** model with plasma
+    volume and functional extracellular fluid as endpoints: 16–20% of body weight
+    in the first eight hours (20 cc/kg/h), then a further 8–10% of body weight as
+    lactated Ringer's (5 cc/kg/h) over the next sixteen; a figure legend on the
+    same page describes a schedule divided the same way. Doses are given as
+    **percent of body weight**, not mL/kg/%TBSA, and the first-eight-hour share
+    of that optimum is **two-thirds, not half**. This reference is what corrects
+    the claim carried in this note and in the shipped score up to v1.2.1 that the
+    split was absent from the 1968 original — see the Correction section at the
+    top of this file, R.2 and R.9.
+
 Primary-source note: the **Galveston** formula originates with Carvajal HF
 (pediatric surface-area resuscitation, 1980s Shriners–Galveston) and the
 **Cincinnati** (Shriners–Cincinnati) formula with the Cincinnati Shriners group;
@@ -955,6 +1075,16 @@ fetched in the original — flagged in Limitations.
   this score takes neither an elapsed-time nor a fluid-given input, so its
   first-8-hour figure is a gross volume, not a remaining one. State the gap
   rather than implying completeness.
+- **The 8 h / 16 h split is derived — in dogs, and at a ratio nobody uses**
+  (R.2, corrected 2026-08-03). Baxter & Shires 1968 p883, read directly, gives it
+  as the experimental optimum in a 50% TBSA flame-burn canine model: 16–20% of
+  body weight over the first eight hours, then 8–10% over the next sixteen. Three
+  things must travel together whenever this is cited. It **is** derived, so do
+  not repeat the retracted claim that it came from nowhere. The derivation is
+  **canine and not paediatric**, with no human re-derivation and no guideline
+  statement of it. And the optimum was **2:1**, where practice and this score use
+  **1:1** — the halving in universal use is not the ratio the experiment
+  selected, and nothing published reconciles them.
 
 ### Lund–Browder — sourcing gap closed 2026-08-03, with one caveat that stays open
 

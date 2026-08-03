@@ -106,20 +106,150 @@ describeScore(kdigoAki, (ctx) => {
     ],
   );
 
-  // ---- Table 2 Stage 3 by the absolute ≥ 4.0 mg/dL creatinine (no baseline) ----
-  // PINS A DOCUMENTED DEVIATION, not the guideline's own reading. KDIGO's
-  // Chapter 2.1 rationale (p. 21) requires the Rec 2.1.1 creatinine-change
-  // definition to be satisfied BEFORE the ≥ 4.0 mg/dL route to Stage 3 applies;
-  // this implementation applies it standalone, which over-stages a chronically
-  // elevated creatinine entered without a baseline. The `notes` field discloses
-  // it under "KNOWN DEVIATION"; gating it would under-stage every baseline-less
-  // entry, so which way to resolve it is a clinical decision, not a code tidy-up.
+  // ═══════════════════════════════════════════════════════════════════════════
+  // The ≥ 4.0 mg/dL route to Stage 3 is NOT standalone
+  //
+  // KDIGO's Chapter 2.1 rationale (p. 21) requires the Rec 2.1.1 creatinine-
+  // change definition — a rise of ≥ 0.3 mg/dL within 48 h, or ≥ 1.5× baseline —
+  // to be satisfied BEFORE the absolute-creatinine route applies. Through
+  // v2.0.1 this score applied it standalone and called a chronically elevated
+  // creatinine Stage 3 AKI, which it is not. Gating it strictly is the opposite
+  // error and the worse one in a PICU: Stage 0 for every patient entered
+  // without a baseline. Hence three cases, tested here in order.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // Case 1 — baseline entered, rise qualifies: settled Stage 3, exactly as
+  // before. A child at 4.9 mg/dL against a 4.5 baseline has risen 0.4 mg/dL, so
+  // Rec 2.1.1 is met and the ≥ 4.0 route fires. The ratio is only 1.09×, so
+  // NOTHING but the absolute-creatinine route can produce Stage 3 here — this
+  // case fails if the gate is applied too broadly.
   ctx.workedExample(
-    { ...kdigo, locator: "Table 2 — Stage 3 SCr criterion (increase to ≥ 4.0 mg/dL)" },
-    { age: { value: 5, unit: "years" }, scr: { value: 4.5, unit: "mg/dL" } },
+    {
+      ...kdigo,
+      locator: "Chapter 2.1 rationale p. 21 — ≥ 4.0 mg/dL with the Rec 2.1.1 rise established",
+    },
+    {
+      age: { value: 5, unit: "years" },
+      scr: { value: 4.9, unit: "mg/dL" },
+      scr_baseline: { value: 4.5, unit: "mg/dL" },
+    },
     [
       { id: "kdigo_stage", value: 3 },
       { id: "stage_is_floor", value: 0 },
+    ],
+  );
+
+  // Case 2 — THE BUG THIS RELEASE FIXES. Baseline entered, no qualifying rise:
+  // a child with CKD sitting at 4.6 mg/dL against a 4.5 baseline has risen
+  // 0.1 mg/dL and is 1.02× baseline. Rec 2.1.1 is not met on any criterion, so
+  // there is no AKI at all — Stage 0, settled, not Stage 3. The baseline is
+  // present, so nothing is open and the flag must stay 0.
+  ctx.workedExample(
+    {
+      ...kdigo,
+      locator: "Chapter 2.1 rationale p. 21 — chronic elevation, no acute rise, is not AKI",
+    },
+    {
+      age: { value: 8, unit: "years" },
+      scr: { value: 4.6, unit: "mg/dL" },
+      scr_baseline: { value: 4.5, unit: "mg/dL" },
+    },
+    [
+      { id: "kdigo_stage", value: 0 },
+      { id: "stage_is_floor", value: 0 },
+    ],
+  );
+
+  // Case 3 — no baseline at all: the definition cannot be assessed in either
+  // direction. Stage 3 is still reported, because withholding it would
+  // under-stage every baseline-less entry, but it is reported as a BOUND —
+  // KDIGO's Table 10 answer for a case whose reference creatinine cannot be
+  // established. A reader holding a prior value can enter it and settle this.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 2 / Table 10 — ≥ 4.0 mg/dL with no baseline is Stage 3 unsettled" },
+    { age: { value: 5, unit: "years" }, scr: { value: 4.5, unit: "mg/dL" } },
+    [
+      { id: "kdigo_stage", value: 3 },
+      { id: "stage_is_floor", value: 1 },
+    ],
+  );
+
+  // Just below the cutoff with no baseline, nothing stages and nothing is open:
+  // 3.9 mg/dL alone is neither Stage 3 nor a bound. Pins that the new flag is
+  // driven by the ≥ 4.0 threshold and not merely by an absent baseline.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 2 — 3.9 mg/dL with no baseline stages nothing and opens nothing" },
+    { age: { value: 5, unit: "years" }, scr: { value: 3.9, unit: "mg/dL" } },
+    [
+      { id: "kdigo_stage", value: 0 },
+      { id: "stage_is_floor", value: 0 },
+    ],
+  );
+
+  // A SETTLED Stage 3 by another route is never flagged, even with no baseline
+  // and a creatinine over 4.0. RRT is Stage 3 by definition, so nothing about
+  // this answer is open and "≥ 3" would be false caution.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 2 — RRT settles Stage 3, so an un-baselined ≥ 4.0 adds no bound" },
+    {
+      age: { value: 5, unit: "years" },
+      scr: { value: 4.5, unit: "mg/dL" },
+      rrt: { value: true },
+    },
+    [
+      { id: "kdigo_stage", value: 3 },
+      { id: "stage_is_floor", value: 0 },
+    ],
+  );
+
+  // Same for the pediatric eGFR route: eGFR 30 in a 10-year-old is a settled
+  // Stage 3 on its own, so the un-baselined creatinine adds no uncertainty.
+  ctx.workedExample(
+    {
+      ...kdigo,
+      pmid: "19158356",
+      locator: "Table 2 — eGFR < 35 under 18 y settles Stage 3 alongside an un-baselined ≥ 4.0",
+    },
+    {
+      age: { value: 10, unit: "years" },
+      scr: { value: 4.5, unit: "mg/dL" },
+      egfr: { value: 30, unit: "mL/min/1.73m2" },
+    },
+    [
+      { id: "kdigo_stage", value: 3 },
+      { id: "stage_is_floor", value: 0 },
+    ],
+  );
+
+  // And by the urine-output axis: anuria for ≥ 12 h is a closed Stage-3 row, so
+  // the answer is settled from the other axis entirely.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 2 — a closed Stage-3 UO row settles an un-baselined ≥ 4.0 case" },
+    {
+      age: { value: 5, unit: "years" },
+      scr: { value: 4.5, unit: "mg/dL" },
+      anuria: { value: true },
+      uo_duration: { value: "12h-or-more" },
+    },
+    [
+      { id: "kdigo_stage", value: 3 },
+      { id: "stage_is_floor", value: 0 },
+    ],
+  );
+
+  // Both sources of doubt at once — an un-baselined ≥ 4.0 creatinine and an
+  // unresolved urine-output axis. One flag covers both; it does not double up
+  // or cancel out, and the stage stays the highest the entered data supports.
+  ctx.workedExample(
+    { ...kdigo, locator: "Table 10 — un-baselined ≥ 4.0 with an open UO axis is still one bound" },
+    {
+      age: { value: 5, unit: "years" },
+      scr: { value: 4.5, unit: "mg/dL" },
+      urine_output: { value: 0.4, unit: "mL/kg/h" },
+    },
+    [
+      { id: "kdigo_stage", value: 3 },
+      { id: "stage_is_floor", value: 1 },
     ],
   );
 
@@ -643,7 +773,8 @@ describeScore(kdigoAki, (ctx) => {
   // own 353.6 converted to 3.999095 mg/dL, failed `>= 4`, and returned Stage 1.
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // 353.6 → 4.00 and 309.4 → 3.50, so the absolute ≥ 4.0 branch fires.
+  // 353.6 → 4.00 and 309.4 → 3.50, so the absolute ≥ 4.0 branch fires — and the
+  // 0.50 mg/dL rise satisfies Rec 2.1.1, so it fires as a SETTLED Stage 3.
   ctx.workedExample(
     { ...kdigo, locator: "Table 2 — Stage 3 SCr criterion, entered as ≥ 353.6 µmol/L" },
     {
@@ -657,13 +788,15 @@ describeScore(kdigoAki, (ctx) => {
     ],
   );
 
-  // Same in µmol/L with no baseline — the absolute-creatinine branch alone.
+  // Same in µmol/L with no baseline — the absolute-creatinine branch alone, so
+  // as of v3.0.0 it is Stage 3 as a bound rather than a settled classification.
+  // The unit conversion must not change WHICH case this is.
   ctx.workedExample(
-    { ...kdigo, locator: "Table 2 — Stage 3 absolute SCr ≥ 353.6 µmol/L, no baseline" },
+    { ...kdigo, locator: "Table 2 — absolute SCr ≥ 353.6 µmol/L with no baseline is unsettled" },
     { age: { value: 5, unit: "years" }, scr: { value: 353.6, unit: "µmol/L" } },
     [
       { id: "kdigo_stage", value: 3 },
-      { id: "stage_is_floor", value: 0 },
+      { id: "stage_is_floor", value: 1 },
     ],
   );
 
@@ -790,6 +923,57 @@ describe("kdigo-aki records its settled absences as settled", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("2.0.1");
+    expect(kdigoAki.version).toBe("3.0.0");
+  });
+});
+
+/**
+ * THE BASELINE-SURROGATE GUIDANCE IS THE POINT OF THE v3.0.0 RELEASE, AND NONE
+ * OF IT CHANGES A COMPUTED STAGE.
+ *
+ * The gate on the ≥ 4.0 mg/dL route is pinned by worked examples above. What
+ * those cannot pin is the half of the fix that is prose: telling a reader with
+ * no prior creatinine what to enter instead. If that guidance is trimmed as
+ * verbose, the calculator silently reverts to leaving users at the mercy of
+ * KDIGO's own appendix suggestion — back-calculation from an assumed GFR of 75,
+ * which the cited validation found misses more than half of all AKI. The
+ * counter-recommendation and its citation are asserted here so removing them
+ * fails a test rather than passing review.
+ */
+describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
+  const notes = kdigoAki.notes.en;
+  const baselineHelp =
+    kdigoAki.inputs.find((i) => i.id === "scr_baseline")?.helpText.en ?? "(input not found)";
+
+  it("names the lowest admission creatinine as the surrogate to use", () => {
+    expect(notes).toMatch(/lowest creatinine measured during this admission/i);
+    expect(baselineHelp).toMatch(/lowest creatinine measured during this admission/i);
+  });
+
+  it("warns off KDIGO's own assumed-GFR-75 back-calculation, with the finding", () => {
+    expect(notes).toMatch(/assumed (e)?GFR of 75/i);
+    expect(notes).toMatch(/more than half of all AKI/i);
+    expect(baselineHelp).toMatch(/assumed GFR of 75/i);
+  });
+
+  it("cites the validation and flags that it is adult evidence", () => {
+    expect(notes).toContain("33732979");
+    expect(notes).toMatch(/THE COOPER EVIDENCE IS ADULT/);
+    const cooper = kdigoAki.references.find((r) => "pmid" in r && r.pmid === "33732979");
+    expect(
+      cooper,
+      "the Cooper 2021 surrogate-baseline validation must stay in references",
+    ).toBeDefined();
+    expect(cooper?.note).toMatch(/adult/i);
+  });
+
+  it("says why no back-calculation is implemented, rather than leaving it a gap", () => {
+    expect(notes).toMatch(/NO BACK-CALCULATION IS OFFERED HERE/);
+    expect(notes).toMatch(/sex and race/i);
+  });
+
+  it("no longer describes the ≥ 4.0 mg/dL route as an unresolved deviation", () => {
+    expect(notes).not.toMatch(/KNOWN DEVIATION/);
+    expect(notes).not.toMatch(/a clinical decision this release does not take/i);
   });
 });

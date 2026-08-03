@@ -38,9 +38,39 @@ interface InputBase {
 export interface NumericInput extends InputBase {
   readonly type: "numeric";
   readonly unit: UnitSpec;
-  /** Plausibility bounds in the canonical unit — outside them we reject, never compute. */
+  /**
+   * Plausibility bounds in the canonical unit — outside them we reject, never
+   * compute. BOTH ARE INCLUSIVE: `min` and `max` are themselves accepted.
+   */
   readonly min: number;
   readonly max: number;
+  /**
+   * EXCLUSIVE upper bound: this value itself is REJECTED.
+   *
+   * Half-open domains are common in this corpus and were previously
+   * inexpressible, because `max` is inclusive and there was no alternative.
+   * Both eligibility criteria written as "under 18 years" hit it: PELOD-2
+   * declared `max: 215.99999999999997`, the IEEE-754 predecessor of 216 — correct
+   * to the last bit and unreadable — while Phoenix declared `max: 215`, which is
+   * right only for whole months and wrongly rejected a legitimate 215.5-month-old.
+   *
+   * OPTIONAL and ADDITIVE. `max` stays required, so a score that does not set
+   * this is unaffected and every existing declaration keeps its exact meaning.
+   *
+   * WHEN BOTH ARE PRESENT — which is the normal case, `max` being required —
+   * THE STRICTER BOUND WINS. A value is accepted only when
+   * `min <= v <= max` AND `v < maxExclusive`. In practice a score sets the two
+   * to the same number (`max: 216, maxExclusive: 216`), which reads as "the
+   * ceiling is 216 and 216 is out"; a `maxExclusive` above `max` is inert,
+   * because `max` already rejects everything it would.
+   *
+   * There is deliberately NO `minExclusive`. Nothing in the corpus needs one:
+   * every lower bound is a plausibility floor that is itself a legitimate value
+   * (0 mmol/L lactate, 0 mL intake), and every input used as a divisor already
+   * has a positive inclusive floor (FiO₂ 0.21, heart rate 30, weight 0.5 kg).
+   * Adding it would be an untested, unused facility on a shared type.
+   */
+  readonly maxExclusive?: number;
   readonly step?: number;
 }
 
@@ -162,7 +192,28 @@ export interface ChangelogEntry {
   readonly version: string;
   readonly date: string;
   readonly summary: string;
-  readonly reason?: "initial-release" | "formula-correction" | "new-reference" | "clarification";
+  /**
+   * Why the version moved. Rendered as a badge on the detail page's version
+   * tab, so it is user-visible text: changing one on an existing entry is
+   * itself a change that needs its own entry.
+   *
+   * `output-withdrawn` exists because the other four could not carry it.
+   * When PRISM III's predicted-mortality percentage was removed, the nearest
+   * available label was `formula-correction` — and it understated what
+   * happened. Correcting a formula leaves the clinician reading the same
+   * output, better computed; withdrawing one takes away a number they read
+   * last week and may have acted on, and the honest reason is that the
+   * platform could not stand behind it. Use it when a previously emitted
+   * output stops being shown, including when it is suppressed under stated
+   * conditions rather than removed outright — the reader's experience is the
+   * same either way: the number is gone.
+   */
+  readonly reason?:
+    | "initial-release"
+    | "formula-correction"
+    | "new-reference"
+    | "clarification"
+    | "output-withdrawn";
 }
 
 export type IpStatus =

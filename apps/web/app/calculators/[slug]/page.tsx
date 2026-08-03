@@ -19,6 +19,10 @@ const REASON_LABELS: Record<string, string> = {
   "formula-correction": "Formula correction",
   "new-reference": "New reference",
   clarification: "Clarification",
+  // A computed output stopped being shown — removed outright, or suppressed
+  // under stated conditions. Deliberately not worded as a correction: the
+  // reader lost a number they may have acted on.
+  "output-withdrawn": "Output withdrawn",
 };
 
 const linkClass =

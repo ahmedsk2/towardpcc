@@ -250,44 +250,44 @@ describeScore(pelod2, (ctx) => {
    * THE AGE CEILING IS EXCLUSIVE OF 216 MONTHS.
    *
    * Leteurtre 2013 excluded "age 18 years or older", so the eligible domain is
-   * [0, 216) months. The declaration used to read `max: 216`, and
-   * `NumericInput.max` is INCLUSIVE (validation.ts rejects only
-   * `converted > max`) — so exactly 18.0 years was accepted and scored, one
-   * month of patients the paper excludes.
+   * [0, 216) months. The declaration once read `max: 216`, and `max` is
+   * INCLUSIVE — so exactly 18.0 years was accepted and scored, one month of
+   * patients the paper excludes. It was then written as 215.99999999999997, the
+   * largest double below 216, which was exact but read as a typo; v1.1.1
+   * states it as `maxExclusive: 216` and accepts the identical set of ages.
    *
-   * `boundaryTest` above already proves the declared max computes and that
-   * max + 1e-6 rejects. What it cannot prove is that the declared max is the
-   * RIGHT one: it would pass just as happily at 216, or at 200. These
-   * assertions pin the number itself from both sides — below 216, and with
-   * nothing representable in between, which is what makes the closed interval
-   * [0, max] contain exactly the same doubles as the intended [0, 216).
+   * `boundaryTest` above already proves that the accepted side computes and
+   * that the declared value rejects. What it cannot prove is that the declared
+   * value is the RIGHT one: it would pass just as happily at 217, or at 200.
+   * These assertions pin the number itself, and pin that it is the EXCLUSIVE
+   * bound doing the work rather than the inclusive one.
    */
-  it("declares an age ceiling that is the largest double strictly below 216 months", () => {
+  it("declares 216 months as an exclusive ceiling, not an inclusive one", () => {
     const age = pelod2.inputs.find((i) => i.id === "age_months");
     expect(age?.type).toBe("numeric");
     if (age?.type !== "numeric") return;
 
-    // 216 lies in the binade [128, 256), where adjacent doubles are 2⁻⁴⁵ apart.
-    const largestBelow216 = 216 - 2 ** -45;
-    expect(age.max).toBe(largestBelow216);
-    expect(age.max).toBeLessThan(216);
-    // Nothing in between: one ulp up from the ceiling lands exactly on 216.
-    expect(age.max + 2 ** -45).toBe(216);
+    expect(age.maxExclusive).toBe(216);
     expect(age.min).toBe(0);
+    // No stray IEEE-754 workaround left behind: the inclusive bound is a round
+    // number, and it is the exclusive one that decides the boundary.
+    expect(age.max).toBe(216);
   });
 
   it("rejects exactly 216 months (18.0 years) and accepts everything below it", () => {
     const at216 = pelod2.compute({ ...normal, age_months: { value: 216, unit: "months" } });
     expect(at216.ok, "exactly 18.0 years is outside the derivation cohort").toBe(false);
     if (!at216.ok) {
-      expect(
-        at216.errors.some((e) => e.inputId === "age_months" && e.code === "out-of-range"),
-      ).toBe(true);
+      const err = at216.errors.find((e) => e.inputId === "age_months");
+      expect(err?.code).toBe("out-of-range");
+      // The message must not claim 216 is acceptable, which "between 0 and 216"
+      // would: 216 is the one value this bound exists to reject.
+      expect(err?.message).toBe("Patient age must be at least 0 and less than 216 months.");
     }
 
-    // The last representable month before it still computes, and so does an
-    // ordinary fractional age near the top — the reason the ceiling is the exact
-    // predecessor rather than a whole-month 215 (which would reject both).
+    // Everything below still computes, including the last representable month
+    // and an ordinary fractional age near the top — the reason the ceiling is
+    // not a whole-month 215, which would reject both.
     for (const months of [215.99999999999997, 215.5, 215]) {
       const outcome = pelod2.compute({ ...normal, age_months: { value: months, unit: "months" } });
       expect(outcome.ok, `${months} months must compute`).toBe(true);

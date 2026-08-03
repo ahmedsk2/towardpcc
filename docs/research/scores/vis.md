@@ -57,8 +57,9 @@ fully expanded form above, in the systematic review (PMC10770946).
 **No branches / no conditionals.** VIS is a single weighted linear sum. A drug not running
 contributes 0. There is no floor/ceiling, no age adjustment, and no interaction term. VIS is
 almost always summarized over a time window as a maximum (**VIS_max over the first 48 h** in
-Gaies 2010, split into two 24 h halves by its dual threshold; **VIS_max over the first 24 h** in
-Gaies 2014; VIS at 24/48/72 h and VIS48max in Davidson 2012).
+Gaies 2010, evaluated as two consecutive 24 h periods by that paper's five-group classification —
+see Interpretation bands; **VIS_max over the first 24 h** in Gaies 2014; VIS at 24/48/72 h and
+VIS48max in Davidson 2012).
 
 ### Published extensions (include ONLY if the platform explicitly opts in — not part of the original)
 
@@ -111,8 +112,11 @@ would yield 3,000 points. Validate vasopressin input tightly.
 
 ## Worked examples (>=2)
 
-No numeric worked example is printed in the Gaies 2010 abstract or in the fetched validation
-texts. The following are **derived step-by-step from the published formula in Gaies et al. 2010
+The Gaies 2010 primary text (read directly 2026-08-03 — see Round-3) prints **no arithmetic
+worked example of the formula**; its only numeric illustration is of the _classification_ step
+(a patient with maximum IS 22 in the first 24 hr and 14 in the subsequent 24 hr falls in group 4),
+which exercises the group-assignment rule rather than the weighted sum. The examples below are
+therefore still **derived step-by-step from the published formula in Gaies et al. 2010
 (PMID 19794327)** and are intended as unit-test vectors.
 
 **Example 1 — simple inotrope-only (derived from formula in Gaies 2010):**
@@ -166,20 +170,42 @@ band structure** — studies dichotomize at cohort-specific cut-points, so bands
 by their source cohort and used descriptively, not as treatment triggers.
 
 **An odds ratio detached from its cut-point is not usable.** Both published dichotomizations are
-recorded here so the threshold and the effect size are always read as a pair:
+recorded here so that an effect size is never read apart from the rule that produced it — and,
+for Gaies 2010, so that the part of that rule which is not yet extracted is visible rather than
+papered over:
 
 - **Gaies 2014 (PMID 24777300) — the single flat threshold, and the one this implementation
   quotes.** Maximum VIS **≥ 20 during the first 24 h** carried an adjusted **OR 6.5
   (95% CI 2.9–14.6)** for the poor composite outcome. Same six coefficients, still no
   phenylephrine. One cut-point is what a bedside reader can actually apply, so this is the
   pairing surfaced in the score's notes.
-- **Gaies 2010 (PMID 19794327) — the larger OR, but from a DUAL rule.** The adjusted
-  **OR 8.1 (95% CI 3.4–19.2)** belongs to a two-part threshold: maximum VIS **≥ 20 in the first
-  24 h OR ≥ 15 in the next 24 h**. Quoting 8.1 against a single cut-point overstates it.
-  **Provenance:** the 2010 full text is paywalled and was **not read**; this dual scheme is
-  reconstructed from a peer-reviewed paraphrase, and the OR itself from the PubMed abstract.
-  The earlier note in this file that "≥ 20" was merely "widely attributed" and unverified is
-  superseded — ≥ 20 is real, but in 2010 it is only half of the rule.
+- **Gaies 2010 (PMID 19794327) — the larger OR, but from a five-group, two-period rule.** The
+  adjusted **OR 8.1 (95% CI 3.4–19.2, p < 0.001)** for a poor outcome in the high-VIS group
+  relative to the low-VIS group is the paper's headline effect size. **It is not attached to a
+  single flat cut-point.** Quoting 8.1 as though it were overstates it.
+  **Provenance: read directly from the source PDF, 2026-08-03** (Pediatr Crit Care Med
+  2010;11(2):234–238, DOI 10.1097/PCC.0b013e3181b806fc). Confirmed from the primary text itself:
+  - The OR of 8.1 (95% CI 3.4–19.2, p < 0.001) appears in the abstract, in Results, and in the
+    results table — three places in the primary, not an abstract-only figure.
+  - Patients are sorted into **five classification groups**, and each patient is assigned to the
+    highest group they reach — in the paper's words, the "highest classification group achieved"
+    during either the first or the subsequent 24-hr period (Gaies et al. 2010). Its own worked
+    illustration: maximum IS 22 in the first 24 hr and 14 in the subsequent 24 hr → **group 4**.
+  - **Groups 4 and 5 were combined** to form the "high VIS" arm that the OR compares.
+  - The scheme is anchored by treating infusion dosages that would give a VIS of **approximately
+    15** as the midpoint of the classification for the first 24 hr, with most patients expected to
+    be on lower doses during the second 24 hr.
+  - **Residual gap, precisely scoped:** the **exact per-group numeric VIS cut-points** were _not_
+    extracted — the two-column PDF text layer scrambles that table. They are deliberately not
+    stated anywhere in this file or in the implementation, and must not be inferred from the
+    approximate-15 midpoint or from the group-4 illustration.
+
+  This supersedes this file's earlier reconstruction of the 2010 rule as a two-number dual
+  threshold ("≥ 20 in the first 24 h OR ≥ 15 in the next 24 h"), which came from a peer-reviewed
+  paraphrase. The primary shows a five-group scheme, so the _shape_ of that reconstruction was
+  wrong even where its numbers were in the right neighbourhood; the two-period mechanism it
+  described is real and is now sourced to the primary.
+
 - **Prospective validation (Davidson 2012, PMID 22527067):** a **VIS at 48 h (VIS48) cut-point
   of 10.5** discriminated high- vs low-risk for prolonged length of stay / poor short-term
   outcome in neonates and infants after cardiothoracic surgery (Table 4). This is
@@ -198,7 +224,10 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
 1. **Gaies MG, Gurney JG, Yen AH, Napoli ML, Gajarski RJ, Ohye RG, Charpie JR, Hirsch JC.**
    Vasoactive-inotropic score as a predictor of morbidity and mortality in infants after
    cardiopulmonary bypass. _Pediatr Crit Care Med._ 2010;11(2):234–238.
-   **PMID: 19794327. DOI: 10.1097/PCC.0b013e3181b806fc.** — _Original VIS derivation (primary)._
+   **PMID: 19794327. DOI: 10.1097/PCC.0b013e3181b806fc.** — _Original VIS derivation (primary).
+   **Full text obtained and read directly from the source PDF on 2026-08-03** — source of the
+   adjusted OR 8.1 (95% CI 3.4–19.2, p < 0.001) and of the five-group / two-period classification
+   behind it. The per-group numeric cut-points were not extracted from its table._
 2. **Davidson J, Tong S, Hancock H, Hauck A, da Cruz E, Kaufman J.** Prospective validation of
    the vasoactive-inotropic score and correlation to short-term outcomes in neonates and infants
    after cardiothoracic surgery. _Intensive Care Med._ 2012;38(7):1184–1190.
@@ -254,13 +283,16 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
 - **Extensions.** Levosimendan (50x) and phenylephrine (10x) are published variants but are NOT
   the original Gaies 2010 score; gate them behind an explicit configuration flag and never mix
   them into a "Gaies VIS" output silently.
-- **Sourcing-gap status (updated by the round-2 resolution, 2026-08-03).** Three of the four
-  former gaps are now closed, and the way each closed matters:
-  - **Dichotomization — CLOSED by substitution.** Gaies 2014 (Reference 7) supplies a single
-    flat threshold with its own matching effect size (max VIS ≥ 20 in the first 24 h,
-    OR 6.5 [2.9–14.6]), so nothing depends on reading the paywalled 2010 text any more. The 2010
-    dual rule (≥ 20 first 24 h OR ≥ 15 next 24 h, OR 8.1 [3.4–19.2]) is recorded for contrast and
-    is **reconstructed from a peer-reviewed paraphrase — the 2010 full text was NOT read.**
+- **Sourcing-gap status (updated by the round-3 primary-text acquisition, 2026-08-03).** All four
+  former gaps are now closed or settled, and the way each closed matters:
+  - **Dichotomization — CLOSED twice over.** Gaies 2014 (Reference 7) supplies a single flat
+    threshold with its own matching effect size (max VIS ≥ 20 in the first 24 h,
+    OR 6.5 [2.9–14.6]), and that remains the pairing the implementation quotes. Separately, the
+    **Gaies 2010 primary was obtained and read directly on 2026-08-03**, which upgrades the
+    OR 8.1 (95% CI 3.4–19.2, p < 0.001) and the five-group / two-period assignment rule from
+    paraphrase to primary. **Only one narrow item is still unextracted: the exact per-group
+    numeric VIS cut-points, which the paper's two-column PDF text layer scrambles.** Nothing in
+    the implementation depends on them, and they are not to be invented.
   - **Phenylephrine — CLOSED as confirmed-correct.** Absent from both Gaies papers; excluding it
     is right. Only the non-Gaies variant's 10x coefficient stays unfetched, and nothing here
     computes it.
@@ -283,12 +315,18 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
 
 ## Verification
 
+> **Reading order.** This section is a dated log, oldest first. The 2026-07-25 pass below records
+> the state of knowledge on that date; Round-2 and then Round-3 (both 2026-08-03) supersede parts
+> of it. **Round-3 is the current state for anything concerning Gaies 2010.**
+
 Independent verification pass performed 2026-07-25 by fetching primary/independent full texts
 (not just the file's own citation claims) via live web search and fetch of PubMed/PMC/journal
-pages. Gaies et al. 2010 itself (PMID 19794327) is paywalled at PCCM/LWW and no free full text
-could be located (Memphis DigitalCommons repository page and LWW journal page both checked;
-neither yielded full text), so items sourced only to Gaies 2010's exact numeric threshold remain
-unverified and stay flagged — everything else below was checked against a fetched source.
+pages. Gaies et al. 2010 itself (PMID 19794327) could not be obtained in that pass — paywalled at
+PCCM/LWW, with no free full text located (Memphis DigitalCommons repository page and LWW journal
+page both checked; neither yielded full text) — so items sourced only to Gaies 2010's exact
+numeric threshold were left unverified and flagged as of that date; everything else below was
+checked against a fetched source. **That access limitation no longer holds: the primary was
+supplied and read on 2026-08-03 — see Round-3.**
 
 **Checked and CONFIRMED (match the file):**
 
@@ -306,10 +344,12 @@ unverified and stay flagged — everything else below was checked against a fetc
    DOI 10.1161/01.cir.92.8.2226. This **resolves** the file's prior [NEEDS SOURCE] flag on the
    IS derivation citation. File updated accordingly (Formula section + Reference 6).
 3. **Gaies 2010 adjusted odds ratio 8.1 (95% CI 3.4–19.2)** for high vs low maximum VIS and poor
-   composite outcome — confirmed via independent PubMed abstract fetch/search of PMID 19794327
-   ("adjusted odds ratio of 8.1 (95% confidence interval, 3.4-19.2; p < .001)"), and the cohort
-   description (174 patients, 0–6 months, cardiac surgery with CPB, Aug 2007–Jun 2008) matches
-   the file's population description. No discrepancy.
+   composite outcome — confirmed in this pass via independent PubMed abstract fetch/search of
+   PMID 19794327, and the cohort description (174 patients, 0–6 months, cardiac surgery with CPB,
+   Aug 2007–Jun 2008) matches the file's population description. No discrepancy. **Upgraded by
+   Round-3 (2026-08-03): this OR is now confirmed against the primary full text itself, where it
+   appears in the abstract, in Results and in the results table — no longer an abstract-only
+   confirmation.**
 4. **Davidson 2012 VIS48 cut-point of 10.5** — confirmed by independently fetching the full text
    of PMC4984395 directly (Table 4: "the discriminatory threshold was 10.5"), including the
    associated odds ratios (prolonged intubation OR 22.3 p=0.002; prolonged ICU stay OR 8.1
@@ -345,13 +385,15 @@ downgraded-risk but not resolved):**
    in a secondary search summary" — now seen in two independent secondary summaries with
    consistent detail). File updated to reflect this.
 
-**Could NOT be checked / remain exactly as flagged in the file (Gaies 2010 primary text
-inaccessible):**
+**Could NOT be checked as of 2026-07-25 (Gaies 2010 primary text inaccessible on that date):**
 
 10. **Exact Gaies 2010 numeric high/low VIS dichotomization cut-point** (the file's "~VIS_max
-    ≥ 20, unverified" note) — Gaies 2010 full text is paywalled (LWW journal page returned
-    HTTP 402; Memphis DigitalCommons repository page has abstract only). Remains
-    [NEEDS SOURCE] exactly as before, unchanged.
+    ≥ 20, unverified" note) — Gaies 2010 full text was paywalled (LWW journal page returned
+    HTTP 402; Memphis DigitalCommons repository page has abstract only), so this stayed
+    [NEEDS SOURCE] at the time. **SUPERSEDED by Round-3 (2026-08-03):** the primary was read, and
+    it shows the dichotomization is not a single cut-point at all but a five-group classification
+    with groups 4–5 combined into "high VIS". The only piece still unextracted is the per-group
+    numeric boundary table.
 11. **Per-drug plausible dose ceilings** (dopamine ~50, dobutamine ~40, epinephrine ~2, milrinone
     ~1.5, vasopressin ~0.01 units/kg/min, norepinephrine ~2, levosimendan ~0.2, phenylephrine
     ~10) — not independently checked against a pediatric dosing formulary in this pass; these
@@ -384,10 +426,11 @@ more than was actually obtained.
   2014 registry re-derivation (Reference 7) gives a **single flat threshold, max VIS ≥ 20 in the
   first 24 h, adjusted OR 6.5 (95% CI 2.9–14.6)**, on the same coefficients and still without
   phenylephrine. The implementation now quotes that pairing, because a threshold and an effect
-  size are only interpretable together. **The 2010 OR 8.1 (95% CI 3.4–19.2) came from a DUAL
-  threshold (≥ 20 in the first 24 h OR ≥ 15 in the next 24 h), reconstructed from a peer-reviewed
-  paraphrase — the Gaies 2010 full text remains paywalled and was NOT read.** That limitation is
-  stated in the score's own notes, not just here.
+  size are only interpretable together. _(As written in round 2, this bullet went on to state that
+  the 2010 OR 8.1 came from a two-number dual threshold reconstructed from a peer-reviewed
+  paraphrase, the 2010 full text being paywalled and unread. **Both halves of that are superseded
+  by Round-3 below**: the primary was subsequently obtained and read on the same date, and it
+  describes a five-group classification rather than a two-number rule.)_
 - **Per-drug maximum plausible doses — SETTLED-ABSENT.** Item 11 above is superseded: none are
   published. This is a confirmed negative rather than a search that has not finished, so the
   ceilings are now labelled a local convention instead of [NEEDS SOURCE]. The numbers themselves
@@ -399,3 +442,50 @@ more than was actually obtained.
 
 **Corrections to computed values in this round: none.** VIS returns exactly the number it
 returned before; every change was to what the score says about itself.
+
+### Round-3 primary-text acquisition (2026-08-03, after round 2)
+
+**This is the current state for anything concerning Gaies 2010.** It supersedes item 10 of the
+2026-07-25 pass and the second half of round 2's dichotomization bullet.
+
+**Provenance: read directly from the source PDF, 2026-08-03.** The Gaies 2010 full text
+(_Pediatr Crit Care Med_ 2010;11(2):234–238, DOI 10.1097/PCC.0b013e3181b806fc) was supplied as a
+primary PDF, extracted, and read. This is a primary-text reading, **not** a secondary review
+finding and not an abstract fetch — that distinction is the entire point of this round, because
+every prior statement in this file about the 2010 dichotomization was paraphrase-derived.
+
+Confirmed directly from the primary text:
+
+1. **Adjusted OR 8.1 (95% CI 3.4–19.2, p < 0.001)** for a poor outcome in the high-VIS group
+   relative to the low-VIS group, after adjustment. Present in three places: the abstract, the
+   Results narrative, and the results table.
+2. **Five-group classification with a two-period assignment rule.** A patient is assigned to the
+   "highest classification group achieved" (short quoted phrase, Gaies et al. 2010) during either
+   the first or the subsequent 24-hr period. The paper's own illustration: maximum IS 22 in the
+   first 24 hr and 14 in the subsequent 24 hr → group 4.
+3. **Groups 4 and 5 were combined** to form the "high VIS" arm compared against low VIS.
+4. **Anchor of the scheme.** Patients on infusions at dosages that would produce a VIS of
+   approximately 15 were set as the midpoint of the classification for the first 24 hr, with most
+   patients expected to be on lower doses during the second 24 hr.
+
+**Residual gap after this round — deliberately narrow:**
+
+- **The exact per-group numeric VIS cut-points were NOT extracted.** The paper's two-column PDF
+  text layer scrambles that table on extraction. The boundaries are therefore **not recorded in
+  this file and not encoded anywhere in the implementation**, and must not be back-inferred from
+  the approximately-15 midpoint or from the group-4 illustration. Closing this needs the printed
+  table read from the page image, not another text extraction.
+
+**What did NOT change, and why the implementation still quotes Gaies 2014:** reading the 2010
+primary does not make its OR usable at the bedside, because the rule it belongs to is a five-group
+two-period classification whose boundaries we cannot state. A threshold and an effect size only
+mean something together, so the score continues to surface the **Gaies 2014** pairing — maximum
+VIS ≥ 20 in the first 24 h, adjusted OR 6.5 (95% CI 2.9–14.6) — which a bedside reader can
+actually apply. The 2010 figures are recorded for contrast and correct attribution.
+
+**Corrections to computed values in this round: none.** VIS is arithmetically unchanged. The
+change is one of provenance: an attribution moved from paraphrase to primary, and one narrowly
+scoped extraction gap replaced a much broader "not read" caveat.
+
+**No published descriptor prose was reproduced.** The only verbatim material carried over from the
+2010 paper is the short phrase quoted and attributed in point 2 above.

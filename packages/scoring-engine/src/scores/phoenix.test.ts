@@ -142,6 +142,39 @@ describeScore(phoenix, (ctx) => {
     { inputId: "age_months", code: "out-of-range" },
   );
 
+  /**
+   * THE AGE CEILING IS EXCLUSIVE OF 216 MONTHS, AND 215 IS NOT THE LAST VALUE.
+   *
+   * The criteria are "children under 18 years", so the eligible domain is the
+   * half-open [0, 216) months. Until v2.1.0 this was declared `max: 215`,
+   * because the shared numeric type had only an inclusive maximum: correct for
+   * whole months, but it also refused 215.5 — a real age the criteria admit,
+   * two weeks short of the eighteenth birthday.
+   *
+   * `boundaryTest` above proves that something just under the ceiling computes
+   * and that the ceiling itself rejects. It cannot prove the ceiling is 216
+   * rather than 215, which is the whole point of the change, so these pin the
+   * boundary from both sides at the values a clinician would actually enter.
+   */
+  it("accepts the final month of eligibility and rejects exactly 216 months", () => {
+    for (const months of [215, 215.5, 215.999]) {
+      const outcome = phoenix.compute({
+        ...requiredBase,
+        age_months: { value: months, unit: "months" },
+      });
+      expect(outcome.ok, `${months} months is under 18 years and must compute`).toBe(true);
+    }
+
+    const at216 = phoenix.compute({ ...requiredBase, age_months: { value: 216, unit: "months" } });
+    expect(at216.ok, "exactly 18.0 years is outside the criteria").toBe(false);
+    if (!at216.ok) {
+      const err = at216.errors.find((e) => e.inputId === "age_months");
+      expect(err?.code).toBe("out-of-range");
+      // The message must not name 216 as acceptable, nor 215 as the last value.
+      expect(err?.message).toBe("Age must be at least 0 and less than 216 months.");
+    }
+  });
+
   ctx.rejectsImplausible(
     "an implausibly high lactate",
     {

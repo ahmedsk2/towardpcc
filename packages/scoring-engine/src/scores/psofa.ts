@@ -65,16 +65,24 @@ function respiratoryFromPf(pf: number, support: boolean): number {
 /**
  * Respiratory subscore from the SpO₂:FiO₂ ratio.
  *
- * THE OVERLAP AT 264 IS IN THE SOURCE, NOT IN US. JAMA Pediatr Table 1 prints
- * the bands as ≥292 / 264–291 / 221–264 / 148–220 / <148, so the value 264 is
+ * THE OVERLAP AT 264 IS IN THE SOURCE, NOT IN US — read directly from the
+ * published table, 2026-08-03 (primary PDF of Matics & Sanchez-Pinto, JAMA
+ * Pediatr 2017;171(10):e172352; psofa.md Verification round 3). Not a review
+ * finding: the row prints 292 / 264–291 / 221–264 / 148–220 / <148, so 264 is
  * the lower bound of the subscore-1 row AND the upper bound of the subscore-2
  * row. The published table assigns an exact 264 to both rows at once, which
  * leaves no reading of it that avoids a tie-break.
  *
+ * 220, by contrast, is printed ONCE — it ends the subscore-3 row and the next
+ * row begins at 221 — so it needs no tie-break and deliberately gets none
+ * below. (A round-1 secondary re-extraction claimed 220 was duplicated too;
+ * the direct read shows it is not.)
+ *
  * Ours is the worst-value rule — an exact 264 scores 2 — chosen because every
  * other pSOFA subscore takes the worst qualifying value in the window. That
- * choice is this implementation's, documented rather than derived: the paper
- * states no tie-break (psofa.md Limitations).
+ * choice is this implementation's, documented rather than derived, and the
+ * upgraded provenance above does not change it: the paper still states no
+ * tie-break (psofa.md Limitations).
  *
  * Subscores 3–4 require respiratory support; otherwise capped at 2.
  */

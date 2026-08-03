@@ -156,7 +156,8 @@ Below the inputs, four tabbed panels rather than four stacked prose sections:
 3. **Evidence** — the full result→meaning lookup table, plus every reference
    with PMID/DOI links and the editorial note on why that source matters.
 4. **Version and changelog** — validation status, version, and what changed
-   when, including whether a change was a formula correction or a clarification.
+   when, including whether a change was a formula correction, a clarification,
+   or the withdrawal of an output the calculator used to show.
 
 **Design reasoning, item by item:**
 

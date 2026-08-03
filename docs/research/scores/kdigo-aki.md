@@ -5,6 +5,8 @@
 > Every numeric threshold on this page was taken from a source actually fetched and cross-checked across three independent reproductions of KDIGO Table 2: (a) the peer-reviewed reproduction in _Kidney Int_ (PMC3877708, "Reading between the (guide)lines"), (b) the Merck Manual Professional staging table, and (c) the QxMD/Medscape KDIGO AKI calculator. All three agreed value-for-value. The pediatric eGFR branch and its controversy were additionally cross-checked against a pediatric-optimization review (PMC12805013). The pediatric eGFR equation (bedside Schwartz) comes from Schwartz GJ et al., _J Am Soc Nephrol_ 2009 (PMID 19158356). No value here is inferred or invented.
 >
 > **2026-08-03 revision (score v2.0.0).** The urine-output axis, the duration handling, the indeterminate/floor policy and the age gate on the eGFR branch were rewritten against a review note taken directly from the retrieved primary guideline PDF (see reference 1 for exactly which pages). Anything cited to a page number below comes from that reading. The **corrected** structure of Table 2's urine-output rows — four (rate, duration) pairs, evaluated independently — is the substantive change: the reproductions used in the first pass are laid out as a rate ladder, which is how the v1.0.0 implementation came to branch on rate first.
+>
+> **2026-08-03 revision (score v3.0.0).** The **≥4.0 mg/dL route to Stage 3** is no longer applied standalone. It was carried through v2.0.1 as a disclosed deviation with the resolution deferred; a literature review (reference 9, Cooper 2021) closed the question it was waiting on — what to do when no baseline creatinine exists — and the deviation is now fixed rather than documented. See **Step 1a**. The same review is the source for the baseline-surrogate guidance in Limitations, and for the decision **not** to implement any back-calculated baseline.
 
 ## Formula / algorithm (exact — every coefficient and branch)
 
@@ -27,6 +29,26 @@ If none are met, there is no AKI and no stage is assigned.
 | **1** | SCr **1.5–1.9 × baseline** (within prior 7 days) **OR** SCr increase **≥0.3 mg/dL (≥26.5 µmol/L)** within 48 h                                                                                                           |
 | **2** | SCr **2.0–2.9 × baseline**                                                                                                                                                                                               |
 | **3** | SCr **3.0 × baseline** **OR** increase in SCr **to ≥4.0 mg/dL (≥353.6 µmol/L)** **OR** **initiation of renal replacement therapy (RRT)** **OR** — **in patients <18 years — decrease in eGFR to <35 mL/min per 1.73 m²** |
+
+### Step 1a — the ≥4.0 mg/dL route is conditional, and the condition needs a baseline
+
+Note the wording of the Stage 3 cell: **"increase in SCr to ≥4.0 mg/dL"**, not "SCr ≥4.0 mg/dL". The Chapter 2.1 rationale (p. 21) makes the implicit explicit — the patient must **first** satisfy the Rec 2.1.1 definition (≥0.3 mg/dL rise within 48 h, **or** ≥1.5× baseline) before the absolute-creatinine route assigns Stage 3. This was a deliberate 2012 departure from AKIN's wording, described as bringing definition and staging into parity. **A chronically elevated creatinine that never rose is not Stage 3 AKI; it is not AKI.**
+
+Applying it standalone therefore **over-stages** — a child with CKD sitting at 4.6 mg/dL is called Stage 3. But gating it strictly **under-stages**, and worse: the condition can only be tested against a baseline, and a baseline is the input most often missing. Strict gating returns **Stage 0** for every patient entered without one, and in a PICU that is the more dangerous direction by a wide margin.
+
+**Resolution (v3.0.0) — three cases, only the third a compromise:**
+
+| Baseline entered? | Rec 2.1.1 met? | SCr ≥4.0 mg/dL result                                      | `stage_is_floor` |
+| ----------------- | -------------- | ---------------------------------------------------------- | ---------------- |
+| yes               | yes            | **Stage 3**, settled — the guideline's own reading         | 0                |
+| yes               | no             | route does **not** fire; ratio/rise criteria stand alone   | 0                |
+| **no**            | unassessable   | **Stage 3**, reported as a **bound**, not a classification | **1**            |
+
+The third row is Table 10's answer applied to the absolute-creatinine route: KDIGO records a case whose **reference creatinine cannot be established** with a bound rather than a stage (Step 3a). It neither withholds a stage the entered value supports nor asserts a definition that was never assessed, and the flag is what tells a reader holding a prior value that entering it will change the answer.
+
+**A patient already Stage 3 by a settled route is not flagged** — RRT, eGFR <35 under 18 y, ≥3.0× baseline, or a closed Stage-3 urine-output row all settle the answer on their own, and flagging those would be false caution of exactly the kind Step 3a rules out.
+
+**Directionality of the flag, stated plainly.** On the urine-output axis the flag means the true stage may be **higher**; here it means the true stage may be **lower** (a baseline showing no rise removes the AKI entirely). One output carries both because to a reader they mean the same thing — _this is a bound, a missing input would change it_ — and the score's output label was reworded from "lower bound" to "not settled" at v3.0.0 so it is not false in the new case. A reader who needs the direction has it from which input is blank.
 
 ### Step 2 — Urine-output axis
 
@@ -54,7 +76,7 @@ A rate alone is non-identifying across the full range of the scale:
 | 0.4 mL/kg/h | No AKI | Stage 1 | Stage 2 | Stage 2 (never reaches 3) |
 | 0.2 mL/kg/h | No AKI | Stage 1 | Stage 2 | Stage 3                   |
 
-The rate does constrain the **ceiling** — 0.4 mL/kg/h can never reach Stage 3, because row 3 needs <0.3 — but it does not give a stage. KDIGO supplies no duration-unknown rule: Chapter 2.1's Research Recommendations (p. 22) state it is **not currently known how the urine-volume criteria should be applied** at all (whether the threshold means an average or a persistent reduction across the window). Chapter 2.4 is generous with defaults for missing data, but **only on the creatinine axis** (MDRD back-calculation from an assumed baseline eGFR of 75; lowest in-hospital SCr as reference). The urine-output axis receives none of it.
+The rate does constrain the **ceiling** — 0.4 mL/kg/h can never reach Stage 3, because row 3 needs <0.3 — but it does not give a stage. KDIGO supplies no duration-unknown rule: Chapter 2.1's Research Recommendations (p. 22) state it is **not currently known how the urine-volume criteria should be applied** at all (whether the threshold means an average or a persistent reduction across the window). Chapter 2.4 is generous with defaults for missing data, but **only on the creatinine axis** (MDRD back-calculation from an assumed baseline eGFR of 75; lowest in-hospital SCr as reference — and see Limitations for how badly the first of those two performs on validation). The urine-output axis receives none of it.
 
 Assuming the shortest qualifying window systematically **under-stages** (the dangerous direction in a PICU); assuming the longest **over-stages**. Either way a duration the user never entered is fabricated and a KDIGO stage the guideline does not support is asserted.
 
@@ -96,25 +118,25 @@ It is **not** flagged when the open rows could not change the answer — a rate 
 
 Implemented inputs (what the calculator asks for):
 
-| id             | label                             | type        | required | units          | conversions                                                                         | plausible min/max                                                                                                                   |
-| -------------- | --------------------------------- | ----------- | -------- | -------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `age`          | Age                               | number      | **yes**  | years          | months ÷ 12; days ÷ 365.25                                                          | 0 – 120 validity guardrail. Must extend past 18 so the eGFR branch can be gated rather than assumed (KDIGO Table 2)                 |
-| `scr`          | Current serum creatinine          | number      | **yes**  | mg/dL          | µmol/L → mg/dL: ÷ 88.4 (1 mg/dL = 88.4 µmol/L)                                      | ~0.1 – 15 physiologic; pediatric normal is age-dependent and low [precise pediatric norms NEEDS SOURCE — not in KDIGO Table 2]      |
-| `scr_baseline` | Baseline serum creatinine         | number      | no       | mg/dL          | µmol/L → mg/dL: ÷ 88.4                                                              | age-dependent; used for the ×-baseline multipliers (KDIGO 2.1.2) and the ≥0.3 mg/dL rise                                            |
-| `urine_output` | Urine output (rate)               | number      | no       | mL/kg/h        | —                                                                                   | rate 0 – ~10 mL/kg/h physiologic; compared against the 0.5 / 0.3 mL/kg/h row rates (KDIGO Table 2)                                  |
-| `uo_duration`  | How long that rate was sustained  | categorical | no       | —              | —                                                                                   | `under-6h`, `6-to-under-12h`, `12h-or-more`, `24h-or-more` — the Table 2 windows, banded (see Step 2a)                              |
-| `anuria`       | Anuria                            | boolean     | no       | —              | no rate is invented for it (no numeric definition exists to use — confirmed absent) | own Table 2 row (≥12 h ⇒ Stage 3) and, as the absence of urine is necessarily <0.5 mL/kg/h, rows 1–2 as well (6 to <12 h ⇒ Stage 1) |
-| `egfr`         | Estimated GFR (bedside Schwartz)  | number      | no       | mL/min/1.73 m² | eGFR = 0.413 × height(cm) ÷ SCr(mg/dL)                                              | 1 – 200 guardrail; <35 threshold applies **only if age <18 y**; Schwartz bedside model validated ~1–16 yr (PMID 19158356)           |
-| `rrt`          | Renal replacement therapy started | boolean     | no       | —              | —                                                                                   | true ⇒ Stage 3 regardless of SCr/UO (KDIGO Table 2)                                                                                 |
+| id             | label                             | type        | required | units          | conversions                                                                         | plausible min/max                                                                                                                                                                                                                             |
+| -------------- | --------------------------------- | ----------- | -------- | -------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `age`          | Age                               | number      | **yes**  | years          | months ÷ 12; days ÷ 365.25                                                          | 0 – 120 validity guardrail. Must extend past 18 so the eGFR branch can be gated rather than assumed (KDIGO Table 2)                                                                                                                           |
+| `scr`          | Current serum creatinine          | number      | **yes**  | mg/dL          | µmol/L → mg/dL: ÷ 88.4 (1 mg/dL = 88.4 µmol/L)                                      | ~0.1 – 15 physiologic; pediatric normal is age-dependent and low [precise pediatric norms NEEDS SOURCE — not in KDIGO Table 2]                                                                                                                |
+| `scr_baseline` | Baseline serum creatinine         | number      | no       | mg/dL          | µmol/L → mg/dL: ÷ 88.4                                                              | age-dependent; drives the ×-baseline multipliers (KDIGO 2.1.2), the ≥0.3 mg/dL rise, and the Rec 2.1.1 gate on the ≥4.0 mg/dL route (Step 1a). With no prior value: use the **lowest creatinine measured during the admission** (reference 9) |
+| `urine_output` | Urine output (rate)               | number      | no       | mL/kg/h        | —                                                                                   | rate 0 – ~10 mL/kg/h physiologic; compared against the 0.5 / 0.3 mL/kg/h row rates (KDIGO Table 2)                                                                                                                                            |
+| `uo_duration`  | How long that rate was sustained  | categorical | no       | —              | —                                                                                   | `under-6h`, `6-to-under-12h`, `12h-or-more`, `24h-or-more` — the Table 2 windows, banded (see Step 2a)                                                                                                                                        |
+| `anuria`       | Anuria                            | boolean     | no       | —              | no rate is invented for it (no numeric definition exists to use — confirmed absent) | own Table 2 row (≥12 h ⇒ Stage 3) and, as the absence of urine is necessarily <0.5 mL/kg/h, rows 1–2 as well (6 to <12 h ⇒ Stage 1)                                                                                                           |
+| `egfr`         | Estimated GFR (bedside Schwartz)  | number      | no       | mL/min/1.73 m² | eGFR = 0.413 × height(cm) ÷ SCr(mg/dL)                                              | 1 – 200 guardrail; <35 threshold applies **only if age <18 y**; Schwartz bedside model validated ~1–16 yr (PMID 19158356)                                                                                                                     |
+| `rrt`          | Renal replacement therapy started | boolean     | no       | —              | —                                                                                   | true ⇒ Stage 3 regardless of SCr/UO (KDIGO Table 2)                                                                                                                                                                                           |
 
 Quantities the clinician derives before entering (not asked for directly): body **weight** and **urine volume over an interval**, since UO (mL/kg/h) = volume ÷ weight ÷ hours; **height**, for the bedside Schwartz eGFR; and the **SCr rise over 48 h**, which the implementation approximates as (current − baseline) rather than a timed delta.
 
 Outputs:
 
-| id               | meaning                                                                                                                                       |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `kdigo_stage`    | integer 0–3 — the highest stage that is CERTAIN across both axes                                                                              |
-| `stage_is_floor` | 1 when the urine-output axis is unresolvable and could still raise the stage; read `kdigo_stage` as "≥" (KDIGO Chapter 2.4 Table 10 notation) |
+| id               | meaning                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kdigo_stage`    | integer 0–3 — the highest stage the entered data supports (the highest CERTAIN stage, raised to 3 by an un-baselined SCr ≥4.0 mg/dL)                                                                                                                                                                                                                                |
+| `stage_is_floor` | 1 when the stage is a **bound rather than a final answer** — either the urine-output axis is unresolvable and could raise it (read `kdigo_stage` as "≥", KDIGO Chapter 2.4 Table 10 notation), or SCr ≥4.0 mg/dL carried it to 3 with no baseline to assess Rec 2.1.1 against, which a baseline could take back (Step 1a). 0 whenever some route settles the answer |
 
 **Conversion notes.** Creatinine SI↔conventional: divide µmol/L by 88.4 for mg/dL (KDIGO Table 2 itself lists both, e.g., 0.3 mg/dL = 26.5 µmol/L [Merck reproduction: 26.52], 4.0 mg/dL = 353.6 µmol/L [Merck: 353.60]). Urine output must be converted to **mL/kg/h** before applying thresholds; the per-kilogram indexing is what makes the adult table valid for children.
 
@@ -214,6 +236,39 @@ Same as H but with a creatinine axis already at Stage 2 (baseline 0.4, current 1
 
 Inputs: UO 0.2 mL/kg/h, band `12h-or-more`; SCr axis not staging. Row 2 is satisfied (Stage 2, certain). Row 3 needs ≥24 h, which the band neither establishes nor excludes, so the ceiling is Stage 3 → **"≥ Stage 2"**. Selecting `24h-or-more` closes it and settles the answer at Stage 3.
 
+### Example K — the ≥4.0 mg/dL route with the definition established
+
+Inputs: age 5 y; baseline SCr 4.5 mg/dL; current SCr 4.9 mg/dL; UO axis not staging.
+
+| Step              | Computation                                                                 | Result      |
+| ----------------- | --------------------------------------------------------------------------- | ----------- |
+| SCr multiplier    | 4.9 ÷ 4.5 = **1.09×** → no ratio band                                       | 0           |
+| SCr absolute rise | 4.9 − 4.5 = **0.4 mg/dL** → meets ≥0.3 → Rec 2.1.1 **established**, Stage 1 | 1           |
+| ≥4.0 route        | 4.9 ≥ 4.0 **and** the definition is met → **Stage 3**                       | 3           |
+| **Final**         | **Stage 3, settled** (`stage_is_floor` = 0)                                 | **Stage 3** |
+
+The ratio never reaches any band here, so the absolute-creatinine route is the **only** thing producing Stage 3 — the case fails if the gate is applied too broadly.
+
+### Example L — the chronic elevation this release stops over-staging
+
+Inputs: age 8 y (CKD); baseline SCr 4.5 mg/dL; current SCr 4.6 mg/dL; UO axis not staging.
+
+| Step              | Computation                                                     | Result      |
+| ----------------- | --------------------------------------------------------------- | ----------- |
+| SCr multiplier    | 4.6 ÷ 4.5 = **1.02×** → no ratio band                           | 0           |
+| SCr absolute rise | 4.6 − 4.5 = **0.1 mg/dL** → below ≥0.3                          | 0           |
+| Rec 2.1.1         | not met on any criterion → **no AKI**                           | —           |
+| ≥4.0 route        | gated off — an increase _to_ ≥4.0 requires the definition first | —           |
+| **Final**         | **Stage 0, settled** (`stage_is_floor` = 0)                     | **Stage 0** |
+
+Through v2.0.1 this returned **Stage 3**. The baseline is present, so nothing is open and the flag stays 0 — this is a settled "not AKI", not an uncertain answer.
+
+### Example M — the same creatinine with no baseline: a bound, not a stage
+
+Inputs: age 5 y; current SCr 4.5 mg/dL; **no baseline**; UO axis not staging.
+
+Rec 2.1.1 cannot be assessed in either direction — this could be Example K's patient or Example L's. Withholding Stage 3 would under-stage the first; asserting it would over-stage the second. The implementation reports **Stage 3 with `stage_is_floor` = 1**: the highest stage the entered value supports, marked as a bound. Add RRT, or an eGFR of 30 in this 10-year-old, or anuria for ≥12 h, and the answer is settled by that route instead — **Stage 3 with the flag back at 0**.
+
 ## Interpretation bands (non-directive, with source)
 
 KDIGO AKI staging **is itself the interpretation** — the three stages are an ordinal severity classification, not a continuous score, and the guideline frames them as a basis for monitoring/management intensity rather than as a directive number.
@@ -234,6 +289,8 @@ There are **no additional numeric "cut-point" bands** beyond the three stages th
 6. **Pediatric optimization review of KDIGO AKI criteria.** PMC12805013. https://pmc.ncbi.nlm.nih.gov/articles/PMC12805013/ — documents the eGFR-branch controversy in young children and a proposed restriction to age >3 months; also describes a dynamic 7-day baseline-SCr convention. _(Source for pediatric caveats in Limitations.)_
 7. **KDOQI (Palevsky PM, et al.).** US Commentary on the 2012 KDIGO Clinical Practice Guideline for Acute Kidney Injury. _Am J Kidney Dis._ 2013;61(5):649–672. PMID: 23499048. DOI: 10.1053/j.ajkd.2013.02.349. https://www.ajkd.org/article/S0272-6386(13)00471-X/fulltext — national-society commentary confirming the KDIGO definition/staging. _(Fetch returned 403; cited for provenance, not for any unique number here.)_
 
+8. **Cooper DJ, Plewes K, Grigg MJ, Patel A, Rajahram GS, William T, Hiemstra TF, Wang Z, Barber BE, Anstey NM.** An Evaluation of Commonly Used Surrogate Baseline Creatinine Values to Classify AKI During Acute Infection. _Kidney Int Rep._ 2021;6(3):645–656. PMID: 33732979. DOI: 10.1016/j.ekir.2020.12.020. PMCID: PMC7938202. — evaluated MDRD and CKD-EPI back-calculation, age/sex-standardised reference tables, and the lowest measured creatinine during admission against a creatinine measured at ≥7-day follow-up in 247 adults with _Plasmodium knowlesi_ malaria in Malaysian Borneo. _(Source for Step 1a's premise that a strict Rec 2.1.1 gate needs a defensible surrogate, and for the Limitations bullet on which surrogate to use. **Adult, single-infection cohort** — cited for the direction and magnitude of surrogate error, not as a pediatric norm. Retrieved via Europe PMC; PubMed itself returned a CAPTCHA on 2026-08-03.)_
+
 Lineage (not reproduced numerically): 8. **Akcan-Arikan A, et al.** Modified RIFLE criteria in critically ill children with acute kidney injury (**pRIFLE**). _Kidney Int._ 2007;71(10):1028–1035. PMID: 17396113. _(Predecessor pediatric AKI classification; not the source of any KDIGO threshold here — NEEDS SOURCE if pRIFLE-specific values are ever used.)_
 
 ## Limitations & notes
@@ -250,7 +307,8 @@ Lineage (not reproduced numerically): 8. **Akcan-Arikan A, et al.** Modified RIF
 - **KDIGO's own stated limits on the UO axis** (p. 22): it is less well validated than the creatinine criteria; clinical judgement about drugs (ACE inhibitors are the guideline's example), fluid balance and other factors is required; and in very obese patients the criteria may capture patients with normal urine output.
 - **Anuria has no numeric definition — CONFIRMED ABSENT (2026-08-03), not unfound.** There is none anywhere in Table 2 or the Chapter 2.1 rationale, and re-searching on 2026-08-03 established the stronger fact: **no single agreed nephrology definition of anuria exists** to borrow from outside the guideline either. The term is deliberately clinical, and that is the settled answer — **do not re-search this.** An implementation must therefore never derive a **rate** from an anuria flag; the current behaviour, which treats anuria as a clinical flag and gives it no millilitre figure, is now positively justified rather than merely cautious. It must equally not read that as "anuria satisfies no rate row": the absence of urine is necessarily below any positive cutoff, so anuria satisfies the <0.5 mL/kg/h rows by entailment and anuria for 6 to <12 h is Stage 1. The prohibition is on inventing a number, not on applying the inequality the word already guarantees.
 - **RRT overrides.** Initiation of RRT is Stage 3 by definition irrespective of SCr/UO; a platform should let an explicit RRT flag force Stage 3.
-- **The ≥4.0 mg/dL route to Stage 3 is not standalone in the guideline — and the implementation currently applies it as if it were.** The Chapter 2.1 rationale (p. 21) states the patient must _first_ satisfy the Rec 2.1.1 creatinine-change definition (≥0.3 mg/dL within 48 h, or ≥1.5× baseline); this was a deliberate 2012 change from AKIN's wording, described as bringing definition and staging into parity. `kdigo-aki.ts` applies `SCr ≥ 4.0 → Stage 3` to the entered creatinine on its own, which over-stages a chronically elevated creatinine. Gating it on Rec 2.1.1 would instead under-stage every case entered without a baseline (KDIGO's honest answer there is Table 10's "?", not Stage 0). **Deliberately unresolved as of v2.0.0** and disclosed in the score's `notes`; it is a clinical decision, not a code tidy-up. The behaviour is pinned by a test so a change cannot be silent.
+- **RESOLVED 2026-08-03 (v3.0.0) — the ≥4.0 mg/dL route to Stage 3 is now gated on Rec 2.1.1, with a floor where it cannot be assessed.** Carried through v2.0.1 as a disclosed deviation because gating it strictly would have under-staged every baseline-less entry. The three-case resolution is in **Step 1a** and worked through in Examples K, L and M; each case is pinned by a test, including a settled-Stage-3-by-another-route case that must _not_ be flagged. What unblocked it was not new guideline text but the surrogate-baseline evidence in the next bullet: once there is a defensible answer to "what do I enter when there is no prior creatinine", the gate stops being a trap.
+- **Surrogate baselines — what to use, and what KDIGO's own appendix gets wrong.** Cooper 2021 (reference 9) measured the common substitutes against a creatinine drawn at follow-up: **every method built on an assumed GFR of 75 mL/min/1.73 m² — which is what KDIGO's appendix suggests back-calculating from — missed more than half of all AKI.** Back-calculation with **CKD-EPI at an assumed GFR of 100** tracked overall incidence best but still misassigned stages. The **lowest creatinine measured during the admission** over-called AKI by roughly a fifth (sensitivity and specificity 85%, AUC 0.85) yet correlated with the reference value better than any estimate (r = 0.71, bias 0.05 mg/dL, precision 0.1 mg/dL); it missed 1 of 7 stage-3 patients. **The implementation therefore names the lowest admission creatinine as the surrogate to enter and implements no back-calculation at all** — MDRD and CKD-EPI need sex and race inputs this score does not collect, and race-based eGFR is contested in its own right, so manufacturing a baseline from a formula the calculator cannot properly feed would be worse than asking for a number. **The evidence is adult** (247 adults with _P. knowlesi_ malaria, Malaysian Borneo) and is cited for _why not to compute a baseline_, not as a pediatric norm. [NEEDS SOURCE for a pediatric surrogate-baseline validation — none found.]
 - **Timeframes are for diagnosis, not staging** (Chapter 2.4, pp. 30–31). A patient may be staged across the whole episode: a 50% SCr rise over 5 days reaching three-fold at 3 weeks is diagnosed as AKI and ultimately staged 3. There is no stipulation that the 48-hour or 7-day window be the first of the admission.
 - **Laboratory error and inter-laboratory bias ("pseudo-AKI")** should be considered; KDIGO advises repeating suspicious results (Chapter 2.4, p. 31).
 - **Single guideline, evolving evidence.** This file encodes the 2012 KDIGO criteria (the current standard); newer AKI biomarker/subphenotype work is out of scope for this source-of-record file.

@@ -542,11 +542,18 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
    * WHOLE POINT OF THIS TEST.
    *
    * "[NO SOURCE]" reads as an unfinished search and invites the next reader to
-   * repeat it. Each of these five was searched and established not to exist —
-   * there is no controlled derivation of the 8-h/16-h split, no derivation of any
-   * maintenance weight threshold, no study fixing the paediatric urine-output
-   * goal, no paediatric ABA CPG, and no head-to-head outcome trial of the three
-   * formulas. Recording that as closed is what stops the work being redone.
+   * repeat it. Each of these five was searched and established not to exist — no
+   * human or paediatric re-derivation of the 8-h/16-h split and no guideline
+   * stating it, no derivation of any maintenance weight threshold, no study
+   * fixing the paediatric urine-output goal, no paediatric ABA CPG, and no
+   * head-to-head outcome trial of the three formulas. Recording that as closed
+   * is what stops the work being redone.
+   *
+   * GAP 1 IS NARROWED, AND THE REGEX BELOW IS WHAT HOLDS IT NARROW. It used to
+   * read "the derivation of the 8-h/16-h split", which was false — Baxter &
+   * Shires 1968 derives it, in dogs. Only the human, paediatric and
+   * guideline-level evidence is absent, so the topic is asserted in its narrowed
+   * wording: a future edit widening it back to the whole topic fails here.
    *
    * What must NOT happen is the opposite error: a later edit deleting the
    * markers entirely, which would leave the page implying these numbers are
@@ -556,7 +563,7 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
    */
   it("records all five gaps as SETTLED-ABSENT rather than as unfinished searches", () => {
     for (const topic of [
-      /8-h\/16-h split/,
+      /HUMAN or PAEDIATRIC re-derivation of the 8-h\/16-h split/,
       /20, 30 or 40 kg/,
       /optimal (paediatric )?hourly (urine-output )?goal|optimal hourly urine-output goal/i,
       /paediatric equivalent of the ABA CPG|no paediatric equivalent/i,
@@ -575,12 +582,90 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(notes).not.toContain("[NEEDS SOURCE]");
   });
 
-  it("keeps the one qualification the 8-h/16-h finding is owed", () => {
-    // Baxter & Shires 1968 was NOT read directly, so "absent from the original"
-    // rests on the secondary literature. Settled-absent PENDING that primary is
-    // the honest strength, and dropping the qualifier would overclaim.
+  /**
+   * THE CORRECTED CLAIM, PINNED IN BOTH DIRECTIONS.
+   *
+   * Up to v1.2.1 this page asserted the 8-h/16-h split was absent from the 1968
+   * Baxter & Shires original and derived nowhere. That was FALSE. The paper was
+   * obtained and read directly from the source PDF on 2026-08-03; p883 both
+   * states the split and reports it as the experimentally derived optimum.
+   *
+   * Three things have to hold together, and asserting only one of them would let
+   * the page drift back into a different wrong claim:
+   *
+   *  (1) the split is sourced to the 1968 primary and said to be derived there;
+   *  (2) the derivation's REACH is stated — dogs, 50% TBSA flame burn, plasma
+   *      volume and functional ECF, not a human outcome trial and not paediatric.
+   *      Part (1) without part (2) would overclaim in the opposite direction, and
+   *      that is the failure this half of the test exists to prevent;
+   *  (3) the residual gap survives, narrowed: no human re-derivation, nothing
+   *      paediatric, and no guideline-level statement.
+   *
+   * The old claim is also asserted GONE, in both of its spellings, so a stale
+   * sentence cannot sit alongside the correction telling the reader the opposite.
+   */
+  it("sources the 8-h/16-h split to Baxter & Shires 1968 and says it is derived there", () => {
     expect(notes).toMatch(/Baxter & Shires/);
-    expect(notes).toMatch(/NOT been read directly|not read directly/i);
+    expect(prose).toMatch(/1968/);
+    expect(notes).toContain("10.1111/j.1749-6632.1968.tb14738.x");
+    expect(notes, "the primary must be stated as read directly, not via a review").toMatch(
+      /READ DIRECTLY FROM THE SOURCE PDF|read directly from the source PDF/,
+    );
+    expect(notes).toMatch(/IS derived there|it IS derived/);
+
+    // The paper's own dose figures, as paraphrase — the evidence that it is in
+    // there at all rather than an assertion that it is.
+    expect(prose).toMatch(/16-20%/);
+    expect(prose).toMatch(/8-10%/);
+
+    // The reference must exist and be traceable by that DOI.
+    expect(
+      burnResuscitation.references.some(
+        (r) => "doi" in r && r.doi === "10.1111/j.1749-6632.1968.tb14738.x",
+      ),
+      "Baxter & Shires 1968 must be a cited reference, not just prose",
+    ).toBe(true);
+
+    // The old qualifier is gone: it said the primary had not been read, and it
+    // had. No spelling of it may survive.
+    expect(notes).not.toMatch(/not been read directly/i);
+    expect(notes).not.toMatch(/settled-absent pending/i);
+
+    // The old claim may still APPEAR — it has to, to be retracted — but only
+    // inside the retraction. So the retraction itself is what is asserted:
+    // named as wrong, and pinned to the versions that carried it, rather than
+    // the text being quietly reworded and the reader left never knowing.
+    expect(notes, "the previous claim must be named as wrong, not reworded away").toMatch(
+      /THAT WAS WRONG/,
+    );
+    expect(notes).toMatch(/v1\.2\.1/);
+    expect(notes).toMatch(/rather than quietly reworded/i);
+    // And the changelog entry that carries the correction must say so too.
+    const newest = burnResuscitation.changelog.at(-1);
+    expect(newest?.version).toBe(burnResuscitation.version);
+    expect(newest?.summary).toMatch(/CORRECTS A FALSE CLAIM/);
+  });
+
+  it("states the derivation's reach — canine, 50% TBSA, and not paediatric", () => {
+    expect(prose, "the species must be named").toMatch(/dogs|CANINE|canine/);
+    expect(prose).toMatch(/50% TBSA flame burn/);
+    expect(prose, "the endpoints must be named").toMatch(/plasma volume/i);
+    expect(prose).toMatch(/functional extracellular fluid/i);
+    expect(notes).toMatch(/not a human outcome trial/i);
+    expect(notes).toMatch(/nothing about it is paediatric|not paediatric/i);
+
+    // The two consequences that stop the 1968 paper being over-read: it fixes
+    // the SHAPE, not this score's coefficient, and its optimum ratio is not the
+    // 50/50 this score emits. The second is the load-bearing one — the score
+    // ships half, and the derivation's optimum was two-thirds.
+    expect(prose).toMatch(/PERCENT OF BODY WEIGHT|percent of body weight/);
+    expect(prose).toMatch(/two-thirds/);
+
+    // And the halving it is set against must still actually be what is emitted,
+    // or the caution describes a mismatch that no longer exists.
+    const out = outputsAt(25, 20);
+    const parkland = out.get("parkland_peds_24h_ml") ?? Number.NaN;
+    expect(out.get("parkland_peds_first8h_ml")).toBe(parkland / 2);
   });
 
   // ── The five new references must actually be there and be traceable ───────
@@ -591,6 +676,9 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
       expect(blob, `the ${name} source must be cited`).toContain(name);
     }
     for (const doi of [
+      // The 1968 primary, read directly — the reference that corrected the
+      // "absent from the original" claim this score carried until v1.3.0.
+      "10.1111/j.1749-6632.1968.tb14738.x",
       "10.1097/SLA.0000000000005166",
       "10.1016/j.burns.2020.04.013",
       "10.1007/s00431-024-05797-9",
@@ -608,7 +696,10 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
   });
 
   it("declares a caution for each rule the review states as a rule", () => {
-    expect(burnResuscitation.cautions).toHaveLength(5);
+    // Six since v1.3.0: the sixth carries the 8-h/16-h correction — the split is
+    // derived, in dogs, at a ratio this score does not use — to the calculator
+    // surface rather than leaving it in the notes only.
+    expect(burnResuscitation.cautions).toHaveLength(6);
     // Every caution is non-trivial and uniquely keyed.
     const keys = burnResuscitation.cautions?.map((c) => c.key) ?? [];
     expect(new Set(keys).size).toBe(keys.length);
