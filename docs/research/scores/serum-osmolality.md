@@ -238,20 +238,32 @@ physiologic reference range. Both are descriptive, not management directives.
   Some older references use a wider "normal" up to ~14–15; the task brief notes
   the < 10–14 range. There is genuine inter-source variation.
 - **The 10 cut-off is partly conventional, and the primary that shows this is
-  Hoffman et al. 1993** (PMID 8433417): measured in healthy subjects the normal
-  gap is **−2 ± 6 mOsm**, and the normal range spans about **−5 to +15 depending
-  on which equation is used**. Ten therefore sits near mean + 2 SD of a
+  Hoffman et al. 1993** (PMID 8433417, **n = 321**, abstract read 2026-08-04):
+  measured, the normal gap is **−2 ± 6 mOsm**, and across different equations the
+  gaps ranged about **−5 to +15**. Ten therefore sits near mean + 2 SD of a
   distribution that is **not centred on zero** — it is a statistical convention
   fitted to one formula, not a derived diagnostic cut-point.
+- **The reference band is wider than the ±6 summary suggests.** Secondary sources
+  render the same distribution as a **95% population range of about −14 to +10**.
+  That is arithmetically −2 ± 2 SD, so it agrees with Hoffman rather than
+  competing with him — and it makes the point sharper: **10 is the TOP of the
+  healthy range**, not a line drawn outside it. Provenance: the −14 to +10 figure
+  comes from secondary sources, not from the Hoffman abstract, and is labelled
+  that way in the implementation. **Our band boundary is unchanged at 10.**
 - **State the threshold with its use case (Lynd et al. 2008).** A gap threshold
   of 10 reached a **sensitivity and negative predictive value of 1** for
   identifying patients for whom **haemodialysis** was recommended. For
   identifying patients needing **antidotal therapy** the same threshold fell to
   **sensitivity 0.90 / NPV 0.85**. The threshold is not one number with one
   performance — quote the question it is answering.
-- **A normal gap does NOT exclude toxic alcohol ingestion.** Because individual
-  baseline gaps vary widely and can be negative, a clinically important rise can
-  still leave the gap < 10; early presentation before metabolism does the same. A
+- **A normal gap does NOT exclude toxic alcohol ingestion — and here is the
+  arithmetic, not just the assertion.** An individual's own true baseline may be
+  **negative**. A patient sitting at the bottom of the population range (about
+  −14) can acquire **more than 20 mOsm/kg** of unmeasured osmole and still
+  measure **+10** — at the cut-off rather than far above it. So a gap of +10, or
+  of 0, can already represent a large change _for that patient_, and the gap
+  cannot be read as a change score without a baseline nobody has. Early
+  presentation before metabolism leaves the gap low for a separate reason. A
   cut-off of 10 gives **high sensitivity but low specificity** and **should not
   be used in isolation** to admit, discharge, or exclude toxic-alcohol poisoning
   (Lynd et al. 2008). Measurement uncertainty of the gap is ≈ ±7 mOsm/kg (Choy 2016) — larger than one might expect.
@@ -293,10 +305,25 @@ for age.
   citation claimed for it. The alternative equation is **not** implemented: doing
   so would also require a potassium this score does not collect.
 
-These bands are **not pediatric-specific for the gap** — the osmolar-gap
-threshold and the additive formula are population-independent arithmetic; the
-pediatric literature (Ranadive & Rosenthal 2011, PMC9920940) is cited for the
-normal osmolality _range_ in children, which matches the adult range.
+**NO PAEDIATRIC OSMOLAR-GAP DATA EXISTS — settled absent (round-3, 2026-08-04).**
+
+This is stated at full strength because a paediatric platform is where it
+matters. The 10 mOsm/kg limit, the −2 ± 6 distribution beneath it and every
+performance figure attached to it (Lynd 2008) are **adult**. Searching did not
+merely fail to surface a paediatric osmolar-gap series; the absence is recorded
+as **settled**, so it is not an open task waiting on a better search.
+
+What that does and does not license:
+
+- It does **not** change the threshold. The additive arithmetic is
+  population-independent, and there is no paediatric number to prefer over 10.
+- It **does** change how the threshold is described. Earlier wording on this page
+  called the gap threshold itself "population-independent"; that conflated the
+  arithmetic (which is) with the cut-point's evidence (which is adult-only). The
+  implementation now separates the two and carries the absence as a `caution`.
+- The paediatric literature on this page (Ranadive & Rosenthal 2011, PMC9920940)
+  is cited for the normal osmolality **VALUE** in children, which matches the
+  adult range. It says nothing about the gap.
 
 **Implementation behaviour — ethanol-explained gaps.** When a measured ethanol is
 entered and the residual gap is negative under **both** divisors, the raw gap is
@@ -347,7 +374,11 @@ implementation choice; no source prescribes it. It changes no computed number.
 8. **Normal gap is not centred on zero; the 10 cut-off is ≈ mean + 2 SD:**
    Hoffman RS, Smilkstein MJ, Howland MA, Goldfrank LR. Osmol gaps revisited:
    normal values and limitations. _J Toxicol Clin Toxicol._ 1993;31(1):81–93.
-   PMID: **8433417**. (Normal gap −2 ± 6 mOsm; range ≈ −5 to +15 by equation.)
+   PMID: **8433417**. **n = 321**; normal gap −2 ± 6 mOsm; gaps ranged ≈ −5 to
+   +15 across equations. **Abstract read 2026-08-04** (full text not accessed).
+   The 95% population range of ≈ **−14 to +10** quoted alongside it is a
+   **secondary** rendering of this distribution (= −2 ± 2 SD), not a figure this
+   abstract prints — attributed as secondary wherever it appears.
 
 9. **Osmolality reference range 275–295 mOsm/kg (tertiary/grey, cite with a
    retrieval date):** StatPearls [Internet]. Treasure Island (FL): StatPearls
@@ -396,19 +427,24 @@ implementation choice; no source prescribes it. It changes no computed number.
 - **Requires a measured osmolality for the gap.** The calculated osmolality is
   fully deterministic from the panel; the _gap_ additionally needs an osmometer
   value the app cannot compute.
-- **Pediatric applicability.** The formula and gap threshold are
-  population-independent arithmetic; the normal osmolality _range_ in children
-  matches adults (280–295 mOsm/kg; Ranadive & Rosenthal 2011, corroborated by the
-  measured 285.8 ± 5.1 in PMC9920940). No pediatric-specific coefficient or
-  threshold change is warranted by the sources found — **but see the age caveat
-  above**: below 3 months the value should be measured rather than calculated,
-  and from 3 months to 2 years a different equation validated better. That is an
-  applicability limit, not a coefficient change.
+- **Pediatric applicability, split into its two halves.** The _arithmetic_ is
+  population-independent, and the normal osmolality _range_ in children matches
+  adults (280–295 mOsm/kg; Ranadive & Rosenthal 2011, corroborated by the
+  measured 285.8 ± 5.1 in PMC9920940). The _gap threshold's evidence_ is not:
+  **no paediatric osmolar-gap data exists at all — settled absent**, so 10 and
+  its performance figures are adult numbers applied to children unvalidated. No
+  pediatric-specific coefficient or threshold change is warranted, because there
+  is no paediatric number to prefer — **and see the age caveat above**: below
+  3 months the value should be measured rather than calculated, and from 3 months
+  to 2 years a different equation validated better. Both are applicability
+  limits, not coefficient changes.
 - **The 10 cut-off is a convention with a use case, not a diagnostic boundary.**
   Its performance depends on the question (haemodialysis vs antidotal therapy —
-  Lynd 2008), and the underlying normal distribution is centred at −2 ± 6, not 0
-  (Hoffman 1993). A negative gap is normal; a normal gap does not exclude
-  ingestion.
+  Lynd 2008), and the underlying normal distribution is centred at −2 ± 6, not 0,
+  spanning ≈ −5 to +15 by equation and ≈ −14 to +10 as a 95% population range
+  (Hoffman 1993 n = 321; the −14 to +10 rendering is secondary). A negative gap is
+  normal; a normal gap does not exclude ingestion, because a patient whose
+  baseline is −14 reaches only +10 after a rise of more than 20.
 - **Mannitol, glycerol, propylene glycol, isopropanol, sorbitol** and other
   low-MW infused/ingested osmoles also raise the gap — context matters.
 
@@ -497,3 +533,35 @@ against fetched primary sources.
   changed.
 - **Unchanged and still open:** the input-validation bounds remain engineering
   limits, still flagged [NEEDS SOURCE]. No source was asserted for them.
+
+### Round-3 sourcing pass — 2026-08-04
+
+**No computed number changed and no band boundary moved.** Everything in this
+pass is what the page SAYS about the numbers it already produced.
+Implementation version **1.2.0**.
+
+- **Reference range widened in description, not in code.** Hoffman 1993 now
+  carries **n = 321** and its full spread: −2 ± 6, ≈ −5 to +15 across equations
+  (both from the abstract, read 2026-08-04), plus the **secondary** 95%
+  population range of ≈ −14 to +10. The last of these is −2 ± 2 SD, which is why
+  it lands exactly on our cut-off: **10 is the top of the healthy distribution.**
+  Attribution is split in the implementation — the first two figures to Hoffman,
+  the third to secondary sources — because they came from different places.
+  The band stays `< 10` / `≥ 10`.
+- **"A normal gap does not exclude ingestion" now shows its working.** The claim
+  was already on the page; what it lacked was the mechanism. An individual's true
+  baseline may be **negative**, so a patient starting near −14 can gain more than
+  20 mOsm/kg and still measure only **+10** — at the cut-off, not beyond it. That
+  sentence is now in the normal band, the elevated band's framing, the caution
+  and the notes, sourced to Hoffman 1993 for the distribution and Lynd 2008 for
+  the not-in-isolation rule.
+- **NO PAEDIATRIC OSMOLAR-GAP DATA EXISTS — recorded as settled absent.** New
+  `caution`, so it renders beside the number rather than in prose below it. The
+  wording deliberately says the absence is settled rather than a search still
+  running: a reader should stop expecting a paediatric cut-point, not wait for
+  one. This also corrected a wording defect of our own — the page previously
+  described the gap THRESHOLD as "population-independent", which is true of the
+  arithmetic and false of the evidence.
+- **What was NOT changed:** the Smithline–Gardner coefficients, the ethanol
+  divisors, the ethanol-explained suppression rule, the osmolality reference
+  range, the age caveat, and the [NEEDS SOURCE] on the engineering input bounds.

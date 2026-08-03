@@ -10,16 +10,25 @@
 
 ## Provenance discipline
 
-Every numeric claim below carries one of three tags. This is the discipline of the source review
+Every numeric claim below carries one of five tags (three until 2026-08-04). This is the discipline of the source review
 this file was rebuilt from (`holliday-segar-maintenance-fluids-final.md`, 3 August 2026), and it
 is preserved verbatim in spirit because the whole point of this score is that the folklore around
 it is heavily mis-sourced.
 
-| Tag            | Meaning                                                               |
-| -------------- | --------------------------------------------------------------------- |
-| `[1957]`       | Attributable to Holliday & Segar 1957                                 |
-| `[LATER]`      | Added by subsequent guidance or convention, **not** in the 1957 paper |
-| `[UNVERIFIED]` | Not confirmed against a primary source                                |
+| Tag                | Meaning                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| `[1957]`           | Attributable to Holliday & Segar 1957                                                           |
+| `[LATER]`          | Added by subsequent guidance or convention, **not** in the 1957 paper                           |
+| `[UNVERIFIED]`     | Not confirmed against a primary source                                                          |
+| `[OURS]`           | **This project's implementation choice. No source states it** — added 2026-08-04                |
+| `[SETTLED-ABSENT]` | Searched and established **not to exist** — a stronger claim than "not found". Do not re-search |
+
+The last two tags were added on 2026-08-04 and they do different jobs. `[OURS]`
+marks a number this project picked, which is not the same thing as a number
+nobody has verified: `[UNVERIFIED]` says a source may exist and we have not
+checked it, `[OURS]` says we chose it and no source is being claimed.
+`[SETTLED-ABSENT]` marks a question that was asked of the literature and answered
+in the negative.
 
 **The single most important provenance fact on this page: the 1957 original was NOT read in
 full.** Everything tagged `[1957]` reaches us through the AAP 2018 guideline's direct citation of
@@ -158,6 +167,15 @@ daily figure is ever required, ESPNIC's 2000 mL/day is the most defensible for a
 (same group that sets the restriction percentages, and the most conservative) — but it would still
 be a choice among disagreeing sources, not a derived value.
 
+**No evidence-based daily ceiling exists `[SETTLED-ABSENT]`** (confirmed 2026-08-04). This is the
+stronger statement, and it is the reason the four figures above disagree: it is not that the
+literature contains a derived maximum this review failed to find, it is that **no daily maximum has
+ever been derived**. Every circulating figure is a guideline convention — one of them
+demonstrably a citation error, and one of them arithmetically 100 mL/h × 24 — and none is the
+output of a study that tested a ceiling against anything. Do not re-search this; the disagreement
+tabulated above **is** the state of the field. What follows for the implementation is unchanged:
+the daily volume ships uncapped and the disagreement is displayed.
+
 **Electrolyte companion values — per 100 kcal, NOT per kg `[1957]`.** AAP 2018, citing Holliday &
 Segar directly, states the final composition as **3 mEq sodium and 2 mEq potassium per 100 kcal
 metabolised**; **chloride 2 mEq/100 cal** comes from secondary summaries. Friedman & Ray (2008)
@@ -174,11 +192,40 @@ original prescription was hypotonic, and none of the three treats it as a defens
 
 The method takes a **single required input**: body weight.
 
-| id       | label       | type   | units | conversions                                                                                  | plausible min                       | plausible max                |
-| -------- | ----------- | ------ | ----- | -------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------- |
-| `weight` | Body weight | number | kg    | If entered in pounds, kg = lb ÷ 2.20462 (exact unit conversion). If in grams, kg = g ÷ 1000. | **4 kg** (scope floor, hard reject) | ~150 kg (validation ceiling) |
+| id       | label       | type   | units | conversions                                                                                  | plausible min                                | plausible max                |
+| -------- | ----------- | ------ | ----- | -------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------------------------- |
+| `weight` | Body weight | number | kg    | If entered in pounds, kg = lb ÷ 2.20462 (exact unit conversion). If in grams, kg = g ÷ 1000. | **4 kg** `[OURS]` (scope floor, hard reject) | ~150 kg (validation ceiling) |
 
-### Lower bound — 4 kg, and why it is a rejection rather than a warning
+### Lower bound — 4 kg is OURS, not anybody's threshold
+
+**Corrected 2026-08-04.** Before this date, this section presented 4 kg as the
+source review's recommendation, and the implementation's comments described it as
+"the review's recommendation". That framing gave a number a pedigree it does not
+have.
+
+**NO WEIGHT FLOOR FOR THIS METHOD IS CITABLE ANYWHERE `[SETTLED-ABSENT]`.** Every
+guideline scope read for this score sets the bottom of applicability by **AGE** —
+term birth, 28 days, over 28 days, or one month — and **not one of them states a
+weight below which the method should not be used**. There is no 3 kg threshold,
+no 4 kg threshold and no 5 kg threshold in any of them. The two figures that look
+like weight floors are not thresholds at all: ESPNIC's 2024 prescribing figure and
+RCH's 2026 table simply **start their bottom band at 3 kg**, which is where a
+table begins, not a rule about what must be refused. Neither states a rationale
+and neither says anything about 2.9 kg.
+
+**Therefore 4 kg is `[OURS]`: an implementation choice with no source behind it.**
+It is this project's decision, made for a stated reason and not from a citation.
+The reason stands on its own and is worth reading as a reason rather than as an
+authority: this score collects **weight only**, the guidelines exclude neonates by
+**age**, and a weight input cannot implement an age rule — so the score refuses in
+the region where the two populations overlap most and where being wrong is worst.
+4 kg is the number chosen for that refusal. A different team could defensibly pick
+3.5 or 5; nothing in the literature would contradict them, because the literature
+does not address the question.
+
+**What would replace it.** Collecting postnatal age. That is the only thing that
+implements the actual guideline scopes, and until it exists the weight guard is a
+proxy that this project selected — the honest label, and the one that now ships.
 
 **The commonly quoted boundaries are not traceable to 1957 `[UNVERIFIED]`.**
 
@@ -207,16 +254,18 @@ rarely analysed as a distinct group and extrapolation to them should be cautious
 **Why a weight guard cannot do this job.** A 3.2 kg term neonate on day 2 needs roughly
 **70–80 mL/kg/day** `[LATER]` (NICE day-of-life ladder, below), and weight alone cannot distinguish
 that infant from a well 3.2 kg two-month-old for whom 100 mL/kg/day is right. The two answers
-differ by about 25% at the same weight. The review's recommended behaviour is therefore: **require
-postnatal age; reject or hard-warn below 4 kg; flag 1–3 months for fluid-type caution; do not
-silently compute.**
+differ by about 25% at the same weight. The behaviour this project settled on is therefore:
+**require postnatal age where it can be had; reject below 4 kg; flag 1–3 months for fluid-type
+caution; do not silently compute.** That is a design decision of this project's, arrived at from the
+age-based scopes above — **it is not a recommendation any guideline makes**, and it must not be
+cited as one.
 
 This implementation does not collect postnatal age, so it takes the strictest available option: a
 **hard rejection below 4 kg**, plus a caution stating in terms that between 4 kg and roughly one
 month of postnatal age the tool is still out of scope and the number must not be used. 4 kg is a
-scope floor, not a physiologic threshold — it is the smallest weight at which a patient is unlikely
-to be a neonate, chosen because it is the review's recommendation and because everything below it
-is exactly the population five guidelines exclude.
+scope floor `[OURS]`, not a physiologic threshold and not a published one — it is a weight this
+project picked as one below which a patient is unlikely not to be a neonate, and everything below
+it is exactly the population five guidelines exclude by age.
 
 **NICE term-neonate rates `[LATER]` — the ladder this score does NOT implement:**
 
@@ -426,9 +475,32 @@ against hyponatraemia, and Leung concludes that **fluid type matters more than f
 **AAP concurs on that point:** the increased hyponatraemia risk with hypotonic fluid **persisted in
 the subgroup of patients who received fluid at a restricted rate**.
 
+**Neville 2010 is the trial that separates the two variables, and it is the citation this section
+needed** (added 2026-08-04). **Neville KA, et al. _J Pediatr_ 2010;156(2):313–319. PMID 19818450.**
+_(No title is given here. The reviewer supplied journal, volume, pages, PMID, design, population and
+conclusion but not the title, and a plausible-looking one is not invented to fill the slot.)_
+**Abstract read; full text not accessed.** 124 postoperative children, **2 × 2 factorial design**:
+0.9% versus 0.45% saline **crossed with** 100% versus 50% of the maintenance rate. That crossing is
+the point — it is the design that can attribute an effect to tonicity or to rate separately, which
+a single-arm restriction study cannot. **Verbatim conclusion: "The risk of hyponatremia was
+decreased by isotonic saline solution but not fluid restriction."**
+
+Note what this does and does not add. It does not overturn ESPNIC's restriction recommendation,
+which rests on fluid overload rather than on sodium; Neville is one of the three RCTs ESPNIC's
+PICO 5 already pools. What it adds is the **direct** evidence for the rule this score's text
+already stated on the strength of the AAP's subgroup observation and Leung's reading of Cochrane —
+a randomised comparison in which rate was varied independently of tonicity, and restriction did not
+protect. The rule is unchanged; it now has the trial behind it.
+
+**No 2016–2026 trial re-randomised RATE independently of tonicity `[SETTLED-ABSENT]`** (confirmed
+2026-08-04). Neville's 2 × 2 remains the design of record, from 2010. Nothing in the last decade
+repeated it, so the strongest available evidence on rate-versus-tonicity is fifteen years old and
+was not the primary question of a modern guideline's evidence base. Do not re-search this.
+
 **Therefore: restriction is defensible for avoiding fluid overload, and ESPNIC recommends it on
-that basis. It is NOT established as a substitute for correct tonicity. A calculator must not
-present restriction as hyponatraemia prophylaxis.** This is a hard content rule for this score's
+that basis. It is NOT established as a substitute for correct tonicity — and the one trial that
+randomised rate independently of tonicity found exactly that. A calculator must not present
+restriction as hyponatraemia prophylaxis.** This is a hard content rule for this score's
 user-visible text.
 
 **Brossier 2024 states the residual uncertainty:** there is currently no reliable way to predict
@@ -509,6 +581,15 @@ causative link between restriction strategies and reduced fluid overload remains
 12. **Chesney RW.** Commentary on Holliday & Segar. _Pediatrics._ 1998;102(Suppl 1):229–230.
     **DOI 10.1542/peds.102.S1.229. PMID 9651436.** — _Historical commentary; a distinct record from
     the 1957 original, not to be conflated with it._
+13. **Neville KA, et al.** _J Pediatr._ 2010;156(2):313–319. **PMID 19818450.** — _The 2 × 2
+    factorial RCT that varies fluid TYPE and fluid RATE independently: 124 postoperative children,
+    0.9% versus 0.45% saline crossed with 100% versus 50% of the maintenance rate. Verbatim
+    conclusion: "The risk of hyponatremia was decreased by isotonic saline solution but not fluid
+    restriction." **Abstract read; full text not accessed.** Added 2026-08-04 as the direct source
+    for the restriction-is-not-prophylaxis rule, which until then rested on the AAP's subgroup
+    observation and Leung's reading of Cochrane. **No title is recorded**: the reviewer supplied
+    everything except the title, and one is not invented here. Already present in this note
+    indirectly as one of ESPNIC's three pooled PICO 5 trials._
 
 **Not carried as a formal reference:** the **Be-PIV Belgian consensus** (Boret A, Blits M, Raes A,
 et al., _Belgian Journal of Paediatrics_), which is the point of entry for the 2400 mL/day citation
@@ -540,11 +621,20 @@ are implementation-specific.
 - Current guidance recommends infusing **less** than the calculated volume in most hospitalised
   children.
 - Any daily cap displayed is a **guideline convention, not a derived value**; current guidelines
-  give figures from **2000 to 2500 mL/day**.
+  give figures from **2000 to 2500 mL/day**. **No evidence-based daily ceiling exists at all**
+  `[SETTLED-ABSENT]`, confirmed 2026-08-04 — the disagreement is the field, not a gap in this
+  review.
 - **Restriction is recommended to avoid fluid overload. It is NOT established as a substitute for
-  correct tonicity in preventing hyponatraemia.**
+  correct tonicity in preventing hyponatraemia** — and the trial that varied rate independently of
+  tonicity (Neville 2010, 2 × 2, 124 children) concluded hyponatraemia risk fell with isotonic
+  saline "but not fluid restriction". **No 2016–2026 trial repeated that design**
+  `[SETTLED-ABSENT]`.
 
 Implementation-specific:
+
+- **The 4 kg floor is `[OURS]`.** No guideline states a weight below which this method must not be
+  used; every scope is set by age. The floor is this project's proxy for an age rule it cannot
+  implement from a weight input, and it is labelled as a choice on every surface that mentions it.
 
 - **Not a clinical device; estimate only.** It excludes deficit (dehydration) replacement and
   ongoing/abnormal losses (fever, vomiting, diarrhoea, drains, third-spacing), which are computed

@@ -603,7 +603,9 @@ Listed plainly. None of these is papered over, and none is a placeholder for a v
 3. **Pollack MM, Holubkov R, Funai T, et al.** _The Pediatric Risk of Mortality Score: Update 2015._ **Pediatr Crit Care Med.** 2016;17(1):2-9. **PMID: 26492059** · **DOI: 10.1097/PCC.0000000000000558.** PRISM IV — source of the subscore split and every coefficient in Table 3. Table 3 **obtained and reconciled 2026-08-03** via the author manuscript (PMC, nihms817698), p. 12. Its stated objective included placing the algorithms in the public domain.
 4. **Collaborative Pediatric Critical Care Research Network.** PRISM IV calculator (https://www.cpccrn.org/calculators/prismivcalculator/) and PRISM III calculator (`/prismiiicalculator/`) — the authors' own implementations. **Input and output sets read 2026-08-03**: PRISM III returns SCORE / NEUROLOGIC / NON-NEUROLOGIC and no mortality; PRISM IV's inputs match Table 3 one-to-one. **No case round-tripped; the constructed examples remain unreconciled.**
 5. **Alvarez Elias AC, et al.** _PRISM 4-C: An Adapted PRISM IV Algorithm for Children With Cancer._ **J Pediatr Hematol Oncol.** 2020;42(7):e563-e568. **PMID: 32986390.** Used **only** as structural corroboration of the PRISM IV two-weight form; contributes no threshold or coefficient to this page.
-6. Independent validation cohort corroborating the PRISM IV 4-hour collection window ("laboratory data from 2 hours prior to 4 hours after admission, and physiological data within 4 hours of admission were collected"): _Comparative Performance of Pediatric Risk of Mortality IV and Pediatric Index of Mortality 3 in Critically Ill Children with Cancer._ PMC12186081. Window corroboration only; contributes no threshold.
+6. **Alkhalifah AS, AlSoqati A, Zahraa J.** _Performance of paediatric mortality scores in a tertiary paediatric intensive care unit in Saudi Arabia._ **Front Pediatr.** 2022;10:926686. **DOI: 10.3389/fped.2022.926686.** King Fahad Medical City, Riyadh; **n = 3396**, children under 14. Verbatim conclusion: _"These models had sufficient discrimination ability and poor calibration… The worst calibration and discrimination were recorded for infants <12 months of age."_ **PRISM III** discriminated best in the **60–120-month** group (**AUC 0.87**). It evaluated **PRISM III, not PRISM IV.**
+7. **Malhotra D, Nour N, El Halik M, Zidan M.** _Performance of the Paediatric Index of Mortality 3 score in a tertiary paediatric ICU in Dubai._ **Dubai Med J.** 2019;3(1):19–25. **DOI: 10.1159/000505205.** **Full text read 2026-08-04.** A **PIM3** evaluation, cited on a PRISM page deliberately and labelled as such: Latifa Hospital, Dubai, **n = 583**, **46 deaths (7.9%)**. **Stable findings:** **AUC 0.78 (95% CI 0.69–0.87)**, **overall SMR 0.53** (over-prediction), **SMR 2.1 in sepsis** (under-prediction, uncontradicted). **Unstable, and carried as such:** its predicted-probability strata disagree — **SMR 2.67 in the 1–5% band** against **SMR 0.33 for p < 14.3% and 0.72 for p > 14.3%**, i.e. under- and over-prediction in the same low range depending on where the bands are cut. It is the second Gulf data point for the pattern this page states; it contributes no PRISM threshold, coefficient or statistic.
+8. Independent validation cohort corroborating the PRISM IV 4-hour collection window ("laboratory data from 2 hours prior to 4 hours after admission, and physiological data within 4 hours of admission were collected"): _Comparative Performance of Pediatric Risk of Mortality IV and Pediatric Index of Mortality 3 in Critically Ill Children with Cancer._ PMC12186081. Window corroboration only; contributes no threshold.
 
 ## Limitations & notes
 
@@ -619,6 +621,7 @@ Listed plainly. None of these is papered over, and none is a placeholder for a v
 - **Age bands differ between PRISM III and PRISM IV** and must never be unified. See the two tables above.
 - **The neonate heart-rate band rests on a source-defect resolution**, not a clean citation. Flagged in `[NEEDS SOURCE]` item 2.
 - **The mortality output is a population estimate off a specific window.** The calculator refuses to show a probability for a window whose model it cannot cite.
+- **REGIONAL CALIBRATION — where this platform actually deploys (added 2026-08-04).** A Riyadh PICU series (Alkhalifah 2022, **n = 3396**, under 14) evaluated paediatric mortality models and found **sufficient discrimination and poor calibration**, with the **worst calibration AND discrimination in infants under 12 months**; PRISM III discriminated best at **60–120 months (AUC 0.87)**. Part of the same shape is on record from Dubai for the neighbouring model — PIM3, **n = 583**, **AUC 0.78**, **overall SMR 0.53** while **under**-predicting **2.1 in sepsis** (Malhotra 2019). **What that study does NOT support is a claim about the low end of the probability scale**, because it cuts that range two ways and the cuts disagree: **SMR 2.67 in the 1–5% band** (under-prediction) against **SMR 0.33 for p < 14.3% and 0.72 for p > 14.3%** (over-prediction across the same range). One cohort of 583, opposite directions — a subgroup instability, so **both figures are carried here and neither is used to state a direction**. **The conclusion, which is what a reader needs:** discrimination travels between populations, **calibration frequently does not**, and the under-prediction that survives its own paper is the one in **sepsis** rather than one attached to any band of the probability scale. **Three limits stated with it.** Both series evaluated **PRISM III, not PRISM IV**, so **no regional evaluation of the model this calculator's probability comes from is claimed**; every Dubai figure is **PIM3's**; and neither model has been recalibrated for the region, so a PRISM IV probability here is an **uncalibrated** population estimate.
 
 ## Verification
 
@@ -683,6 +686,56 @@ A verification pass over the change above found three defects in it. All three a
 3. **`interpretationStatus: "pending"` asserted strata that do not exist.** **Fixed** to `not-applicable`; see [Interpretation bands](#interpretation-bands-non-directive-wording-with-source) and `[NEEDS SOURCE]` item 5.
 
 **Implementation version 2.1.0.** No threshold, age band, point value, subscore or coefficient moved in this pass either, and a fully answered 4-hour entry returns exactly the probability it returned before.
+
+### 2026-08-04 — round-3 pass: regional calibration
+
+**Nothing about the score or the model changed.** No threshold, age band, point
+value, subscore, coefficient or output moved; a fully answered 4-hour entry
+returns the same probability. Implementation version **2.2.0**. Two references
+added (Alkhalifah 2022, Malhotra 2019) and one paragraph added to `notes`.
+
+- **What was added.** The Riyadh PRISM III evaluation, and the Dubai PIM3
+  evaluation alongside it. Both are Gulf-region; this platform deploys there, so
+  these describe its own patients rather than a resource-profile proxy.
+- **Why a PIM3 study is cited on a PRISM page.** Because the finding that
+  generalises is the **pattern**, not the model: discrimination survives the move
+  between populations and calibration does not. Two independent regional series
+  showing the same shape is a stronger statement than one. It is labelled a PIM3
+  finding in the reference note, in `notes`, and in an assertion in
+  `prism.test.ts` — a later editor who drops the label will fail a test rather
+  than ship a mis-attribution. ⚠️ **This pass also asserted that the error lands
+  in the low-probability band; that half was withdrawn the same day — see
+  below.**
+- **What is deliberately NOT claimed.** No regional evaluation of **PRISM IV**.
+  Both series took PRISM III, and PRISM IV is the model that produces the
+  probability on this page. That distinction is stated in `notes` rather than
+  glossed, because reading regional validation into the displayed number would be
+  precisely the wrong inference to draw from these two studies.
+
+### 2026-08-04 — verification of the round-3 pass: one conclusion withdrawn
+
+**Nothing about the score or the model changed.** No threshold, age band, point
+value, subscore, coefficient or output moved; a fully answered 4-hour entry
+returns the same probability. Implementation version **2.2.1**, reason
+`clarification`. The correction is inherited from
+`docs/research/scores/pim3.md`, where the defect was found — the Dubai figures
+and the conclusion drawn from them had been propagated to this page.
+
+**The defect.** The pass above concluded that the regional under-prediction
+"sits in the low-probability band and in sepsis", resting the first half on
+Malhotra 2019's **SMR 2.67 in the 1–5% predicted-probability band**. The **same
+paper** reports **SMR 0.33 for p < 14.3% against 0.72 for p > 14.3%** —
+**over**-prediction across that same low range. Both figures are that one
+cohort of 583, stratified two ways, pointing in opposite directions. This page
+carried one and not the other.
+
+**The fix.** Both stratifications are now stated, in the reference note and in
+`notes`; the conclusion names only the **sepsis** under-prediction, which the
+paper does not contradict; and no direction is asserted for the low end of the
+scale. `prism.test.ts` pins all five figures (2.67, 1-5%, 14.3%, 0.33, 0.72)
+and replaces the assertion that pinned the withdrawn wording. The
+PIM3-not-PRISM attribution, the Riyadh figures and the "no regional evaluation
+of PRISM IV" limit are unchanged.
 
 **The transferable lesson**, and it is the second one this page has recorded: "verified against the patent" and "verified" are not the same claim. The patent was treated as a proxy for a paywalled paper for four review passes. It is a proxy for the parts the paper publishes. It is not a proxy for the parts the paper withholds — and the difference between those two categories is exactly where the uncitable number was hiding.
 

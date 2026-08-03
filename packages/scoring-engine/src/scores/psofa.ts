@@ -48,16 +48,48 @@ function ageBand(ageMonths: number): AgeBand {
 }
 
 /**
- * Respiratory subscore from the PaO₂:FiO₂ ratio. Subscores 3–4 require
- * respiratory support; a ratio in a 3/4 band without support is capped at 2
- * (the highest non-support band) — an implementation convention, NOT paper
- * text (psofa.md Limitations [NEEDS SOURCE]).
+ * Respiratory subscore from the PaO₂:FiO₂ ratio.
+ *
+ * THE NON-SUPPORT CAP IS STRUCTURALLY ENTAILED BY THE PUBLISHED TABLE, NOT AN
+ * INVENTION OF OURS (psofa.md Limitations; Verification rounds 4–5).
+ * Table 1 gates subscores 3 and 4 on RESPIRATORY SUPPORT — "with respiratory
+ * support" is the row condition it prints — and no band below 3 carries any
+ * support requirement at all. A patient who is not on respiratory support
+ * therefore cannot satisfy either criterion however low the ratio falls, and
+ * 2 — the highest band carrying no support requirement — is the only value
+ * left. The paper prints no sentence saying "cap at 2" because it does not need
+ * one; the cap follows from the criteria as published. It was carried as an
+ * unsourced claim through round 3 on the mistaken view that a rule the paper
+ * does not spell out must be ours; the marker was withdrawn as mis-attributed,
+ * not resolved by new evidence. Re-searching this cannot help.
+ *
+ * Note what that argument does and does not depend on: only on WHICH bands are
+ * gated, never on what counts as support. It therefore holds identically under
+ * either reading of the term below.
+ *
+ * WHAT COUNTS AS SUPPORT IS THE PART THE SOURCE LEAVES OPEN. Table 1 prints
+ * "with respiratory support" and never defines it, so this implementation's
+ * reading — invasive OR non-invasive support both satisfy the gate, which is
+ * what the `resp_support` input accepts — is ours, not the paper's. A narrower
+ * reading (invasive ventilation only) is not excluded by the source, and it
+ * would cap a child on non-invasive support alone at 2 where this code allows
+ * 3 or 4. It is disclosed in `notes` and on the field rather than marked
+ * [NEEDS SOURCE], because the gate itself IS sourced; what is unsourced would
+ * be any claim about which reading the authors intended, and none is made.
+ * Through v1.2.0 the comments, notes and research note all stated this gate as
+ * "mechanical ventilation" — narrower than both the printed table and the code
+ * underneath, which has always accepted non-invasive support. Corrected in
+ * v1.3.0; no computed subscore moved.
+ *
+ * Do NOT generalise the cap to sibling scores: `phoenix.ts` is built the
+ * opposite way, scoring an unsupported patient 0 on respiratory however low
+ * the ratio, with even 1 point requiring at least non-invasive support.
  */
 function respiratoryFromPf(pf: number, support: boolean): number {
   if (pf >= 400) return 0;
   if (pf >= 300) return 1; // 300–399
   if (pf >= 200) return 2; // 200–299
-  if (!support) return 2; // capping convention, not cited (psofa.md [NEEDS SOURCE])
+  if (!support) return 2; // 3/4 are gated on respiratory support, so an unsupported patient stops here
   if (pf >= 100) return 3; // 100–199 with support
   return 4; // <100 with support
 }
@@ -84,13 +116,17 @@ function respiratoryFromPf(pf: number, support: boolean): number {
  * upgraded provenance above does not change it: the paper still states no
  * tie-break (psofa.md Limitations).
  *
- * Subscores 3–4 require respiratory support; otherwise capped at 2.
+ * Subscores 3–4 are gated on respiratory support (invasive or non-invasive, as
+ * this implementation reads the table's undefined term); without it the ratio
+ * stops at 2, which the published table entails rather than this implementation
+ * choosing it — see `respiratoryFromPf` above for the reasoning, the reading,
+ * and the Phoenix contrast.
  */
 function respiratoryFromSf(sf: number, support: boolean): number {
   if (sf >= 292) return 0;
   if (sf > 264) return 1; // 264–291, exclusive of 264 itself
   if (sf >= 221) return 2; // 221–264, inclusive of the overlapped 264 (worst-value tie-break)
-  if (!support) return 2; // capping convention, not cited (psofa.md [NEEDS SOURCE])
+  if (!support) return 2; // 3/4 are gated on respiratory support, so an unsupported patient stops here
   if (sf >= 148) return 3; // 148–220 with support
   return 4; // <148 with support
 }
@@ -119,7 +155,7 @@ export const psofa = defineScore({
   id: "psofa",
   slug: "psofa",
   name: "pSOFA (Pediatric SOFA)",
-  version: "1.1.0",
+  version: "1.3.0",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -203,7 +239,7 @@ export const psofa = defineScore({
       type: "boolean",
       helpText: defineText(
         "psofa.resp_support.help",
-        "Invasive or non-invasive ventilation. Required for respiratory subscores 3–4; without it the subscore is capped at 2.",
+        "Invasive or non-invasive support both count here. Table 1 gates respiratory subscores 3–4 on being on respiratory support and never says what counts as support, so treating non-invasive support as sufficient is this calculator's reading rather than the paper's. Without support the respiratory subscore is capped at 2.",
       ),
     },
     {
@@ -412,6 +448,20 @@ export const psofa = defineScore({
         "Sourcing corrections. NO NUMBER MOVED — no threshold, age band, subscore or total changed. (1) Missing-as-normal was labelled an implementation convention of this platform; it is the paper's own rule, stated in the Methods of Matics & Sanchez-Pinto 2017, and is now attributed there. That marker is withdrawn because it was our mistake, not a gap. (2) The absence of physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP and creatinine is now stated as confirmed-absent from the paper rather than as an unfound source: the min/max on those inputs are this platform's input-validity windows and were never clinical thresholds. (3) The SpO₂:FiO₂ overlap at 264 is now attributed where it belongs — JAMA Pediatr Table 1 itself prints 264 in both the subscore-1 and subscore-2 rows, so the source assigns no single value there; taking the worse subscore remains our documented tie-break. (4) The SpO₂ ≤97% ceiling is cited twice over, to the paper's Table 1 footnote and to the ratio's derivation window (SpO₂ 80–97%) in Khemani 2009 and 2012, both now in the reference list. (5) Age caveat added: the cohort was children ≤21 years and the paper states the >216-month MAP and creatinine cut points are adult SOFA's, so a patient over 216 months is scored against adult thresholds. (6) The neonatal caveat was too strong — pSOFA has a <1-month band and is defined there, it simply was not derived for that population; nSOFA (Wynn & Polin 2020, now cited) is the instrument derived for preterm very-low-birth-weight infants.",
       reason: "new-reference",
     },
+    {
+      version: "1.2.0",
+      date: "2026-08-04",
+      summary:
+        "The last unsourced claim on this score is closed, and NO NUMBER MOVED — no threshold, band, subscore or total changed, and the non-support cap still returns 2 exactly as before. What changed is its attribution. The cap was carried as an implementation convention flagged for clinical sign-off, on the view that a rule the paper never states in words must be ours. It is not: the published table attaches a support requirement to subscores 3 and 4 and to no lower band, so a patient who is not on respiratory support cannot meet either criterion however low the ratio falls and 2 is the only band that remains. [As shipped, this entry called that a MECHANICAL-VENTILATION requirement and said the table attaches it. The table's row condition is respiratory support; the narrowing was this entry's own paraphrase, and it is corrected here rather than left standing because it misstates the source on a page a clinician reads. See v1.3.0 — the reasoning is unaffected, since it turns on which bands are gated and not on what counts as support.] The cap is structurally entailed by the criteria as published, so the marker is withdrawn as mis-labelled rather than resolved by new evidence, and pSOFA now carries no unsourced claim at all. Added with it, because the entailment is easy to over-generalise: Phoenix is structured the opposite way — an unsupported patient scores 0 on its respiratory criterion however low the ratio, and even 1 point requires at least non-invasive support, so the same child can be pSOFA respiratory 2 and Phoenix respiratory 0 simultaneously. The notes now state that contrast so a reader moving between the two scores does not assume the ratio alone means the same thing in both.",
+      reason: "clarification",
+    },
+    {
+      version: "1.3.0",
+      date: "2026-08-04",
+      summary:
+        "The respiratory-support gate is now stated the way the published table states it, and NO NUMBER MOVED — no threshold, band, subscore or total changed, and the code was already doing this. v1.2.0 described the gate on subscores 3 and 4 as a MECHANICAL-VENTILATION requirement, in the notes, in the code comments and in the research note. That is narrower than the source: JAMA Pediatr Table 1 prints the row condition as being on respiratory support, which is also how round-1 verification read it against the full text, and it is narrower than this calculator, whose respiratory-support field has always accepted invasive or non-invasive support. So the shipped text asserted a stricter gate than the code applied — a clinically material gap for any child on non-invasive support alone, who was described as capped at 2 while actually being scored 3 or 4. The gate is now stated once, the same way, everywhere: subscores 3 and 4 require respiratory support. The argument that an unsupported patient cannot exceed 2 is restated in those terms and is strengthened rather than weakened by the correction, because it depends only on which bands are gated — 3 and 4 are, no lower band is — and not at all on what counts as support, so it holds under either reading. Newly disclosed with it: the paper prints the term and never defines it, so counting non-invasive support as satisfying the gate is this calculator's reading and not the paper's, and a reader who applies the narrower one will score a child on non-invasive support alone lower than this calculator does. That disclosure is a documented implementation reading of an undefined term, in the same class as the SpO₂:FiO₂ tie-break at 264 — the gate itself is sourced, and no claim is made about which reading the authors intended — so pSOFA still carries no unsourced claim. The v1.2.0 entry above is amended in place for the same reason, since it too told the reader the published table requires mechanical ventilation; the amendment is marked in brackets there rather than made silently.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -425,7 +475,7 @@ export const psofa = defineScore({
   ),
   notes: defineText(
     "psofa.notes",
-    "Each subscore is the worst qualifying value in the assessment window; the total is their sum (0–24). Missing data is scored as normal (0) for that organ — this is the paper's own rule and not a convention of this platform: the Methods of Matics & Sanchez-Pinto 2017 state that a variable not measured within a 24-hour period was taken as normal, consistent with the original SOFA criteria. It still means a partially entered case reads lower than a fully entered one, so read a low total together with how much was supplied. One rule genuinely is this implementation's and is flagged for clinical sign-off: a PaO₂:FiO₂ or SpO₂:FiO₂ falling in a subscore-3/4 band without respiratory support is capped at 2, the highest band carrying no support requirement — the paper does not say what such a patient scores [NEEDS SOURCE]. A second is a documented choice forced by the source: the published SpO₂:FiO₂ bands overlap, because JAMA Pediatr Table 1 prints 264 as both the lower bound of the subscore-1 row and the upper bound of the subscore-2 row, so the table assigns an exact 264 to two rows at once; this calculator resolves it to the worse subscore (2), in keeping with pSOFA's worst-value rule. SpO₂:FiO₂ is used only when no PaO₂ is available and only at SpO₂ ≤97%; that ceiling is the paper's own (Table 1 footnote) and matches the window the ratio was derived over, SpO₂ 80–97% in Khemani 2009 and 2012. An SpO₂ >97% with no PaO₂ scores respiratory 0. Matics & Sanchez-Pinto specify no physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP or creatinine — confirmed absent from the paper, not merely unlocated — so the min/max on those inputs are this platform's input-validity windows and carry no clinical meaning; prefer institutional analyzer limits. Age: pSOFA was derived in children 21 years and younger, and the paper states that the >216-month MAP and creatinine cut points are identical to adult SOFA's, so a patient over 216 months is being scored against adult thresholds rather than paediatric ones. Neonates: the <1-month band exists, so pSOFA is defined rather than undefined there, but it was not derived in that population; nSOFA (Wynn & Polin, Pediatr Res 2020; a 0–15 scale) is the score derived for preterm very-low-birth-weight infants with late-onset sepsis. The >8 interpretation cut point is a single-center, statistically-derived threshold on the encounter maximum pSOFA and is descriptive, not directive.",
+    "Each subscore is the worst qualifying value in the assessment window; the total is their sum (0–24). Missing data is scored as normal (0) for that organ — this is the paper's own rule and not a convention of this platform: the Methods of Matics & Sanchez-Pinto 2017 state that a variable not measured within a 24-hour period was taken as normal, consistent with the original SOFA criteria. It still means a partially entered case reads lower than a fully entered one, so read a low total together with how much was supplied. A PaO₂:FiO₂ or SpO₂:FiO₂ falling in a subscore-3/4 band without respiratory support is capped at 2, the highest band carrying no support requirement. THAT CAP IS THE PUBLISHED TABLE'S OWN STRUCTURE, NOT A RULE THIS CALCULATOR ADDED, and it is no longer flagged as unsourced: subscores 3 and 4 each carry the table's respiratory-support requirement and no lower band carries any support requirement, so a patient who is not on respiratory support cannot satisfy either criterion however low the ratio falls, and 2 is the only band left. The paper prints no sentence spelling that out because it does not need one — the cap is entailed by the criteria as published rather than asserted on top of them. It was previously flagged as this implementation's own on the mistaken view that a rule the paper never states in words must be an invention. WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT. Table 1 gates those two bands on being on respiratory support and never defines the term, so this calculator's reading — invasive or non-invasive support both satisfy the gate, which is what the respiratory-support field accepts — is ours and not the paper's. A narrower reading, invasive ventilation only, is not ruled out by the source; under it a child on non-invasive support alone would cap at 2 where this calculator allows 3 or 4. The cap argument above is unaffected either way, because it turns on which bands are gated and not on what counts as support. DO NOT CARRY THE CAP ACROSS TO OTHER SCORES: Phoenix is structured the opposite way in the same situation. There a patient on no respiratory support scores 0 on the respiratory criterion however low the ratio goes, and even 1 point requires at least non-invasive support — so the same child can be pSOFA respiratory 2 and Phoenix respiratory 0 at once. Two scores, two structures; a reader moving between them should not assume that the ratio alone means the same thing in both. The second rule that is genuinely this implementation's is likewise a documented choice, and this one is forced by the source: the published SpO₂:FiO₂ bands overlap, because JAMA Pediatr Table 1 prints 264 as both the lower bound of the subscore-1 row and the upper bound of the subscore-2 row, so the table assigns an exact 264 to two rows at once; this calculator resolves it to the worse subscore (2), in keeping with pSOFA's worst-value rule. SpO₂:FiO₂ is used only when no PaO₂ is available and only at SpO₂ ≤97%; that ceiling is the paper's own (Table 1 footnote) and matches the window the ratio was derived over, SpO₂ 80–97% in Khemani 2009 and 2012. An SpO₂ >97% with no PaO₂ scores respiratory 0. Matics & Sanchez-Pinto specify no physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP or creatinine — confirmed absent from the paper, not merely unlocated — so the min/max on those inputs are this platform's input-validity windows and carry no clinical meaning; prefer institutional analyzer limits. Age: pSOFA was derived in children 21 years and younger, and the paper states that the >216-month MAP and creatinine cut points are identical to adult SOFA's, so a patient over 216 months is being scored against adult thresholds rather than paediatric ones. Neonates: the <1-month band exists, so pSOFA is defined rather than undefined there, but it was not derived in that population; nSOFA (Wynn & Polin, Pediatr Res 2020; a 0–15 scale) is the score derived for preterm very-low-birth-weight infants with late-onset sepsis. The >8 interpretation cut point is a single-center, statistically-derived threshold on the encounter maximum pSOFA and is descriptive, not directive.",
   ),
   composition: {
     total: "total",

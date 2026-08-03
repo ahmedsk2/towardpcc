@@ -353,6 +353,98 @@ describe("provenance and content rules survive editing", () => {
     expect(hollidaySegar.notes.en).toContain("1998");
   });
 
+  /**
+   * THE 4 kg FLOOR IS OURS, AND THE PAGE HAS TO SAY SO.
+   *
+   * v2.0.0 kept the right behaviour for the right reason but attributed the
+   * number to "the source review's recommendation". No guideline anywhere states
+   * a weight below which this method must not be used — every scope is written
+   * in AGE — so there was nothing behind the attribution.
+   *
+   * Behaviour and claim are asserted separately on purpose. The floor must still
+   * reject (a relabelling that quietly loosened the guard would be far worse
+   * than the mislabel), AND the page must own the number instead of borrowing
+   * authority for it. The 3 kg table starts are asserted as NOT floors, because
+   * that is the nearest thing to a citation anyone would reach for next.
+   */
+  it("labels the 4 kg floor as this project's choice, with no source claimed", () => {
+    const notes = hollidaySegar.notes.en;
+    expect(notes, "the absence of any citable weight floor must be stated").toMatch(
+      /NO WEIGHT FLOOR FOR THIS METHOD IS CITABLE ANYWHERE/,
+    );
+    expect(notes, "it must be owned as a choice, not attributed").toMatch(/IMPLEMENTATION CHOICE/i);
+    expect(notes, "the scopes are age-based, and that is why weight cannot do it").toMatch(
+      /written in AGE|by AGE/,
+    );
+    // The nearest-looking citation, explicitly disarmed.
+    expect(notes).toMatch(/3 kg/);
+    expect(notes).toMatch(/where a table begins/i);
+    // The old borrowed attribution may still APPEAR — it has to, to be
+    // retracted, the same way the burn score keeps its 1968 correction visible
+    // rather than quietly rewording. So what is asserted is that wherever it
+    // appears it is pinned to the version that carried it and named as
+    // overstated, never left standing as a live claim.
+    for (const m of notes.matchAll(/the source review's recommendation/gi)) {
+      const window = notes.slice(Math.max(0, (m.index ?? 0) - 200), (m.index ?? 0) + 200);
+      expect(window, "the old attribution must appear only inside its retraction").toMatch(
+        /Up to v2\.0\.0/,
+      );
+    }
+    expect(notes, "the retraction must name what was wrong with it").toMatch(
+      /a pedigree it does not have/,
+    );
+    expect(cautions).toMatch(/THE 4 kg FIGURE IS THIS PROJECT'S OWN/);
+
+    // And the behaviour is unchanged — the label moved, the guard did not.
+    expect(hollidaySegar.compute({ weight: { value: 3.9, unit: "kg" } }).ok).toBe(false);
+    expect(hollidaySegar.compute({ weight: { value: 4, unit: "kg" } }).ok).toBe(true);
+  });
+
+  /**
+   * RESTRICTION-IS-NOT-PROPHYLAXIS NOW HAS ITS TRIAL.
+   *
+   * The rule was already stated and already tested above ("substitute for
+   * correct tonicity"). What is asserted here is the SOURCE — and specifically
+   * the 2 × 2 design, because that is the only feature that makes the trial able
+   * to answer the question. A citation to a restriction study without the
+   * crossing would not support the claim, so the design is asserted, not just
+   * the author's name.
+   */
+  it("cites Neville 2010, with the 2 x 2 crossing that makes it decisive", () => {
+    const notes = hollidaySegar.notes.en;
+    expect(notes).toMatch(/NEVILLE 2010/i);
+    expect(notes, "the factorial crossing is the load-bearing detail").toMatch(/2 × 2/);
+    expect(notes).toMatch(/124 postoperative children/);
+    expect(notes).toMatch(/0\.9%[\s\S]{0,60}0\.45%/);
+    expect(notes).toMatch(/100%[\s\S]{0,40}50%/);
+    expect(notes, "the conclusion must be carried in the paper's own words").toContain(
+      "but not fluid restriction",
+    );
+    // The absence that travels with it: nobody re-ran the design in-window.
+    expect(notes).toMatch(/RE-RANDOMISED RATE INDEPENDENTLY OF TONICITY|re-randomised RATE/i);
+    // It must not be read as overturning the restriction recommendation, which
+    // rests on fluid overload rather than on sodium.
+    expect(notes).toMatch(/rests on fluid overload rather than on sodium/i);
+    // Traceable, and on the caution surface as well as in the notes.
+    expect(
+      hollidaySegar.references.some((r) => "pmid" in r && r.pmid === "19818450"),
+      "Neville 2010 must be a cited reference, not prose only",
+    ).toBe(true);
+    expect(cautions).toMatch(/Neville 2010/);
+  });
+
+  /**
+   * The daily-ceiling question is CLOSED, not open. The four figures are already
+   * asserted above; what is asserted here is the stronger claim that replaced
+   * "the guidelines disagree" — none was ever derived, so re-searching is waste.
+   */
+  it("records the absent daily ceiling as settled rather than as disagreement", () => {
+    expect(hollidaySegar.notes.en).toMatch(/NO EVIDENCE-BASED DAILY CEILING\s+EXISTS/);
+    expect(cautions).toMatch(/NO EVIDENCE-BASED DAILY CEILING EXISTS/);
+    // And no cap is applied, which the sweep above proves numerically.
+    expect(hollidaySegar.notes.en).toMatch(/no daily cap is applied/i);
+  });
+
   it("ships no 70 kg anchor as an original-source claim", () => {
     // The 20–70 kg third segment rests on a secondary description of a figure
     // nobody inspected. 60 kg is the anchor; 70 kg appears only as arithmetic.

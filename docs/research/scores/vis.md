@@ -67,6 +67,13 @@ These add terms to the same linear sum; they are variants, not the original scor
 
 - **Levosimendan: + 50 x levosimendan (mcg/kg/min).** Used in ECMO and heart-transplant VIS
   variants (sourced: PMC9103233, PMC10118996).
+- **Newer agents — proposed, but with NO agreed coefficient.** Later proposals to extend VIS
+  disagree with each other by up to a hundredfold on the same drug: **methylene blue 1 vs 20**,
+  **angiotensin II 0.25 vs 25**, **olprinone 10 vs 25** (reported by the 2026-08-04 review;
+  the competing proposals themselves are **[NEEDS SOURCE]** — no primary fetched here). This is
+  the substantive reason the implementation ships only the original six: including any of these
+  would force an arbitrary choice between two published figures and would break comparability
+  with the VIS literature. It is a positive decision, not an omission.
 - **Phenylephrine: + 10 x phenylephrine (mcg/kg/min).** Appears in adult/modified VIS variants
   (e.g., cardiogenic-shock registry usage). **Phenylephrine is in NEITHER Gaies 2010 NOR
   Gaies 2014** (round-2 sourcing resolution, 2026-08-03) — both state the same six drugs, and
@@ -112,12 +119,13 @@ would yield 3,000 points. Validate vasopressin input tightly.
 
 ## Worked examples (>=2)
 
-The Gaies 2010 primary text (read directly 2026-08-03 — see Round-3) prints **no arithmetic
-worked example of the formula**; its only numeric illustration is of the _classification_ step
-(a patient with maximum IS 22 in the first 24 hr and 14 in the subsequent 24 hr falls in group 4),
-which exercises the group-assignment rule rather than the weighted sum. The examples below are
-therefore still **derived step-by-step from the published formula in Gaies et al. 2010
-(PMID 19794327)** and are intended as unit-test vectors.
+The Gaies 2010 primary text (read directly 2026-08-03; Table 1 read 2026-08-04) prints **no
+arithmetic worked example of the formula**; its only numeric illustration is of the
+_classification_ step (a patient with maximum IS 22 in the first 24 hr and 14 in the subsequent
+24 hr falls in group 4), which exercises the group-assignment rule rather than the weighted sum.
+The examples below are therefore **derived step-by-step from the published formula in Gaies et al.
+2010 (PMID 19794327)** and are intended as unit-test vectors. Examples 5 and 6 additionally land
+on values taken from Table 1 — the arithmetic is ours, the two boundary values are the paper's.
 
 **Example 1 — simple inotrope-only (derived from formula in Gaies 2010):**
 Inputs: dopamine 5, dobutamine 0, epinephrine 0.05, milrinone 0, vasopressin 0, norepinephrine 0 (mcg/kg/min; vasopressin units/kg/min).
@@ -162,6 +170,33 @@ VIS = 3 + 100*0.05 + 10*0.25 + 50*0.1
 Expected VIS (levosimendan-extended) = **15.5**. (Only valid if the levosimendan extension is
 enabled; the core Gaies-2010 VIS for these same inputs = 3 + 5 + 2.5 = **10.5**.)
 
+**Example 5 — the group-4 FIRST-period boundary, VIS = 20 (Table 1, p235):**
+Inputs: dopamine 10, epinephrine 0.1; others 0.
+
+```
+VIS = 10 + 100*0.1
+    = 10 + 10
+    = 20
+```
+
+Expected VIS = **20**. This is the lower bound of group 4 for the **first 24 h**, i.e. the
+first-period half of the high-VIS definition.
+
+**Example 6 — the group-4 SECOND-period boundary, VIS = 15 (Table 1, p235):**
+Inputs: dopamine 5, epinephrine 0.1; others 0.
+
+```
+VIS = 5 + 100*0.1
+    = 5 + 10
+    = 15
+```
+
+Expected VIS = **15**. This is the lower bound of group 4 for **hours 24–48**. It is emphatically
+_not_ a first-24 h cut-point: 15–19 in the first period is group 3 (low-VIS arm). Examples 5 and 6
+exist so that the corrected dichotomization is pinned by executable arithmetic and a silent
+re-reversal to ">15 in the first 24 h" cannot pass the suite unnoticed. The calculator itself
+applies neither number — it emits the continuous VIS that a reader compares against them.
+
 ## Interpretation bands (non-directive wording, with source)
 
 VIS is a **continuous** quantitative index of the intensity of vasoactive/inotropic support;
@@ -169,51 +204,74 @@ higher values reflect more pharmacologic cardiovascular support. There is **no s
 band structure** — studies dichotomize at cohort-specific cut-points, so bands must be labeled
 by their source cohort and used descriptively, not as treatment triggers.
 
-**An odds ratio detached from its cut-point is not usable.** Both published dichotomizations are
-recorded here so that an effect size is never read apart from the rule that produced it — and,
-for Gaies 2010, so that the part of that rule which is not yet extracted is visible rather than
-papered over:
+**An odds ratio detached from its cut-point is not usable.** Both published Gaies
+dichotomizations are recorded here with the rule that produced them. As of 2026-08-04 **both
+rules can be stated in full** — the last extraction gap is closed.
 
-- **Gaies 2014 (PMID 24777300) — the single flat threshold, and the one this implementation
-  quotes.** Maximum VIS **≥ 20 during the first 24 h** carried an adjusted **OR 6.5
-  (95% CI 2.9–14.6)** for the poor composite outcome. Same six coefficients, still no
-  phenylephrine. One cut-point is what a bedside reader can actually apply, so this is the
-  pairing surfaced in the score's notes.
-- **Gaies 2010 (PMID 19794327) — the larger OR, but from a five-group, two-period rule.** The
-  adjusted **OR 8.1 (95% CI 3.4–19.2, p < 0.001)** for a poor outcome in the high-VIS group
-  relative to the low-VIS group is the paper's headline effect size. **It is not attached to a
-  single flat cut-point.** Quoting 8.1 as though it were overstates it.
-  **Provenance: read directly from the source PDF, 2026-08-03** (Pediatr Crit Care Med
-  2010;11(2):234–238, DOI 10.1097/PCC.0b013e3181b806fc). Confirmed from the primary text itself:
-  - The OR of 8.1 (95% CI 3.4–19.2, p < 0.001) appears in the abstract, in Results, and in the
-    results table — three places in the primary, not an abstract-only figure.
-  - Patients are sorted into **five classification groups**, and each patient is assigned to the
-    highest group they reach — in the paper's words, the "highest classification group achieved"
-    during either the first or the subsequent 24-hr period (Gaies et al. 2010). Its own worked
-    illustration: maximum IS 22 in the first 24 hr and 14 in the subsequent 24 hr → **group 4**.
-  - **Groups 4 and 5 were combined** to form the "high VIS" arm that the OR compares.
-  - The scheme is anchored by treating infusion dosages that would give a VIS of **approximately
-    15** as the midpoint of the classification for the first 24 hr, with most patients expected to
-    be on lower doses during the second 24 hr.
-  - **Residual gap, precisely scoped:** the **exact per-group numeric VIS cut-points** were _not_
-    extracted — the two-column PDF text layer scrambles that table. They are deliberately not
-    stated anywhere in this file or in the implementation, and must not be inferred from the
-    approximate-15 midpoint or from the group-4 illustration.
+- **Gaies 2010 (PMID 19794327) — the five-group, two-period rule, now fully extracted.**
+  **Provenance: Table 1, page 235, read directly from the primary PDF on 2026-08-04**
+  (Pediatr Crit Care Med 2010;11(2):234–238, DOI 10.1097/PCC.0b013e3181b806fc); the surrounding
+  full text was read on 2026-08-03. Table 1 as printed:
 
-  This supersedes this file's earlier reconstruction of the 2010 rule as a two-number dual
-  threshold ("≥ 20 in the first 24 h OR ≥ 15 in the next 24 h"), which came from a peer-reviewed
-  paraphrase. The primary shows a five-group scheme, so the _shape_ of that reconstruction was
-  wrong even where its numbers were in the right neighbourhood; the two-period mechanism it
-  described is real and is now sourced to the primary.
+  | Group | IS or VIS, first 24 hrs | IS or VIS, 24–48 hrs |
+  | ----- | ----------------------- | -------------------- |
+  | 1     | < 10                    | < 5                  |
+  | 2     | 10–14                   | 5–9                  |
+  | 3     | 15–19                   | 10–14                |
+  | 4     | 20–24                   | 15–19                |
+  | 5     | ≥ 25                    | ≥ 20                 |
 
+  The table's footnote assigns a group by the highest support level reached in **either** time
+  period, illustrated with a patient at maximum IS 22 in the first 24 hrs and 14 in the
+  subsequent 24 hrs → **group 4**. (Check: 22 falls in group 4 on the first-period column, 14 in
+  group 3 on the second; the higher wins.) **Groups 4 and 5 combined** form the "high VIS" arm,
+  which carried the adjusted **OR 8.1 (95% CI 3.4–19.2, p < 0.001)** against the low-VIS arm —
+  an OR present in the abstract, the Results narrative and the results table.
+
+  **Therefore: high VIS = maximum VIS ≥ 20 in the first 24 h OR ≥ 15 in hours 24–48.** That is
+  simply what the groups 4–5 union reduces to, column by column.
+
+  Two readings must not be carried forward, and the record of which survived matters:
+  - **A literature review's ">15 in the first 24 h" is WRONG.** 15–19 in the first period is
+    **group 3**, which sits in the _low_-VIS arm. That reading moves an entire group across the
+    dichotomy and inflates the population the OR 8.1 is claimed for. Do not propagate it.
+  - **This file's earlier dual-threshold reconstruction was RIGHT.** Round 2 reconstructed the
+    2010 rule from a peer-reviewed paraphrase as "≥ 20 in the first 24 h OR ≥ 15 in the next
+    24 h". Round 3 (2026-08-03) read the primary's five-group scheme but could not extract the
+    table, and on that basis demoted the reconstruction to "right neighbourhood, wrong shape".
+    **The printed table vindicates the reconstruction**: the five-group scheme and the two-number
+    dual rule are the same rule at different resolutions. Round 3's demotion is withdrawn here
+    explicitly rather than the correct reading being quietly restored, so the record shows which
+    survived and why.
+  - The "approximately 15 as the first-period midpoint" anchor recorded in round 3 is
+    **consistent** with the table, not superseded by it: 15–19 is the middle group of five.
+
+- **Gaies 2014 (PMID 24777300) — the single flat threshold.** Maximum VIS **≥ 20 during the
+  first 24 h** carried an adjusted **OR 6.5 (95% CI 2.9–14.6)** for the poor composite outcome.
+  Same six coefficients, still no phenylephrine. It remains the simpler bedside form and its
+  first-period cut coincides with the 2010 first-period cut — but 2010 is no longer the
+  unstateable rule, so both pairings are now surfaced in the implementation's notes.
+
+**Cut-points do not converge, and that is why no band is applied automatically.**
+
+- **Range across studies: roughly 10–30, with no convergence on a single optimal value**
+  (Belletti A, Lerose CC, Zangrillo A, Landoni G. _J Cardiothorac Vasc Anesth._
+  2021;35(10):3067–3077, PMID 33069558 — reported by the 2026-08-04 review; full text not
+  fetched here, bibliographic details resolved against NCBI E-utilities on 2026-08-04).
+- **Paediatric septic shock: cut-point 11**, sensitivity 78.87%, specificity 72.22%, AUC 0.779
+  (figures from the 2026-08-04 review; the **primary derivation study is not named in our
+  record — [NEEDS SOURCE]**).
 - **Prospective validation (Davidson 2012, PMID 22527067):** a **VIS at 48 h (VIS48) cut-point
   of 10.5** discriminated high- vs low-risk for prolonged length of stay / poor short-term
   outcome in neonates and infants after cardiothoracic surgery (Table 4). This is
   cohort-specific.
-- Other populations use higher cut-points (e.g., ECMO/cardiogenic-shock cohorts report much
-  larger values; PMC9103233 notes VIS > 200 associated with mortality and a pre-ECMO cut-off of
-  61.4 in that specific cohort). These are **not** transferable to the post-cardiac-surgery
-  infant setting.
+- Other populations use much higher cut-points (PMC9103233 notes VIS > 200 associated with
+  mortality and a pre-ECMO cut-off of 61.4 in that specific cohort). These are **not**
+  transferable to the post-cardiac-surgery infant setting.
+- **Non-transferability is stated in the literature, not inferred by us.** Post-cardiac-surgery,
+  sepsis and ECMO cohorts each derive their own cut-point; a value optimal in one is not
+  evidence for another. Presenting VIS with a single built-in threshold would misrepresent the
+  state of the evidence, so this implementation presents none.
 
 Recommended non-directive display: report the numeric VIS (and, where relevant, VIS_max over a
 stated window) without an automated risk label. If a band is shown, attach the source cohort
@@ -225,9 +283,10 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
    Vasoactive-inotropic score as a predictor of morbidity and mortality in infants after
    cardiopulmonary bypass. _Pediatr Crit Care Med._ 2010;11(2):234–238.
    **PMID: 19794327. DOI: 10.1097/PCC.0b013e3181b806fc.** — _Original VIS derivation (primary).
-   **Full text obtained and read directly from the source PDF on 2026-08-03** — source of the
-   adjusted OR 8.1 (95% CI 3.4–19.2, p < 0.001) and of the five-group / two-period classification
-   behind it. The per-group numeric cut-points were not extracted from its table._
+   **Full text obtained and read directly from the source PDF on 2026-08-03; Table 1 (p235) read
+   directly on 2026-08-04** — source of the adjusted OR 8.1 (95% CI 3.4–19.2, p < 0.001), of the
+   six coefficients (Box 1), and of the five-group / two-period classification **including its
+   per-group cut-points**. No extraction gap remains._
 2. **Davidson J, Tong S, Hancock H, Hauck A, da Cruz E, Kaufman J.** Prospective validation of
    the vasoactive-inotropic score and correlation to short-term outcomes in neonates and infants
    after cardiothoracic surgery. _Intensive Care Med._ 2012;38(7):1184–1190.
@@ -262,6 +321,13 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
    coefficients (still no phenylephrine); source of the single flat threshold — maximum VIS ≥ 20
    in the first 24 h, adjusted OR 6.5 (95% CI 2.9–14.6). Bibliographic details confirmed
    2026-08-03 against the NCBI E-utilities record for PMID 24777300._
+8. **Belletti A, Lerose CC, Zangrillo A, Landoni G.** Vasoactive-Inotropic Score: Evolution,
+   Clinical Utility, and Pitfalls. _J Cardiothorac Vasc Anesth._ 2021;35(10):3067–3077.
+   **PMID: 33069558. DOI: 10.1053/j.jvca.2020.09.117.** — _Source of the cut-point
+   non-convergence finding (reported optima span roughly 10–30). **Full text not fetched here** —
+   the finding comes from the 2026-08-04 review; the bibliographic details were resolved against
+   the NCBI E-utilities esearch/esummary records for PMID 33069558 on 2026-08-04 (title, journal,
+   2021;35(10):3067–3077, four authors and DOI all confirmed) rather than recalled._
 
 ## Limitations & notes
 
@@ -273,8 +339,14 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
   pediatric populations (sepsis, ECMO, preterm neonates, general PICU) is an off-derivation use;
   cut-points do not transfer.
 - **Time-window dependence.** VIS is a snapshot; the prognostic quantity in the literature is
-  typically **maximum VIS over a defined window** (e.g., first 48 h). The platform must define
-  and label whichever window it computes.
+  typically **maximum VIS over a defined window** (two consecutive 24 h periods in Gaies 2010,
+  the first 24 h in Gaies 2014, 48 h in Davidson 2012). The platform must define and label
+  whichever window it computes. This matters more than usual for the 2010 rule, whose two
+  periods carry **different** thresholds (≥ 20 vs ≥ 15): applying the wrong period's number is
+  exactly the error the published-review misreading makes.
+- **Cut-point non-convergence.** Reported optima span roughly 10–30 with no agreed value
+  (Belletti 2021), and cut-points do not transfer between populations. No band is applied
+  automatically for this reason.
 - **Vasopressin unit trap.** Coefficient 10,000 with units/kg/min — see the unit-hazard note
   in Inputs. This is the single most likely implementation bug.
 - **Milrinone note.** Because milrinone is a long-half-life vasodilator, some argue its
@@ -283,16 +355,15 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
 - **Extensions.** Levosimendan (50x) and phenylephrine (10x) are published variants but are NOT
   the original Gaies 2010 score; gate them behind an explicit configuration flag and never mix
   them into a "Gaies VIS" output silently.
-- **Sourcing-gap status (updated by the round-3 primary-text acquisition, 2026-08-03).** All four
-  former gaps are now closed or settled, and the way each closed matters:
-  - **Dichotomization — CLOSED twice over.** Gaies 2014 (Reference 7) supplies a single flat
-    threshold with its own matching effect size (max VIS ≥ 20 in the first 24 h,
-    OR 6.5 [2.9–14.6]), and that remains the pairing the implementation quotes. Separately, the
-    **Gaies 2010 primary was obtained and read directly on 2026-08-03**, which upgrades the
-    OR 8.1 (95% CI 3.4–19.2, p < 0.001) and the five-group / two-period assignment rule from
-    paraphrase to primary. **Only one narrow item is still unextracted: the exact per-group
-    numeric VIS cut-points, which the paper's two-column PDF text layer scrambles.** Nothing in
-    the implementation depends on them, and they are not to be invented.
+- **Sourcing-gap status (updated by the Table 1 extraction, 2026-08-04).** All four former gaps
+  are now closed or settled, and the way each closed matters:
+  - **Dichotomization — FULLY CLOSED as of 2026-08-04.** Gaies 2014 (Reference 7) supplies a
+    single flat threshold with its own matching effect size (max VIS ≥ 20 in the first 24 h,
+    OR 6.5 [2.9–14.6]). The **Gaies 2010 primary was read on 2026-08-03** and **its Table 1
+    (p235) on 2026-08-04**, so the OR 8.1 (95% CI 3.4–19.2, p < 0.001), the five-group /
+    two-period assignment rule **and every per-group boundary** are now primary-sourced. The
+    2010 high-VIS definition is **max VIS ≥ 20 in the first 24 h OR ≥ 15 in hours 24–48**. The
+    previously "unextracted per-group cut-point table" item is closed, not deferred.
   - **Phenylephrine — CLOSED as confirmed-correct.** Absent from both Gaies papers; excluding it
     is right. Only the non-Gaies variant's 10x coefficient stays unfetched, and nothing here
     computes it.
@@ -317,7 +388,10 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
 
 > **Reading order.** This section is a dated log, oldest first. The 2026-07-25 pass below records
 > the state of knowledge on that date; Round-2 and then Round-3 (both 2026-08-03) supersede parts
-> of it. **Round-3 is the current state for anything concerning Gaies 2010.**
+> of it, and the **Table 1 extraction of 2026-08-04 (last section) supersedes Round-3 on the
+> dichotomization**. **The 2026-08-04 section is the current state for anything concerning
+> Gaies 2010.** Note that round 3 _demoted_ a correct earlier reading; that demotion is reversed
+> at the end, so do not stop reading at round 3.
 
 Independent verification pass performed 2026-07-25 by fetching primary/independent full texts
 (not just the file's own citation claims) via live web search and fetch of PubMed/PMC/journal
@@ -468,24 +542,93 @@ Confirmed directly from the primary text:
    approximately 15 were set as the midpoint of the classification for the first 24 hr, with most
    patients expected to be on lower doses during the second 24 hr.
 
-**Residual gap after this round — deliberately narrow:**
+**Residual gap after this round — deliberately narrow (CLOSED 2026-08-04, see next section):**
 
 - **The exact per-group numeric VIS cut-points were NOT extracted.** The paper's two-column PDF
-  text layer scrambles that table on extraction. The boundaries are therefore **not recorded in
-  this file and not encoded anywhere in the implementation**, and must not be back-inferred from
-  the approximately-15 midpoint or from the group-4 illustration. Closing this needs the printed
-  table read from the page image, not another text extraction.
+  text layer scrambled that table on extraction; closing it needed the printed table read from
+  the page image rather than another text extraction. **That is exactly what happened on
+  2026-08-04 — this gap no longer exists.**
 
-**What did NOT change, and why the implementation still quotes Gaies 2014:** reading the 2010
-primary does not make its OR usable at the bedside, because the rule it belongs to is a five-group
-two-period classification whose boundaries we cannot state. A threshold and an effect size only
-mean something together, so the score continues to surface the **Gaies 2014** pairing — maximum
-VIS ≥ 20 in the first 24 h, adjusted OR 6.5 (95% CI 2.9–14.6) — which a bedside reader can
-actually apply. The 2010 figures are recorded for contrast and correct attribution.
+**What did NOT change in round 3, and why the implementation then quoted only Gaies 2014:**
+reading the 2010 narrative did not make its OR usable, because the rule it belongs to had
+boundaries that could not be stated. That justification **expired on 2026-08-04** when the
+boundaries were read; the implementation now quotes both pairings.
 
-**Corrections to computed values in this round: none.** VIS is arithmetically unchanged. The
-change is one of provenance: an attribution moved from paraphrase to primary, and one narrowly
-scoped extraction gap replaced a much broader "not read" caveat.
+**Corrections to computed values in this round: none.** VIS is arithmetically unchanged.
+
+**A round-3 judgement that turned out to be WRONG, flagged here so this section is not read as
+still-current:** round 3 concluded that the earlier dual-threshold reconstruction had "the wrong
+shape". It did not. See the next section — the five-group table reduces exactly to that dual
+threshold, and the demotion is withdrawn.
 
 **No published descriptor prose was reproduced.** The only verbatim material carried over from the
 2010 paper is the short phrase quoted and attributed in point 2 above.
+
+### Table 1 extraction and dichotomization correction (2026-08-04)
+
+**This is the current state for anything concerning Gaies 2010.** It closes the last residual gap
+of round 3 and reverses one of round 3's judgements.
+
+**Provenance: Table 1, page 235, read directly from the primary PDF on 2026-08-04.** Not a
+secondary review, not a text extraction of the scrambled two-column layer — the printed table.
+
+1. **The five-group table is now recorded in full** (see Interpretation bands for the table as
+   printed). Group boundaries, first 24 hrs / 24–48 hrs: group 1 < 10 / < 5; group 2 10–14 / 5–9;
+   group 3 15–19 / 10–14; group 4 20–24 / 15–19; group 5 ≥ 25 / ≥ 20.
+2. **The footnote's assignment rule** — highest support level reached in either period — is
+   confirmed, with the paper's own illustration (max IS 22 first 24 hrs, 14 in the subsequent
+   24 hrs → group 4) checking out against the columns.
+3. **Groups 4 + 5 = "high VIS"**, the arm carrying adjusted OR 8.1 (95% CI 3.4–19.2).
+4. **Therefore high VIS = max VIS ≥ 20 in the first 24 h OR ≥ 15 in hours 24–48.** This is now a
+   stated rule, not a reconstruction.
+5. **Box 1 confirms the six coefficients verbatim** — an independent confirmation of the formula
+   from within the primary itself.
+
+**Two readings corrected, with the record of which survived:**
+
+- A **literature review's ">15 in the first 24 h"** is **wrong** and is not carried anywhere in
+  this file or the implementation. 15–19 in the first period is group 3 (low-VIS arm).
+- **Round 2's dual-threshold reconstruction was right**, and round 3's demotion of it
+  ("right neighbourhood, wrong shape") is **withdrawn**. The five-group scheme and the
+  two-number dual rule are the same rule at two resolutions. This is recorded as a reversal
+  rather than a silent restoration so the file shows which reading survived and why.
+
+**Newer evidence added in this round (provenance stated, none over-claimed):**
+
+- **Cut-point non-convergence, range roughly 10–30** — Belletti 2021 (Reference 8). Reported by
+  the 2026-08-04 review; **full text not fetched here**. Bibliographic details independently
+  resolved against NCBI E-utilities (PMID 33069558) on 2026-08-04.
+- **Paediatric septic shock, cut 11** (sensitivity 78.87%, specificity 72.22%, AUC 0.779) —
+  figures from the 2026-08-04 review; **primary derivation study not named in our record,
+  [NEEDS SOURCE]**. Recorded as a data point in the controversy, not as a recommended threshold.
+- **Newer-agent coefficient disagreement** (methylene blue 1 vs 20, angiotensin II 0.25 vs 25,
+  olprinone 10 vs 25) — reported by the 2026-08-04 review; the competing proposals are
+  **[NEEDS SOURCE]**. Recorded because it is the reason only the original six ship, and nothing
+  here computes any of them.
+
+**Scope of that attribution — corrected in the implementation, 2026-08-04.** The three pairs above
+are the _only_ coefficients this round's review supplied. The implementation's notes briefly
+carried one blanket sentence attributing **every** left-out coefficient to the 2026-08-04 review
+and flagging them all [NEEDS SOURCE]; that swept in the two variant terms, which it describes in
+the same paragraph, and was wrong about both. Corrected in v1.3.1. The standing provenance of each
+excluded coefficient, unchanged by this round, is:
+
+| Excluded coefficient                      | Source pass | Status                                                                                                                |
+| ----------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| Levosimendan ×50                          | 2026-07-25  | **CONFIRMED** against two independently fetched full texts (PMC9103233 Sandrio 2022; PMC10118996 Tohme 2023) — item 5 |
+| Phenylephrine ×10                         | 2026-07-25  | **[NEEDS SOURCE]** for a directly fetched primary; two independent secondary aggregations corroborate — item 9        |
+| Methylene blue, angiotensin II, olprinone | 2026-08-04  | **[NEEDS SOURCE]** — competing proposals reported only by the review                                                  |
+
+Levosimendan ×50 in particular must never be re-flagged [NEEDS SOURCE]: two primaries were read
+for it. Nothing here computes any of these terms, so each gap is descriptive rather than
+load-bearing — but a gap asserted where a source exists is a false claim about our own record, not
+a harmless over-caution.
+
+**Corrections to computed values in this round: none.** VIS returns exactly the number it
+returned before. What changed is what the score says about itself: a threshold rule moved from
+partly-unstateable-and-partly-mis-stated to fully sourced, and the reason for withholding an
+automatic band moved from "no single official cut-point" to a sourced account of why the
+literature has not converged.
+
+**No published descriptor prose was reproduced.** Table 1 is numbers and conditions; its footnote
+is paraphrased rather than quoted.

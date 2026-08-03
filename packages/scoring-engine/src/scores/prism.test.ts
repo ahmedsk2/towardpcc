@@ -852,3 +852,78 @@ describe("PRISM threshold rows", () => {
     ).toBe(74);
   });
 });
+
+/**
+ * Round-3 (2026-08-04). The regional calibration evidence is prose, so nothing
+ * else in this file would notice it being deleted or, worse, quietly promoted:
+ * the Dubai study is PIM3's, and the two Gulf series evaluated PRISM III rather
+ * than the PRISM IV model that produces this page's probability. Both of those
+ * attributions are load-bearing and both are pinned here.
+ */
+describe("prism states its regional calibration at the right strength", () => {
+  const notes = prism.notes.en;
+
+  it("carries both Gulf findings, including the half that contradicts the other", () => {
+    // An SMR of 0.53 alone reads as "conservative, therefore safe". The 2.1 in
+    // the sepsis subgroup is the number that makes it false, so neither may
+    // survive without the other.
+    expect(notes).toContain("3396");
+    expect(notes).toContain("0.87");
+    expect(notes).toMatch(/infants under 12 months/);
+    expect(notes).toContain("0.53");
+    expect(notes).toContain("2.1");
+    expect(notes).toMatch(/sepsis/);
+  });
+
+  /**
+   * Round-3 verification (2026-08-04). v2.2.0 read the Dubai study's SMR 2.67 in
+   * the 1-5% predicted-probability band as evidence that the low end of the
+   * scale is where the model is most wrong. The SAME paper reports SMR 0.33
+   * below a 14.3% predicted probability against 0.72 above it — over-prediction
+   * across that same low range. Carrying one cut and not the other manufactured
+   * a finding out of a subgroup instability, so both are pinned: dropping
+   * either one is the defect returning.
+   */
+  it("carries both of the Dubai study's contradictory probability strata", () => {
+    expect(notes, "the fine-grained cut").toContain("2.67");
+    expect(notes, "the fine-grained cut").toContain("1-5%");
+    expect(notes, "the coarse cut that reverses it").toContain("14.3%");
+    expect(notes, "the coarse cut that reverses it").toContain("0.33");
+    expect(notes, "the coarse cut that reverses it").toContain("0.72");
+  });
+
+  it("draws the conclusion instead of leaving the reader to assemble it", () => {
+    expect(notes).toMatch(/discrimination travels between populations/);
+    expect(notes).toMatch(/calibration frequently does not/);
+    // The conclusion may name sepsis, which the paper does not contradict. It
+    // may NOT name the low-probability band, which the paper does.
+    expect(notes, "the finding that survives is the sepsis one").toMatch(
+      /survives its own paper is the one in sepsis/,
+    );
+    expect(notes, "no direction may be asserted for the low end").toMatch(
+      /NEITHER SERIES SUPPORTS IS A CLAIM ABOUT THE LOW END/,
+    );
+  });
+
+  it("labels the Dubai figures as a PIM3 finding, not a PRISM one", () => {
+    expect(notes).toMatch(/is a PIM3 finding and not a PRISM one/);
+    const dubai = prism.references.find((r) => r.citation.includes("Dubai Med J"));
+    expect(dubai, "a figure stated in notes must resolve to a reference").toBeDefined();
+    expect(dubai?.note).toMatch(/A PIM3 evaluation, not a PRISM one/);
+  });
+
+  it("claims no regional evaluation of PRISM IV, which is what it shows", () => {
+    // Both series evaluated PRISM III. The probability on this page is PRISM
+    // IV's, and reading regional validation into it would be the error.
+    expect(notes).toMatch(/They evaluated PRISM III, not PRISM IV/);
+    expect(notes).toMatch(/uncalibrated population estimate/);
+    const riyadh = prism.references.find((r) => r.citation.includes("Front Pediatr. 2022"));
+    expect(riyadh?.note).toMatch(/It evaluated PRISM III, not PRISM IV/);
+  });
+
+  it("declares the version its newest changelog entry describes", () => {
+    const newest = prism.changelog[prism.changelog.length - 1];
+    expect(prism.version).toBe(newest?.version);
+    expect(prism.version).toBe("2.2.1");
+  });
+});

@@ -310,4 +310,47 @@ describeScore(serumOsmolality, (ctx) => {
   // the ethanol term over-accounts for reads "accounted for", never "≥ 10".
   ctx.expectBand("osm_gap_ethanol_explained", 30, "gap-ethanol-explained");
   ctx.expectBand("osm_gap_ethanol_explained", 0, "gap-ethanol-explained");
+
+  /**
+   * Round-3 (2026-08-04) did not move a number; it widened what the page says
+   * about the number. These three assertions exist because the whole change is
+   * prose, so nothing else in this file would notice it being deleted.
+   */
+  const bandText = (id: string): string => {
+    const band = serumOsmolality.interpretation.find((b) => b.id === id);
+    if (!band) throw new Error(`no band ${id}`);
+    return band.description.en;
+  };
+
+  it("carries the full measured spread, not only the −2 ± 6 summary", () => {
+    // The boundary is unchanged; what changed is that the reader can see how
+    // wide the healthy distribution is and where 10 sits inside it.
+    const normal = bandText("gap-normal");
+    expect(normal).toContain("321");
+    expect(normal).toContain("−5 to +15");
+    expect(normal).toContain("−14 to +10");
+    expect(bandText("gap-elevated")).toContain("−14 to +10");
+    // The cut-off itself must not have drifted while the description grew.
+    const elevated = serumOsmolality.interpretation.find((b) => b.id === "gap-elevated");
+    expect(elevated?.min).toBe(10);
+  });
+
+  it("states the negative-baseline reason a normal gap cannot exclude ingestion", () => {
+    // "Does not exclude" on its own reads as boilerplate. The arithmetic is what
+    // makes it actionable: a baseline near −14 leaves +10 a >20 mOsm/kg rise.
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toContain("DOES NOT EXCLUDE TOXIC ALCOHOL INGESTION");
+    expect(cautions).toMatch(/baseline may be NEGATIVE/);
+    expect(bandText("gap-normal")).toMatch(/own true baseline may be NEGATIVE/);
+  });
+
+  it("records the absent paediatric gap data as settled, not as an open search", () => {
+    // Settled-absent and not-yet-found are different claims, and only one of
+    // them tells a reader to stop waiting for it.
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toContain("No paediatric osmolar-gap data exists");
+    expect(cautions).toMatch(/settled rather than a search still running/);
+    expect(serumOsmolality.notes.en).toContain("NO PAEDIATRIC OSMOLAR-GAP DATA EXISTS");
+    expect(serumOsmolality.notes.en).toMatch(/settled absent, not as an unfinished search/);
+  });
 });

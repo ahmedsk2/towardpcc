@@ -923,7 +923,7 @@ describe("kdigo-aki records its settled absences as settled", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("3.0.0");
+    expect(kdigoAki.version).toBe("3.1.0");
   });
 });
 
@@ -939,6 +939,13 @@ describe("kdigo-aki records its settled absences as settled", () => {
  * which the cited validation found misses more than half of all AKI. The
  * counter-recommendation and its citation are asserted here so removing them
  * fails a test rather than passing review.
+ *
+ * v3.1.0 re-based that guidance on PAEDIATRIC evidence (Lee 2022, 710 children)
+ * and demoted the adult malaria cohort to a secondary citation. The
+ * recommendation itself did not move, which is exactly why the swap needs
+ * pinning: the page reads almost the same either way, and reverting to the
+ * adult study as primary would look like a wording change rather than the
+ * downgrade in evidence it would be.
  */
 describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
   const notes = kdigoAki.notes.en;
@@ -956,15 +963,88 @@ describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
     expect(baselineHelp).toMatch(/assumed GFR of 75/i);
   });
 
-  it("cites the validation and flags that it is adult evidence", () => {
-    expect(notes).toContain("33732979");
-    expect(notes).toMatch(/THE COOPER EVIDENCE IS ADULT/);
+  /**
+   * The paediatric study is the whole substance of v3.1.0. Its numbers are
+   * asserted individually because each carries a different part of the argument:
+   * the sensitivity pair is why SCr-min is recommended, and the incidence pair
+   * (19.1% found against 58.7% true) is the only figure that conveys the SIZE of
+   * what back-calculation misses. A summary that keeps the recommendation but
+   * drops the magnitude leaves a reader free to think it a close call.
+   */
+  it("rests the recommendation on the paediatric study, with its numbers", () => {
+    const lee = kdigoAki.references.find((r) => "doi" in r && r.doi === "10.23876/j.krcp.21.120");
+    expect(lee, "Lee 2022 is the primary paediatric support and must be cited").toBeDefined();
+    expect(lee?.citation).toMatch(/Lee YJ/);
+    expect(lee?.note, "its role as primary must be stated in the reference").toMatch(/PRIMARY/);
+
+    // Cohort: paediatric, and large enough to say so.
+    expect(notes).toMatch(/710/);
+    expect(notes).toMatch(/1 month to 18 years/);
+    // SCr-min performance.
+    expect(notes).toMatch(/87\.8%/);
+    expect(notes).toMatch(/71\.0%/);
+    // Back-calculation performance — the sensitivity AND the incidence gap.
+    expect(notes).toMatch(/31\.5%/);
+    expect(notes).toMatch(/19\.1%/);
+    expect(notes).toMatch(/58\.7%/);
+  });
+
+  /**
+   * THE ONE FINDING A READER IS MOST LIKELY TO INVERT.
+   *
+   * Adult reports have back-calculation over-diagnosing AKI; in children it
+   * under-diagnoses, and badly. Someone who learned the adult direction will
+   * read a low estimated baseline as conservative when it is the opposite. In a
+   * PICU the miss is the harmful error, so the reversal is asserted together
+   * with which direction is dangerous — stating one without the other leaves it
+   * a piece of trivia instead of a warning.
+   */
+  it("states that the adult-to-child direction reverses, and which way is dangerous", () => {
+    expect(notes).toMatch(/THE DIRECTION REVERSES BETWEEN ADULTS AND CHILDREN/);
+    expect(notes).toMatch(/OVER-estimates AKI/);
+    expect(notes).toMatch(/UNDER-estimated severely/);
+    expect(notes).toMatch(/dangerous direction/i);
+  });
+
+  /**
+   * The 7-day window is the paper's choice, not a standard, and the operating
+   * characteristics above belong to it. Publishing them beside an unqualified
+   * "lowest creatinine" would attach 7-day numbers to a 3-day or whole-admission
+   * value, which is a different surrogate.
+   */
+  it("discloses that the SCr-min window is not standardised", () => {
+    expect(notes).toMatch(/NOT STANDARDISED/);
+    expect(notes).toMatch(/3 days/);
+    expect(notes).toMatch(/7 days/);
+    expect(notes).toMatch(/whole hospitalisation/);
+  });
+
+  /**
+   * Cooper survives as a secondary citation only, and only for the comparisons
+   * Lee does not run. It also stops the notes claiming a tidy adult-vs-child
+   * split that its own result contradicts.
+   */
+  it("keeps the adult cohort as secondary, for what the paediatric study lacks", () => {
     const cooper = kdigoAki.references.find((r) => "pmid" in r && r.pmid === "33732979");
-    expect(
-      cooper,
-      "the Cooper 2021 surrogate-baseline validation must stay in references",
-    ).toBeDefined();
+    expect(cooper, "Cooper 2021 is retained for the surrogates Lee did not test").toBeDefined();
+    expect(cooper?.note).toMatch(/SECONDARY/);
     expect(cooper?.note).toMatch(/adult/i);
+    expect(notes).toContain("33732979");
+    expect(notes).toMatch(/CKD-EPI at an assumed GFR of 100/);
+    // No longer the primary support, and the notes must not read as if it were.
+    expect(notes).not.toMatch(/THE COOPER EVIDENCE IS ADULT/);
+    expect(notes).toMatch(/no longer the primary support/i);
+    // "The adult literature" is not presented as one voice.
+    expect(notes).toMatch(/not one voice/i);
+  });
+
+  it("no longer flags a missing paediatric surrogate-baseline validation", () => {
+    expect(notes).not.toMatch(/NEEDS SOURCE for a pediatric surrogate-baseline validation/i);
+    // But the separate, still-open question — a KDIGO-ENDORSED method — stays,
+    // and stays distinguished from it. Answering "which surrogate is best" did
+    // not make any guideline endorse one.
+    expect(notes).toMatch(/NEEDS SOURCE for a KDIGO-endorsed pediatric baseline rule/i);
+    expect(notes).toMatch(/GUIDELINE ENDORSEMENT/);
   });
 
   it("says why no back-calculation is implemented, rather than leaving it a gap", () => {

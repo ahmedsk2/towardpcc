@@ -586,8 +586,10 @@ bands.
    African province. _Pediatr Crit Care Med._ 2021;22(9):813–821.
    DOI 10.1097/PCC.0000000000002693. — South African multicentre evaluation
    (AUC 0.81, SMR 1.28, H-L p < 0.001, highest SMR 6.67 in the lowest-risk
-   decile). **The closest published comparator for a Gulf-region deployment**,
-   being the only multicentre evaluation of PIM3 in a resource-varied setting.
+   decile). The only **multicentre** evaluation of PIM3 in a resource-varied
+   setting, and still the comparator for that question — but **no longer the
+   closest comparator for a Gulf deployment**, which now has its own evaluations
+   (refs 9 and 10). That earlier framing is corrected, not merely supplemented.
 
 6. **Baloglu O, Nagy LR, Sonawane A, et al.** Simplified Pediatric Index of
    Mortality 3 score by explainable machine learning algorithm. _Crit Care
@@ -608,6 +610,31 @@ bands.
    consume, **and** for the one coding rule it does state to the user: a
    tracheostomy with unassisted spontaneous breathing is not ventilation in the
    first hour. No peer-reviewed source addresses that case.
+
+9. **Malhotra D, Nour N, El Halik M, Zidan M.** Performance of the Paediatric
+   Index of Mortality 3 score in a tertiary paediatric ICU in Dubai. _Dubai Med
+   J._ 2019;3(1):19–25. **DOI 10.1159/000505205.** **Full text read 2026-08-04.**
+   Latifa Hospital, Dubai; single centre, **n = 583**, **46 deaths (7.9%)**.
+   **Stable findings:** **AUC 0.78 (95% CI 0.69–0.87)**; **overall SMR 0.53**
+   (over-prediction across the unit); **SMR 2.1 in the sepsis subgroup**
+   (under-prediction, and nothing else in the paper contradicts it).
+   **Unstable, and carried as such:** its predicted-probability strata cut two
+   ways and disagree — **SMR 2.67 in the 1–5% band** (severe under-prediction)
+   against **SMR 0.33 for p < 14.3% and 0.72 for p > 14.3%** (over-prediction
+   across that same low range). Both cuts are this study's own. The regional
+   evaluation this platform did not previously have.
+
+10. **Alkhalifah AS, AlSoqati A, Zahraa J.** Performance of paediatric mortality
+    scores in a tertiary paediatric intensive care unit in Saudi Arabia.
+    _Front Pediatr._ 2022;10:926686. **DOI 10.3389/fped.2022.926686.** King Fahad
+    Medical City, Riyadh; **n = 3396**, children under 14. Verbatim conclusion:
+    _"These models had sufficient discrimination ability and poor calibration…
+    The worst calibration and discrimination were recorded for infants
+    <12 months of age."_ **PRISM III** performed best in the 60–120-month group
+    (AUC 0.87). **Provenance limit:** the review that supplied this captured the
+    quoted conclusion and that one PRISM III figure. **No PIM3-specific statistic
+    from this study is asserted anywhere on this page or in the implementation**,
+    and a later editor must not fill that in from memory.
 
 ---
 
@@ -633,11 +660,48 @@ bands.
 - **Calibration travels far worse than discrimination.** Italy AUC 0.88 /
   SMR 0.98 (H-L p = 0.21, good); Argentina AUC 0.83 / SMR 1.3 (p < 0.001);
   South Africa AUC 0.81 / SMR 1.28 (p < 0.001), with the **highest SMR (6.67) in
-  the LOWEST risk decile** — the model is least trustworthy exactly where a
-  reader is most likely to be reassured by it. **For a Gulf-region deployment the
-  South African study is the most relevant comparator**, being the only
-  multicentre evaluation in a resource-varied setting. Recalibrate and monitor
-  locally before comparative interpretation.
+  the LOWEST risk decile** — in **that** cohort the model was least trustworthy
+  exactly where a reader is most likely to be reassured by it. Keep that claim
+  scoped to Solomon 2021, which is where it is uncontradicted: it is **not**
+  corroboration for the same claim in the Gulf, where the one study that
+  stratified by predicted probability contradicts itself (next bullet).
+  Recalibrate and monitor locally before comparative interpretation.
+- **THE GULF HAS ITS OWN EVIDENCE NOW, and the two series agree on less than
+  the first pass claimed.**
+  This replaces the earlier line naming South Africa as the closest Gulf
+  comparator; that was a proxy, and a proxy is no longer needed.
+  - **Dubai** (Malhotra 2019, single centre, n = 583, 46 deaths, 7.9%) —
+    **the robust findings**: **AUC 0.78 (0.69–0.87)**, **overall SMR 0.53** —
+    the model **over**-predicted deaths across the unit — and **SMR 2.1 in
+    sepsis**, under-prediction inside an over-predicting unit.
+  - **Dubai, the unstable part, and BOTH halves are carried.** The paper
+    stratifies by predicted probability twice and the two cuts disagree in the
+    same region of the scale:
+    - **fine-grained: SMR 2.67 in the 1–5% band** — severe **under**-prediction;
+    - **coarse: SMR 0.33 for p < 14.3% against 0.72 for p > 14.3%** —
+      **over**-prediction across that same low range.
+
+    One cohort of 583, two stratifications, opposite directions. That is a
+    **subgroup instability, not a direction**, so **no claim about the low end of
+    the scale is made from this study** — and neither figure may be carried
+    without the other. Carrying only the 2.67 is what produced the retracted
+    v1.2.0 conclusion.
+
+  - **Riyadh** (Alkhalifah 2022, n = 3396, under 14): sufficient discrimination,
+    poor calibration, **worst calibration AND discrimination in infants under
+    12 months**. The per-model figure captured is PRISM III's (AUC 0.87,
+    60–120 months); **no PIM3-specific statistic from it is claimed.**
+  - **The conclusion, which is the part a reader actually needs.**
+    **Discrimination travels between populations; calibration frequently does
+    not.** The regional under-prediction that survives its own paper is the one
+    in **sepsis**, by a factor of about 2 — that is the clinically consequential
+    finding and it is uncontradicted. **A unit-level SMR below 1 does not make
+    the model safe on the admissions inside it**: Dubai's 0.53 conceals a
+    doubling of risk in sepsis. Where the model is least trustworthy here is in
+    a **septic child** (Dubai) and in an **infant under 12 months** (Riyadh) —
+    both statements resting on the study that supports them. This is the honest
+    framing for a Gulf deployment, and it is now carried in a `caution` beside
+    the result rather than only in prose.
 - **Conditions dropped from the model that still carry local mortality risk.**
   HIV infection and post-liver-transplant admissions were removed as
   non-predictive in the derivation population; the Argentine authors flag both as
@@ -789,3 +853,61 @@ paper itself; the exception is listed under
 uncertain in earlier drafts are read directly from Appendix 1, p680. All three
 lists are confirmed complete and independently corroborated across the paper, the
 registry manual and three peer-reviewed validation studies.
+
+### 2026-08-04 — round-3 pass: regional calibration
+
+**No coefficient, input, imputation default, tier list or computed probability
+changed.** Implementation version **1.2.0**. What changed is that the page now
+describes how the model behaves where this platform deploys.
+
+- **Two Gulf evaluations added** as references 9 and 10 (Dubai full text read
+  2026-08-04; Riyadh carried at the strength the supplying review recorded).
+- **The South Africa framing was corrected, not extended.** "The closest
+  comparator for a Gulf-region deployment" was true only while the region had no
+  study of its own. It now has two. South Africa keeps the narrower claim it can
+  support: the only multicentre evaluation in a resource-varied setting.
+- **The conclusion is stated, not just the statistics.** Discrimination travels;
+  calibration frequently does not. A new `caution` says so beside the result,
+  because an over-predicting overall SMR is the single most misleading figure in
+  this evidence. ⚠️ **The low-probability half of the conclusion this pass drew
+  was withdrawn the same day — see the verification pass below.**
+- **Provenance discipline, recorded so it survives an edit.** The Riyadh study's
+  one per-model figure is **PRISM III's**. Nothing on this page or in the
+  implementation attributes a statistic from it to PIM3, and a test in
+  `pim3.test.ts` fails if that disclaimer is removed from the reference note.
+
+### 2026-08-04 — verification of the round-3 pass: one conclusion withdrawn
+
+**No coefficient, input, imputation default, tier list or computed probability
+changed.** Implementation version **1.2.1**, reason `clarification`.
+
+**The defect.** The pass above shipped a user-facing caution saying, in effect,
+that the reassuring end of the scale is the least trustworthy part of it — that a
+low predicted probability is where this model has been shown to be most wrong —
+and rested that on Malhotra 2019's **SMR 2.67 in the 1–5% predicted-probability
+band**. The **same paper** stratifies the same cohort a second way and reports
+**SMR 0.33 for p < 14.3% against 0.72 for p > 14.3%**: **over**-prediction, not
+under-prediction, across that low range. The page carried one cut and not the
+other, which turned an unstable subgroup result into a stated finding.
+
+**The fix.**
+
+- **Both stratifications are now carried**, in the reference note, in
+  `Limitations & notes`, in the implementation's `notes` and in the `caution`.
+  Neither may appear without the other; `pim3.test.ts` pins all five figures
+  (2.67, 1–5%, 14.3%, 0.33, 0.72) in the surfaced text and in the reference note.
+- **The conclusion is weakened to what the data supports.** The robust findings
+  from that study are the **overall SMR 0.53**, the **AUC 0.78** and the **sepsis
+  subgroup SMR 2.1**. The predicted-probability strata are recorded as unstable,
+  and **no direction is asserted for the low end of the scale**.
+- **The sepsis finding stays prominent**, in the caution beside the result. It is
+  not contradicted anywhere in the paper and it is the clinically consequential
+  one.
+- **"Least trustworthy" is kept but re-anchored** — to a septic child (Dubai) and
+  an infant under 12 months (Riyadh), each resting on the study that supports it,
+  rather than to the low end of the probability scale.
+
+**Propagation checked.** The same figures and the same conclusion had been copied
+onto the PRISM page, which cites the Dubai study as a deliberately-labelled PIM3
+data point. `docs/research/scores/prism.md` and `prism.ts` carry the identical
+correction (implementation version **2.2.1**). No other score cites Malhotra 2019.

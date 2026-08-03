@@ -608,6 +608,76 @@ describe("pim3 surfaces its group-level-only warning beside the result", () => {
     expect(pim3.notes.en).toContain("younger than 18");
     expect(pim3.notes.en).toContain("CONTRADICTS");
   });
+
+  /**
+   * Round-3 (2026-08-04). An SMR of 0.53 reads as "the model is conservative
+   * here" and is the single most misleading number in the regional evidence:
+   * the same cohort under-predicts by 2.1 in sepsis. Both halves have to
+   * survive together or the page is worse than silent, so both are pinned —
+   * the reassuring figure and the subgroup that contradicts it.
+   */
+  it("carries both halves of the Dubai finding, not just the reassuring one", () => {
+    const surfaced = pim3.notes.en + " " + (pim3.cautions ?? []).map((c) => c.en).join(" ");
+    expect(surfaced).toContain("0.53");
+    expect(surfaced).toContain("0.78");
+    expect(surfaced).toContain("2.1");
+    expect(surfaced, "sepsis is the under-predicted subgroup").toMatch(/SEPSIS|sepsis/);
+  });
+
+  /**
+   * Round-3 verification (2026-08-04). v1.2.0 carried SMR 2.67 in the 1–5%
+   * predicted-probability band and concluded from it that the reassuring end of
+   * the scale is where this model is most wrong. Malhotra 2019 also reports
+   * SMR 0.33 below a 14.3% predicted probability against 0.72 above it —
+   * over-prediction across that same low range. One cohort of 583, two ways of
+   * cutting it, opposite directions. Both are pinned here because carrying
+   * either alone manufactures a finding out of an unstable subgroup, and the
+   * conclusion must not name a direction for the low end.
+   */
+  it("carries both of the Dubai study's contradictory probability strata", () => {
+    const surfaced = pim3.notes.en + " " + (pim3.cautions ?? []).map((c) => c.en).join(" ");
+    expect(surfaced, "the fine-grained cut").toContain("2.67");
+    expect(surfaced, "the fine-grained cut").toContain("1–5%");
+    expect(surfaced, "the coarse cut that reverses it").toContain("14.3%");
+    expect(surfaced, "the coarse cut that reverses it").toContain("0.33");
+    expect(surfaced, "the coarse cut that reverses it").toContain("0.72");
+    // The reference note must carry both too, since it is where the figures resolve.
+    const dubai = pim3.references.find((r) => r.citation.includes("Dubai Med J"));
+    expect(dubai?.note).toContain("2.67");
+    expect(dubai?.note).toContain("0.33");
+    expect(dubai?.note).toContain("0.72");
+  });
+
+  it("names infants under 12 months as the worst-calibrated group in the region", () => {
+    const surfaced = pim3.notes.en + " " + (pim3.cautions ?? []).map((c) => c.en).join(" ");
+    expect(surfaced).toContain("3396");
+    expect(surfaced).toMatch(/infants under 12 months/);
+  });
+
+  /**
+   * The figures alone let a reader conclude "over-predicts, so it is safe".
+   * The conclusion is the deliverable: discrimination travels, calibration does
+   * not, and the error sits where a low number gets trusted.
+   */
+  it("draws the calibration conclusion rather than only listing statistics", () => {
+    expect(pim3.notes.en).toMatch(/discrimination travels between populations/);
+    expect(pim3.notes.en).toMatch(/calibration frequently does not/);
+    const cautions = (pim3.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toMatch(/least trustworthy/);
+  });
+
+  /**
+   * The Riyadh study's per-model statistic that reached us is PRISM III's. A
+   * later edit must not quietly re-attribute it to PIM3 — that is the exact
+   * shape of error this project treats as a clinical defect, not a typo.
+   */
+  it("does not claim a PIM3-specific statistic from the Riyadh study", () => {
+    const riyadh = pim3.references.find((r) => r.citation.includes("Front Pediatr. 2022"));
+    expect(riyadh, "the Riyadh evaluation must be cited").toBeDefined();
+    expect(riyadh?.note).toMatch(/no PIM3-specific statistic from this study is asserted/);
+    // 0.87 is PRISM III's AUC in that paper; it must never be read as PIM3's.
+    expect(riyadh?.note).toMatch(/PRISM III/);
+  });
 });
 
 /** The registry gate reads `version` against the changelog; this reads it against reality. */
@@ -615,7 +685,7 @@ describe("pim3 version tracks its user-visible text", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = pim3.changelog[pim3.changelog.length - 1];
     expect(pim3.version).toBe(newest?.version);
-    expect(pim3.version).toBe("1.1.1");
+    expect(pim3.version).toBe("1.2.1");
   });
 
   it("keeps InputValues in step with the declared inputs", () => {

@@ -13,7 +13,7 @@
  * count is 87 — and it survived because the e2e guard compared the rendered
  * figure to this file, so the number only had to agree with itself.
  */
-const CITATIONS = 136;
+const CITATIONS = 145;
 
 export const site = {
   name: "TowardPCC",

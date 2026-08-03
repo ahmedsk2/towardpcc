@@ -655,9 +655,8 @@ describeScore(psofa, (ctx) => {
    * THE DISCLOSURES ARE PART OF THE PRODUCT, SO THEY GET A TEST.
    *
    * pSOFA carried more [NEEDS SOURCE] markers than any other score on the site.
-   * A round-2 sourcing pass against the full text resolved most of them, and
-   * each resolution moved in a specific direction that is easy to undo by
-   * accident:
+   * Rounds 2–4 closed every one of them, and each closed in a specific
+   * direction that is easy to undo by accident:
    *
    *   - missing-as-normal was labelled OUR convention when it is the paper's own
    *     Methods rule. That marker is withdrawn because it was our error;
@@ -667,14 +666,36 @@ describeScore(psofa, (ctx) => {
    *     the tie-break as ours;
    *   - the ≤97% ceiling gained two citations;
    *   - the neonatal caveat was softened from "inapplicable" to "defined but not
-   *     derived here", with nSOFA named.
+   *     derived here", with nSOFA named;
+   *   - round 4 (2026-08-04) closed the LAST one, the non-support cap. It is not
+   *     ours: subscores 3–4 are each gated on respiratory support and no lower
+   *     band is, so a patient who is not on support cannot reach either and 2 is
+   *     all that is left. The cap is entailed by the published criteria, so the
+   *     marker was mis-labelled rather than unresolved;
+   *   - round 5 (2026-08-04) fixed how that gate was WORDED. Round 4 wrote it as
+   *     a "mechanical-ventilation requirement", which is narrower than Table 1
+   *     (whose row condition is "with respiratory support") and narrower than
+   *     this code, whose `resp_support` input has always accepted non-invasive
+   *     support too. The entailment was therefore argued on the narrow reading
+   *     while the calculator ran on the broad one. Both are now the broad one.
    *
-   * The one outcome that must never happen is a marker disappearing because
-   * someone asserted a source we do not have. Pinning the marker COUNT, not just
-   * their absence, is what catches that: deleting the surviving capping marker
-   * fails here, and so does reintroducing one of the four that were resolved.
+   * pSOFA therefore carries ZERO unsourced claims, and the count is pinned at
+   * zero rather than merely asserted absent. That direction of pinning is the
+   * one that matters now: the failure mode is no longer a marker vanishing
+   * because someone asserted a source we lack — it is a future edit
+   * REINTRODUCING an unsourced claim and it passing unnoticed. Any new
+   * [NEEDS SOURCE] anywhere in the notes fails here and has to be argued for.
+   * The cap's new attribution is asserted alongside the count, so quietly
+   * re-labelling it "an implementation convention" also fails.
+   *
+   * WHY THE OPEN TERM IS NOT A MARKER. The paper prints "respiratory support"
+   * and never defines it, so counting non-invasive support as satisfying the
+   * gate is a reading of ours — the same class as the 264 tie-break, and
+   * disclosed the same way. It is not [NEEDS SOURCE] because the gate itself IS
+   * sourced and no claim is made about which reading the authors intended. The
+   * assertions below pin the disclosure, so dropping it silently fails too.
    */
-  it("carries exactly the sourcing claims round-2 established, and no more", () => {
+  it("carries no unsourced claim at all, and keeps the cap's attribution", () => {
     const notes = psofa.notes.en;
 
     // Missing-as-normal: the paper's rule, attributed to its Methods.
@@ -685,11 +706,60 @@ describeScore(psofa, (ctx) => {
       "following the SOFA missing-as-normal convention",
     );
 
-    // Exactly one marker survives: the non-support capping rule, which the paper
-    // genuinely does not address.
+    // Zero markers survive. Round 4 closed the last one.
     const markers = notes.match(/\[NEEDS SOURCE\]/g) ?? [];
-    expect(markers, "only the non-support capping rule is still unsourced").toHaveLength(1);
-    expect(notes, "and that marker must still be the capping rule").toContain("capped at 2");
+    expect(markers, "pSOFA carries no unsourced claim; a new one must be justified").toHaveLength(
+      0,
+    );
+
+    // The cap still exists as BEHAVIOUR — closing the marker changed the label,
+    // not the number. If the rule itself were dropped, this catches it.
+    expect(notes, "the cap is still what an unsupported 3/4-band ratio scores").toContain(
+      "capped at 2",
+    );
+    // …and it is the table's structure, not ours. Re-labelling it a convention
+    // of this platform would be a regression to the mis-attribution round 4
+    // corrected, so the entailment wording is pinned.
+    expect(notes, "the cap must stay attributed to the published table").toContain(
+      "THE PUBLISHED TABLE'S OWN STRUCTURE, NOT A RULE THIS CALCULATOR ADDED",
+    );
+    expect(notes, "with the reasoning that makes it an entailment, not an assertion").toMatch(
+      /subscores 3 and 4 each carry the table's respiratory-support requirement and no lower band carries any support requirement/,
+    );
+
+    // THE GATE MUST BE STATED AS BROADLY AS IT IS IMPLEMENTED. `resp_support` is
+    // one boolean satisfied by non-invasive support, so wording the gate as
+    // "mechanical ventilation" — as v1.2.0 did here, in the notes and in
+    // psofa.ts — promises a stricter rule than the code applies, and argues the
+    // cap on a reading the calculator does not run. Table 1's row condition is
+    // respiratory support; that is the only wording allowed to appear.
+    expect(notes, "the gate must not be re-narrowed to mechanical ventilation").not.toMatch(
+      /mechanical[ -]ventilation/i,
+    );
+    // The term is undefined in the paper, so the broad reading is OURS and has
+    // to be visible as such — not silently adopted.
+    expect(notes, "the reading of the undefined term must stay disclosed").toContain(
+      "WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT",
+    );
+    expect(notes, "and it must say which reading this calculator runs").toMatch(
+      /invasive or non-invasive support both satisfy the gate/,
+    );
+    expect(notes, "and name the narrower reading the source does not exclude").toContain(
+      "not ruled out by the source",
+    );
+    // The entailment survives either reading — that is what makes the cap safe
+    // to keep while the term stays open. Losing this sentence would leave the
+    // argument looking contingent on the reading.
+    expect(notes, "the cap must be shown to be independent of the reading").toContain(
+      "turns on which bands are gated and not on what counts as support",
+    );
+
+    // The Phoenix contrast: same clinical situation, opposite structure. It is
+    // in the notes precisely because the entailment invites over-generalisation.
+    expect(notes, "the Phoenix contrast must survive").toContain("Phoenix");
+    expect(notes, "and it must state the opposite behaviour, not just name it").toMatch(
+      /scores 0 on the respiratory criterion/,
+    );
 
     // Confirmed-absent, not unfound — a reader must not go hunting for bounds
     // the paper never printed.
@@ -720,6 +790,18 @@ describeScore(psofa, (ctx) => {
     expect(help("spo2"), "the ≤97% ceiling's provenance belongs on the field").toContain("Khemani");
     expect(help("age_months"), "the adult-cut-point caveat belongs on the field").toContain(
       "adult SOFA",
+    );
+    // The support field is the one being ticked at the moment the reading
+    // matters, so what it counts — and that counting it is ours — belongs here
+    // and not only in the notes below the result.
+    expect(help("resp_support"), "the field must say non-invasive support counts").toContain(
+      "Invasive or non-invasive support both count",
+    );
+    expect(help("resp_support"), "and that this is our reading of an undefined term").toContain(
+      "this calculator's reading rather than the paper's",
+    );
+    expect(help("resp_support"), "the field must not re-narrow the gate either").not.toMatch(
+      /mechanical[ -]ventilation/i,
     );
   });
 });

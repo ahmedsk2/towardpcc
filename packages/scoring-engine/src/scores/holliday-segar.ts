@@ -23,12 +23,15 @@ import { kgWithLbAndG } from "../units/mass";
  *    stated rather than resolved. The one figure every source agrees on is the
  *    RATE, 100 mL/h, so that is the only thing capped, and it is attributed to
  *    NICE/Leung/RCH/Be-PIV and never to Holliday & Segar.
- * 3. The lower bound is a scope floor, not physiology. "Applicable above 2 weeks
- *    of age" — which v1.0.0 shipped — is not traceable to 1957; it comes from a
- *    1998-vintage calculator web page. Five guidelines set the bottom of scope
- *    independently (term / 28 days / >28 days / 1 month) and a weight guard
- *    cannot do that job, so the floor is a hard rejection at 4 kg plus a caution
- *    saying weight alone does not establish scope.
+ * 3. The lower bound is a scope floor, not physiology, and the 4 kg figure is
+ *    THIS PROJECT'S CHOICE — no source states a weight floor for this method.
+ *    "Applicable above 2 weeks of age" — which v1.0.0 shipped — is not traceable
+ *    to 1957; it comes from a 1998-vintage calculator web page. Five guidelines
+ *    set the bottom of scope independently and every one of them does it by AGE
+ *    (term / 28 days / >28 days / 1 month); a weight guard cannot implement an
+ *    age rule, so the floor is a hard rejection at 4 kg plus a caution saying
+ *    weight alone does not establish scope. The behaviour is deliberate; the
+ *    number behind it is ours and is labelled as ours.
  *
  * Research + full sourcing: docs/research/scores/holliday-segar.md
  * (Holliday MA, Segar WE. Pediatrics. 1957;19(5):823–832. PMID 13431307).
@@ -53,7 +56,7 @@ export const hollidaySegar = defineScore({
   id: "holliday-segar",
   slug: "holliday-segar",
   name: "Holliday-Segar maintenance fluids",
-  version: "2.0.0",
+  version: "2.1.0",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -65,13 +68,23 @@ export const hollidaySegar = defineScore({
       unit: kgWithLbAndG,
       /**
        * 4 kg is a SCOPE floor, not a physiologic threshold and not a validation
-       * convenience (holliday-segar.md "Lower bound — 4 kg"). Five guidelines
-       * exclude neonates by AGE, not weight, and weight cannot separate the
-       * populations: a 3.2 kg term neonate on day 2 needs ~70-80 mL/kg/day while
-       * a well 3.2 kg two-month-old needs 100 — the same number in, two answers
-       * ~25% apart. This score does not collect postnatal age, so it takes the
-       * strictest option the source review offers ("reject or hard-warn below
-       * 4 kg") and rejects. v1.0.0 accepted down to 0.5 kg and silently computed.
+       * convenience — and, corrected 2026-08-04, it is THIS PROJECT'S NUMBER
+       * rather than anybody's published threshold (holliday-segar.md "Lower
+       * bound — 4 kg is OURS"). NO WEIGHT FLOOR FOR THIS METHOD IS CITABLE
+       * ANYWHERE: every guideline scope read sets the bottom of applicability by
+       * AGE (term / 28 days / >28 days / 1 month), and none states a weight
+       * below which the method must not be used. The two figures that resemble
+       * one — ESPNIC's and RCH's bottom bands starting at 3 kg — are where a
+       * table starts, not a rule about what to refuse.
+       *
+       * The REASON for refusing stands on its own, which is why the behaviour is
+       * unchanged: weight cannot separate the populations the guidelines
+       * separate by age. A 3.2 kg term neonate on day 2 needs ~70-80 mL/kg/day
+       * while a well 3.2 kg two-month-old needs 100 — the same number in, two
+       * answers ~25% apart. This score does not collect postnatal age, so it
+       * refuses in the overlap rather than computing. v1.0.0 accepted down to
+       * 0.5 kg and silently computed. Until postnatal age is collected, 4 is a
+       * chosen proxy: defensible, deliberate, and unsourced.
        */
       min: 4,
       /**
@@ -156,6 +169,12 @@ export const hollidaySegar = defineScore({
     },
     {
       citation:
+        "Neville KA, et al. J Pediatr. 2010;156(2):313–319. (2 × 2 factorial randomised trial in 124 postoperative children: 0.9% versus 0.45% saline crossed with 100% versus 50% of the maintenance rate. Conclusion, verbatim in part: hyponatraemia risk was decreased by isotonic saline solution 'but not fluid restriction'.)",
+      pmid: "19818450",
+      note: "ABSTRACT READ; full text not accessed. The direct source for this score's restriction-is-not-prophylaxis rule, which until 2026-08-04 rested only on the AAP's rate-restricted subgroup observation and Leung's reading of Cochrane. Its 2 × 2 crossing is what makes it decisive: it varies fluid TYPE and fluid RATE independently, which a single restriction arm cannot. NO TITLE IS CARRIED — the reviewer supplied journal, volume, pages, PMID, design, population and conclusion but not the title, and a plausible-looking one is not invented to fill the field. It is also one of the three RCTs ESPNIC's PICO 5 pools, so it was already in this score's evidence base indirectly. No 2016-2026 trial repeated the design.",
+    },
+    {
+      citation:
         "University of Iowa Head and Neck Protocols — Pediatric Fluid Management. Secondary confirmation of the 4-2-1 hourly rule and the 35 kg → 75 mL/hr worked example.",
       url: "https://iowaprotocols.medicine.uiowa.edu/protocols/pediatric-fluid-management",
       note: "Used for the 35 kg worked example only. This page miscites the 1957 paper's journal, so it is not relied on for provenance.",
@@ -176,6 +195,13 @@ export const hollidaySegar = defineScore({
       summary:
         "Rebuilt on a full provenance review of eleven guideline and evidence full texts. BREAKING: the weight floor moves from 0.5 kg to 4 kg and now rejects — five guidelines exclude neonates by AGE, and weight cannot tell a 3.2 kg term neonate on day 2 (needing 70–80 mL/kg/day) from a well 3.2 kg two-month-old (needing 100), so the score refuses rather than silently computing. A third output is added: the hourly rate after the 100 mL/h guideline maximum, which binds at exactly 60 kg. NO daily cap is applied, and the ~2000–2400 mL/day figure v1.0.0 described as an institutional overlay is replaced by the real picture — four disagreeing figures spanning 2000–2500 mL/day, of which 2400 is a traced citation error (the Belgian Be-PIV consensus attributes it to NICE and Leung; both were read in full and neither states it; it is 100 mL/h × 24 and nothing more). The 'not intended below ~2 weeks of age' limitation is REMOVED as untraceable to 1957 — it originates in a 1998-vintage calculator web page. Notes now carry the measured 50–60 kcal/kg/day expenditure against the formula's 100 kcal/kg assumption, the per-100-kcal (not per-kg) electrolyte basis, the isotonic-fluid guidance that closes v1.0.0's [NEEDS SOURCE] marker, and the explicit statement that volume restriction is NOT established as a substitute for correct tonicity in preventing hyponatraemia. Four cautions added. No 70 kg anchor is shipped: it is unverified.",
       reason: "formula-correction",
+    },
+    {
+      version: "2.1.0",
+      date: "2026-08-04",
+      summary:
+        "Fixes a claim, adds the trial that was missing, and closes one question as settled-absent. No computed number, input bound or output changed — the 4 kg floor, the 100 mL/h rate cap and the uncapped daily volume all behave exactly as in 2.0.0. (1) THE 4 kg FLOOR IS RELABELLED AS OURS. v2.0.0 presented it as the source review's recommendation. NO WEIGHT FLOOR FOR THIS METHOD IS CITABLE ANYWHERE: every guideline scope read sets the bottom of applicability by AGE — term birth, 28 days, over 28 days, one month — and not one states a weight below which the method must not be used. The two figures that look like weight floors, ESPNIC's and RCH's bottom bands starting at 3 kg, are where a table begins rather than a rule about refusing. So 4 kg is now labelled for what it is: this project's implementation choice, made because a weight input cannot implement an age rule and the overlap is where being wrong is worst. The reason is unchanged and still stated; the false pedigree is gone. Collecting postnatal age is what would replace it. (2) THE RESTRICTION-IS-NOT-PROPHYLAXIS RULE GETS ITS SOURCE. That rule was already stated, on the strength of the AAP's observation that hypotonic-fluid risk persisted in rate-restricted patients and Leung's reading of Cochrane. It now cites the trial that tested the question directly: Neville 2010 (J Pediatr 156(2):313-319, PMID 19818450, abstract read), a 2 × 2 factorial randomised study in 124 postoperative children crossing 0.9% against 0.45% saline with 100% against 50% of the maintenance rate — the design that can separate tonicity from rate — which concluded that hyponatraemia risk was decreased by isotonic saline 'but not fluid restriction'. The claim is unchanged; it is no longer inferential. No 2016-2026 trial repeated that design, which is recorded as settled-absent. (3) NO EVIDENCE-BASED DAILY CEILING EXISTS, and that is now stated as settled-absent rather than as four sources disagreeing. The 2000/2400/2500/2500-male-2000-female spread is not a gap in this review to be closed by more searching: no daily maximum has ever been derived, every figure is convention, one of them is a traced citation error and one is arithmetically 100 mL/h × 24. The volume still ships uncapped and still shows the disagreement.",
+      reason: "clarification",
     },
   ],
   ipStatus: {
@@ -202,7 +228,7 @@ export const hollidaySegar = defineScore({
   cautions: [
     defineText(
       "hs.caution.scope",
-      "Weight alone does not establish that this method applies. Guideline scopes start at term birth, 28 days, over 28 days, or one month depending on the source, and a weight in the range this tool accepts can belong to a neonate or to a well older infant with very different needs. Anything under about one month of postnatal age is out of scope: NICE sets a separate day-of-life ladder rising from 50–60 to 120–150 mL/kg/day over the first 28 days, and this score does not implement it. Below 4 kg the score refuses to compute rather than estimating.",
+      "Weight alone does not establish that this method applies. Guideline scopes start at term birth, 28 days, over 28 days, or one month depending on the source — every one of them by AGE — and a weight in the range this tool accepts can belong to a neonate or to a well older infant with very different needs. Anything under about one month of postnatal age is out of scope: NICE sets a separate day-of-life ladder rising from 50–60 to 120–150 mL/kg/day over the first 28 days, and this score does not implement it. Below 4 kg the score refuses to compute rather than estimating. THE 4 kg FIGURE IS THIS PROJECT'S OWN, and it is stated as such rather than dressed up: no guideline anywhere sets a weight below which this method must not be used, so there is nothing to cite for it. It is a proxy chosen because this score collects weight and the scopes are written in age, and it refuses in the band where the two populations overlap. Use your own unit's scope rule if it differs; it will not be contradicting a published threshold, because there isn't one.",
     ),
     defineText(
       "hs.caution.less",
@@ -210,11 +236,11 @@ export const hollidaySegar = defineScore({
     ),
     defineText(
       "hs.caution.tonicity",
-      "Restricting volume is recommended to avoid fluid overload. It is NOT established as a substitute for correct tonicity for preventing hyponatraemia: the AAP found the excess risk from hypotonic fluid persisted even in patients whose rate was restricted, and Leung 2021 concludes that fluid type matters more than fluid rate. Do not read a reduced volume as hyponatraemia prophylaxis.",
+      "Restricting volume is recommended to avoid fluid overload. It is NOT established as a substitute for correct tonicity for preventing hyponatraemia, and one trial tested exactly that question: Neville 2010 randomised 124 postoperative children in a 2 × 2 design, 0.9% against 0.45% saline crossed with 100% against 50% of the maintenance rate — the crossing is what lets tonicity and rate be told apart — and concluded that the risk of hyponatraemia was decreased by isotonic saline 'but not fluid restriction'. The same direction comes from the AAP, which found the excess risk from hypotonic fluid persisted even in patients whose rate was restricted, and from Leung 2021, which concludes that fluid type matters more than fluid rate. Do not read a reduced volume as hyponatraemia prophylaxis.",
     ),
     defineText(
       "hs.caution.cap",
-      "No daily maximum is applied to the volume shown, because current guidelines do not agree on one — they give 2000, 2400, 2500, and 2500 for males with 2000 for females, all for the same question. None of those figures comes from Holliday and Segar, whose method has no ceiling. The only capped figure here is the hourly rate, at the 100 mL/hour every source states.",
+      "No daily maximum is applied to the volume shown, because current guidelines do not agree on one — they give 2000, 2400, 2500, and 2500 for males with 2000 for females, all for the same question. That disagreement is not a search still running: NO EVIDENCE-BASED DAILY CEILING EXISTS. None of those figures is the output of a study that tested a ceiling, one of them is a traced citation error and one is arithmetically 100 mL/hour × 24; every one is a guideline convention. None comes from Holliday and Segar, whose method has no ceiling at all. The only capped figure here is the hourly rate, at the 100 mL/hour every source states.",
     ),
   ],
   notes: defineText(
@@ -242,10 +268,23 @@ export const hollidaySegar = defineScore({
       "day-of-life ladder instead. A weight guard cannot implement any of those, because weight " +
       "does not distinguish the populations: a 3.2 kg term neonate on day 2 needs roughly 70–80 " +
       "mL/kg/day while a well 3.2 kg two-month-old needs 100 mL/kg/day, a difference of about a " +
-      "quarter at an identical entry. The source review's recommendation is to require postnatal " +
-      "age, reject or hard-warn below 4 kg, and never silently compute; this score does not " +
-      "collect postnatal age, so it takes the strict option and rejects. 4 kg is a scope floor, " +
-      "not a physiologic threshold. The exclusion is well evidenced: in 174 infants of at least " +
+      "quarter at an identical entry. So the behaviour is to require postnatal age where it can be " +
+      "had, reject below 4 kg, and never silently compute; this score does not collect postnatal " +
+      "age, so it takes the strict option and rejects. WHERE THE 4 kg ITSELF COMES FROM, STATED " +
+      "PLAINLY BECAUSE THIS PAGE USED TO OVERSTATE IT. It comes from this project. NO WEIGHT " +
+      "FLOOR FOR THIS METHOD IS CITABLE ANYWHERE — every guideline scope above is written in AGE, " +
+      "and not one of them names a weight below which the method must not be used. The two " +
+      "figures that resemble a floor are not one: ESPNIC's 2024 prescribing figure and RCH's 2026 " +
+      "table both start their bottom band at 3 kg, which is where a table begins, not a rule " +
+      "about what to refuse, and neither states a rationale or says anything about 2.9 kg. Up to " +
+      "v2.0.0 this page presented 4 kg as the source review's recommendation, which gave a number " +
+      "a pedigree it does not have. It is an IMPLEMENTATION CHOICE: deliberate, defensible, and " +
+      "unsourced. The reason behind it is the part that carries weight and it is unchanged — a " +
+      "weight input cannot implement an age rule, so the score refuses across the band where the " +
+      "two populations overlap and where being wrong is worst. A different team could pick 3.5 or " +
+      "5 and contradict nothing published. What would replace the proxy is collecting postnatal " +
+      "age. 4 kg is a scope floor, not a physiologic threshold and not a published one. " +
+      "The exclusion is well evidenced: in 174 infants of at least " +
       "34 weeks gestation on dextrose-containing fluid at a mean 57.2 mL/kg/day, 39% reached " +
       "sodium at or below 134 and 24% at or below 132 mEq/L, serum sodium fell 0.07 mEq/L per " +
       "mL/kg of positive fluid balance, and TERM infants fared worse than late preterm ones " +
@@ -284,7 +323,12 @@ export const hollidaySegar = defineScore({
       "100 mL/h × 24 h and nothing more. Applied to 70 kg the 1957 arithmetic yields 2500, not " +
       "2400. So no daily cap is applied to the volume shown, no single figure is presented as " +
       "authoritative, and any cap a unit chooses to apply is a guideline convention rather than a " +
-      "derived value. " +
+      "derived value. AND THAT ABSENCE IS SETTLED, NOT OUTSTANDING. NO EVIDENCE-BASED DAILY " +
+      "CEILING EXISTS — it is not that a derived maximum sits somewhere unfound, it is that none " +
+      "has ever been derived, which is exactly why four sources give four figures for one " +
+      "question and none of them cites a study that tested a ceiling against anything. Confirmed " +
+      "2026-08-04 and closed: the disagreement set out above IS the state of the field, and " +
+      "searching it again will not resolve it. " +
       "WHY THE FORMULA OVERESTIMATES, QUANTIFIED. The 1957 derivation estimated a hospitalised " +
       "child's caloric expenditure as roughly midway between basal requirement and the " +
       "requirement of a normally active child. Measured by calorimetry, energy expenditure in " +
@@ -295,14 +339,33 @@ export const hollidaySegar = defineScore({
       "not healthy (Brossier 2024). This is the quantitative reason current guidance restricts. " +
       "Accuracy is further reduced in fever, burns, tachypnoea, hypothermia, hyperthyroidism, " +
       "status epilepticus, and any state with altered ADH physiology. " +
+      "ONE CALCULATOR HERE DELIBERATELY DISAGREES WITH THIS ONE. The pediatric burn resuscitation " +
+      "score reimplements this method and applies it from 0.5 kg, below the 4 kg floor this page " +
+      "enforces. That is intentional, not an oversight: refusing to compute for a burned 3 kg " +
+      "infant would withhold the RESUSCITATION volume too, which is the worse harm. It discloses " +
+      "the same scope limit on its own maintenance output instead of refusing, and a test reads " +
+      "this page's floor directly so the two cannot drift apart silently. " +
       "RESTRICTION IS NOT HYPONATRAEMIA PROPHYLAXIS. Restriction is defensible for avoiding fluid " +
       "overload and ESPNIC recommends it on that basis, grading its own volume recommendations C, " +
       "D and GCP — the weakest in that document — and stating that the amount and duration are " +
-      "uncertain. It is NOT established as a substitute for correct tonicity: the AAP found the " +
-      "increased hyponatraemia risk from hypotonic fluid PERSISTED in the subgroup given fluid at " +
+      "uncertain. It is NOT established as a substitute for correct tonicity, and that is no " +
+      "longer an inference drawn from subgroups — one trial randomised the two variables against " +
+      "each other. NEVILLE 2010 (J Pediatr 156(2):313–319, PMID 19818450; abstract read, full " +
+      "text not accessed) allocated 124 postoperative children in a 2 × 2 factorial design: 0.9% " +
+      "against 0.45% saline, CROSSED WITH 100% against 50% of the maintenance rate. The crossing " +
+      "is the whole value of it, because it is what lets an effect be attributed to tonicity or " +
+      "to rate rather than to both at once, which a single restricted arm cannot do. Its " +
+      "conclusion, in its own words: the risk of hyponatremia was decreased by isotonic saline " +
+      "solution 'but not fluid restriction'. NO TRIAL BETWEEN 2016 AND 2026 REPEATED THAT DESIGN " +
+      "— nothing in the last decade re-randomised RATE independently of tonicity, so a 2010 study " +
+      "remains the design of record, and that absence is settled rather than outstanding. Two " +
+      "further sources point the same way: the AAP found the increased hyponatraemia risk from " +
+      "hypotonic fluid PERSISTED in the subgroup given fluid at " +
       "a restricted rate, and Leung 2021 concludes from the Cochrane review's restricted-rate arms " +
       "that 0.45% saline under 70% maintenance did not protect against hyponatraemia and that " +
-      "fluid type matters more than fluid rate. There is currently no reliable way to predict the " +
+      "fluid type matters more than fluid rate. None of this contradicts ESPNIC's recommendation " +
+      "to restrict, which rests on fluid overload rather than on sodium; what it forbids is " +
+      "presenting a reduced volume as protection against hyponatraemia. There is currently no reliable way to predict the " +
       "daily maintenance requirement of a child in acute or critical care, and a causal link " +
       "between restriction strategies and reduced fluid overload remains to be shown " +
       "(Brossier 2024). " +
