@@ -13,7 +13,9 @@ and the ANZICS registry information booklet. Appendix 1 carries the diagnosis
 lists, their qualifying rules and every coding and missing-value convention, so
 the rules that this file previously carried as `[NEEDS SOURCE]` on the strength
 of the unreachable booklet are now sourced to the paper itself. **One clause is
-not** — see [Open gaps](#open-gaps--needs-source).
+not, and never will be** — the tracheostomy exclusion is a registry
+data-dictionary convention, closed on 2026-08-03 by reading the booklet rather
+than by finding a paper. See [Open gaps](#open-gaps--needs-source).
 
 Derivation cohort: 53,112 admissions, 60 ICUs, Australia / New Zealand / Ireland
 / UK, 2010–2011 (ANZPIC registry and PICANet). 1,962 observed deaths against
@@ -513,9 +515,12 @@ collecting the three PIM3 recovery terms directly. Another reason a naive
 field-for-field mapping does not exist.
 
 Source: ANZICS, _PIM2 & PIM3 for the ANZPIC Registry — Information Booklet_
-(version Jan 2019). Grey literature, no DOI, and its published URL returns HTTP
-404 (re-verified 2026-08-02), so it is named in the implementation's references
-rather than linked. Nothing this calculator computes depends on it.
+(version Jan 2019), retrieved 2026-08-03. Grey literature, no DOI, and its
+published URL returns HTTP 404 (re-verified 2026-08-02), so it is named in the
+implementation's references rather than linked. **No computed value depends on
+it** — the code mappings above are not consumed — but one rule this calculator
+_states_ does: the tracheostomy clause on the ventilation criterion, which the
+paper does not address (see [Open gaps](#open-gaps--needs-source)).
 
 ---
 
@@ -596,10 +601,13 @@ bands.
    Cited for the contrast; not implemented.
 
 8. **ANZICS Centre for Outcome and Resource Evaluation.** _PIM2 & PIM3 for the
-   ANZPIC Registry — Information Booklet_, version Jan 2019. Grey literature, no
-   DOI; its published URL returns HTTP 404 (re-verified 2026-08-02). Normative
-   only for the registry code numbers in the section above, which this
-   implementation does not consume.
+   ANZPIC Registry — Information Booklet_, version Jan 2019. **Retrieved
+   2026-08-03.** Grey literature, no DOI; its published URL returns HTTP 404
+   (re-verified 2026-08-02), so it is named rather than linked. Normative for the
+   registry code numbers in the section above, which this implementation does not
+   consume, **and** for the one coding rule it does state to the user: a
+   tracheostomy with unassisted spontaneous breathing is not ventilation in the
+   first hour. No peer-reviewed source addresses that case.
 
 ---
 
@@ -646,17 +654,32 @@ bands.
 
 ### Open gaps — [NEEDS SOURCE]
 
-One clause, down from seven. The other six were closed on 2026-08-03 — four of
-them by Appendix 1, p680, the rest as the table below records.
+**None. All seven are closed** — six on 2026-08-03 (four by Appendix 1, p680, the
+rest as the table below records) and the seventh, the tracheostomy clause, by the
+round-2 sourcing pass the same day.
 
-- **Whether a tracheostomy with unassisted spontaneous breathing is excluded from
-  the mechanical-ventilation criterion. [NEEDS SOURCE].** Appendix 1 states what
-  the criterion _includes_ — invasive ventilation, mask or nasal CPAP, BiPAP,
-  negative-pressure ventilation — and is silent on tracheostomy. The exclusion is
-  widely repeated and traces to the ANZICS booklet, which is not retrievable
-  (HTTP 404, re-verified 2026-08-02). It is carried unsourced in the input help
-  text rather than asserted, because a clinician deciding this case needs to know
-  the answer is not backed by a source we could read.
+- **CLOSED — a tracheostomy with unassisted spontaneous breathing is not
+  ventilation for the first-hour criterion.** Source: ANZICS Centre for Outcome
+  and Resource Evaluation, _PIM2 & PIM3 for the ANZPIC Registry — Information
+  Booklet_, version January 2019, which states in its ventilation-in-the-first-
+  hour guidance that tracheostomy with spontaneous breathing does not constitute
+  ventilation. **Retrieved 2026-08-03.** The wording is not reproduced here
+  beyond the rule itself.
+
+  **Close it at the right strength.** This is a **registry data-dictionary
+  convention**, grey literature with no DOI, and its published anzics.org URL
+  still returns HTTP 404 (re-verified 2026-08-02) — which is why the
+  implementation names and dates it rather than shipping it as a resolvable
+  reference. **No peer-reviewed source addresses the edge case at all.** Straney
+  2013 Appendix 1 (p680) is an inclusion list — invasive ventilation, mask or
+  nasal CPAP, BiPAP, negative-pressure ventilation — and says nothing about
+  tracheostomy, so its silence neither confirms nor contradicts the booklet. The
+  reason to follow the booklet is not that it is authoritative in the literature
+  sense; it is that it is how the ANZPIC registry coded the variable in the data
+  the model was fitted on, so following it keeps this calculator consistent with
+  the derivation. Anyone who wants a stronger answer needs a primary study that
+  does not exist. **Do not re-open this as an unfound gap: it is answered, and
+  answered as weakly as it will ever be.**
 
 **Closed on 2026-08-03** (each was previously `[NEEDS SOURCE]` because it had
 been attributed to the unreachable booklet):

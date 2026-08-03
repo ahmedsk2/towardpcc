@@ -237,6 +237,49 @@ describeScore(psofa, (ctx) => {
       { id: "respiratory", value: 2 },
     ],
   );
+  /**
+   * THE 264 OVERLAP, PINNED FROM BOTH SIDES.
+   *
+   * The overlap is in the SOURCE: JAMA Pediatr Table 1 prints the SpO₂:FiO₂
+   * bands as ≥292 / 264–291 / 221–264 / 148–220 / <148, so 264 is the lower
+   * bound of the subscore-1 row and the upper bound of the subscore-2 row at
+   * once. No reading of the published table assigns an exact 264 a single
+   * subscore, so a tie-break is unavoidable; taking the worse one is THIS
+   * implementation's documented choice (psofa.ts respiratoryFromSf).
+   *
+   * Nothing asserted a value at exactly 264 before — every band example landed
+   * strictly inside a band, so flipping the comparison from `>` to `>=` would
+   * have moved a real patient's subscore from 2 to 1 with the whole suite green.
+   *
+   * SpO₂ 66% on FiO₂ 0.25 is 264 EXACTLY in binary floating point (66/0.25;
+   * both operands are exactly representable), so this pins the boundary itself
+   * rather than a value near it. 66.5/0.25 = 266 is likewise exact.
+   */
+  ctx.workedExample(
+    {
+      ...matics,
+      locator:
+        "SpO₂:FiO₂ exactly 264 — printed in BOTH the subscore-1 and subscore-2 rows of Table 1; worse subscore taken → respiratory 2 (66/0.25 = 264)",
+    },
+    { ...normal, fio2: { value: 0.25, unit: "fraction" }, spo2: { value: 66, unit: "%" } },
+    [
+      { id: "total", value: 2 },
+      { id: "respiratory", value: 2 },
+    ],
+  );
+  ctx.workedExample(
+    {
+      ...matics,
+      locator:
+        "SpO₂:FiO₂ 266, just above the overlapped 264 → respiratory 1 (Table 1 264–291 row; 66.5/0.25 = 266)",
+    },
+    { ...normal, fio2: { value: 0.25, unit: "fraction" }, spo2: { value: 66.5, unit: "%" } },
+    [
+      { id: "total", value: 1 },
+      { id: "respiratory", value: 1 },
+    ],
+  );
+
   ctx.workedExample(
     {
       ...matics,
@@ -288,14 +331,18 @@ describeScore(psofa, (ctx) => {
     ],
   );
 
-  // Missing oxygenation (no PaO₂ and no SpO₂) → respiratory 0 (SOFA
-  // missing-as-normal, psofa.md notes). This all-normal vector also exercises
-  // the 60–143-month age band; every subscore is 0.
+  // Missing oxygenation (no PaO₂ and no SpO₂) → respiratory 0. This is the
+  // PAPER's rule, not ours: the Matics & Sanchez-Pinto Methods state that a
+  // variable not measured in a 24-hour period was taken as normal, consistent
+  // with the original SOFA criteria. Round-2 sourcing established this against
+  // the full text; it was previously mislabelled here as our own convention.
+  // This all-normal vector also exercises the 60–143-month age band; every
+  // subscore is 0.
   ctx.workedExample(
     {
       ...matics,
       locator:
-        "no PaO₂/SpO₂ provided → respiratory 0; all-normal vector (psofa.md missing-as-normal)",
+        "no PaO₂/SpO₂ provided → respiratory 0; all-normal vector (Matics 2017 Methods: an unmeasured variable is taken as normal)",
     },
     { ...normal },
     [
@@ -389,6 +436,12 @@ describeScore(psofa, (ctx) => {
    * correctness. Flagged by an external review on 2026-08-01, which reached the
    * conclusion by the wrong route — it argued pSOFA needed a second SOFTWARE
    * implementation — but the underlying gap it pointed at was real.
+   *
+   * The >216-month pair below is worth reading twice: Matics & Sanchez-Pinto
+   * state that band's MAP and creatinine cut points are identical to adult
+   * SOFA's, and the cohort ran to 21 years (≤252 months). So these two examples
+   * pin ADULT thresholds being applied inside a paediatric score — correct
+   * behaviour, and a caveat `notes` now spells out rather than a defect.
    */
   ctx.workedExample(
     {
@@ -424,7 +477,7 @@ describeScore(psofa, (ctx) => {
     {
       ...matics,
       locator:
-        "MAP 69 mmHg in the >216 mo band (threshold 70) → cardiovascular 1 (Table 1 MAP row)",
+        "MAP 69 mmHg in the >216 mo band (threshold 70, stated by the paper to be adult SOFA's) → cardiovascular 1 (Table 1 MAP row)",
     },
     {
       ...normal,
@@ -439,7 +492,8 @@ describeScore(psofa, (ctx) => {
   ctx.workedExample(
     {
       ...matics,
-      locator: "creatinine 3.5 mg/dL in the >216 mo band (cuts 1.2/2.0/3.5/5.0) → renal 3",
+      locator:
+        "creatinine 3.5 mg/dL in the >216 mo band (cuts 1.2/2.0/3.5/5.0, stated by the paper to be adult SOFA's) → renal 3",
     },
     {
       ...normal,
@@ -595,5 +649,77 @@ describeScore(psofa, (ctx) => {
       composition.components.reduce((n, c) => n + c.max, 0),
       "declared maxima must sum to the published pSOFA maximum of 24",
     ).toBe(24);
+  });
+
+  /**
+   * THE DISCLOSURES ARE PART OF THE PRODUCT, SO THEY GET A TEST.
+   *
+   * pSOFA carried more [NEEDS SOURCE] markers than any other score on the site.
+   * A round-2 sourcing pass against the full text resolved most of them, and
+   * each resolution moved in a specific direction that is easy to undo by
+   * accident:
+   *
+   *   - missing-as-normal was labelled OUR convention when it is the paper's own
+   *     Methods rule. That marker is withdrawn because it was our error;
+   *   - the plausibility bounds went from [NEEDS SOURCE] (implying a source
+   *     might exist) to confirmed-absent (a stronger, more honest claim);
+   *   - the 264 overlap was re-attributed to the published table, leaving only
+   *     the tie-break as ours;
+   *   - the ≤97% ceiling gained two citations;
+   *   - the neonatal caveat was softened from "inapplicable" to "defined but not
+   *     derived here", with nSOFA named.
+   *
+   * The one outcome that must never happen is a marker disappearing because
+   * someone asserted a source we do not have. Pinning the marker COUNT, not just
+   * their absence, is what catches that: deleting the surviving capping marker
+   * fails here, and so does reintroducing one of the four that were resolved.
+   */
+  it("carries exactly the sourcing claims round-2 established, and no more", () => {
+    const notes = psofa.notes.en;
+
+    // Missing-as-normal: the paper's rule, attributed to its Methods.
+    expect(notes, "missing-as-normal must be attributed to the paper").toContain(
+      "Methods of Matics & Sanchez-Pinto 2017",
+    );
+    expect(notes, "it is no longer ours to call a convention").not.toContain(
+      "following the SOFA missing-as-normal convention",
+    );
+
+    // Exactly one marker survives: the non-support capping rule, which the paper
+    // genuinely does not address.
+    const markers = notes.match(/\[NEEDS SOURCE\]/g) ?? [];
+    expect(markers, "only the non-support capping rule is still unsourced").toHaveLength(1);
+    expect(notes, "and that marker must still be the capping rule").toContain("capped at 2");
+
+    // Confirmed-absent, not unfound — a reader must not go hunting for bounds
+    // the paper never printed.
+    expect(notes).toContain("confirmed absent from the paper, not merely unlocated");
+
+    // The overlap is in the source; only the tie-break is ours.
+    expect(notes).toContain("JAMA Pediatr Table 1 prints 264");
+
+    // The ≤97% ceiling is sourced twice over; the neonatal caveat names nSOFA.
+    expect(notes).toContain("Khemani");
+    expect(notes).toContain("nSOFA");
+
+    // Above 216 months the cut points are adult SOFA's — a real caveat, stated.
+    expect(notes).toContain("216 months");
+
+    // Every source the prose leans on must resolve to a reference entry.
+    // Matics (the score), Khemani 2009 + 2012 (the ≤97% ceiling), Wynn & Polin
+    // (nSOFA). A citation named in notes but absent from `references` renders as
+    // an authority the reader cannot follow.
+    const refs = JSON.stringify(psofa.references);
+    for (const pmid of ["28783810", "19029434", "22202709", "31394566"]) {
+      expect(refs, `notes cite a source missing from references (PMID ${pmid})`).toContain(pmid);
+    }
+
+    // The two input fields that carry a caveat of their own must carry it where
+    // it is read — beside the field, not only in the notes below the result.
+    const help = (id: string) => psofa.inputs.find((i) => i.id === id)?.helpText?.en ?? "";
+    expect(help("spo2"), "the ≤97% ceiling's provenance belongs on the field").toContain("Khemani");
+    expect(help("age_months"), "the adult-cut-point caveat belongs on the field").toContain(
+      "adult SOFA",
+    );
   });
 });

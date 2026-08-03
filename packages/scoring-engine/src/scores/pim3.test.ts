@@ -506,12 +506,44 @@ describe("pim3 citations carry no dead locator", () => {
     expect(named, "the ANZICS booklet must still be credited in the references").toBe(true);
   });
 
-  it("keeps the one rule it still backs marked [NEEDS SOURCE]", () => {
-    // The mechanical-ventilation tracheostomy exclusion is the last claim with
-    // no source but the unreachable booklet. Appendix 1 closed the others.
-    expect(pim3.notes.en).toContain("[NEEDS SOURCE]");
-    expect(pim3.notes.en).toContain("ANZICS");
-    expect(pim3.notes.en).toContain("tracheostomy");
+  /**
+   * The tracheostomy clause was the last [NEEDS SOURCE] on this score. Round-2
+   * sourcing (2026-08-03) retrieved the ANZPIC Registry booklet and closed it —
+   * but closing it correctly means DOWNGRADING the claim, not upgrading it: the
+   * rule is a registry data-dictionary convention, not a peer-reviewed finding,
+   * and the paper is silent on it. Asserting the disclosure structurally is what
+   * stops a later edit from quietly promoting a booklet convention to something
+   * the derivation study says.
+   */
+  it("records the tracheostomy rule as a registry convention, not a paper finding", () => {
+    const notes = pim3.notes.en;
+    expect(notes).toContain("tracheostomy");
+    expect(notes).toContain("ANZPIC");
+    // Provenance, its date, and its weakness must all survive together.
+    expect(notes).toContain("2026-08-03");
+    expect(notes, "grey literature must be labelled as such").toMatch(/grey literature/i);
+    expect(notes, "the paper's silence is the point").toMatch(
+      /NO PEER-REVIEWED SOURCE ADDRESSES THE EDGE CASE/,
+    );
+  });
+
+  it("no longer carries an open [NEEDS SOURCE] marker", () => {
+    // Every rule this score states now traces somewhere. If a future edit
+    // reopens one, it belongs in `notes` with its own explanation — this
+    // assertion failing is the prompt to write that explanation, not to delete
+    // the marker.
+    expect(pim3.notes.en).not.toContain("[NEEDS SOURCE]");
+  });
+
+  it("still does not ship the booklet as a locator, retrieved or not", () => {
+    // Retrieving the text did not resurrect the URL. A reference must resolve;
+    // this one cannot, so it stays credited in prose rather than linked.
+    const bookletRef = pim3.references.some((r) =>
+      r.citation.includes("ANZPIC Registry — Information Booklet"),
+    );
+    expect(bookletRef, "the booklet has no resolvable locator and must not be a reference").toBe(
+      false,
+    );
   });
 
   it("leaves every remaining reference traceable", () => {
@@ -583,7 +615,7 @@ describe("pim3 version tracks its user-visible text", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = pim3.changelog[pim3.changelog.length - 1];
     expect(pim3.version).toBe(newest?.version);
-    expect(pim3.version).toBe("1.1.0");
+    expect(pim3.version).toBe("1.1.1");
   });
 
   it("keeps InputValues in step with the declared inputs", () => {

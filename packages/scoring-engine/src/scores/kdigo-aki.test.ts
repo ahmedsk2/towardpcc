@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { kdigoAki } from "./kdigo-aki";
 
@@ -754,4 +755,41 @@ describeScore(kdigoAki, (ctx) => {
   ctx.expectBand("kdigo_stage", 1, "stage-1");
   ctx.expectBand("kdigo_stage", 2, "stage-2");
   ctx.expectBand("kdigo_stage", 3, "stage-3");
+});
+
+/**
+ * TWO SOURCING QUESTIONS THAT ARE CLOSED, AND MUST STAY CLOSED.
+ *
+ * "We could not find a source" and "we established there is no source" look the
+ * same on the page and are opposite conclusions. The first invites the next
+ * reader to go looking; the second tells them not to bother. Both of these were
+ * re-searched on 2026-08-03 and came back settled-absent, so the wording is
+ * asserted here — a later edit that softens it back to an open question would
+ * silently re-open work that is finished, and nothing else in the suite would
+ * notice, because neither statement changes a computed stage.
+ */
+describe("kdigo-aki records its settled absences as settled", () => {
+  const notes = kdigoAki.notes.en;
+
+  it("states that anuria has no numeric definition to find, not that one is missing", () => {
+    expect(notes).toContain("CONFIRMED ABSENCE");
+    expect(notes).toMatch(/no numeric definition of anuria|no single agreed numeric definition/i);
+    // The behaviour this justifies: a clinical flag, never a fabricated rate.
+    expect(notes).toMatch(/clinical flag/i);
+    expect(notes).not.toMatch(/\[NEEDS SOURCE[^\]]*anuria/i);
+  });
+
+  it("states the 88.42-vs-88.4 creatinine factor is immaterial rather than undecided", () => {
+    expect(notes).toContain("SETTLED, NOT OPEN");
+    // The arithmetic that makes it immaterial must survive with the claim.
+    expect(notes).toContain("353.60");
+    expect(notes).toContain("353.68");
+    expect(notes).not.toMatch(/open item/i);
+  });
+
+  it("declares the version its newest changelog entry describes", () => {
+    const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
+    expect(kdigoAki.version).toBe(newest?.version);
+    expect(kdigoAki.version).toBe("2.0.1");
+  });
 });

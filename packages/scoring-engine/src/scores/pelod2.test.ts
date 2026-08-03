@@ -246,6 +246,54 @@ describeScore(pelod2, (ctx) => {
     ctx.boundaryTest(id, "max", normal);
   }
 
+  /**
+   * THE AGE CEILING IS EXCLUSIVE OF 216 MONTHS.
+   *
+   * Leteurtre 2013 excluded "age 18 years or older", so the eligible domain is
+   * [0, 216) months. The declaration used to read `max: 216`, and
+   * `NumericInput.max` is INCLUSIVE (validation.ts rejects only
+   * `converted > max`) — so exactly 18.0 years was accepted and scored, one
+   * month of patients the paper excludes.
+   *
+   * `boundaryTest` above already proves the declared max computes and that
+   * max + 1e-6 rejects. What it cannot prove is that the declared max is the
+   * RIGHT one: it would pass just as happily at 216, or at 200. These
+   * assertions pin the number itself from both sides — below 216, and with
+   * nothing representable in between, which is what makes the closed interval
+   * [0, max] contain exactly the same doubles as the intended [0, 216).
+   */
+  it("declares an age ceiling that is the largest double strictly below 216 months", () => {
+    const age = pelod2.inputs.find((i) => i.id === "age_months");
+    expect(age?.type).toBe("numeric");
+    if (age?.type !== "numeric") return;
+
+    // 216 lies in the binade [128, 256), where adjacent doubles are 2⁻⁴⁵ apart.
+    const largestBelow216 = 216 - 2 ** -45;
+    expect(age.max).toBe(largestBelow216);
+    expect(age.max).toBeLessThan(216);
+    // Nothing in between: one ulp up from the ceiling lands exactly on 216.
+    expect(age.max + 2 ** -45).toBe(216);
+    expect(age.min).toBe(0);
+  });
+
+  it("rejects exactly 216 months (18.0 years) and accepts everything below it", () => {
+    const at216 = pelod2.compute({ ...normal, age_months: { value: 216, unit: "months" } });
+    expect(at216.ok, "exactly 18.0 years is outside the derivation cohort").toBe(false);
+    if (!at216.ok) {
+      expect(
+        at216.errors.some((e) => e.inputId === "age_months" && e.code === "out-of-range"),
+      ).toBe(true);
+    }
+
+    // The last representable month before it still computes, and so does an
+    // ordinary fractional age near the top — the reason the ceiling is the exact
+    // predecessor rather than a whole-month 215 (which would reject both).
+    for (const months of [215.99999999999997, 215.5, 215]) {
+      const outcome = pelod2.compute({ ...normal, age_months: { value: months, unit: "months" } });
+      expect(outcome.ok, `${months} months must compute`).toBe(true);
+    }
+  });
+
   // Required categorical: an unrecognized pupillary state is rejected.
   ctx.rejectsImplausible(
     "an unrecognized pupillary state",

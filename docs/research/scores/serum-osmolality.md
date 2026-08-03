@@ -58,6 +58,13 @@ _JAMA_ 1976 ("a very simple formula: CO = 2(Sodium) + Glucose + Urea"); non-SI
 ÷18/÷2.8 rendering as tabulated in Choy et al. 2016 and Wikipedia's Osmol gap
 entry.
 
+**Round-2 confirmation (2026-08-03).** A second sourcing pass re-checked this
+against the guideline-endorsed form and found the same equation, in both
+renderings: `2 × Na + glucose/18 + BUN/2.8` for mg/dL inputs, `2 × Na + glucose +
+urea` in mmol/L. **No coefficient changed and no behaviour changed** — the
+implementation already computes exactly this. Recorded here as a confirmation,
+not a correction.
+
 ### Ethanol variant (add an ethanol term)
 
 When measured ethanol is available, add it so the **gap** reflects only _other_
@@ -108,22 +115,26 @@ the primary formula.
 
 ## Inputs (id, label, type, units + conversions, plausible min/max with source)
 
-| id             | label                           | type   | units / conversion                                                                            | plausible min/max                                                                                                                            |
-| -------------- | ------------------------------- | ------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `na`           | Sodium                          | number | **mmol/L** (= mEq/L, monovalent, 1:1)                                                         | ~100–200 mmol/L survivable extremes of hypo-/hypernatraemia; engineering input-validation bound, not a single cited threshold [NEEDS SOURCE] |
-| `glucose`      | Glucose                         | number | **mg/dL** (US) → ÷18 = mmol/L; or enter mmol/L directly                                       | ~10–2000 mg/dL (0.6–110 mmol/L) spanning severe hypoglycaemia to extreme hyperglycaemic crisis; input-validation bound [NEEDS SOURCE]        |
-| `bun`          | Blood urea nitrogen             | number | **mg/dL** (US) → ÷2.8 = urea mmol/L. If lab reports **urea** (SI), enter mmol/L and skip /2.8 | ~1–300 mg/dL BUN; input-validation bound [NEEDS SOURCE]                                                                                      |
-| `ethanol`      | Ethanol (optional)              | number | **mg/dL** → ÷3.7 (empiric, Purssell) or ÷4.6 (ideal); or mmol/L ×1.25 (empiric)               | 0 to several hundred mg/dL; optional term                                                                                                    |
-| `osm_measured` | Measured osmolality (for gap)   | number | **mOsm/kg** (osmometer). Required only to compute the gap                                     | ~250–400 mOsm/kg clinical range; input-validation bound [NEEDS SOURCE]                                                                       |
-| `osm_calc`     | Calculated osmolality (derived) | number | mOsm/kg (≈ mmol/L)                                                                            | reference range for the _value_ ≈ 275–295 mOsm/kg (see notes)                                                                                |
-| `osm_gap`      | Osmolar gap (derived)           | number | mOsm/kg = measured − calculated                                                               | normal < 10 (see bands)                                                                                                                      |
+| id             | label                           | type   | units / conversion                                                                            | plausible min/max                                                                                                                                                                   |
+| -------------- | ------------------------------- | ------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `na`           | Sodium                          | number | **mmol/L** (= mEq/L, monovalent, 1:1)                                                         | ~100–200 mmol/L survivable extremes of hypo-/hypernatraemia; engineering input-validation bound, not a single cited threshold [NEEDS SOURCE]                                        |
+| `glucose`      | Glucose                         | number | **mg/dL** (US) → ÷18 = mmol/L; or enter mmol/L directly                                       | ~10–2000 mg/dL (0.6–110 mmol/L) spanning severe hypoglycaemia to extreme hyperglycaemic crisis; input-validation bound [NEEDS SOURCE]                                               |
+| `bun`          | Blood urea nitrogen             | number | **mg/dL** (US) → ÷2.8 = urea mmol/L. If lab reports **urea** (SI), enter mmol/L and skip /2.8 | ~1–300 mg/dL BUN; input-validation bound [NEEDS SOURCE]                                                                                                                             |
+| `ethanol`      | Ethanol (optional)              | number | **mg/dL** → ÷3.7 (empiric, Purssell) or ÷4.6 (ideal); or mmol/L ×1.25 (empiric)               | 0 to several hundred mg/dL; optional term                                                                                                                                           |
+| `osm_measured` | Measured osmolality (for gap)   | number | **mOsm/kg** (osmometer). Required only to compute the gap                                     | implemented bound **100–600 mOsm/kg** — deliberately wider than the ~250–400 clinical range so marked toxic-alcohol elevations still compute; input-validation bound [NEEDS SOURCE] |
+| `osm_calc`     | Calculated osmolality (derived) | number | mOsm/kg (≈ mmol/L)                                                                            | reference range for the _value_ **275–295 mOsm/kg** (StatPearls NBK567764); paediatric 280–295 (Ranadive 2011); measured infant mean 285.8 ± 5.1 (PMC9920940)                       |
+| `osm_gap`      | Osmolar gap (derived)           | number | mOsm/kg = measured − calculated                                                               | normal < 10 (see bands)                                                                                                                                                             |
 
 Notes: Na↔mEq/L is 1:1 (monovalent). Glucose ÷18 (MW≈180) and BUN ÷2.8 (urea has
 2 N; 28 g N/mol) are exact unit conversions, not fitted coefficients. The
 hard numeric input bounds above are engineering input-validation limits, **not**
-values from a specific publication — flagged [NEEDS SOURCE]. The _reference range
-for calculated osmolality itself_ (~275–295 mOsm/kg; 280–295 in Ranadive &
-Rosenthal 2011) is a physiologic normal range, distinct from the gap threshold.
+values from a specific publication — flagged [NEEDS SOURCE]; the bounds quoted
+are the ones the implementation actually enforces. The _reference range for
+calculated osmolality itself_ (275–295 mOsm/kg, StatPearls NBK567764; 280–295 in
+Ranadive & Rosenthal 2011; measured infant mean 285.8 ± 5.1, PMC9920940) is a
+physiologic normal range, distinct from the gap threshold. Note also that the
+calculator collects **no age**, which is why the < 3-month "measure, don't
+calculate" caveat below is carried as a caution rather than as a rejection.
 
 ---
 
@@ -178,6 +189,37 @@ _(derived from formula in Smithline & Gardner 1976)_
   is captured by the glucose term (it inflates the _calculated_ value, not the
   gap). Illustrates that a high measured osmolality is not itself an osmolar gap.
 
+**Example 6 — Ethanol _over_-accounts for the gap; the raised-gap flag must not stand**
+_(ethanol divisor 3.7 / 4.6 as in Example 4; base formula Smithline 1976)_
+
+- Inputs: Na = 140, glucose = 90 mg/dL, BUN = 14 mg/dL, **ethanol = 200 mg/dL**;
+  measured osm = **320**.
+- Osm_calc (no ethanol) = 290 → **raw gap = +30**, which read on its own is
+  "≥ 10, unmeasured osmole present".
+- ÷3.7: contribution 200/3.7 = 54.05 → Osm_calc 344.05 → **residual −24.05**.
+- ÷4.6: contribution 200/4.6 = 43.48 → Osm_calc 333.48 → **residual −13.48**.
+- Both residuals are negative: the measured ethanol accounts for _more_ than the
+  entire measured-minus-calculated difference, so no unmeasured osmole is needed
+  to explain these two numbers. Flagging the +30 as elevated directly above two
+  negative residual rows is a self-contradiction — the raw gap is therefore
+  reported as **accounted for by the measured ethanol**, with the +30 still shown.
+- A negative residual is not a finding: the measured normal gap is centred at −2
+  (Hoffman 1993), so values below zero are ordinary variation, imprecision, or an
+  osmolarity-vs-osmolality artefact.
+
+**Example 7 — The two ethanol divisors disagree in sign; the flag stands**
+_(same sources as Example 6)_
+
+- Inputs: Na = 140, glucose = 90 mg/dL, BUN = 14 mg/dL, **ethanol = 100 mg/dL**;
+  measured osm = **315**. Osm_calc (no ethanol) = 290 → **raw gap = +25**.
+- ÷3.7: Osm_calc 317.03 → **residual −2.03** (negative).
+- ÷4.6: Osm_calc 311.74 → **residual +3.26** (positive).
+- The divisor choice changes the sign of the answer, so suppressing the flag here
+  would be deciding the ÷3.7-vs-÷4.6 fork by fiat inside a rule whose only effect
+  is to REMOVE a warning. The gap keeps its band, and both residuals are shown so
+  the disagreement is visible. Suppression (Example 6) requires **both** residuals
+  negative.
+
 ---
 
 ## Interpretation bands (non-directive, with source)
@@ -195,24 +237,75 @@ physiologic reference range. Both are descriptive, not management directives.
 - **≥ 10 mOsm/kg — elevated.** Suggests unmeasured osmotically active solute.
   Some older references use a wider "normal" up to ~14–15; the task brief notes
   the < 10–14 range. There is genuine inter-source variation.
-- **Important caveat (do not over-read a "normal" gap).** Because individual
+- **The 10 cut-off is partly conventional, and the primary that shows this is
+  Hoffman et al. 1993** (PMID 8433417): measured in healthy subjects the normal
+  gap is **−2 ± 6 mOsm**, and the normal range spans about **−5 to +15 depending
+  on which equation is used**. Ten therefore sits near mean + 2 SD of a
+  distribution that is **not centred on zero** — it is a statistical convention
+  fitted to one formula, not a derived diagnostic cut-point.
+- **State the threshold with its use case (Lynd et al. 2008).** A gap threshold
+  of 10 reached a **sensitivity and negative predictive value of 1** for
+  identifying patients for whom **haemodialysis** was recommended. For
+  identifying patients needing **antidotal therapy** the same threshold fell to
+  **sensitivity 0.90 / NPV 0.85**. The threshold is not one number with one
+  performance — quote the question it is answering.
+- **A normal gap does NOT exclude toxic alcohol ingestion.** Because individual
   baseline gaps vary widely and can be negative, a clinically important rise can
-  still leave the gap < 10. A cut-off of 10 gives **high sensitivity but low
-  specificity** and **should not be used in isolation** to admit, discharge, or
-  exclude toxic-alcohol poisoning (Lynd et al. 2008). Measurement uncertainty of
-  the gap is ≈ ±7 mOsm/kg (Choy 2016) — larger than one might expect.
+  still leave the gap < 10; early presentation before metabolism does the same. A
+  cut-off of 10 gives **high sensitivity but low specificity** and **should not
+  be used in isolation** to admit, discharge, or exclude toxic-alcohol poisoning
+  (Lynd et al. 2008). Measurement uncertainty of the gap is ≈ ±7 mOsm/kg (Choy 2016) — larger than one might expect.
+- **A NEGATIVE gap is not pathology.** It is ordinary biological variation,
+  measurement imprecision, or an artefact of comparing an additive osmolarity
+  with a measured osmolality. Hoffman's normal distribution is centred at −2, so
+  negative values are the ordinary lower half of normal.
 
 **Calculated (or measured) serum osmolality value — reference range:**
 
 - Normal plasma osmolality is regulated within a narrow band, commonly cited as
-  **~275–295 mOsm/kg**; Ranadive & Rosenthal 2011 (pediatric) give **280–295
-  mOsm/kg**, with AVP secretion beginning above ~280. This is the range for the
-  osmolality _number_, not the gap.
+  **275–295 mOsm/kg** (StatPearls, NCBI Bookshelf **NBK567764**, retrieved
+  2026-08-03); Ranadive & Rosenthal 2011 (pediatric) give **280–295 mOsm/kg**,
+  with AVP secretion beginning above ~280. This is the range for the osmolality
+  _number_, not the gap. The paediatric range sits inside the wider one; they are
+  not competing claims.
+- **Measured paediatric data agree.** 280 samples from day 1 to 2 years of age
+  give a mean of **285.8 ± 5.1 mOsm/kgH₂O** (**PMC9920940**, retrieved
+  2026-08-03). Cited by PMCID: the sourcing pass captured the cohort, the sample
+  count and the summary statistic but not the full bibliographic record, so
+  authors/journal are deliberately not asserted.
+
+**Age caveat — this is the real gap the round-2 pass closed.**
+
+The gap threshold and the additive arithmetic are population-independent, but the
+_calculated value_ is not validated at every age, and this calculator does not ask
+for age.
+
+- **Below 3 months, osmolality should be MEASURED, not calculated.** The additive
+  formulas are not validated in that group. This is the clinically important half
+  of the caveat: nothing otherwise stops the calculator producing a confident
+  number for a neonate.
+- **From 3 months to 2 years**, a validation study (a Kraków cohort) found a
+  different equation agreed best with the osmometer on Bland–Altman analysis:
+  `1.86 × (Na + K) + 1.15 × glucose + urea + 14`. Smithline–Gardner may therefore
+  not be the closest estimate in infants.
+- **[NEEDS SOURCE]** — the full bibliographic record for that infant validation
+  was not captured in the round-2 pass. It is recorded here as a finding, with no
+  citation claimed for it. The alternative equation is **not** implemented: doing
+  so would also require a potassium this score does not collect.
 
 These bands are **not pediatric-specific for the gap** — the osmolar-gap
 threshold and the additive formula are population-independent arithmetic; the
-pediatric literature (Ranadive & Rosenthal 2011) is cited for the normal
-osmolality _range_ in children, which matches the adult range.
+pediatric literature (Ranadive & Rosenthal 2011, PMC9920940) is cited for the
+normal osmolality _range_ in children, which matches the adult range.
+
+**Implementation behaviour — ethanol-explained gaps.** When a measured ethanol is
+entered and the residual gap is negative under **both** divisors, the raw gap is
+emitted under a separate id carrying its own band ("accounted for by the measured
+ethanol") rather than the ≥ 10 elevated band (worked example 6). Requiring both
+divisors keeps the ÷3.7-vs-÷4.6 fork from being silently decided by a rule that
+removes a warning (worked example 7). This is a **presentation choice made to
+resolve a contradiction between two rows of the same result**, documented as an
+implementation choice; no source prescribes it. It changes no computed number.
 
 ---
 
@@ -251,10 +344,26 @@ osmolality _range_ in children, which matches the adult range.
    2011;58(5):1271–1280. PMID: **21981960**. DOI: **10.1016/j.pcl.2011.07.013**.
    PMCID: **PMC4624211**.
 
-8. **Overview / ethanol ÷3.7 note (secondary, corroborating):** Wikipedia,
-   "Osmol gap." URL: https://en.wikipedia.org/wiki/Osmol_gap (used only to
-   corroborate the conventional-unit rendering and ethanol term; primary sources
-   above are authoritative).
+8. **Normal gap is not centred on zero; the 10 cut-off is ≈ mean + 2 SD:**
+   Hoffman RS, Smilkstein MJ, Howland MA, Goldfrank LR. Osmol gaps revisited:
+   normal values and limitations. _J Toxicol Clin Toxicol._ 1993;31(1):81–93.
+   PMID: **8433417**. (Normal gap −2 ± 6 mOsm; range ≈ −5 to +15 by equation.)
+
+9. **Osmolality reference range 275–295 mOsm/kg (tertiary/grey, cite with a
+   retrieval date):** StatPearls [Internet]. Treasure Island (FL): StatPearls
+   Publishing. Serum-osmolality chapter, NCBI Bookshelf ID **NBK567764**.
+   URL: https://www.ncbi.nlm.nih.gov/books/NBK567764/ (retrieved 2026-08-03).
+
+10. **Measured paediatric osmolality (280 samples, day 1 to 2 years; mean 285.8 ±
+    5.1 mOsm/kgH₂O):** PubMed Central **PMC9920940**.
+    URL: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9920940/ (retrieved
+    2026-08-03). Cited by PMCID — the full bibliographic record (authors,
+    journal, title) was not captured and is deliberately not asserted.
+
+11. **Overview / ethanol ÷3.7 note (secondary, corroborating):** Wikipedia,
+    "Osmol gap." URL: https://en.wikipedia.org/wiki/Osmol_gap (used only to
+    corroborate the conventional-unit rendering and ethanol term; primary sources
+    above are authoritative).
 
 ---
 
@@ -289,8 +398,17 @@ osmolality _range_ in children, which matches the adult range.
   value the app cannot compute.
 - **Pediatric applicability.** The formula and gap threshold are
   population-independent arithmetic; the normal osmolality _range_ in children
-  matches adults (280–295 mOsm/kg; Ranadive & Rosenthal 2011). No pediatric-
-  specific coefficient or threshold change is warranted by the sources found.
+  matches adults (280–295 mOsm/kg; Ranadive & Rosenthal 2011, corroborated by the
+  measured 285.8 ± 5.1 in PMC9920940). No pediatric-specific coefficient or
+  threshold change is warranted by the sources found — **but see the age caveat
+  above**: below 3 months the value should be measured rather than calculated,
+  and from 3 months to 2 years a different equation validated better. That is an
+  applicability limit, not a coefficient change.
+- **The 10 cut-off is a convention with a use case, not a diagnostic boundary.**
+  Its performance depends on the question (haemodialysis vs antidotal therapy —
+  Lynd 2008), and the underlying normal distribution is centred at −2 ± 6, not 0
+  (Hoffman 1993). A negative gap is normal; a normal gap does not exclude
+  ingestion.
 - **Mannitol, glycerol, propylene glycol, isopropanol, sorbitol** and other
   low-MW infused/ingested osmoles also raise the gap — context matters.
 
@@ -347,3 +465,35 @@ against fetched primary sources.
 - **Corrections from verification: none.** Every coefficient, divisor, threshold,
   and worked example was reproduced from at least one independently fetched
   source.
+
+### Round-2 sourcing pass — 2026-08-03
+
+- **Formula — CONFIRMED, no change.** `2 × Na + glucose/18 + BUN/2.8` (mg/dL) =
+  `2 × Na + glucose + urea` (mmol/L) is the guideline-endorsed form and is what
+  the implementation already computes. Confirmation, not correction.
+- **Normal range — now sourced.** The pre-existing 280–295 claim was defensible
+  and is unchanged; it now carries StatPearls NBK567764 (275–295, retrieved
+  2026-08-03) alongside Ranadive 2011, plus measured paediatric data (PMC9920940,
+  280 samples day 1 to 2 years, mean 285.8 ± 5.1 mOsm/kgH₂O, retrieved
+  2026-08-03).
+- **Age caveat — NEW, and it closed a real gap.** Below 3 months, osmolality
+  should be measured rather than calculated; from 3 months to 2 years a Kraków
+  validation found `1.86 × (Na + K) + 1.15 × glucose + urea + 14` best on
+  Bland–Altman. Now carried in `cautions`, which render beside the number. The
+  full citation for that validation was not captured — flagged [NEEDS SOURCE],
+  not fabricated, and the alternative equation is not implemented.
+- **Gap threshold ≥ 10 — relabelled as partly conventional, with its use case.**
+  Hoffman 1993 (PMID 8433417) added: normal gap −2 ± 6, range ≈ −5 to +15 by
+  equation, so 10 ≈ mean + 2 SD. Lynd 2008 re-stated with the question attached:
+  sensitivity/NPV of 1 for identifying haemodialysis candidates, 0.90/0.85 for
+  antidotal therapy. Band text now says plainly that a normal gap does not
+  exclude toxic alcohol ingestion.
+- **Defect fixed (behaviour change).** A raw gap ≥ 10 was flagged elevated even
+  when the ethanol-adjusted residual was negative — an "unmeasured osmole"
+  banner sitting directly above two negative rows. The raw gap is now emitted
+  under `osm_gap_ethanol_explained` (own band, no ≥ 10 reading) when the residual
+  is negative under **both** divisors; when the divisors disagree in sign the
+  flag stands. Worked examples 6 and 7 pin both directions. No computed number
+  changed.
+- **Unchanged and still open:** the input-validation bounds remain engineering
+  limits, still flagged [NEEDS SOURCE]. No source was asserted for them.

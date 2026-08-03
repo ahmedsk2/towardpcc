@@ -48,6 +48,33 @@ function ageBandFor(months: number): AgeBand {
   return { mapZero: 67, mapTwo: 52, mapThree: 38, creatinine2pt: 93 };
 }
 
+/**
+ * Largest age this score accepts, in months: the largest IEEE-754 double
+ * strictly below 216.
+ *
+ * Leteurtre 2013's exclusion criterion is "age 18 years or older", so the
+ * eligible domain is [0, 216) months — EXCLUSIVE of 216. `NumericInput.max` is
+ * INCLUSIVE (validation.ts rejects only `converted > input.max`) and the shared
+ * validator has no exclusive-bound facility, so the closest domain this
+ * declaration can express is the closed interval [0, x] with x the largest
+ * representable value below 216. The previous `max: 216` was one month wrong at
+ * the top: it admitted exactly 18.0 years, the first age the derivation cohort
+ * excluded.
+ *
+ * The value is 216 − 2⁻⁴⁵ = 215.99999999999997. 216 sits in the binade
+ * [128, 256), where adjacent doubles are 2⁻⁴⁵ ≈ 2.84e-14 apart, so NO
+ * representable age lies between this and 216 — the closed interval and the
+ * intended half-open one contain exactly the same set of inputs, and the
+ * approximation costs nothing.
+ *
+ * Phoenix solves the same problem differently (`max: 215, step: 1`) because its
+ * age field is declared in whole months, where 215 IS the last eligible value.
+ * This field accepts fractional months, so 215 would wrongly reject a
+ * legitimate 215.5-month-old — hence the exact predecessor rather than a round
+ * number. Pinned in both directions by pelod2.test.ts.
+ */
+const AGE_MAX_MONTHS = 215.99999999999997;
+
 /** Neurologic — GCS (lowest): ≥11 → 0, 5–10 → 1, 3–4 → 4. */
 function gcsPoints(gcs: number): number {
   if (gcs >= 11) return 0;
@@ -107,7 +134,7 @@ export const pelod2 = defineScore({
   id: "pelod2",
   slug: "pelod2",
   name: "PELOD-2 (Pediatric Logistic Organ Dysfunction-2)",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -119,12 +146,15 @@ export const pelod2 = defineScore({
       type: "numeric",
       unit: { canonical: "months" },
       // Bounds from the paper's inclusion window: premature newborns and
-      // patients > 18 y (216 mo) were excluded (Leteurtre 2013, Methods).
+      // patients aged 18 years or older were excluded (Leteurtre 2013,
+      // Methods), i.e. the eligible domain is [0, 216) months. See
+      // AGE_MAX_MONTHS above for why the ceiling is the double just below 216
+      // rather than 216 itself.
       min: 0,
-      max: 216,
+      max: AGE_MAX_MONTHS,
       helpText: defineText(
         "pelod2.age.help",
-        "In months. Selects the age band for mean arterial pressure and creatinine.",
+        "In months. Selects the age band for mean arterial pressure and creatinine. The derivation cohort excluded patients aged 18 years or older, so 216 months (18.0 years) and above is outside the score and is rejected.",
       ),
     },
     {
@@ -291,6 +321,13 @@ export const pelod2 = defineScore({
         "Initial release: 10-item PELOD-2 total (0–33) with age-banded MAP/creatinine and the published mortality logit as a secondary output.",
       reason: "initial-release",
     },
+    {
+      version: "1.1.0",
+      date: "2026-08-03",
+      summary:
+        "Age ceiling corrected from inclusive 216 months to exclusive. Leteurtre 2013's exclusion criterion is 'age 18 years or older', so the eligible domain is [0, 216) months; the previous inclusive `max: 216` admitted exactly 18.0 years — the first age the derivation cohort excluded — and now rejects it. The declared maximum is the largest double below 216 (216 − 2⁻⁴⁵ = 215.99999999999997), because the shared numeric validator's `max` is inclusive and offers no exclusive bound; no representable age lies between that value and 216, so the accepted set is exactly the intended half-open interval. Only ages of exactly 216.000000 months change behaviour, from accepted to rejected. No computed value changed for any age that was already accepted. The age help text and limitations now state the bound.",
+      reason: "formula-correction",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -318,7 +355,7 @@ export const pelod2 = defineScore({
   ],
   notes: defineText(
     "pelod2.notes",
-    "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6, with one exception the source forces: in the 24–59 month band Table 6 prints ≥62 → 0, 46–61 → 2, 32–44 → 3 and ≤31 → 6, so a MAP of exactly 45 mmHg falls in no printed range. The other five age bands tile without a gap, so this is an omission in the published table, not a deliberate exclusion, and the paper states no rule for it. This calculator scores 45 mmHg as 3 points — the conservative (higher-severity) reading, closing the gap downward; the public ESPNIC calculator closes it upward and scores the same value 2. A 2–4-year-old with a MAP of exactly 45 mmHg will therefore total one point higher here than on that tool, and it is the only value at which the two disagree. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25.",
+    "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. AGE RANGE: the derivation excluded premature newborns and patients aged 18 years or older, so the eligible range is 0 to under 216 months and 216 months (18.0 years) or more is rejected rather than scored — the exclusion is on 18 and over, so exactly 18.0 years is outside it. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6, with one exception the source forces: in the 24–59 month band Table 6 prints ≥62 → 0, 46–61 → 2, 32–44 → 3 and ≤31 → 6, so a MAP of exactly 45 mmHg falls in no printed range. The other five age bands tile without a gap, so this is an omission in the published table, not a deliberate exclusion, and the paper states no rule for it. This calculator scores 45 mmHg as 3 points — the conservative (higher-severity) reading, closing the gap downward; the public ESPNIC calculator closes it upward and scores the same value 2. A 2–4-year-old with a MAP of exactly 45 mmHg will therefore total one point higher here than on that tool, and it is the only value at which the two disagree. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25.",
   ),
   // Maxima are Leteurtre 2013 Table 7, independently re-derived term by term
   // from the branches above in docs/research/scores/pelod2.md §Organ maxima

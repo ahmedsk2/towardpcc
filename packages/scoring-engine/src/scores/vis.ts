@@ -11,15 +11,17 @@ import { mcgPerKgPerMin, unitsPerKgPerMin } from "../units/infusion";
  *
  * Every drug is an optional numeric input; an agent not running contributes 0.
  * No branches, no floor/ceiling, no age adjustment. This is the ORIGINAL
- * six-drug pediatric VIS — the published levosimendan (×50) and phenylephrine
- * (×10) extensions are deliberately NOT included so this never silently reports
- * a non-Gaies value (see notes). Research + full sourcing: docs/research/scores/vis.md.
+ * six-drug pediatric VIS. Phenylephrine appears in NEITHER Gaies 2010 nor the
+ * Gaies 2014 re-derivation, so leaving it out is not an omission — it is what
+ * makes this a Gaies VIS; the levosimendan (×50) and phenylephrine (×10) terms
+ * of the adult/ECMO variants are deliberately not offered (see notes).
+ * Research + full sourcing: docs/research/scores/vis.md.
  */
 export const vis = defineScore({
   id: "vis",
   slug: "vis",
   name: "Vasoactive-Inotropic Score (VIS)",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -30,7 +32,8 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold
+      // Local input-validity convention. No per-drug maximum dose is published
+      // for VIS — searched and confirmed absent, not merely unfound (vis.md).
       max: 50,
       step: 0.5,
       helpText: defineText(
@@ -45,7 +48,8 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold
+      // Local input-validity convention. No per-drug maximum dose is published
+      // for VIS — searched and confirmed absent, not merely unfound (vis.md).
       max: 40,
       step: 0.5,
       helpText: defineText(
@@ -60,7 +64,8 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold
+      // Local input-validity convention. No per-drug maximum dose is published
+      // for VIS — searched and confirmed absent, not merely unfound (vis.md).
       max: 2,
       step: 0.01,
       helpText: defineText(
@@ -75,7 +80,8 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold
+      // Local input-validity convention. No per-drug maximum dose is published
+      // for VIS — searched and confirmed absent, not merely unfound (vis.md).
       max: 1.5,
       step: 0.05,
       helpText: defineText(
@@ -90,7 +96,7 @@ export const vis = defineScore({
       type: "numeric",
       unit: unitsPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold.
+      // Local input-validity convention (no published VIS dose maximum, as above).
       // Unit trap: canonical is units/kg/min with coefficient 10,000 — accepts
       // milliunits/kg/min (÷1000). 0.0003 units/kg/min = 3 VIS points.
       max: 0.01,
@@ -107,7 +113,8 @@ export const vis = defineScore({
       type: "numeric",
       unit: mcgPerKgPerMin,
       min: 0,
-      // input-validity bound, not a cited threshold
+      // Local input-validity convention. No per-drug maximum dose is published
+      // for VIS — searched and confirmed absent, not merely unfound (vis.md).
       max: 2,
       step: 0.01,
       helpText: defineText(
@@ -126,7 +133,14 @@ export const vis = defineScore({
         "Gaies MG, Gurney JG, Yen AH, Napoli ML, Gajarski RJ, Ohye RG, Charpie JR, Hirsch JC. Vasoactive-inotropic score as a predictor of morbidity and mortality in infants after cardiopulmonary bypass. Pediatr Crit Care Med. 2010;11(2):234–238.",
       pmid: "19794327",
       doi: "10.1097/PCC.0b013e3181b806fc",
-      note: "Original VIS derivation (primary).",
+      note: "Original VIS derivation (primary). Full text paywalled — not read directly.",
+    },
+    {
+      citation:
+        "Gaies MG, Jeffries HE, Niebler RA, Pasquali SK, Donohue JE, Yu S, Gall C, Rice TB, Thiagarajan RR. Vasoactive-inotropic score is associated with outcome after infant cardiac surgery: an analysis from the Pediatric Cardiac Critical Care Consortium and Virtual PICU System Registries. Pediatr Crit Care Med. 2014;15(6):529–537.",
+      pmid: "24777300",
+      doi: "10.1097/PCC.0000000000000153",
+      note: "Re-derivation on the same six coefficients (no phenylephrine); source of the single flat threshold quoted in the notes — maximum VIS ≥ 20 in the first 24 h, adjusted OR 6.5 (95% CI 2.9–14.6).",
     },
     {
       citation:
@@ -157,6 +171,13 @@ export const vis = defineScore({
       summary: "Initial release: original six-drug Gaies 2010 VIS as a continuous weighted sum.",
       reason: "initial-release",
     },
+    {
+      version: "1.1.0",
+      date: "2026-08-03",
+      summary:
+        "Sourcing pass, no change to the computed number. The reported effect size is now quoted with the cut-point it came from: Gaies 2014 (maximum VIS ≥ 20 in the first 24 h, adjusted OR 6.5, 95% CI 2.9–14.6) replaces the previously unpaired Gaies 2010 OR 8.1, whose dual-threshold origin is now stated alongside it. Phenylephrine's exclusion is restated as confirmed correct (absent from both Gaies papers) rather than as a sourcing gap, and the per-drug dose ceilings are relabelled a local input-validity convention with no published maximum in existence.",
+      reason: "new-reference",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -170,7 +191,7 @@ export const vis = defineScore({
   ),
   notes: defineText(
     "vis.notes",
-    "Original six-drug Gaies 2010 VIS = dopamine + dobutamine + 100×epinephrine + 10×milrinone + 10,000×vasopressin(units/kg/min) + 100×norepinephrine. Published extensions (levosimendan ×50, phenylephrine ×10) are intentionally excluded so the output is always a true Gaies VIS; the phenylephrine ×10 coefficient is itself [NEEDS SOURCE] (no directly-fetched primary text). VIS is a continuous index of vasoactive/inotropic support intensity, not a diagnostic test or clinical device, and higher values are an association marker for morbidity/mortality in the cited cohorts, not a treatment trigger. There is no single official cut-point: Davidson 2012 reports a cohort-specific VIS-at-48h threshold of 10.5 in neonates/infants after cardiac surgery, and Gaies 2010 reports an adjusted OR 8.1 (95% CI 3.4–19.2) for high vs low maximum VIS over the first 48h; the exact Gaies high/low dichotomization value is [NEEDS SOURCE] (primary text paywalled). Cut-points do not transfer across populations (sepsis, ECMO, general PICU). VIS is a snapshot; the prognostic quantity in the literature is typically the maximum over a defined window (e.g., first 48h), which the platform must define and label. Per-drug plausible-dose ceilings used for input validation are input-validity bounds, not cited clinical thresholds ([NEEDS SOURCE] — needs a pediatric formulary). Vasopressin unit trap: it is dosed in units/kg/min (coefficient 10,000), the only agent not in mcg/kg/min.",
+    "Original six-drug Gaies 2010 VIS = dopamine + dobutamine + 100×epinephrine + 10×milrinone + 10,000×vasopressin(units/kg/min) + 100×norepinephrine. All six coefficients are confirmed against the published derivation and are unchanged in the Gaies 2014 re-derivation. Phenylephrine is not part of VIS — it appears in neither Gaies 2010 nor Gaies 2014 — so its absence here is correct and deliberate, not a gap; the levosimendan (×50) and phenylephrine (×10) terms carried by some adult and ECMO variants are likewise not offered, so the output is always a true Gaies VIS. Those two coefficients are quoted here only to name what is being left out, and their own provenance is [NEEDS SOURCE] — the round-2 review settled that phenylephrine is absent from Gaies, which is a different question from where the ×10 figure originates, and no primary for it has been fetched. Nothing here computes either term, so the gap is descriptive rather than load-bearing. VIS is a continuous index of vasoactive/inotropic support intensity, not a diagnostic test or clinical device, and higher values are an association marker for morbidity/mortality in the cited cohorts, not a treatment trigger. A threshold and an effect size only mean something together: Gaies 2014 re-derived a single flat cut-point — maximum VIS ≥ 20 during the first 24h — with an adjusted OR of 6.5 (95% CI 2.9–14.6) for the poor composite outcome, and that pairing is the one quoted here because one cut-point is what a bedside reader can actually apply. The larger OR 8.1 (95% CI 3.4–19.2) often seen attached to VIS is from Gaies 2010 and belongs to a DUAL rule (maximum VIS ≥ 20 in the first 24h OR ≥ 15 in the next 24h), so reading 8.1 against a single threshold overstates it; the 2010 full text is paywalled and was not read here, and that dual scheme is reported from a peer-reviewed paraphrase rather than the primary. Davidson 2012 reports a different, cohort-specific VIS-at-48h threshold of 10.5 in neonates/infants after cardiac surgery. Cut-points do not transfer across populations (sepsis, ECMO, general PICU). VIS is a snapshot; the prognostic quantity in the literature is the maximum over a defined window (first 24h in Gaies 2014, 48h in Davidson 2012), which the platform must define and label. Per-drug dose ceilings: none are published for VIS — searched and confirmed absent, not merely unfound — so the maxima this calculator enforces are a local input-validity convention and carry no clinical authority. Vasopressin unit trap: it is dosed in units/kg/min (coefficient 10,000), the only agent not in mcg/kg/min.",
   ),
   calculate: (values) => {
     // Optional inputs default to a 0 contribution when the drug is not running.

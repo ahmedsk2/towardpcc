@@ -56,8 +56,9 @@ fully expanded form above, in the systematic review (PMC10770946).
 
 **No branches / no conditionals.** VIS is a single weighted linear sum. A drug not running
 contributes 0. There is no floor/ceiling, no age adjustment, and no interaction term. VIS is
-almost always summarized over a time window as a maximum (e.g., **VIS_max over the first 48 h**
-in Gaies 2010; VIS at 24/48/72 h and VIS48max in Davidson 2012).
+almost always summarized over a time window as a maximum (**VIS_max over the first 48 h** in
+Gaies 2010, split into two 24 h halves by its dual threshold; **VIS_max over the first 24 h** in
+Gaies 2014; VIS at 24/48/72 h and VIS48max in Davidson 2012).
 
 ### Published extensions (include ONLY if the platform explicitly opts in — not part of the original)
 
@@ -66,13 +67,15 @@ These add terms to the same linear sum; they are variants, not the original scor
 - **Levosimendan: + 50 x levosimendan (mcg/kg/min).** Used in ECMO and heart-transplant VIS
   variants (sourced: PMC9103233, PMC10118996).
 - **Phenylephrine: + 10 x phenylephrine (mcg/kg/min).** Appears in adult/modified VIS variants
-  (e.g., cardiogenic-shock registry usage). The 10x coefficient is corroborated by multiple
-  independent secondary aggregations (e.g., the JACC 2019 "Cardiogenic Shock Classification to
-  Predict Mortality" SCAI-stage VIS formula and the Jentzer et al. SCAI-shock VIS formula), but
-  I could not fetch a primary full text stating it directly (JACC and the Jentzer supplemental
-  PDF were paywalled/unparseable). **Still [NEEDS SOURCE]** for a directly-fetched primary text,
-  though risk of the coefficient being wrong is now low given consistent independent
-  corroboration.
+  (e.g., cardiogenic-shock registry usage). **Phenylephrine is in NEITHER Gaies 2010 NOR
+  Gaies 2014** (round-2 sourcing resolution, 2026-08-03) — both state the same six drugs, and
+  no more. **Excluding phenylephrine from a score labelled "VIS" is therefore CONFIRMED
+  CORRECT**, and that is settled: it is a property of the instrument, not an open question.
+  What remains unfetched is only the 10x coefficient _of the non-Gaies variant_ — corroborated
+  by multiple independent secondary aggregations (the JACC 2019 SCAI-stage VIS formula and the
+  Jentzer et al. SCAI-shock formula) but never read in a primary full text (JACC HTTP 403; the
+  Jentzer supplemental PDF unparseable). That gap is moot for this implementation, which never
+  computes the term; it would only need closing if the variant were ever offered.
 
 > Do NOT silently include levosimendan or phenylephrine in a "VIS" that claims to be the Gaies
 > 2010 score. The original six-drug formula above is the canonical pediatric VIS.
@@ -80,20 +83,26 @@ These add terms to the same linear sum; they are variants, not the original scor
 ## Inputs (id, label, type, units + conversions, plausible min/max with source)
 
 All doses are continuous, non-negative. `min = 0` is inherent (an infusion cannot be negative;
-a drug not running = 0). Upper "plausible" bounds below are clinical sanity limits for input
-validation, **not** from a fetched dosing reference — a pediatric formulary source should be
-attached before these bounds are treated as authoritative.
+a drug not running = 0).
 
-| id               | label                | type   | units            | conversions                                                                                                                                                                          | plausible min | plausible max (validation)        |
-| ---------------- | -------------------- | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | --------------------------------- |
-| `dopamine`       | Dopamine             | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~50 [NEEDS SOURCE]                |
-| `dobutamine`     | Dobutamine           | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~40 [NEEDS SOURCE]                |
-| `epinephrine`    | Epinephrine          | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~2 [NEEDS SOURCE]                 |
-| `milrinone`      | Milrinone            | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~1.5 [NEEDS SOURCE]               |
-| `vasopressin`    | Vasopressin          | number | **units/kg/min** | If dosed as milliunits/kg/min, divide by 1000 → units/kg/min. If dosed as units/min, divide by weight(kg). **Getting the unit right matters enormously: the coefficient is 10,000.** | 0             | ~0.01 units/kg/min [NEEDS SOURCE] |
-| `norepinephrine` | Norepinephrine       | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~2 [NEEDS SOURCE]                 |
-| `levosimendan`   | Levosimendan (ext.)  | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~0.2 [NEEDS SOURCE]               |
-| `phenylephrine`  | Phenylephrine (ext.) | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~10 [NEEDS SOURCE]                |
+**Upper bounds: SETTLED-ABSENT, not [NEEDS SOURCE].** No per-drug maximum plausible dose is
+published for VIS — the round-2 sourcing pass (2026-08-03) searched for one and confirmed none
+exists, in Gaies 2010, Gaies 2014, or any of the validation literature. The ceilings below are a
+**local input-validity convention** and carry no clinical authority; they exist to catch a
+decimal-point or unit slip, not to say what dose is safe. There is nothing left to find here, so
+they are no longer flagged as an open sourcing gap — attaching a pediatric formulary would give
+them a source for _dosing_, but it would still not make them a VIS bound.
+
+| id               | label                | type   | units            | conversions                                                                                                                                                                          | plausible min | plausible max (validation)            |
+| ---------------- | -------------------- | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | ------------------------------------- |
+| `dopamine`       | Dopamine             | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~50 (local convention)                |
+| `dobutamine`     | Dobutamine           | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~40 (local convention)                |
+| `epinephrine`    | Epinephrine          | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~2 (local convention)                 |
+| `milrinone`      | Milrinone            | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~1.5 (local convention)               |
+| `vasopressin`    | Vasopressin          | number | **units/kg/min** | If dosed as milliunits/kg/min, divide by 1000 → units/kg/min. If dosed as units/min, divide by weight(kg). **Getting the unit right matters enormously: the coefficient is 10,000.** | 0             | ~0.01 units/kg/min (local convention) |
+| `norepinephrine` | Norepinephrine       | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~2 (local convention)                 |
+| `levosimendan`   | Levosimendan (ext.)  | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~0.2 (local convention)               |
+| `phenylephrine`  | Phenylephrine (ext.) | number | mcg/kg/min       | —                                                                                                                                                                                    | 0             | ~10 (local convention)                |
 
 **Unit hazard (implementation-critical):** vasopressin is the only agent NOT in mcg/kg/min. It
 is in **units/kg/min** with a coefficient of 10,000. A vasopressin infusion of
@@ -156,15 +165,21 @@ higher values reflect more pharmacologic cardiovascular support. There is **no s
 band structure** — studies dichotomize at cohort-specific cut-points, so bands must be labeled
 by their source cohort and used descriptively, not as treatment triggers.
 
-- **Higher maximum VIS over the first 48 h post-operative is associated with higher odds of a
-  poor composite outcome** (death, cardiac arrest, mechanical circulatory support, renal
-  replacement therapy, and/or neurologic injury) in infants after cardiopulmonary bypass
-  (Gaies 2010, PMID 19794327). In that cohort, a "high" maximum VIS carried an adjusted odds
-  ratio of 8.1 (95% CI 3.4–19.2) versus "low" for poor outcome.
-  - The **exact numeric cut-point Gaies 2010 used to split high vs low** is
-    [NEEDS SOURCE — not stated in the fetched abstract/secondary texts]. A threshold of
-    **VIS_max ≥ 20** is widely attributed to this era of work in secondary literature but I
-    could not confirm it against the primary text; treat "≥20" as unverified.
+**An odds ratio detached from its cut-point is not usable.** Both published dichotomizations are
+recorded here so the threshold and the effect size are always read as a pair:
+
+- **Gaies 2014 (PMID 24777300) — the single flat threshold, and the one this implementation
+  quotes.** Maximum VIS **≥ 20 during the first 24 h** carried an adjusted **OR 6.5
+  (95% CI 2.9–14.6)** for the poor composite outcome. Same six coefficients, still no
+  phenylephrine. One cut-point is what a bedside reader can actually apply, so this is the
+  pairing surfaced in the score's notes.
+- **Gaies 2010 (PMID 19794327) — the larger OR, but from a DUAL rule.** The adjusted
+  **OR 8.1 (95% CI 3.4–19.2)** belongs to a two-part threshold: maximum VIS **≥ 20 in the first
+  24 h OR ≥ 15 in the next 24 h**. Quoting 8.1 against a single cut-point overstates it.
+  **Provenance:** the 2010 full text is paywalled and was **not read**; this dual scheme is
+  reconstructed from a peer-reviewed paraphrase, and the OR itself from the PubMed abstract.
+  The earlier note in this file that "≥ 20" was merely "widely attributed" and unverified is
+  superseded — ≥ 20 is real, but in 2010 it is only half of the rule.
 - **Prospective validation (Davidson 2012, PMID 22527067):** a **VIS at 48 h (VIS48) cut-point
   of 10.5** discriminated high- vs low-risk for prolonged length of stay / poor short-term
   outcome in neonates and infants after cardiothoracic surgery (Table 4). This is
@@ -210,6 +225,14 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
    **PMID: 7554206. DOI: 10.1161/01.cir.92.8.2226.** — _Original Inotrope Score (IS) derivation
    (dopamine + dobutamine + 100x epinephrine); confirmed via independent fetch of Davidson 2012
    full text, which attributes IS to this reference — see Verification._
+7. **Gaies MG, Jeffries HE, Niebler RA, Pasquali SK, Donohue JE, Yu S, Gall C, Rice TB,
+   Thiagarajan RR.** Vasoactive-inotropic score is associated with outcome after infant cardiac
+   surgery: an analysis from the Pediatric Cardiac Critical Care Consortium and Virtual PICU
+   System Registries. _Pediatr Crit Care Med._ 2014;15(6):529–537.
+   **PMID: 24777300. DOI: 10.1097/PCC.0000000000000153.** — _Re-derivation on the same six
+   coefficients (still no phenylephrine); source of the single flat threshold — maximum VIS ≥ 20
+   in the first 24 h, adjusted OR 6.5 (95% CI 2.9–14.6). Bibliographic details confirmed
+   2026-08-03 against the NCBI E-utilities record for PMID 24777300._
 
 ## Limitations & notes
 
@@ -231,13 +254,19 @@ explicitly (e.g., "≥10.5 = 'high' per Davidson 2012 neonatal/infant cardiac co
 - **Extensions.** Levosimendan (50x) and phenylephrine (10x) are published variants but are NOT
   the original Gaies 2010 score; gate them behind an explicit configuration flag and never mix
   them into a "Gaies VIS" output silently.
-- **Unresolved sourcing gaps (updated after verification pass — see Verification section):**
-  exact original high/low dichotomization threshold in Gaies 2010 (Gaies 2010 full text is
-  paywalled; could not be independently fetched); primary-source (directly-fetched) confirmation
-  of the phenylephrine 10x coefficient (well-corroborated by independent secondary aggregations
-  but no primary full text fetched); and per-drug plausible dose ceilings (need a pediatric
-  formulary source). The Inotrope Score derivation citation gap is **resolved** — see Wernovsky
-  1995 (Reference 6). All remaining gaps are flagged [NEEDS SOURCE] above.
+- **Sourcing-gap status (updated by the round-2 resolution, 2026-08-03).** Three of the four
+  former gaps are now closed, and the way each closed matters:
+  - **Dichotomization — CLOSED by substitution.** Gaies 2014 (Reference 7) supplies a single
+    flat threshold with its own matching effect size (max VIS ≥ 20 in the first 24 h,
+    OR 6.5 [2.9–14.6]), so nothing depends on reading the paywalled 2010 text any more. The 2010
+    dual rule (≥ 20 first 24 h OR ≥ 15 next 24 h, OR 8.1 [3.4–19.2]) is recorded for contrast and
+    is **reconstructed from a peer-reviewed paraphrase — the 2010 full text was NOT read.**
+  - **Phenylephrine — CLOSED as confirmed-correct.** Absent from both Gaies papers; excluding it
+    is right. Only the non-Gaies variant's 10x coefficient stays unfetched, and nothing here
+    computes it.
+  - **Per-drug dose ceilings — SETTLED-ABSENT.** No published maxima exist; see Inputs. This is
+    a confirmed negative, not an open item, and is no longer flagged [NEEDS SOURCE].
+  - **Inotrope Score derivation citation — resolved earlier** (Wernovsky 1995, Reference 6).
 
 ## IP status
 
@@ -338,3 +367,35 @@ strengthened (but did not resolve) the phenylephrine coefficient sourcing note, 
 "unresolved sourcing gaps" summary to reflect the above. No citation was deleted; no source was
 invented — every added citation was independently located and its bibliographic details
 cross-checked via a second search.
+
+### Round-2 sourcing resolution (2026-08-03)
+
+Supersedes items 9–11 of the pass above. Provenance is stated per item and nothing here claims
+more than was actually obtained.
+
+- **Six coefficients — CONFIRMED against the primary.** dopamine ×1, dobutamine ×1, milrinone
+  ×10, epinephrine ×100, norepinephrine ×100, vasopressin ×10,000. Six drugs, nothing else.
+  No change to the implementation.
+- **Phenylephrine — CONFIRMED ABSENT from both Gaies 2010 and Gaies 2014.** Item 9 above is
+  superseded: the open question was never whether to exclude it (that is settled and correct),
+  only what coefficient a different, non-Gaies variant uses. The implementation's marker was
+  relabelled from a sourcing gap to a positive statement of correctness.
+- **Dichotomization — RESOLVED via Gaies 2014, not via 2010.** Item 10 above is superseded. The
+  2014 registry re-derivation (Reference 7) gives a **single flat threshold, max VIS ≥ 20 in the
+  first 24 h, adjusted OR 6.5 (95% CI 2.9–14.6)**, on the same coefficients and still without
+  phenylephrine. The implementation now quotes that pairing, because a threshold and an effect
+  size are only interpretable together. **The 2010 OR 8.1 (95% CI 3.4–19.2) came from a DUAL
+  threshold (≥ 20 in the first 24 h OR ≥ 15 in the next 24 h), reconstructed from a peer-reviewed
+  paraphrase — the Gaies 2010 full text remains paywalled and was NOT read.** That limitation is
+  stated in the score's own notes, not just here.
+- **Per-drug maximum plausible doses — SETTLED-ABSENT.** Item 11 above is superseded: none are
+  published. This is a confirmed negative rather than a search that has not finished, so the
+  ceilings are now labelled a local convention instead of [NEEDS SOURCE]. The numbers themselves
+  did not change.
+- **Bibliographic check performed here:** PMID 24777300 was resolved through the NCBI E-utilities
+  esearch/esummary records on 2026-08-03, confirming title, journal, 2014;15(6):529–537, first
+  authors Gaies MG / Jeffries HE / Niebler RA, and DOI 10.1097/PCC.0000000000000153. The DOI and
+  PMID were verified rather than recalled.
+
+**Corrections to computed values in this round: none.** VIS returns exactly the number it
+returned before; every change was to what the score says about itself.

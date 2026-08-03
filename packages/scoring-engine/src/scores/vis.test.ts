@@ -71,8 +71,9 @@ describeScore(vis, (ctx) => {
     [{ id: "vis", value: 10.5, tolerance: TOL }],
   );
 
-  // Bounds: 0 lower bound is inherent (an infusion cannot be negative); upper
-  // bounds are input-validity limits (vis.md [NEEDS SOURCE]).
+  // Bounds: 0 lower bound is inherent (an infusion cannot be negative); the upper
+  // bounds are a local input-validity convention — no per-drug maximum dose is
+  // published for VIS (confirmed absent, vis.md), so nothing here is clinical.
   ctx.boundaryTest("dopamine", "min", {});
   ctx.boundaryTest("dopamine", "max", {});
   ctx.boundaryTest("epinephrine", "max", {});

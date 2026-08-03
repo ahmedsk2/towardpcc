@@ -537,20 +537,50 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     );
   });
 
-  it("keeps every [NO SOURCE] marker the review leaves open", () => {
-    // The four this review opens, plus the one it CONFIRMS rather than closes.
-    expect(notes).toMatch(
-      /8-h\/16-h split[\s\S]{0,120}\[NO SOURCE\]|\[NO SOURCE\][\s\S]{0,200}8-h\/16-h split/,
-    );
-    expect(notes).toMatch(/20, 30 or 40 kg/);
-    expect(notes).toMatch(/optimal hourly urine-output goal/i);
-    expect(notes).toMatch(/head-to-head/i);
-    // The pre-existing marker survives: no paediatric equivalent of the ABA CPG
-    // was located, which is confirmation, not closure.
-    expect(notes, "the paediatric starting-coefficient gap must stay marked").toContain(
-      "[NEEDS SOURCE]",
-    );
-    expect((notes.match(/\[NO SOURCE\]/g) ?? []).length).toBeGreaterThanOrEqual(3);
+  /**
+   * SETTLED-ABSENT IS NOT THE SAME CLAIM AS UNFOUND, AND THE DISTINCTION IS THE
+   * WHOLE POINT OF THIS TEST.
+   *
+   * "[NO SOURCE]" reads as an unfinished search and invites the next reader to
+   * repeat it. Each of these five was searched and established not to exist —
+   * there is no controlled derivation of the 8-h/16-h split, no derivation of any
+   * maintenance weight threshold, no study fixing the paediatric urine-output
+   * goal, no paediatric ABA CPG, and no head-to-head outcome trial of the three
+   * formulas. Recording that as closed is what stops the work being redone.
+   *
+   * What must NOT happen is the opposite error: a later edit deleting the
+   * markers entirely, which would leave the page implying these numbers are
+   * evidence-based. So both halves are asserted — the five topics survive AND
+   * they carry the settled label, with none of the old open-search markers left
+   * behind to contradict it.
+   */
+  it("records all five gaps as SETTLED-ABSENT rather than as unfinished searches", () => {
+    for (const topic of [
+      /8-h\/16-h split/,
+      /20, 30 or 40 kg/,
+      /optimal (paediatric )?hourly (urine-output )?goal|optimal hourly urine-output goal/i,
+      /paediatric equivalent of the ABA CPG|no paediatric equivalent/i,
+      /head-to-head/i,
+    ]) {
+      expect(notes, `the ${topic} gap must still be stated`).toMatch(topic);
+    }
+
+    // Five topics, each labelled. The label is what changed; the topics did not.
+    expect((notes.match(/\[SETTLED-ABSENT\]/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect(notes).toContain("[SETTLED-ABSENT], WHICH IS A STRONGER STATEMENT THAN 'NOT FOUND'");
+
+    // No stale open-search marker may survive alongside the settled ones, in
+    // either spelling — a page that says both is telling the reader two things.
+    expect(notes).not.toContain("[NO SOURCE]");
+    expect(notes).not.toContain("[NEEDS SOURCE]");
+  });
+
+  it("keeps the one qualification the 8-h/16-h finding is owed", () => {
+    // Baxter & Shires 1968 was NOT read directly, so "absent from the original"
+    // rests on the secondary literature. Settled-absent PENDING that primary is
+    // the honest strength, and dropping the qualifier would overclaim.
+    expect(notes).toMatch(/Baxter & Shires/);
+    expect(notes).toMatch(/NOT been read directly|not read directly/i);
   });
 
   // ── The five new references must actually be there and be traceable ───────

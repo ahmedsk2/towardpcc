@@ -42,7 +42,7 @@ export const pim3 = defineScore({
   id: "pim3",
   slug: "pim3",
   name: "Paediatric Index of Mortality 3 (PIM3)",
-  version: "1.1.0",
+  version: "1.1.1",
   status: "published",
   category: "mortality-severity",
   inputs: [
@@ -65,7 +65,7 @@ export const pim3 = defineScore({
       type: "boolean",
       helpText: defineText(
         "pim3.vent.help",
-        "Yes if the child received any of these at any point in the first hour in ICU: invasive ventilation, CPAP by mask or nasal prongs, BiPAP, or negative-pressure ventilation (Straney 2013, Appendix 1, p680). Whether a tracheostomy with unassisted spontaneous breathing counts as no is [NEEDS SOURCE] — that clause traces to the ANZICS registry booklet, not to the paper.",
+        "Yes if the child received any of these at any point in the first hour in ICU: invasive ventilation, CPAP by mask or nasal prongs, BiPAP, or negative-pressure ventilation (Straney 2013, Appendix 1, p680). A tracheostomy with unassisted spontaneous breathing is no — that is the ANZPIC Registry's data-entry convention (PIM2 & PIM3 for the ANZPIC Registry — Information Booklet, version January 2019), not a rule stated in the paper, which lists only what the criterion includes.",
       ),
     },
     {
@@ -302,11 +302,15 @@ export const pim3 = defineScore({
       // What CHANGED on 2026-08-03: the coding rules no longer depend on it.
       // Appendix 1 (p680) of the paper itself carries the pupil, ventilation,
       // elective, SBP-sentinel, measurement-window and imputation rules, and
-      // those are now sourced to the paper. The booklet remains the only source
-      // for the registry's own diagnosis code numbers, which diverge from the
-      // paper's (see `notes`) and which this implementation deliberately does
-      // not consume.
-      note: "Derivation paper: the 13 coefficients and intercept (Table 3, p677), the three diagnosis-tier lists with their qualifying rules and the precedence rule, and the variable coding and missing-value conventions (Appendix 1, p680). The ANZICS 'PIM2 & PIM3 for the ANZPIC Registry — Information Booklet (Version Jan 2019)' is a supporting document for registry data entry; it is no longer retrievable at its published URL (HTTP 404, re-verified 2026-08-02) and is not required by anything this implementation computes.",
+      // those are now sourced to the paper. The booklet remains the source of
+      // two things the paper does not carry: the registry's own diagnosis code
+      // numbers, which diverge from the paper's (see `notes`) and which this
+      // implementation deliberately does not consume, and the tracheostomy
+      // clause on the ventilation criterion. The booklet's text was obtained
+      // and read on 2026-08-03 — that is what closed the tracheostomy
+      // [NEEDS SOURCE] — but its published URL still 404s, so it is named and
+      // dated here rather than shipped as a locator.
+      note: "Derivation paper: the 13 coefficients and intercept (Table 3, p677), the three diagnosis-tier lists with their qualifying rules and the precedence rule, and the variable coding and missing-value conventions (Appendix 1, p680). The ANZICS 'PIM2 & PIM3 for the ANZPIC Registry — Information Booklet (Version Jan 2019)' is a supporting document for registry data entry; its text was retrieved and read on 2026-08-03 and is the only source for the rule that a tracheostomy with unassisted spontaneous breathing is not ventilation, a rule the paper does not address. It is grey literature with no DOI and is no longer retrievable at its published URL (HTTP 404, re-verified 2026-08-02), so it is credited here rather than carried as its own reference.",
     },
     {
       citation:
@@ -362,6 +366,13 @@ export const pim3 = defineScore({
         "Straney 2013 read in full including Appendix 1, and the diagnosis model rebuilt on it. The single 'main-reason risk category' picker is replaced by the three published tier lists as separate questions (5 very high-risk, 5 high-risk, 6 low-risk, each complete as published) with their qualifying rules, and the model now resolves them itself by the paper's precedence rule — highest tier wins, never additive. This changes the number for a patient who has conditions in two tiers and whose tier was previously chosen by hand: on the paper's own worked example (p681) counting the high-risk term alongside the very high-risk one returns 72.34% where the published answer is 47.22%. No coefficient, intercept or imputation default changed. The pupil, ventilation, elective, SBP-sentinel and measurement-window coding rules are now sourced to Appendix 1 p680 instead of the unreachable ANZICS booklet, closing those [NEEDS SOURCE] flags; four external validations were added and the limitations now carry the age-range discrepancy, neonatal over-prediction, haemato-oncology and neurological under-prediction, and per-region calibration. New caution: PIM3 is validated for groups and must not drive decisions about an individual patient.",
       reason: "formula-correction",
     },
+    {
+      version: "1.1.1",
+      date: "2026-08-03",
+      summary:
+        "Closes the last [NEEDS SOURCE] on this score. The rule that a tracheostomy with unassisted spontaneous breathing does not count as first-hour ventilation is sourced to the ANZPIC Registry PIM2/PIM3 Information Booklet (version January 2019), whose text was retrieved and read on 2026-08-03. It is recorded for what it is: a registry data-dictionary convention, grey literature with no DOI, and the only source that addresses the edge case — Straney 2013 Appendix 1 lists only what the ventilation criterion includes and is silent on tracheostomy. The booklet is still not shipped as a locator, because its published URL still returns HTTP 404. No coefficient, input, imputation default or computed probability changed; the ventilation help text and the limitations now state the provenance instead of a gap.",
+      reason: "new-reference",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -391,7 +402,7 @@ export const pim3 = defineScore({
       "LIMITATIONS. Newborns are systematically over-predicted: they sit physiologically well below the 125.6 mmHg SBP nadir, so the blood-pressure terms inflate their score (observed for both PIM2 and PIM3 in the Italian validation). Haemato-oncology admissions are under-predicted, and badly: discrimination fell to c-index 0.66 against 0.74–0.83 in other subgroups, with observed mortality 18.73% against 7.13% predicted (Lee 2017). Neurological admissions were under-predicted in the derivation cohort itself — SMR 1.32 (1.16–1.50), the only diagnostic group significantly off in the original data. Calibration travels far worse than discrimination: Italy AUC 0.88 / SMR 0.98 (Hosmer-Lemeshow p = 0.21, good); Argentina AUC 0.83 / SMR 1.3 (p < 0.001); South Africa AUC 0.81 / SMR 1.28 (p < 0.001) with the HIGHEST SMR (6.67) in the lowest-risk decile. For a Gulf-region deployment the South African study is the closest comparator, being the only multicentre evaluation in a resource-varied setting — recalibrate and monitor locally before any comparative interpretation. HIV infection and admission after liver transplant were dropped from the model as non-predictive in the derivation population, but remain associated with higher mortality in the Argentine setting. " +
       "COEFFICIENT SET. This is the published international model (Straney 2013). ANZICS also publishes regional recalibrations — PIM3-anz13 and PIM3-anz15 — whose coefficients are entirely different (anz13 pupils 4.371172, intercept −2.299542); do not mix them with these. " +
       "REGISTRY CODE NUMBERS ARE NOT IMPLEMENTED, DELIBERATELY. The ANZPIC registry carries its own numbering for the three tiers, and it DIVERGES from the paper's: registry high-risk code 5 is septic shock (collected but not used by PIM3) while necrotising enterocolitis moves to code 6, and the registry adds very-high-risk combination codes 7 and 8 that a naive 1–5 membership test would silently drop. This calculator consumes no registry data, so it maps no codes; anyone who later ingests ANZPIC records needs two explicitly labelled mappers, not one. The registry numbering is documented in the ANZICS 'PIM2 & PIM3 for the ANZPIC Registry' Information Booklet, whose published URL returns HTTP 404 (re-verified 2026-08-02). " +
-      "[NEEDS SOURCE]: whether a tracheostomy with unassisted spontaneous breathing is excluded from the mechanical-ventilation criterion. Appendix 1 lists what the criterion INCLUDES (invasive ventilation, mask or nasal CPAP, BiPAP, negative-pressure ventilation) and says nothing about tracheostomy; that exclusion traces only to the unreachable ANZICS booklet and is carried here unsourced rather than asserted.",
+      "THE TRACHEOSTOMY RULE IS A REGISTRY CONVENTION, AND THAT IS NOW ITS STATED PROVENANCE RATHER THAN A GAP. A tracheostomy with unassisted spontaneous breathing does not count as ventilation in the first hour. The source is the ANZPIC Registry's own data dictionary — 'PIM2 & PIM3 for the ANZPIC Registry — Information Booklet', version January 2019, whose text was obtained and read on 2026-08-03 and which states the exclusion in those terms. It is grey literature: no DOI, and its published anzics.org URL still returns HTTP 404, so no link is carried for it. NO PEER-REVIEWED SOURCE ADDRESSES THE EDGE CASE AT ALL — Straney 2013 Appendix 1 (p680) lists only what the criterion INCLUDES (invasive ventilation, mask or nasal CPAP, BiPAP, negative-pressure ventilation) and is silent on tracheostomy. Read the rule for what it is: how the derivation registry coded the variable, which is the best available answer and the one that keeps this calculator consistent with the data the model was fitted on, but not a finding from the paper.",
   ),
   calculate: (values) => {
     const pupils = values.pupils.value ? 1 : 0;

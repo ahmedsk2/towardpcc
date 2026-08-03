@@ -11,7 +11,8 @@ import { NO_UNIT } from "../units/types";
  * Sanchez-Pinto, JAMA Pediatr 2017; PMID 28783810). Six organ subscores
  * (0–4) summed to a 0–24 total. Cardiovascular and renal thresholds are
  * age-adjusted; respiratory uses PaO₂:FiO₂ when a PaO₂ is available, else
- * SpO₂:FiO₂ (SpO₂ ≤97% only). Research + full sourcing:
+ * SpO₂:FiO₂ (SpO₂ ≤97% only — Table 1 footnote, and the ratio's own
+ * derivation window in Khemani 2009/2012). Research + full sourcing:
  * docs/research/scores/psofa.md.
  */
 
@@ -29,6 +30,12 @@ interface AgeBand {
  * Age-adjusted cardiovascular-MAP and renal-creatinine thresholds by age band
  * (Matics 2017, Table 1). Returning literal objects (no array indexing) keeps
  * the lookup total and type-safe under noUncheckedIndexedAccess.
+ *
+ * The final band is not a paediatric band. Matics & Sanchez-Pinto derived pSOFA
+ * in children 21 years and younger (≤252 months) and state that the >216-month
+ * MAP and creatinine cut points are identical to adult SOFA's. So a patient over
+ * 216 months is scored against adult thresholds by design — worth surfacing to
+ * the reader (see `notes`), not worth branching on.
  */
 function ageBand(ageMonths: number): AgeBand {
   if (ageMonths < 1) return { mapMin: 46, creatinineCuts: [0.8, 1.0, 1.2, 1.6] }; // <1 month
@@ -56,15 +63,25 @@ function respiratoryFromPf(pf: number, support: boolean): number {
 }
 
 /**
- * Respiratory subscore from the SpO₂:FiO₂ ratio. The published bands share
- * endpoint values (264); at an exact boundary the higher (worse) subscore is
- * assigned — a worst-value convention, not paper text (psofa.md Limitations).
+ * Respiratory subscore from the SpO₂:FiO₂ ratio.
+ *
+ * THE OVERLAP AT 264 IS IN THE SOURCE, NOT IN US. JAMA Pediatr Table 1 prints
+ * the bands as ≥292 / 264–291 / 221–264 / 148–220 / <148, so the value 264 is
+ * the lower bound of the subscore-1 row AND the upper bound of the subscore-2
+ * row. The published table assigns an exact 264 to both rows at once, which
+ * leaves no reading of it that avoids a tie-break.
+ *
+ * Ours is the worst-value rule — an exact 264 scores 2 — chosen because every
+ * other pSOFA subscore takes the worst qualifying value in the window. That
+ * choice is this implementation's, documented rather than derived: the paper
+ * states no tie-break (psofa.md Limitations).
+ *
  * Subscores 3–4 require respiratory support; otherwise capped at 2.
  */
 function respiratoryFromSf(sf: number, support: boolean): number {
   if (sf >= 292) return 0;
-  if (sf > 264) return 1; // 264–291 (264 exact → higher band, below)
-  if (sf >= 221) return 2; // 221–264
+  if (sf > 264) return 1; // 264–291, exclusive of 264 itself
+  if (sf >= 221) return 2; // 221–264, inclusive of the overlapped 264 (worst-value tie-break)
   if (!support) return 2; // capping convention, not cited (psofa.md [NEEDS SOURCE])
   if (sf >= 148) return 3; // 148–220 with support
   return 4; // <148 with support
@@ -94,7 +111,7 @@ export const psofa = defineScore({
   id: "psofa",
   slug: "psofa",
   name: "pSOFA (Pediatric SOFA)",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -105,13 +122,16 @@ export const psofa = defineScore({
       required: true,
       type: "numeric",
       unit: monthsUnit,
-      // Bands cap at ">216 months"; 0–250 is a validity window (psofa.md age strata).
+      // The derivation cohort was children 21 years and younger (≤252 months)
+      // and the bands cap at ">216 months", so 0–250 sits inside the studied
+      // range; it is our validity window, not a published bound (psofa.md age
+      // strata). Above 216 months the thresholds are adult SOFA's — see `notes`.
       min: 0,
       max: 250,
       step: 1,
       helpText: defineText(
         "psofa.age.help",
-        "In months. Sets the age-adjusted cardiovascular (MAP) and renal (creatinine) thresholds.",
+        "In months. Sets the age-adjusted cardiovascular (MAP) and renal (creatinine) thresholds. Above 216 months those thresholds are the adult SOFA cut points, not paediatric ones.",
       ),
     },
     {
@@ -129,7 +149,9 @@ export const psofa = defineScore({
       // thresholds in `respiratoryFromPf` are unchanged and no computed
       // subscore moves.
       unit: mmhgWithKpa,
-      // Input-validity bound, not a cited threshold (psofa.md [NEEDS SOURCE]).
+      // Matics 2017 specifies NO plausibility bound for PaO₂ — confirmed absent
+      // on full-text review, not merely unlocated (psofa.md). This is our
+      // input-validity window; prefer institutional analyzer limits.
       min: 20,
       max: 600,
       helpText: defineText(
@@ -148,7 +170,7 @@ export const psofa = defineScore({
       max: 100,
       helpText: defineText(
         "psofa.spo2.help",
-        "Used only when no PaO₂ is available, and only if ≤97% (above that the ratio saturates).",
+        "Used only when no PaO₂ is available, and only at ≤97% — above that the ratio saturates. The ≤97% ceiling is the paper's own (Matics 2017, Table 1 footnote) and matches the window the ratio was derived over (SpO₂ 80–97%, Khemani 2009/2012).",
       ),
     },
     {
@@ -183,7 +205,8 @@ export const psofa = defineScore({
       required: true,
       type: "numeric",
       unit: plateletUnit,
-      // Input-validity bound, not a cited threshold (psofa.md [NEEDS SOURCE]).
+      // No published plausibility bound for platelets in Matics 2017 — confirmed
+      // absent (psofa.md). Input-validity window only.
       min: 1,
       max: 1000,
       helpText: defineText("psofa.platelets.help", "In ×10³/µL (equal to ×10⁹/L)."),
@@ -195,7 +218,8 @@ export const psofa = defineScore({
       required: true,
       type: "numeric",
       unit: bilirubinMgdl,
-      // Input-validity bound, not a cited threshold (psofa.md [NEEDS SOURCE]).
+      // No published plausibility bound for bilirubin in Matics 2017 — confirmed
+      // absent (psofa.md). Input-validity window only.
       min: 0.1,
       max: 50,
       helpText: defineText("psofa.bilirubin.help", "Accepts mg/dL or µmol/L."),
@@ -207,7 +231,9 @@ export const psofa = defineScore({
       required: false,
       type: "numeric",
       unit: mmHgUnit,
-      // Input-validity bound, not a cited threshold (psofa.md [NEEDS SOURCE]).
+      // No published plausibility bound for MAP in Matics 2017 — confirmed
+      // absent (psofa.md). The age-band MAP cut points below ARE published; this
+      // pair is only the input-validity window around them.
       min: 10,
       max: 150,
       helpText: defineText(
@@ -291,7 +317,9 @@ export const psofa = defineScore({
       required: true,
       type: "numeric",
       unit: creatinineMgdl,
-      // Input-validity bound, not a cited threshold (psofa.md renal table is age-banded).
+      // The published renal cut points are age-banded (psofa.md renal table);
+      // Matics 2017 states no plausibility bound for creatinine — confirmed
+      // absent. This pair is the input-validity window only.
       min: 0.1,
       max: 20,
       helpText: defineText(
@@ -338,6 +366,27 @@ export const psofa = defineScore({
       doi: "10.1007/BF01709751",
       note: "Adult SOFA lineage adapted by pSOFA; no adult-SOFA number is used directly here.",
     },
+    {
+      citation:
+        "Khemani RG, Patel NR, Bart RD 3rd, Newth CJL. Comparison of the pulse oximetric saturation/fraction of inspired oxygen ratio and the PaO2/fraction of inspired oxygen ratio in children. Chest. 2009;135(3):662-668.",
+      pmid: "19029434",
+      doi: "10.1378/chest.08-2239",
+      note: "Derivation of the SpO₂:FiO₂ ratio, restricted to SpO₂ 80–97% — the origin of the ≤97% ceiling pSOFA's Table 1 footnote applies.",
+    },
+    {
+      citation:
+        "Khemani RG, Thomas NJ, Venkatachalam V, et al. Comparison of SpO2 to PaO2 based markers of lung disease severity for children with acute lung injury. Crit Care Med. 2012;40(4):1309-1316.",
+      pmid: "22202709",
+      doi: "10.1097/CCM.0b013e31823bc61b",
+      note: "Multicentre re-derivation of the SpO₂-based markers over the same SpO₂ 80–97% window.",
+    },
+    {
+      citation:
+        "Wynn JL, Polin RA. A neonatal sequential organ failure assessment score predicts mortality to late-onset sepsis in preterm very low birth weight infants. Pediatr Res. 2020;88(1):85-90.",
+      pmid: "31394566",
+      doi: "10.1038/s41390-019-0517-2",
+      note: "nSOFA, the organ-dysfunction score derived FOR neonates (0–15). Named here so the neonatal caveat points somewhere; no nSOFA number is used in this score.",
+    },
   ],
   validators: [{ status: "pending" }, { status: "pending" }],
   changelog: [
@@ -348,6 +397,13 @@ export const psofa = defineScore({
         "Initial release: six age-adjusted pSOFA organ subscores and the 0–24 total (Matics 2017).",
       reason: "initial-release",
     },
+    {
+      version: "1.1.0",
+      date: "2026-08-03",
+      summary:
+        "Sourcing corrections. NO NUMBER MOVED — no threshold, age band, subscore or total changed. (1) Missing-as-normal was labelled an implementation convention of this platform; it is the paper's own rule, stated in the Methods of Matics & Sanchez-Pinto 2017, and is now attributed there. That marker is withdrawn because it was our mistake, not a gap. (2) The absence of physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP and creatinine is now stated as confirmed-absent from the paper rather than as an unfound source: the min/max on those inputs are this platform's input-validity windows and were never clinical thresholds. (3) The SpO₂:FiO₂ overlap at 264 is now attributed where it belongs — JAMA Pediatr Table 1 itself prints 264 in both the subscore-1 and subscore-2 rows, so the source assigns no single value there; taking the worse subscore remains our documented tie-break. (4) The SpO₂ ≤97% ceiling is cited twice over, to the paper's Table 1 footnote and to the ratio's derivation window (SpO₂ 80–97%) in Khemani 2009 and 2012, both now in the reference list. (5) Age caveat added: the cohort was children ≤21 years and the paper states the >216-month MAP and creatinine cut points are adult SOFA's, so a patient over 216 months is scored against adult thresholds. (6) The neonatal caveat was too strong — pSOFA has a <1-month band and is defined there, it simply was not derived for that population; nSOFA (Wynn & Polin 2020, now cited) is the instrument derived for preterm very-low-birth-weight infants.",
+      reason: "new-reference",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -357,11 +413,11 @@ export const psofa = defineScore({
   missingAsNormal: true,
   formula: defineText(
     "psofa.formula",
-    "pSOFA total = respiratory + coagulation + hepatic + cardiovascular + neurologic + renal, six organ subscores (each 0–4) summed to 0–24 (Matics & Sanchez-Pinto 2017); the total and all six subscores are reported. Respiratory uses PaO₂:FiO₂ = PaO₂ ÷ FiO₂ when a PaO₂ is present (≥400 → 0, 300–399 → 1, 200–299 → 2, 100–199 → 3, <100 → 4), otherwise SpO₂:FiO₂ = SpO₂ ÷ FiO₂ but only when SpO₂ ≤97% (≥292 → 0, 264–291 → 1, 221–264 → 2, 148–220 → 3, <148 → 4; an exact 264 takes the worse subscore 2); subscores 3–4 require respiratory support, and a 3/4-band ratio without support is capped at 2. Coagulation from platelets (×10³/µL): ≥150 → 0, 100–149 → 1, 50–99 → 2, 20–49 → 3, <20 → 4. Hepatic from total bilirubin (mg/dL): <1.2 → 0, 1.2–1.9 → 1, 2.0–5.9 → 2, 6.0–11.9 → 3, ≥12 → 4. Cardiovascular is the worse of the MAP subscore (0 if MAP ≥ the age-band threshold, else 1) and the vasoactive subscore (dobutamine any dose or dopamine ≤5 → 2; dopamine >5 or epinephrine ≤0.1 or norepinephrine ≤0.1 → 3; dopamine >15 or epinephrine >0.1 or norepinephrine >0.1 → 4, doses in µg/kg/min). Neurologic from total GCS: 15 → 0, 13–14 → 1, 10–12 → 2, 6–9 → 3, <6 → 4. Renal from serum creatinine (mg/dL) against age-band cut points ≥ the level-4, -3, -2, or -1 threshold. MAP thresholds and creatinine cut points are age-adjusted across seven age bands (<1, 1–11, 12–23, 24–59, 60–143, 144–216, >216 months); missing oxygenation, MAP, or vasoactive inputs score that organ 0.",
+    "pSOFA total = respiratory + coagulation + hepatic + cardiovascular + neurologic + renal, six organ subscores (each 0–4) summed to 0–24 (Matics & Sanchez-Pinto 2017); the total and all six subscores are reported. Respiratory uses PaO₂:FiO₂ = PaO₂ ÷ FiO₂ when a PaO₂ is present (≥400 → 0, 300–399 → 1, 200–299 → 2, 100–199 → 3, <100 → 4), otherwise SpO₂:FiO₂ = SpO₂ ÷ FiO₂ but only when SpO₂ ≤97% (≥292 → 0, 264–291 → 1, 221–264 → 2, 148–220 → 3, <148 → 4; the published bands print 264 in two rows at once, and an exact 264 is resolved here to the worse subscore 2); subscores 3–4 require respiratory support, and a 3/4-band ratio without support is capped at 2. Coagulation from platelets (×10³/µL): ≥150 → 0, 100–149 → 1, 50–99 → 2, 20–49 → 3, <20 → 4. Hepatic from total bilirubin (mg/dL): <1.2 → 0, 1.2–1.9 → 1, 2.0–5.9 → 2, 6.0–11.9 → 3, ≥12 → 4. Cardiovascular is the worse of the MAP subscore (0 if MAP ≥ the age-band threshold, else 1) and the vasoactive subscore (dobutamine any dose or dopamine ≤5 → 2; dopamine >5 or epinephrine ≤0.1 or norepinephrine ≤0.1 → 3; dopamine >15 or epinephrine >0.1 or norepinephrine >0.1 → 4, doses in µg/kg/min). Neurologic from total GCS: 15 → 0, 13–14 → 1, 10–12 → 2, 6–9 → 3, <6 → 4. Renal from serum creatinine (mg/dL) against age-band cut points ≥ the level-4, -3, -2, or -1 threshold. MAP thresholds and creatinine cut points are age-adjusted across seven age bands (<1, 1–11, 12–23, 24–59, 60–143, 144–216, >216 months); missing oxygenation, MAP, or vasoactive inputs score that organ 0.",
   ),
   notes: defineText(
     "psofa.notes",
-    "Each subscore is the worst qualifying value in the assessment window; the total is their sum (0–24). Several rules are implementation conventions rather than paper text and are flagged for clinical sign-off [NEEDS SOURCE]: (1) a PaO₂:FiO₂ or SpO₂:FiO₂ in a subscore-3/4 band without respiratory support is capped at 2 (highest non-support band); (2) at the published SpO₂:FiO₂ boundary overlap (264) the higher subscore is assigned. SpO₂:FiO₂ is used only when no PaO₂ is available and only for SpO₂ ≤97% (above that it saturates); an SpO₂ >97% with no PaO₂ scores respiratory 0. Missing oxygenation, MAP, or vasoactive data is treated as normal (0) for that organ, following the SOFA missing-as-normal convention. Physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP, and creatinine are not specified in the paper [NEEDS SOURCE]; the min/max here are input-validity windows, not clinical thresholds — prefer institutional analyzer limits. The >8 interpretation cut point is a single-center, statistically-derived threshold on the encounter maximum pSOFA and is descriptive, not directive. pSOFA is derived and validated in children beyond the neonatal period; do not over-extend to term neonates without separate evidence (e.g. nSOFA) [NEEDS SOURCE].",
+    "Each subscore is the worst qualifying value in the assessment window; the total is their sum (0–24). Missing data is scored as normal (0) for that organ — this is the paper's own rule and not a convention of this platform: the Methods of Matics & Sanchez-Pinto 2017 state that a variable not measured within a 24-hour period was taken as normal, consistent with the original SOFA criteria. It still means a partially entered case reads lower than a fully entered one, so read a low total together with how much was supplied. One rule genuinely is this implementation's and is flagged for clinical sign-off: a PaO₂:FiO₂ or SpO₂:FiO₂ falling in a subscore-3/4 band without respiratory support is capped at 2, the highest band carrying no support requirement — the paper does not say what such a patient scores [NEEDS SOURCE]. A second is a documented choice forced by the source: the published SpO₂:FiO₂ bands overlap, because JAMA Pediatr Table 1 prints 264 as both the lower bound of the subscore-1 row and the upper bound of the subscore-2 row, so the table assigns an exact 264 to two rows at once; this calculator resolves it to the worse subscore (2), in keeping with pSOFA's worst-value rule. SpO₂:FiO₂ is used only when no PaO₂ is available and only at SpO₂ ≤97%; that ceiling is the paper's own (Table 1 footnote) and matches the window the ratio was derived over, SpO₂ 80–97% in Khemani 2009 and 2012. An SpO₂ >97% with no PaO₂ scores respiratory 0. Matics & Sanchez-Pinto specify no physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP or creatinine — confirmed absent from the paper, not merely unlocated — so the min/max on those inputs are this platform's input-validity windows and carry no clinical meaning; prefer institutional analyzer limits. Age: pSOFA was derived in children 21 years and younger, and the paper states that the >216-month MAP and creatinine cut points are identical to adult SOFA's, so a patient over 216 months is being scored against adult thresholds rather than paediatric ones. Neonates: the <1-month band exists, so pSOFA is defined rather than undefined there, but it was not derived in that population; nSOFA (Wynn & Polin, Pediatr Res 2020; a 0–15 scale) is the score derived for preterm very-low-birth-weight infants with late-onset sepsis. The >8 interpretation cut point is a single-center, statistically-derived threshold on the encounter maximum pSOFA and is descriptive, not directive.",
   ),
   composition: {
     total: "total",

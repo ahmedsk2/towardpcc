@@ -462,7 +462,9 @@ ABA position, side by side:
 **What it does not establish: any derivation.** Pisano et al. tabulated the ABA
 position; they did not test it, and the ABA source is a course manual, not a
 systematic review. The threshold is consensus. **Derivation of any maintenance
-weight threshold (20, 30 or 40 kg): [NO SOURCE].**
+weight threshold (20, 30 or 40 kg): [SETTLED-ABSENT]** (relabelled 2026-08-03).
+These are pragmatic brackets; **no derivation study exists** for any of the three
+figures, and none is going to be found by searching again.
 
 **The counter-position — no threshold at all.** AWMF S2k 006/128 (valid
 15.08.2024–14.08.2029) takes a different structure entirely:
@@ -527,10 +529,20 @@ rate₂ (mL/h) = (0.5 × total volume) ÷ 16
 - **Maintenance is not titrated.** Titration acts on resuscitation fluid only;
   maintenance runs at the weight-based rate.
 
-**Derivation of the 8 h / 16 h split itself: [NO SOURCE].** Absent from the 1968
-original; absent from ABA CPG 2024, which does not address the split in any of
-its ten PICO questions; absent from every in-window source reviewed. Universal
-in practice, derived nowhere.
+**Derivation of the 8 h / 16 h split itself: [SETTLED-ABSENT]** (relabelled
+2026-08-03 — previously carried as `[NO SOURCE]`, i.e. as an unfinished search).
+**No controlled derivation of the split exists.** It is absent from ABA CPG 2024,
+which does not address it in any of its ten PICO questions, and absent from every
+in-window source reviewed. Universal in practice, derived nowhere.
+
+**One qualifier travels with this, and must not be dropped:** the 1968 primary
+(Baxter & Shires) has **not been read directly**, so "absent from the original"
+rests on the secondary literature that restates it rather than on the paper
+itself. That is why the finding is stated as settled-absent _pending that one
+primary_ — stronger than "we could not find it", weaker than "we read the
+original and it is not there". Obtaining Baxter & Shires 1968 is the only thing
+that would change the statement, and it would change it from qualified to
+unqualified, not from open to closed.
 
 **What this score implements, stated so the gap is not mistaken for
 completeness.** It has no `time_since_burn_h` input, no fluid-already-given
@@ -580,9 +592,12 @@ Additional endpoint notes:
   pulse-contour/thermodilution device size is impractical) land on urine output
   as the practical endpoint rather than invasive or semi-invasive monitoring.
 
-**Optimal hourly urine-output goal in children: [NO SOURCE].** Stated as
-undefined by Romanowski & Palmieri 2017 and by AWMF 006/128, which grades all
-its fluid statements at evidence level IV.
+**Optimal hourly urine-output goal in children: [SETTLED-ABSENT]** (relabelled
+2026-08-03). Every published target is **expert or review consensus only**, and
+the optimum is stated as undefined by Romanowski & Palmieri 2017 and by AWMF
+006/128, which grades all its fluid statements at evidence level IV. There is no
+study to find; the disagreement quantified above is the state of the field, not a
+hole in this review.
 
 ### R.4 Delivered volume — and both directions of failure
 
@@ -668,8 +683,9 @@ p=0.030). A prior suggestion that BSA-based formulas suit patients ≤20 kg is a
 second weight threshold, distinct from the 30 kg one and equally unvalidated.
 
 **Head-to-head outcome comparison of Cincinnati vs Galveston vs Parkland in
-children: [NO SOURCE].** Stevens compares predictions against delivered volume,
-not outcomes. No trial exists.
+children: [SETTLED-ABSENT]** (relabelled 2026-08-03). Stevens compares
+predictions against delivered volume, not outcomes. **No trial exists** — this is
+an absence in the literature, not an unfinished search.
 
 ### R.6 The inhalation-injury modifier, and why none is shipped
 
@@ -738,17 +754,28 @@ practice achieve. Present it as a live controversy with both citations, **not**
 as a superseded-and-current pair. Both figures are adult; neither licenses a
 paediatric starting coefficient.
 
-### R.9 Still [NO SOURCE] after this review
+### R.9 [SETTLED-ABSENT] after this review
 
-- **Derivation of the 8 h / 16 h split.** In use universally, derived nowhere.
+Relabelled 2026-08-03. These five were previously listed as "still [NO SOURCE]",
+which reads as a search that could still succeed. It cannot: each was established
+**not to exist**, and that is a stronger and more useful statement than "not
+found". **Do not re-search them.** What they mean for the calculator is unchanged
+— each is a place where a printed number is convention rather than evidence.
+
+- **Derivation of the 8 h / 16 h split.** In use universally, derived nowhere. No
+  controlled derivation exists. _Qualifier:_ Baxter & Shires 1968 was not read
+  directly, so this is settled-absent **pending that one primary** (see R.2).
 - **Derivation of any maintenance weight threshold** (20, 30 or 40 kg).
-  Documented in practice; never tested.
-- **Optimal hourly urine-output goal in children.**
-- **Any paediatric equivalent of the ABA CPG.** None located. The 2024 CPG is
-  explicitly adults ≥20% TBSA and every PICO question is framed "among adults" —
-  this **confirms**, rather than closes, the marker this score already carried.
+  Pragmatic brackets, documented in practice, never tested.
+- **Optimal hourly urine-output goal in children.** Expert and review consensus
+  only; stated as undefined by the two sources that address it directly.
+- **Any paediatric equivalent of the ABA CPG.** **None exists.** The 2024 CPG
+  (Cartotto, _J Burn Care Res_ 2024;45(3):565–589) scopes itself explicitly to
+  adults with ≥20% TBSA and frames every PICO question "among adults". This is
+  now stated as a positive finding rather than as a marker awaiting a search, and
+  it is what leaves the paediatric starting coefficient resting on convention.
 - **Head-to-head outcome comparison of Cincinnati vs Galveston vs Parkland in
-  children.**
+  children.** No trial exists.
 
 ### R.10 Residual gaps this review could not close
 
@@ -906,10 +933,12 @@ fetched in the original — flagged in Limitations.
   responded by lowering the adult starting coefficient to 2 mL/kg/%TBSA and
   encouraging albumin to cap volumes. The CPG is **adults-only** — it does **not**
   license a 2 mL pediatric starting rate. [Pediatric-specific high-grade CPG for
-  the starting coefficient: **NEEDS SOURCE** — current pediatric practice rests
-  on 3–4 mL formulas + maintenance, not a graded RCT-backed pediatric CPG.
-  R.9 confirms this marker rather than closing it: no paediatric equivalent of
-  the ABA CPG was located in a 2016–2026 search.]
+  the starting coefficient: **[SETTLED-ABSENT]** (relabelled 2026-08-03) — there
+  is no graded RCT-backed pediatric CPG because **there is no paediatric
+  equivalent of the ABA CPG at all**; the 2024 CPG scopes itself to adults with
+  ≥20% TBSA and frames every PICO question that way, and a 2016–2026 search found
+  no counterpart. Current pediatric practice rests on 3–4 mL formulas plus
+  maintenance, and will until somebody writes one. See R.9.]
 - **Over-resuscitation is not the only failure direction**, and presenting it as
   such would be a one-sided reading of the evidence. R.4: 86.5% of children in
   the German registry received **less** than Parkland\*, and six of the seven
