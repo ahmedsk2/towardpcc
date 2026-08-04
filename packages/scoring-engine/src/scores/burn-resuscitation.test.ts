@@ -583,6 +583,50 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(prose).toMatch(/1-2 mL\/kg\/h/);
   });
 
+  /**
+   * CONTROVERSY 9 IS PRACTICE VARIATION, NOT A DISPUTE ABOUT THE COEFFICIENT.
+   *
+   * Up to v1.5.0 controversy 9 pitted 3 against ~6 as rival figures for the same
+   * quantity, which the Graves reconciliation shows was a category error. The
+   * entry is rewritten rather than deleted, because something real survives it:
+   * centres START in the range 2-4 with no modal value while delivering near
+   * 6.35, and three of five centres' own guideline estimates came out
+   * significantly BELOW their own delivery. That is a protocol-to-bedside gap.
+   *
+   * Asserting the p-values matters as much as the means: without them a future
+   * edit could soften "significantly below" into "somewhat below" and lose the
+   * only part of the finding that is statistically load-bearing.
+   */
+  it("states controversy 9 as practice variation, with the range and the three gaps", () => {
+    expect(notes, "controversy 9 must survive, reframed").toMatch(
+      /PAEDIATRIC STARTING COEFFICIENT ITSELF/,
+    );
+    expect(prose, "the starting range must be shown rather than a single figure").toMatch(
+      /2, 3 or 4|2 to 4/,
+    );
+    expect(prose, "there is no modal starting value, and that must be said").toMatch(
+      /no modal value/i,
+    );
+    // Delivered volume, and the three centres whose own guidelines undershot it.
+    expect(prose).toContain("6.35");
+    for (const [estimate, p] of [
+      ["4.53", "p<0.001"],
+      ["4.90", "p=0.002"],
+      ["3.38", "p<0.0001"],
+    ] as const) {
+      expect(prose, `the ${estimate} vs 6.35 gap must be stated`).toContain(estimate);
+      expect(prose, `the ${estimate} gap's significance must be stated`).toContain(p);
+    }
+    // And it must be framed as protocol-versus-practice, not as evidence that a
+    // starting coefficient is too low — that is the claim being retracted.
+    expect(prose).toMatch(
+      /protocol[- ](to[- ])?(bedside|against practice)|Protocol against practice/i,
+    );
+    expect(prose).toMatch(
+      /not evidence that (a|the printed) (starting )?coefficient is (set )?too low/i,
+    );
+  });
+
   // ── §7.3 — the best limitations line available ────────────────────────────
   it("carries Pisano's five-centre spread, and lands this score at the bottom of it", () => {
     expect(prose).toContain("1500 mL to 3560 mL");
@@ -640,55 +684,140 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
   });
 
   /**
-   * THE 3 mL COEFFICIENT IS CONTESTED FROM BOTH SIDES — and the second objection
-   * runs OPPOSITE to every other warning this score carries.
+   * THE 3 mL COEFFICIENT IS VINDICATED BY ITS OWN PRIMARY — and a warning this
+   * score shipped one release earlier is WITHDRAWN here.
    *
-   * Everything else here is organised around fluid creep, with 3 sitting safely
-   * below the adult 4. Palmieri et al. (ePlasty, read in full) say children
-   * require approximately 6 mL/kg/%TBSA and that single-figure adult formulas
-   * underestimate small children — i.e. that 3 may UNDER-resuscitate the child
-   * this score is for, before maintenance is added.
+   * v1.4.0 and v1.5.0 told readers that children may require approximately
+   * 6 mL/kg/%TBSA against the 3 emitted here, and named the failure direction as
+   * UNDER-resuscitation of small children. That was a category error. The ~6 is a
+   * TOTAL 24-hour volume INCLUDING maintenance; 3 is resuscitation ALONE. Graves
+   * 1988 (PMID 3199467) — the primary behind the 6 — reports both from one
+   * cohort of 43 children (total 6.3 +/- 2.2, net resuscitation 3.91 +/- 2.2
+   * cc/kg/%TBSB) and recommends supplying maintenance and initiating
+   * resuscitation at 3, which is this score's exact structure.
    *
-   * Three things are asserted together, because any one alone would leave a
+   * Four things are asserted together, because any one alone would leave a
    * different wrong impression:
    *
-   *  (1) the 6 figure and its source are on the page, so 3 cannot read as
-   *      uncontested;
-   *  (2) the direction is named as under-resuscitation of SMALL children, not
-   *      folded into the generic "the coefficient is disputed" line that already
-   *      existed for the adult 2-versus-4 fight;
-   *  (3) the coefficient is STILL 3 — the finding changes the marker, not the
-   *      behaviour, because which figure to start a child on is a clinical
-   *      decision. A future edit that "fixes" this by moving the constant fails
-   *      the sweep in the first test of this block.
+   *  (1) the retraction is VISIBLE — named as wrong and pinned to the versions
+   *      that carried it, not quietly reworded. A reader was told this
+   *      calculator might be under-dosing their patient; a silent rewrite would
+   *      never reach them.
+   *  (2) the reconciliation is SOURCED, with the primary's two figures and its
+   *      recommendation quoted, rather than asserted as a compatibility claim;
+   *  (3) the weight-dependence is stated AND verified against `compute` at two
+   *      weights, because that is what makes this a reconciliation instead of an
+   *      arithmetic coincidence — and it is the reason a flat 6 overhydrates the
+   *      large child while this two-part shape does not;
+   *  (4) the old under-resuscitation framing is asserted GONE, so a stale
+   *      sentence cannot sit beside the retraction telling the reader the
+   *      opposite.
+   *
+   * The coefficient is still 3 and the sweep in the first test of this block is
+   * what holds it there — the finding vindicates the constant, so an edit moving
+   * it upward now fails for a stronger reason than before.
    */
-  it("states that 3 mL/kg/%TBSA is contested by a ~6 mL paediatric figure", () => {
-    expect(prose, "the competing paediatric figure must be stated").toMatch(
-      /approximately 6 mL\/kg\/%TBSA/,
+  it("withdraws the under-resuscitation warning and reconciles 3 against the ~6 total", () => {
+    // ── (1) The retraction, visible and pinned to the releases that carried it ─
+    expect(prose, "the withdrawn warning must be named as withdrawn").toMatch(
+      /THAT WARNING IS WITHDRAWN/,
     );
+    expect(notes, "the retracted framing must be named as wrong").toMatch(/THAT FRAMING WAS WRONG/);
+    expect(notes, "the versions that carried it must be named").toMatch(/1\.4\.0 and 1\.5\.0/);
+    expect(notes).toMatch(/rather than quietly reworded/i);
+    // And it must reach the calculator surface, not the notes only — the claim
+    // being withdrawn was itself displayed as a caution.
+    const keys = burnResuscitation.cautions?.map((c) => c.key) ?? [];
+    expect(keys).toContain("burn.caution.peds-coefficient-reconciled");
+    expect(keys, "the contested-framing caution must not survive alongside it").not.toContain(
+      "burn.caution.peds-coefficient-contested",
+    );
+
+    // ── (2) The reconciliation, sourced ───────────────────────────────────────
+    expect(prose, "the two quantities must be distinguished").toMatch(
+      /TOTAL 24-hour (fluid|volume)[^.]{0,40}INCLUD\w*\s+maintenance/i,
+    );
+    expect(prose).toMatch(/Graves/);
+    expect(prose, "the TOTAL figure must be stated").toMatch(/6\.3 \+\/- 2\.2/);
+    expect(prose, "the NET resuscitation figure is the load-bearing one").toMatch(
+      /3\.91 \+\/- 2\.2/,
+    );
+    expect(prose, "the recommendation is quoted because it is the clearest statement").toContain(
+      "supplying maintenance volume and initiating burn resuscitation at 3 cc/kg/% TBSB",
+    );
+    // Corroboration that the larger circulating figure is a total, not a coefficient.
+    expect(prose).toMatch(/Merrell/);
+    expect(prose).toMatch(/5\.8 \+\/- 0\.25/);
+    expect(prose).toMatch(/177 children/);
+    // Palmieri stays cited — for the clause that now supports the two-part shape.
     expect(prose).toMatch(/Palmieri/);
-    expect(prose, "the source must be marked as read in full").toMatch(/read in full/i);
-    // The direction of the objection — the part that is new. Without it this is
-    // just another "sources disagree" line.
-    expect(prose).toMatch(/UNDER-resuscitate the small child|under-resuscitate/i);
-    expect(prose, "the quoted objection must be carried").toMatch(
+    expect(prose, "the source must still be marked as read in full").toMatch(/read in full/i);
+    expect(prose, "the quoted clause must be carried").toMatch(
       /underestimate needs in small children and overhydrate large children/,
     );
-    // And it must be labelled as unreconciled rather than quietly resolved by
-    // the maintenance addition.
-    expect(notes).toMatch(/NOT STRAIGHTFORWARDLY CONTRADICTORY/i);
+    // Both new primaries must be traceable references, not prose-only claims.
+    const refs = burnResuscitation.references;
+    for (const [pmid, name] of [
+      ["3199467", "Graves 1988"],
+      ["3789292", "Merrell 1986"],
+    ] as const) {
+      expect(
+        refs.some((r) => "pmid" in r && r.pmid === pmid),
+        `${name} must be a cited reference, not just prose`,
+      ).toBe(true);
+    }
+    expect(
+      refs.some((r) => "doi" in r && r.doi === "10.1097/00005373-198812000-00007"),
+      "the Graves DOI must be carried",
+    ).toBe(true);
 
-    // The arithmetic the notes claim, verified rather than asserted: adding
-    // maintenance does NOT produce a constant 6 mL/kg/%TBSA, and it falls as
-    // weight rises — which is the direction the objection predicts.
-    const combinedPerUnit = (kg: number): number => {
-      const out = outputsAt(kg, 20);
-      return (out.get("parkland_peds_plus_maint_24h_ml") ?? Number.NaN) / (kg * 20);
-    };
-    expect(combinedPerUnit(8)).toBeCloseTo(8.0, 6);
-    expect(combinedPerUnit(25)).toBeCloseTo(6.2, 6);
-    expect(combinedPerUnit(60)).toBeCloseTo(4.9166, 3);
-    expect(combinedPerUnit(8)).toBeGreaterThan(combinedPerUnit(60));
+    // ── (3) The weight-dependence, verified rather than asserted ──────────────
+    // Maintenance per kg per %TBSA FALLS as weight rises, so 3 + maintenance
+    // approximates 6 in an infant and deliberately less in a larger child. That
+    // is the whole reconciliation, so it is checked against `compute` at both
+    // burn sizes the page prints worked numbers for.
+    const perUnit = (id: string, kg: number, tbsa: number): number =>
+      (outputsAt(kg, tbsa).get(id) ?? Number.NaN) / (kg * tbsa);
+    const combined = (kg: number, tbsa: number): number =>
+      perUnit("parkland_peds_plus_maint_24h_ml", kg, tbsa);
+
+    // The 40% TBSA pair printed in the caution and the notes.
+    expect(combined(10, 40)).toBeCloseTo(5.5, 10);
+    expect(combined(25, 40)).toBeCloseTo(4.6, 10);
+    expect(combined(60, 40)).toBeCloseTo(3.9583, 3);
+    // The 20% TBSA trio, retained from v1.4.0: the arithmetic was always right,
+    // only the conclusion drawn from it was wrong.
+    expect(combined(8, 20)).toBeCloseTo(8.0, 6);
+    expect(combined(25, 20)).toBeCloseTo(6.2, 6);
+    expect(combined(60, 20)).toBeCloseTo(4.9166, 3);
+
+    // The mechanism itself, asserted separately from the sum: it is the
+    // MAINTENANCE term per kg per %TBSA that declines, while resuscitation stays
+    // flat at 3. Asserting only the combined figure would pass against a score
+    // that got the same curve by tapering the coefficient instead.
+    for (const tbsa of [20, 40]) {
+      let previous = Number.POSITIVE_INFINITY;
+      for (const kg of [10, 25, 60]) {
+        expect(perUnit("parkland_peds_24h_ml", kg, tbsa)).toBeCloseTo(3, 10);
+        const maintenancePerUnit = perUnit("maintenance_24h_ml", kg, tbsa);
+        expect(
+          maintenancePerUnit,
+          `maintenance per kg per %TBSA must fall as weight rises (${kg} kg @ ${tbsa}%)`,
+        ).toBeLessThan(previous);
+        previous = maintenancePerUnit;
+      }
+    }
+    expect(perUnit("maintenance_24h_ml", 10, 40)).toBeCloseTo(2.5, 10);
+    expect(perUnit("maintenance_24h_ml", 25, 40)).toBeCloseTo(1.6, 10);
+
+    // ── (4) The withdrawn framing must be GONE, not merely outweighed ─────────
+    expect(notes).not.toMatch(/NOT STRAIGHTFORWARDLY CONTRADICTORY/i);
+    expect(prose).not.toMatch(/may systematically UNDER-resuscitate/i);
+    expect(prose).not.toMatch(/contested from the OTHER side/i);
+    expect(prose).not.toMatch(/differing by a factor of two/i);
+    expect(prose, "the 3 must not still be presented as possibly too low").not.toMatch(
+      /in a SMALL child it may under-resuscitate/i,
+    );
 
     // The behaviour is unchanged: the emitted coefficient is still 3, and 6 is
     // discussed, never computed.
@@ -925,11 +1054,15 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
   });
 
   it("declares a caution for each rule the review states as a rule", () => {
-    // Nine since v1.5.0. The sixth carries the 8-h/16-h correction — the split
-    // is derived, in dogs, at a ratio this score does not use. The seventh and
-    // eighth are the 2026-08-04 findings: the 3 mL coefficient contested from
-    // the OTHER side by a ~6 mL paediatric figure, and the observed delivery
-    // shape, which is neither half nor two-thirds but bidirectional titration.
+    // Nine since v1.5.0, and still nine at v1.6.0 — the seventh was REPLACED,
+    // not removed. The sixth carries the 8-h/16-h correction: the split is
+    // derived, in dogs, at a ratio this score does not use. The seventh used to
+    // warn that the 3 mL coefficient might be too low against a ~6 mL paediatric
+    // figure; at v1.6.0 it carries the withdrawal of that warning and the Graves
+    // 1988 reconciliation instead, which is a correction a reader is owed on the
+    // calculator surface rather than in the notes only. The eighth is the
+    // observed delivery shape, neither half nor two-thirds but bidirectional
+    // titration.
     // Both belong on the calculator surface rather than in the notes only,
     // because both change how the printed number should be read. The ninth is
     // the cross-file one: the maintenance component inherits the standalone

@@ -216,6 +216,66 @@ There is **no** divergence at any coagulation or neurologic boundary, and none a
 
 Unit-conversion reference values (for input normalization; standard clinical factors, not score-specific): PaO₂ mmHg → kPa ×0.1333; lactate mmol/L → mg/dL ×9.01; fibrinogen mg/dL → g/L ×0.01. FiO₂ entered as fraction (room air = 0.21). These conversions are general lab conventions, not published in the Phoenix paper.
 
+## Plausibility bounds — what is published, what is ours (2026-08-04)
+
+The "plausible min–max" column above was written as implementation-guardrail heuristics, and the 2026-07-25 verification pass explicitly left it un-reverified on the grounds that no published range existed to check it against. **One does.** The `phoenix` package's **implementation-notes documentation** publishes a _reasonable-value_ table: values outside the stated range are treated as **NULL**, and a NULL scores **zero with no imputation**.
+
+**Provenance limit, stated first so nothing below is overclaimed:** the table was read from the implementation-notes page (full text). The literal `standard_names_and_units.csv` it refers to **could not be machine-retrieved**, so every figure below is cited to the docs page and **not** to that CSV.
+
+Published reasonable values, as read:
+
+| Quantity                | Published range                       |
+| ----------------------- | ------------------------------------- |
+| PaO₂ (mmHg)             | [0, ∞)                                |
+| SpO₂ (%)                | [0, 100]; **> 97 unusable for S/F**   |
+| FiO₂                    | [0.21, 1.00]                          |
+| S/F ratio               | [0, ~461.9]                           |
+| Lactate (mmol/L)        | [0, 50]                               |
+| Age (months)            | **[0, 216) — exclusive**              |
+| MAP (mmHg)              | [1, 300]                              |
+| SBP / DBP (mmHg)        | [1, 300] / [1, 200], SBP − DBP ≥ 1    |
+| Platelets (×10³/µL)     | [0, ∞)                                |
+| INR                     | [0, ∞)                                |
+| D-dimer (mg/L FEU)      | [0, 500]                              |
+| Fibrinogen (mg/dL)      | [0, ∞)                                |
+| Creatinine (mg/dL)      | [0, 50]                               |
+| Total bilirubin (mg/dL) | [0, 100]                              |
+| ALT (IU/L)              | [0, ∞)                                |
+| Glucose (mg/dL)         | [5, 2000]                             |
+| GCS                     | 3–15 (eye 1–4, motor 1–6, verbal 1–5) |
+| Vasoactive count        | integer 0–6                           |
+
+Creatinine, total bilirubin, ALT and glucose belong to the 8-organ research extension, not to the four-organ diagnostic criterion implemented here; SBP/DBP are for sites deriving MAP from a cuff, which this calculator takes directly.
+
+**Bound-by-bound against `phoenix.ts`. No bound moved.**
+
+| Input           | Ours      | Published | Verdict                                                                                                  |
+| --------------- | --------- | --------- | -------------------------------------------------------------------------------------------------------- |
+| `age_months`    | [0, 216)  | [0, 216)  | **IDENTICAL, including the exclusivity** — see below                                                     |
+| `fio2`          | 0.21–1.00 | 0.21–1.00 | **IDENTICAL**                                                                                            |
+| `gcs_total`     | 3–15      | 3–15      | **IDENTICAL** (also the instrument's own definition)                                                     |
+| `n_vasoactives` | 0–6, int  | 0–6, int  | **IDENTICAL**                                                                                            |
+| `spo2`          | 50–100    | 0–100     | ceiling identical; the 50 floor is ours. The published "> 97 unusable for S/F" is the gate already coded |
+| `pao2`          | 20–700    | [0, ∞)    | ours narrower; published sets no ceiling. PICANet gives 22–450 mmHg. **Kept**                            |
+| `map`           | 10–200    | [1, 300]  | ours narrower. **Kept**                                                                                  |
+| `lactate`       | 0.3–30    | [0, 50]   | ours narrower; PICANet tighter still at 0.2–15.0. **Kept**                                               |
+| `ddimer`        | 0.1–50    | [0, 500]  | ours narrower by 10×. **Kept** — the scoring threshold is > 2                                            |
+| `platelets`     | 5–1000    | [0, ∞)    | published is open above; nothing to adopt. **Kept**                                                      |
+| `inr`           | 0.8–10    | [0, ∞)    | published is open above. **Kept**                                                                        |
+| `fibrinogen`    | 30–800    | [0, ∞)    | published is open above. **Kept**                                                                        |
+
+**Why nothing was adopted wholesale.** A form field refusing a typo is doing a different job from a data pipeline's outlier filter. Six of the published ranges are open above; adopting them removes the guardrail rather than sourcing it. The kept-narrower bounds all sit far outside the highest cut point they must admit, so none of them can suppress a scoring band.
+
+**The age match is corroboration, not a copy.** `phoenix.ts` declared `maxExclusive: 216` in v2.1.0, argued from the criteria's "children under 18 years" and from the observation that the reference **R code's own `<= 216` admits exactly 18.0 y and diverges from the criteria it implements**. The published table states the domain as half-open [0, 216) independently. Two sources, same interval, arrived at separately.
+
+**Arithmetic check that falls out of the table:** the published S/F ceiling of ~461.9 is exactly 97 ÷ 0.21 — the ≤ 97% usability rule and the room-air FiO₂ floor, multiplied out. The table is internally consistent with the S/F gate.
+
+**Out-of-range behaviour differs, and the reference itself is split.** The R package's **argument checks HALT** on a GCS outside 3–15 and on ventilation/support flags outside {0, 1} — that is where this file's "rejected, not computed" limitation comes from, and it remains source behaviour. The **reasonable-value table is the other half**: it is data-preparation guidance for the analytes, where out-of-range → NULL → scores zero. `phoenix.ts` rejects in both cases and is therefore the stricter of the two for every analyte. Deliberate: a silently nulled lactate reads exactly like a normal one.
+
+**Second published comparator, different tradition.** PICANet **Admission Dataset Definitions Manual v5.4 (November 2020)** publishes collection ranges: SBP 20–180 with a check above 200; PaO₂ 3–60 kPa (22–450 mmHg); base excess −30 to +20; lactate 0.2–15.0 mmol/L. Tighter than the Phoenix table on every overlapping quantity. **No newer PICANet manual exists — confirmed**, not merely unlocated.
+
+**CONFIRMED NEGATIVE — VPS, PC4 and PHIS publish NO public numeric plausibility or edit-check bounds.** Theirs are proprietary data-quality rules behind login. This is a positive finding and is the reason independent implementations of one score diverge on what they will accept: for most inputs there is no public standard to converge on, so any two implementations' guardrails are their own until someone publishes.
+
 ## Worked examples (become unit tests)
 
 ### Example 1 — septic shock (from `phoenix` package clinical vignette 1)
@@ -296,7 +356,20 @@ Both JAMA papers: volume 331, issue 8, print date 27 February 2024, published on
 
 - **Age lower bound / neonates.** Derivation cohort was children **< 18 years**; it **excluded** newborns during the birth hospitalization and infants with post-conceptional age **< 37 weeks**. Applying the score to premature neonates is outside the validated population. The MAP age bands start at 0 months but the excluded groups above still apply.
 - **MAP band boundaries.** JAMA Table 2 displays 1-point MAP ranges with integer upper bounds (e.g., "17–30"); the reference code implements them as half-open intervals `[low, high)` (e.g., 17 to <31). For integer MAP the two are identical; the half-open form is required only for non-integer MAP. Documented here so an implementation matches the reference package exactly.
-- **Respiratory support gating.** The 1-point tier requires _any_ respiratory support; the 2- and 3-point tiers require **IMV**. A low PF/SF ratio with **no** support scores 0 for respiratory — the ratio alone is not sufficient. Confirm support status before scoring.
+- **Respiratory support gating — SOURCED FROM THE TASK FORCE'S PUBLISHED SQL, 2026-08-04, not inferred from the printed table.** The published SQL derives one flag and multiplies by it:
+
+  ```sql
+  IIF(fio2 > 0.21 OR vent = 1, 1, 0) AS other_respiratory_support
+  imv * (…two tiers…) + other_respiratory_support * IIF(pfr < 400 OR sfr < 292, 1, 0)
+  ```
+
+  So, structurally rather than by reading between the lines: **no support scores 0** at any ratio; the **1-point tier needs any oxygen or non-invasive support**; the **2- and 3-point tiers need IMV**. Confirm support status before scoring — the ratio alone is not sufficient.
+
+- **Contrast with pSOFA — same clinical situation, opposite structure, and now sourced on both sides.** pSOFA's respiratory subscores **3 and 4** carry a support requirement and **no lower band** carries one, so an unsupported child there is **capped at 2** rather than floored at 0. The same child, at the same ratio, off support, is **Phoenix respiratory 0 and pSOFA respiratory 2** simultaneously. The mechanism is the difference and is worth stating over the outcome: **Phoenix multiplies every tier by a support flag; pSOFA attaches a support condition to its top two bands only.** Both are correct implementations of their own instrument. Neither is to be harmonised to the other, and a reader comparing the two numbers is looking at a documented divergence between instruments, not a disagreement about the child. (See `psofa.md` Limitations for the same divergence written from that side.)
+
+- **One operational divergence from that SQL, and it is `phoenix.ts`'s choice.** The SQL **infers support from the data** — any FiO₂ above 0.21 counts — because it extracts from records with no support field. `phoenix.ts` **asks the clinician** and takes `resp_support: "none"` at face value even when an FiO₂ above 0.21 is also entered. That pairing is internally contradictory (a child on FiO₂ 0.5 is by definition receiving oxygen) and it is the **one input combination where the two disagree**: the extraction awards the 1-point tier, this calculator scores 0. Not reconciled, because silently overriding a clinician's explicit answer with an inference from another field is the worse failure mode. Pinned in `phoenix.test.ts`.
+
+- **HIGH-FLOW NASAL CANNULA COUNTS HERE AND DOES NOT COUNT IN THE REGISTRIES (2026-08-04).** Phoenix **explicitly includes high flow** within `other_respiratory_support`. **PICANet and ANZPIC both EXCLUDE HFNC from the mechanical-ventilation field** they collect. The same child on high flow is therefore "supported" for Phoenix and "not ventilated" in both major paediatric registries — a real, citable inconsistency that surfaces the moment a Phoenix score is read alongside registry-derived case-mix, benchmarking or ventilation-day figures. **NOT RETRIEVED, and not to be assumed:** no cohort has quantified how much the CPAP-versus-HFNC choice, or counting HFNC on one side and not the other, shifts the score distribution. The direction is obvious; the magnitude is unknown.
 - **SF ratio validity.** Only use SpO₂:FiO₂ when SpO₂ ≤ 97%. PF and SF are evaluated **together** at every tier and either can trigger one — SF is not merely a fallback for when a gas is unavailable.
 - **Missing data → falsely low, by design.** Each unmeasured input is imputed at its own normal-end sentinel (§Missing-data sentinels), independently of the others. An incompletely worked-up child can therefore score falsely low; the score reflects _documented_ dysfunction, not true absence of it, and a total below 2 on an incomplete entry is not evidence against sepsis. A partial-result warning is load-bearing on this score.
 - **Sedation.** The neurologic sub-score was pragmatically validated in sedated and non-sedated patients, with and without IMV. The derivation paper separately acknowledges that some organ-dysfunction measures may reflect **iatrogenic effects or clinician choices** rather than sepsis-related dysfunction, naming a **reduced GCS under sedation** as its example. That caveat comes from the authors, not from commentary: a sedated child's neurologic point may be measuring the sedation.
@@ -349,3 +422,21 @@ All four primary sources were read directly (not recalled) and the task force's 
 **Confidence on the most consequential item.** The missing-GCS→15 rule is stated in both JAMA tables' footnotes, again in the JAMIA Open methods, implemented identically in three languages, and confirmed by execution.
 
 **Not accessed by this pass:** Sanchez-Pinto Supplement 1 — specifically eAppendix 1 (the LOCF window detail), eAppendix 2 (clinical vignettes), eFigure 9 (Phoenix-8, the item corrected in March 2024) and eTables 1–8. Nothing above depends on them; the one place it would matter is the exact definition of "physiologically appropriate time windows" for LOCF, which is irrelevant to a single-timepoint calculator but would matter for registry or EHR-extraction work. **PubMed** was also not accessed, so no PMID in this file was re-verified on this pass.
+
+### 2026-08-04 — plausibility bounds, the support gate read from code, and the HFNC divergence
+
+**No number moved.** No threshold, age band, point value, input bound or total changed, and nothing that computed before is rejected now. This round changed where three things are sourced from and added one new finding. `phoenix.ts` → **v2.2.0**.
+
+1. **The input bounds are no longer all ours.** The 2026-07-25 pass left the plausible min/max column un-reverified because no published range was thought to exist. One does — the `phoenix` package's implementation-notes reasonable-value table — and **five bounds declared in `phoenix.ts` are identical to it**: age `[0, 216)` with an exclusive ceiling, FiO₂ 0.21–1.00, GCS 3–15, the vasoactive count as an integer 0–6, and SpO₂'s ceiling of 100 together with the published "> 97 unusable for S/F" rule. Seven are narrower than published and are **deliberately kept**. Full bound-by-bound table in §Plausibility bounds above, with the provenance limit (docs page read; the units CSV could not be retrieved) stated there. **Nothing was adopted wholesale and no bound moved.**
+
+2. **The age match independently corroborates the v2.1.0 `maxExclusive` work.** That exclusive ceiling was argued from the criteria's "children under 18 years" alone, before this table was read. The table states the same half-open interval. Recorded here because the earlier round had to reason _against_ the reference R code's `<= 216`, and now has a published statement on its side.
+
+3. **VPS, PC4 and PHIS publish nothing.** Confirmed negative — proprietary, behind login. Stated because it is the explanation for why two honest implementations of one score disagree about what they will accept.
+
+4. **The respiratory support gate is read off published SQL rather than inferred from the printed table.** Reproduced in the Limitations bullet above. The pSOFA contrast — already carried here as a structural comparison of two tables — is upgraded to the mechanism: Phoenix multiplies every tier by a support flag, pSOFA attaches a support condition to its top two bands only.
+
+5. **New: HFNC counts here, and is excluded from both major registries' ventilation field.** Its own Limitations bullet above, surfaced in `notes`, in the support field's help text, and in the non-invasive option's label. The magnitude of the effect is explicitly **not retrieved**.
+
+6. **New, disclosed rather than reconciled:** the SQL infers support from an FiO₂ above room air; `phoenix.ts` asks the clinician. Entering an FiO₂ above 0.21 alongside "no respiratory support" is the one input combination where the two disagree, and `phoenix.test.ts` pins this calculator's behaviour so a future "match the reference" edit cannot move it silently.
+
+**Not retrieved on this pass:** the literal `standard_names_and_units.csv`; any cohort quantifying the CPAP/HFNC effect on score distribution; any public plausibility bounds from VPS, PC4 or PHIS (confirmed absent rather than unfound). No PMID was re-verified on this pass.

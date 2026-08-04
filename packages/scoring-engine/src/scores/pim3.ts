@@ -42,7 +42,7 @@ export const pim3 = defineScore({
   id: "pim3",
   slug: "pim3",
   name: "Paediatric Index of Mortality 3 (PIM3)",
-  version: "1.2.1",
+  version: "1.2.2",
   status: "published",
   category: "mortality-severity",
   inputs: [
@@ -403,6 +403,13 @@ export const pim3 = defineScore({
         "Corrects the conclusion v1.2.0 drew from the Dubai study, which that study's own other stratification contradicts. NOTHING COMPUTED CHANGED — no coefficient, input, imputation default, tier list or probability moved. v1.2.0 told a reader that the reassuring end of the scale is the least trustworthy part of it, resting that on SMR 2.67 in the 1–5% predicted-probability band. Malhotra 2019 also reports SMR 0.33 below a predicted probability of 14.3% against 0.72 above it — over-prediction, not under-prediction, across that same low range. Both figures are from that one cohort of 583 and they point in opposite directions depending on where the bands are cut, so the platform now carries BOTH and asserts no direction for the low end. What is unchanged, because nothing in the paper contradicts it, is the part that matters clinically: SMR 2.1 in the SEPSIS subgroup, still stated prominently in the caution beside the result. The robust findings are the overall SMR 0.53, the AUC 0.78 and the sepsis SMR 2.1; the predicted-probability strata are recorded as unstable. The caution now names sepsis and infants under 12 months as where this model is least trustworthy here — both of which their own studies support — rather than the low end of the scale.",
       reason: "clarification",
     },
+    {
+      version: "1.2.2",
+      date: "2026-08-04",
+      summary:
+        "The individual-patient limit is now stated in the authors' own words rather than in ours. NOTHING COMPUTED CHANGED — no coefficient, input, imputation default, tier list or probability moved. Straney 2013 was read in full and says it directly: 'These models are not intended for prognostic use on individual patients'. That sentence now appears verbatim and attributed both in the caution beside the result and in the limitations, replacing this platform's paraphrase of it; a reader can no longer wonder whether the restriction is the paper's position or ours. The limitations also close out the no-bands question, which was previously left implicitly open: no paediatric mortality model publishes endorsed severity tiers, registries report unit-level standardised mortality ratios with funnel plots rather than per-patient bands, calibration papers use predicted-probability intervals only for goodness of fit, and cutting a continuous prediction into categories is argued against on statistical grounds (Altman & Royston, BMJ 2006;332(7549):1080, PMID 16675816). `interpretationStatus` was already 'not-applicable' and is unchanged.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -416,7 +423,7 @@ export const pim3 = defineScore({
   cautions: [
     defineText(
       "pim3.caution.groups",
-      "PIM3 is validated for GROUPS of patients, not for one patient. It is a case-mix and benchmarking instrument, and it should not be used to describe, or to make decisions about, the individual child in front of you (Straney 2013).",
+      'PIM3 is validated for GROUPS of patients, not for one patient — in the derivation paper\'s own words, "These models are not intended for prognostic use on individual patients" (Straney 2013). It is a case-mix and benchmarking instrument, and the probability shown here should not be used to describe, or to make decisions about, the individual child in front of you.',
     ),
     defineText(
       "pim3.caution.imputed",
@@ -429,7 +436,7 @@ export const pim3 = defineScore({
   ],
   notes: defineText(
     "pim3.notes",
-    "PIM3 estimates the probability of death from data collected at first ICU contact. It is a unit-level case-mix / benchmarking tool — summed individual probabilities across a cohort give an expected death count, compared with observed deaths as a Standardised Mortality Ratio (SMR = observed/expected) — and is NOT an individual bedside prediction; the derivation paper is explicit that it should not be used to describe or make decisions about an individual patient. Straney 2013 defines no diagnostic cut-points or risk bands, so this score reports none. " +
+    'PIM3 estimates the probability of death from data collected at first ICU contact. It is a unit-level case-mix / benchmarking tool — summed individual probabilities across a cohort give an expected death count, compared with observed deaths as a Standardised Mortality Ratio (SMR = observed/expected) — and is NOT an individual bedside prediction. The derivation paper says so itself, verbatim: "These models are not intended for prognostic use on individual patients" (Straney 2013), a sentence that then goes on to describe the group-level uses the model IS for. Straney 2013 also defines no diagnostic cut-points and no risk bands, so this score shows none — and that absence is settled rather than outstanding. No paediatric mortality model publishes endorsed severity tiers; registries report unit-level standardised mortality ratios with funnel plots rather than per-patient bands, and calibration papers use predicted-probability intervals only to test goodness of fit. Cutting a continuous prediction into categories is separately argued against on statistical grounds (Altman & Royston, BMJ 2006;332:1080), so the probability is presented whole. ' +
       "AGE RANGE — THE PAPER CONTRADICTS ITSELF. The abstract describes admissions of children younger than 18 at admission; the inclusion criteria in Methods state younger than 16. Read it as under 16, which is how the field reads it, and note that the discrepancy is in the source rather than resolved here: the Korean validation extended the model to under-18s precisely because the developmental data covered under-16s. " +
       "DIAGNOSIS TIERS ARE ONE VARIABLE. Very high-risk, high-risk and low-risk are resolved to a single term by precedence — highest wins — and are never added together. This is a change from PIM2, where a high-risk and a low-risk condition could both count, and it is the commonest porting defect: on the paper's own worked example (p681) counting the high-risk term alongside the very high-risk one gives 72.34% instead of 47.22%. Each list is complete as published (5 very high-risk, 5 high-risk, 6 low-risk) and applies only to the MAIN reason for admission. " +
       "MISSING-DATA CONVENTIONS ARE LOAD-BEARING: unknown systolic BP substitutes 120 mmHg, unknown base excess contributes 0, and an unmeasured FiO₂/PaO₂ sets that term to PIM3's normal-value substitute of 0.23 (a correction — PIM2 used 0). This path is the ordinary path, not an edge case: PaO₂ was missing for 55.8% and FiO₂ for 41.1% of the derivation cohort, and a US single-centre series reported base excess missing in 97.2%. SBP coding: cardiac arrest at admission → enter 0; shocked with an unmeasurable BP → enter 30; unknown → leave blank (120). The two SBP paired terms are U-shaped with a minimum near 125.6 mmHg, so SBP 0 adds about 2.70 to the logit relative to the unknown default — that is how the arrest case acquires its weight. Use the FIRST value of each variable from first face-to-face ICU-team contact up to 1 hour after ICU arrival (may include ED or retrieval data), not the worst. " +

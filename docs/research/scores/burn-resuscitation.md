@@ -13,7 +13,12 @@ Key pediatric differences vs. adults, up front:
 1. Children get a **lower weight coefficient** in the crystalloid formulas
    (typically 3 mL vs. 4 mL/kg/%TBSA for Parkland) but a **higher per-kg
    baseline need**, so pediatric protocols **add maintenance fluid** (Holliday–
-   Segar) on top of the resuscitation volume — adults do not.
+   Segar) on top of the resuscitation volume — adults do not. **Graves 1988
+   (ref. 22) quantifies both halves of this in one cohort** — total
+   6.3 ± 2.2 vs. net resuscitation 3.91 ± 2.2 cc/kg/%TBSB — and recommends
+   exactly that two-part structure. Any single figure quoted near 6 for children
+   is a **total**; read the 2026-08-04 Correction below before comparing it to a
+   resuscitation coefficient.
 2. Children get **dextrose** in the maintenance fluid (limited glycogen stores →
    hypoglycemia risk).
 3. **%TBSA must be estimated with the age-adjusted Lund–Browder chart**, not the
@@ -54,6 +59,83 @@ What the correction does **not** do is turn the split into settled human
 evidence. See **R.2** for the full statement: the derivation is canine, the two
 consequences that limit how far it travels, and the residual gap that survives it
 in narrowed form.
+
+---
+
+## Correction — 2026-08-04: the "children need ~6, we emit 3" conflict was never a conflict
+
+**Read this before citing anything below about the paediatric coefficient.** The
+2026-08-04 revision of this note (R.11 as first written) and the shipped score at
+**v1.4.0 and v1.5.0** told readers that a paediatric review puts the requirement
+at **approximately 6 mL/kg/%TBSA** against the **3 mL/kg/%TBSA** this calculator
+emits, listed it as controversy 9 of nine, gave it its own caution, and named the
+failure direction as **UNDER-resuscitation of small children**.
+
+**That framing was a category error.** The two figures never measured the same
+quantity:
+
+- **~6 mL/kg/%TBSA is a TOTAL 24-hour volume that INCLUDES maintenance.**
+- **3 mL/kg/%TBSA is the RESUSCITATION coefficient alone**, to which this score
+  adds Holliday–Segar maintenance separately at every weight.
+
+**The primary behind the 6 says so itself, and recommends exactly the shape this
+score implements.** Graves TA, Cioffi WG, McManus WF, Mason AD Jr, Pruitt BA Jr.
+_Fluid resuscitation of infants and children with massive thermal injury._
+_J Trauma_ 1988;28(12):1656–1659, **PMID 3199467**,
+DOI **10.1097/00005373-198812000-00007**. **Abstract and the LWW abstract page
+read 2026-08-04; the full body was NOT opened**, so nothing beyond the summary
+figures and the recommendation sentence is claimed from it. n = **43 children**,
+**1.5–108 months**, **25–89% TBSB**, all **≤25 kg**:
+
+| Quantity                                          | Value                      |
+| ------------------------------------------------- | -------------------------- |
+| Average **TOTAL** 24-h volume                     | **6.3 ± 2.2 cc/kg/%TBSB**  |
+| **NET** resuscitation fluid (total − maintenance) | **3.91 ± 2.2 cc/kg/%TBSB** |
+
+Its recommendation, quoted: **"We recommend supplying maintenance volume and
+initiating burn resuscitation at 3 cc/kg/% TBSB."** Maintenance supplied,
+resuscitation initiated at 3 — that is this score's structure, coefficient for
+coefficient. **The finding vindicates the implementation**; it does not merely
+permit it, and the earlier warning is withdrawn rather than left standing
+alongside it.
+
+**Corroboration that the larger figure is a total.** Merrell SW, Saffle JR,
+Sullivan JJ, Navar PD, Kravitz M, Warden GD. _Fluid resuscitation in thermally
+injured children._ _Am J Surg_ 1986;152(6):664–669, **PMID 3789292** (abstract
+read). 177 children, mean burn **27% TBSA**, mean **TOTAL** fluid
+**5.8 ± 0.25 mL/kg/%TBSA** — again a total, again not a resuscitation
+coefficient.
+
+**Why it is a reconciliation and not an arithmetic coincidence — the question
+R.11 as first written could not answer.** Maintenance expressed per kilogram per
+%TBSA is **not a constant**: it **falls as weight rises**, because the
+Holliday–Segar tiers step down 100 → 50 → 20 mL/kg/day while the resuscitation
+term stays linear in weight. So 3 + maintenance approximates 6 in a small infant
+and lands deliberately lower in a larger child. **This project's arithmetic on
+the formulas above, not a claim any source makes:**
+
+| Weight | %TBSA | Resus | Maintenance        | Combined per kg/%TBSA |
+| -----: | ----: | ----: | ------------------ | --------------------: |
+|  10 kg |   40% |   3.0 | 1000 mL → **2.5**  |               **5.5** |
+|  25 kg |   40% |   3.0 | 1600 mL → **1.6**  |               **4.6** |
+|  60 kg |   40% |   3.0 | 2300 mL → **≈1.0** |              **≈4.0** |
+|   8 kg |   20% |   3.0 | 800 mL → **5.0**   |               **8.0** |
+|  25 kg |   20% |   3.0 | 1600 mL → **3.2**  |               **6.2** |
+|  60 kg |   20% |   3.0 | 2300 mL → **≈1.9** |              **≈4.9** |
+
+**The decline is the feature.** A flat single figure of 6 applied at every weight
+is what would **overhydrate the large child** — which is exactly what Palmieri et
+al. predict of any single-figure formula when they write that it may
+"underestimate needs in small children and overhydrate large children". That
+sentence was previously cited in this note **against** the design it in fact
+argues for.
+
+Recorded rather than quietly reworded, because the withdrawn claim told readers
+this calculator might be **under-dosing their patient**. Anyone who saw it — here,
+in the score's notes panel, or in the v1.4.0 caution — is owed the retraction.
+
+See **R.11** for the corrected statement in full, and **R.8 controversy 9** for
+what genuinely remains contested (practice variation, not the coefficient).
 
 ---
 
@@ -447,7 +529,10 @@ Its first finding governs everything below it.
 **No primary derivation exists in-window for any coefficient this score uses.**
 Parkland (Baxter & Shires 1968), Galveston (Carvajal 1980), Cincinnati
 (Shriners, via a 2009 textbook chapter), Brooke (Reiss 1953), the Ivy index
-(2000) and the "children need ~6 mL/kg/%TBSA" figure (Graves 1988) all predate
+(2000) and the paediatric total-volume figure of ~6 cc/kg/%TBSB (Graves 1988,
+ref. 22 — a **total including maintenance**, not a resuscitation coefficient; an
+earlier revision of this line called it "the 'children need ~6 mL/kg/%TBSA'
+figure", which invited exactly the misreading corrected in R.11) all predate
 2016 by decades. Everything in-window is **restatement, practice audit, or
 consensus synthesis**. Any coefficient a clinical tool displays is a convention
 with 40–70-year-old provenance and no modern re-derivation. That is not a reason
@@ -706,6 +791,24 @@ Pisano's per-centre gap between received and estimated volume was −0.15 ± 1.3
 (ANOVA p=0.0002); three of five centres' own guidelines produced estimates
 significantly below what was actually delivered.
 
+**The three significant estimate-vs-actual pairs, added 2026-08-04**, because
+they are what makes controversy 9 a protocol-to-bedside gap rather than a dispute
+about the coefficient (R.8):
+
+| Centre guideline estimate | Actual delivered | p       |
+| ------------------------: | ---------------: | ------- |
+|                  **4.53** |         **6.35** | <0.001  |
+|                  **4.90** |         **6.35** | 0.002   |
+|                  **3.38** |         **6.35** | <0.0001 |
+
+Alongside this, Pisano's Table 2 shows the **starting** coefficients across those
+five centres running **2 to 4 with no modal value** (3-or-4, 2-or-3, 4, 3-or-6,
+4-or-6 including the inhalation branch). **There is no single figure the field has
+settled on**, which is why this note's rule is to display the range and endorse
+none. Note what this is _not_: the gap is between what a centre's own protocol
+predicts and what that centre actually infuses after titration — it says nothing
+about whether a starting coefficient of 3 is too low. See R.11.
+
 **The single most useful line for a limitations panel** is Pisano's worked
 example: a **5-year-old, 25 kg, 20% TBSA** burn would have an estimated 24-hour
 requirement ranging from **1500 mL to 3560 mL (3.0–7.1 mL/kg/%TBSA)** depending
@@ -804,17 +907,30 @@ label, which is the mitigation.
 
 ### R.8 The nine live controversies — present as controversies
 
-| #   | Question                            | Position A                                                                    | Position B                                                                                   |
-| --- | ----------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 1   | Adult starting coefficient          | **2 mL/kg/%TBSA** — ABA CPG 2024, on 2 studies / 88 patients                  | **4 mL/kg/%TBSA is accurate; 2 may not be feasible** — ABRUPT 2023, 379 patients, 21 centres |
-| 2   | "Modified Brooke" coefficient       | 2 (ABA CPG 2024)                                                              | 3 (Romanowski 2017); "2–3" (ABRUPT)                                                          |
-| 3   | Maintenance threshold in children   | <30 kg (ABA, per Pisano Table 2); 20–40 kg across centres                     | No threshold; maintenance for all (AWMF 006/128, 2024)                                       |
-| 4   | Urine-output banding variable       | Weight (North American)                                                       | Developmental stage (German)                                                                 |
-| 5   | >30 kg urine-output target          | 0.3–0.7 (Stevens protocol)                                                    | 0.5–1.0 (most other sources)                                                                 |
-| 6   | Direction of paediatric error       | Over-resuscitation, 6.35–7.6 mL/kg/%TBSA (US)                                 | Under-resuscitation, 86.5% below Parkland\* (DACH)                                           |
-| 7   | BSA vs weight basis                 | Galveston underpredicts real practice (Stevens 2023)                          | BSA better suited ≤20 kg (cited in Stevens discussion)                                       |
-| 8   | Inhalation-injury coefficient       | 6 mL/kg/%TBSA (2 centres)                                                     | 3–4 (ABA); one centre withdrew its 6 in 2019                                                 |
-| 9   | **Paediatric starting coefficient** | **3 mL/kg/%TBSA** — StatPearls, PMC11958416, Romanowski 2017; what this emits | **≈6 mL/kg/%TBSA** — Palmieri et al., ePlasty PMC11166384, full text read (see R.11)         |
+| #   | Question                                                                           | Position A                                                                       | Position B                                                                                                                                                                                       |
+| --- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Adult starting coefficient                                                         | **2 mL/kg/%TBSA** — ABA CPG 2024, on 2 studies / 88 patients                     | **4 mL/kg/%TBSA is accurate; 2 may not be feasible** — ABRUPT 2023, 379 patients, 21 centres                                                                                                     |
+| 2   | "Modified Brooke" coefficient                                                      | 2 (ABA CPG 2024)                                                                 | 3 (Romanowski 2017); "2–3" (ABRUPT)                                                                                                                                                              |
+| 3   | Maintenance threshold in children                                                  | <30 kg (ABA, per Pisano Table 2); 20–40 kg across centres                        | No threshold; maintenance for all (AWMF 006/128, 2024)                                                                                                                                           |
+| 4   | Urine-output banding variable                                                      | Weight (North American)                                                          | Developmental stage (German)                                                                                                                                                                     |
+| 5   | >30 kg urine-output target                                                         | 0.3–0.7 (Stevens protocol)                                                       | 0.5–1.0 (most other sources)                                                                                                                                                                     |
+| 6   | Direction of paediatric error                                                      | Over-resuscitation, 6.35–7.6 mL/kg/%TBSA (US)                                    | Under-resuscitation, 86.5% below Parkland\* (DACH)                                                                                                                                               |
+| 7   | BSA vs weight basis                                                                | Galveston underpredicts real practice (Stevens 2023)                             | BSA better suited ≤20 kg (cited in Stevens discussion)                                                                                                                                           |
+| 8   | Inhalation-injury coefficient                                                      | 6 mL/kg/%TBSA (2 centres)                                                        | 3–4 (ABA); one centre withdrew its 6 in 2019                                                                                                                                                     |
+| 9   | **Paediatric starting coefficient — as PRACTICE VARIATION** (rewritten 2026-08-04) | **Centres START at 2, 3 or 4 mL/kg/%TBSA**, no modal value (Pisano 2021 Table 2) | **Delivered ≈6.35 mL/kg/%TBSA**; three of five centres' own guideline estimates significantly BELOW their own delivery — 4.53 vs 6.35 (p<0.001), 4.90 vs 6.35 (p=0.002), 3.38 vs 6.35 (p<0.0001) |
+
+**Controversy 9 was REWRITTEN on 2026-08-04, and the previous entry is
+withdrawn.** It read: _"**3 mL/kg/%TBSA** — StatPearls, PMC11958416, Romanowski
+2017; what this emits"_ against _"**≈6 mL/kg/%TBSA** — Palmieri et al., ePlasty
+PMC11166384"_. That was a category error — the 6 is a total including
+maintenance, and Graves 1988 recommends the 3-plus-maintenance structure this
+score implements (see the Correction section and R.11). **What survives is a real
+controversy of a different kind:** protocol against practice. No single starting
+coefficient is the field's choice (2, 3 and 4 are all in use across five
+ABA-verified paediatric centres, with no modal value), and where the two can be
+compared, centre guidelines systematically under-predict what those same centres
+deliver. That is a titration gap, **not** evidence that any printed starting
+coefficient is set too low. Show the range; endorse none.
 
 **Controversy 1 is the important one**, and it is not a fringe dispute. ABA CPG
 2024 recommends starting at **2 mL/kg/%TBSA**; its PICO Q3 asked specifically
@@ -911,8 +1027,13 @@ the statement of it is accurate.
   2024;45(3):565–589) scopes itself explicitly to adults with ≥20% TBSA and frames
   every PICO question "among adults". This is stated as a positive finding rather
   than as a marker awaiting a search, and it is what leaves the paediatric
-  starting coefficient resting on convention — which R.11 now shows is a
-  convention two published figures disagree about.
+  starting coefficient resting on convention. **Amended 2026-08-04:** this bullet
+  previously ended "— which R.11 now shows is a convention two published figures
+  disagree about", and that clause is withdrawn with the rest of the retracted
+  3-versus-6 framing. The convention is not internally contradicted; it is
+  **unratified**. Graves 1988 (ref. 22) recommends exactly it, and centres apply
+  2, 3 or 4 with no modal value — what is missing is a graded guideline, not
+  agreement.
 - **Head-to-head PATIENT-OUTCOME comparison of Cincinnati vs Galveston vs
   Parkland in children.** No trial exists. **Reconfirmed 2026-08-04:** Stevens
   2023 remains the closest, and it compares predictions against delivered volume,
@@ -939,54 +1060,74 @@ the statement of it is accurate.
   comparison (Table 2) is robust because protocols are documents; the outcome
   analysis is not powered for anything.
 
-### R.11 The 3 mL paediatric coefficient is contested from BOTH sides (added 2026-08-04)
+### R.11 The 3 mL paediatric coefficient — the apparent conflict, RESOLVED (added 2026-08-04, corrected the same day)
 
-Everything above treats the paediatric coefficient as a convention that sits
-_below_ the disputed adult figures — 3 against an adult 2 or 4 — and frames
-over-resuscitation as the hazard the number guards against. **A second published
-position runs the other way, and it has to be carried.**
+**This section previously said the opposite of what it says now.** As first
+written it read: _"The 3 mL paediatric coefficient is contested from BOTH sides"_,
+and asserted that two published paediatric figures for the same population differ
+by a factor of two, that the 3 mL figure may **systematically UNDER-resuscitate
+small children before maintenance is added**, and that _"the two positions are not
+straightforwardly contradictory, and this note does not pretend to reconcile
+them"_. That text shipped to the calculator as v1.4.0's ninth controversy and its
+own caution. **It is retracted.** The retraction is recorded in place, and in the
+Correction section at the head of this file, because the withdrawn claim told
+clinicians this calculator might be under-dosing their patient.
 
-**Source, and its provenance.** Palmieri TL et al., _Fluid Resuscitation of
-Severely Burned Children_, ePlasty (PMC11166384). **Full text read by the
-reviewer, 2026-08-04.** It states that the adult formulas prescribe 2 and
-4 mL/kg/%TBSA burned, and then that **children require approximately
-6 mL/kg/%TBSA burned**, because single-figure adult formulas "may fail to
-consider maintenance" and — quoting only the operative clause — may
-"underestimate needs in small children and overhydrate large children".
+**The category error.** The two figures do not measure the same quantity. The
+~6 is a **TOTAL** 24-hour volume that **includes maintenance**; the 3 is the
+**RESUSCITATION** coefficient **alone**, and this score adds Holliday–Segar
+maintenance to it separately at every weight. There was never a rival coefficient
+to reconcile.
 
-**What follows for this score, stated exactly.**
+**The primary settles it, and it recommends this score's exact structure.**
 
-1. **The 3 mL figure is not uncontested.** A reader must not be left thinking it
-   is. Two published figures for the same population differ by a factor of two.
-2. **The direction of the objection is the opposite of the familiar one.** The
-   concern with the 3 mL single figure is not that it over-resuscitates; it is
-   that it may **systematically UNDER-resuscitate small children before
-   maintenance is added**, because a single weight-linear coefficient carries no
-   baseline metabolic requirement and small children have the largest baseline
-   per kilogram.
-3. **The two positions are not straightforwardly contradictory, and this note
-   does not pretend to reconcile them.** The 6 mL figure is a statement about
-   the child's total requirement including baseline needs; this score's 3 mL is a
-   resuscitation coefficient to which Holliday–Segar maintenance is then **added**
-   at every weight. For the 25 kg / 20% TBSA child, 3 mL/kg/%TBSA plus
-   maintenance gives 3100 mL, which is 6.2 mL/kg/%TBSA — arithmetically close to
-   the 6 figure. Whether that arithmetic coincidence is the resolution, or a
-   coincidence, **is not established by any source read**, and the same sum at
-   8 kg / 20% TBSA gives 1280 mL = 8.0 mL/kg/%TBSA while at 60 kg / 20% TBSA it
-   gives 5900 mL = 4.9 — so the combined figure is not a constant 6 either, and
-   it moves in the direction the quoted objection predicts (higher per kg in the
-   small child, lower in the large one).
-4. **This is not licence to change the coefficient.** Changing an emitted
-   clinical dose is a clinical decision and not this review's to make. The
-   handling is to surface the contradiction, name both figures, and state which
-   one is emitted — the same handling R.7 and R.8 already apply to the adult
-   dispute.
+_Graves TA, Cioffi WG, McManus WF, Mason AD Jr, Pruitt BA Jr. J Trauma
+1988;28(12):1656–1659. PMID **3199467**. DOI **10.1097/00005373-198812000-00007**.
+Abstract + LWW abstract page read 2026-08-04; **full body not opened**._
 
-Note the pre-existing thread this joins: R.0 already records "the 'children need
-~6 mL/kg/%TBSA' figure (Graves 1988)" as one of the out-of-window primaries. The
-2024 ePlasty text is the in-window restatement of that position, and it is what
-makes the disagreement current rather than historical. Neither is a derivation
-inside the window (R.0 still governs).
+n = 43 children, 1.5–108 months, 25–89% TBSB, all ≤25 kg. Both figures come from
+that one cohort:
+
+| Quantity                                          | Value                      |
+| ------------------------------------------------- | -------------------------- |
+| Average **TOTAL** 24-h volume                     | **6.3 ± 2.2 cc/kg/%TBSB**  |
+| **NET** resuscitation fluid (total − maintenance) | **3.91 ± 2.2 cc/kg/%TBSB** |
+
+Recommendation, quoted verbatim because it is the clearest possible statement of
+the point: **"We recommend supplying maintenance volume and initiating burn
+resuscitation at 3 cc/kg/% TBSB."**
+
+**Corroboration.** Merrell SW et al., _Am J Surg_ 1986;152(6):664–669,
+**PMID 3789292** (abstract read): 177 children, mean burn 27% TBSA, mean **TOTAL**
+fluid **5.8 ± 0.25 mL/kg/%TBSA** — a total, consistent with Graves' 6.3 and
+likewise not a resuscitation coefficient.
+
+**Why the equivalence is structural, not coincidental.** Maintenance per kilogram
+per %TBSA **falls as weight rises** (the Holliday–Segar tiers step 100 → 50 → 20
+mL/kg/day; the resuscitation term stays linear in weight). See the worked table in
+the Correction section: at 40% TBSA, 10 kg → 5.5, 25 kg → 4.6, 60 kg → ≈4.0; at
+20% TBSA, 8 kg → 8.0, 25 kg → 6.2, 60 kg → ≈4.9. **A flat single figure of 6
+applied at every weight overhydrates the large child; the two-part shape used here
+does not** — which is precisely the failure mode Palmieri et al. name.
+
+**What Palmieri et al. are now cited FOR.** _Fluid Resuscitation of Severely
+Burned Children_, ePlasty (PMC11166384), **full text read 2026-08-04.** It states
+the adult 2 and 4 mL/kg/%TBSA coefficients and that children require approximately
+6, and that single-figure adult formulas "may fail to consider maintenance" and
+may "underestimate needs in small children and overhydrate large children". That
+last clause is an argument **for** separating resuscitation from maintenance and
+**against** any flat single figure — including a flat 6. It was previously quoted
+here against this score's design; it in fact describes the reason for it.
+
+**What does NOT change.** The coefficient stays 3. R.0 still governs: Graves
+(1988) and Merrell (1986) are both **pre-window** primaries of record, so this
+resolves a misreading rather than supplying an in-window derivation. And R.0's
+existing line naming "the 'children need ~6 mL/kg/%TBSA' figure (Graves 1988)" as
+an out-of-window primary was correct all along — what was wrong was reading that
+figure as a rival to the 3.
+
+**What remains genuinely open** is practice variation, and it is a different
+question: see R.8 controversy 9, rewritten.
 
 ### R.12 The observed delivery shape is NOT a fixed 50/50 (added 2026-08-04)
 
@@ -1082,10 +1223,14 @@ ninth caution plus a notes section, with the same statement in both.
 **Direction of the error, which is the part that decides how loudly to say it.**
 The over-estimate runs **upward** in the first days of life, so it **compounds**
 the fluid-creep hazard the rest of this note is organised around rather than
-offsetting it — and it does so in the patient least able to absorb it. Note that
-this is the opposite direction from R.11's objection, which concerns the
-**resuscitation** coefficient under-shooting in small children; the two are about
-different terms of the same sum and do not cancel.
+offsetting it — and it does so in the patient least able to absorb it. **Amended
+2026-08-04:** this paragraph previously ended by setting the over-estimate against
+"R.11's objection, which concerns the **resuscitation** coefficient under-shooting
+in small children", and noting the two do not cancel. **R.11's objection is
+withdrawn** (see the Correction section), so there is nothing on the other side of
+the ledger: the neonatal maintenance over-estimate is now the **only** known
+directional error in this sum, and it runs upward. That makes it more important to
+state, not less.
 
 **No source was consulted for this and none was needed.** R.13 is a consistency
 decision about two implementations, not a clinical finding: every clinical fact
@@ -1229,9 +1374,14 @@ until it exists both pages carry a proxy — one enforcing it, one disclosing it
     States the adult 2 and 4 mL/kg/%TBSA coefficients and then that children
     require **approximately 6 mL/kg/%TBSA burned**, with single-figure adult
     formulas liable to omit maintenance and to "underestimate needs in small
-    children and overhydrate large children". This is the source of R.11 and of
-    controversy 9 — the position that the 3 mL figure this score emits may
-    UNDER-resuscitate small children before maintenance is added.
+    children and overhydrate large children". **Cited differently since
+    2026-08-04, and the change is a retraction.** It was carried as the source of
+    a contradiction with the 3 mL figure this score emits — the position that 3
+    may UNDER-resuscitate small children. That reading was wrong: its ~6 is a
+    total including maintenance (restating Graves 1988, ref. 22), and there was
+    no rival coefficient. It is now cited for the quoted clause, which is an
+    argument for separating resuscitation from maintenance and against any flat
+    single figure. See the Correction section at the head of this file and R.11.
     URL: https://pmc.ncbi.nlm.nih.gov/articles/PMC11166384/.
 
 21. **Cartotto RC, Innes M, Musgrave MA, et al.** How well does the Parkland
@@ -1243,6 +1393,32 @@ until it exists both pages carry a proxy — one enforcing it, one disclosing it
     **decreased 34% in 16 patients and increased 47% in 15** (two-way ANOVA
     P<0.001). Adult, single centre, and **pre-window** — carried for the
     bidirectional delivery shape in R.12 and for nothing else.
+
+22. **Graves TA, Cioffi WG, McManus WF, Mason AD Jr, Pruitt BA Jr.** Fluid
+    resuscitation of infants and children with massive thermal injury.
+    _J Trauma._ 1988;28(12):1656–1659. **PMID 3199467.**
+    DOI: **10.1097/00005373-198812000-00007**. **Abstract and the LWW abstract
+    page read by the reviewer, 2026-08-04; full body NOT opened.** n=43 children,
+    1.5–108 months, 25–89% TBSB, all ≤25 kg. Average **TOTAL** 24-h volume
+    **6.3 ± 2.2 cc/kg/%TBSB**; **NET** resuscitation fluid (total minus calculated
+    maintenance) **3.91 ± 2.2 cc/kg/%TBSB**. Recommendation, verbatim:
+    **"We recommend supplying maintenance volume and initiating burn
+    resuscitation at 3 cc/kg/% TBSB."** **This is the reference that resolves the
+    apparent 3-versus-6 conflict** — it reports both numbers from one cohort and
+    names which is which — and it is the source that **vindicates this score's
+    maintenance-plus-3 structure** rather than merely permitting it. Pre-window
+    (1988), so a primary of record and not in-window evidence (R.0 governs).
+    See the Correction section at the head of this file and R.11.
+
+23. **Merrell SW, Saffle JR, Sullivan JJ, Navar PD, Kravitz M, Warden GD.** Fluid
+    resuscitation in thermally injured children. _Am J Surg._
+    1986;152(6):664–669. **PMID 3789292.** **Abstract read by the reviewer,
+    2026-08-04.** 177 children, mean burn 27% TBSA; mean **TOTAL** 24-h fluid
+    **5.8 ± 0.25 mL/kg/%TBSA**. Carried for one purpose: independent
+    corroboration that the ~6 mL/kg/%TBSA figure circulating for children is a
+    **total delivered volume**, not a resuscitation coefficient — which is what
+    makes it consistent with Graves' 3-plus-maintenance rather than a rival to
+    it. Pre-window.
 
 Primary-source note: the **Galveston** formula originates with Carvajal HF
 (pediatric surface-area resuscitation, 1980s Shriners–Galveston) and the
@@ -1268,12 +1444,17 @@ fetched in the original — flagged in Limitations.
   StatPearls/PMC11958416 but some references retain 4 mL for children and instead
   rely on maintenance to cover baseline needs. The modified-Brooke pediatric rate
   is 3 mL. Because centers differ, the formula and its coefficient should be an
-  explicit, user-selected input, not hard-coded. **And the spread is wider than
-  3-versus-4** (added 2026-08-04, R.11): a published paediatric review states
-  children require **approximately 6 mL/kg/%TBSA** and that single-figure adult
-  formulas underestimate small children while overhydrating large ones — so the
-  3 mL figure may err **downward** in the small child, which is the opposite of
-  the fluid-creep hazard the rest of this note is organised around.
+  explicit, user-selected input, not hard-coded. **The ~6 mL/kg/%TBSA figure is
+  NOT part of that spread** (corrected 2026-08-04, R.11): an earlier revision of
+  this bullet said a published paediatric review puts the requirement at
+  approximately 6 and that the 3 mL figure "may err **downward** in the small
+  child". **That was wrong and is withdrawn.** The ~6 is a **total** including
+  maintenance (Graves 1988, ref. 22: total 6.3 ± 2.2, net resuscitation
+  3.91 ± 2.2 cc/kg/%TBSB in the same 43 children; Merrell 1986, ref. 23: total
+  5.8 ± 0.25), and Graves recommends supplying maintenance and initiating
+  resuscitation at 3 — the structure implemented here. The real spread in
+  **starting** coefficients is 2–4 across centres, with no modal value (R.4, R.8
+  controversy 9).
 - **The 50/50 split is a starting schedule, not a description of practice**
   (added 2026-08-04, R.12). Three different fractions are on the record for the
   first eight hours: **half** (universal practice, and what this score emits),

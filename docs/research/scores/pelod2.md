@@ -184,6 +184,27 @@ PELOD-2 is a **continuous** descriptive score (0–33); the paper does **not** d
 
 Non-directive framing: these values describe a population-level association between the score and outcome in the derivation cohort. The authors state the score is intended to describe severity of organ dysfunction and caution against using the logit for individual mortality prediction outside the derivation population without recalibration. Any display should present the number and this context, not a directive/action.
 
+### The no-bands decision — verdict, 2026-08-04
+
+**No severity bands are authored, and none is owed.** Recorded in the implementation as `interpretationStatus: "not-applicable"` — an **absence by design, not a content gap**.
+
+It read `"pending"` until 2026-08-04. That was wrong, and the correction matters for the same reason it mattered on PIM3 and PRISM: `pending` asserts that a published stratification exists and has merely not been transcribed yet, which promises a page that can never be written.
+
+**Neither table above is a band, and that is the whole point.**
+
+- **Table 8 bins by the NUMBER OF DYSFUNCTIONAL ORGANS, not by the score.** An organ count is a different variable from the 0–33 total (mean PELOD-2 at 4 organ dysfunctions is 11.5 with SD 4.4 — the spread overlaps the neighbouring rows), so no score-to-mortality mapping can be read off it.
+- **Table B is the published logit restated.** `−6.61 + 0.47 × score` transformed through the logistic function is the model's own output. Tabulating a model's output at selected inputs is a restatement of the model, not a stratification of it.
+
+Both already ship in `pelod2.ts` → `notes`, explicitly labelled "Context (not decision thresholds)" and with the derivation cohort named. That is the correct home for an observed association.
+
+**Two independent grounds close the question permanently rather than deferring it.**
+
+1. **No paediatric mortality model publishes endorsed severity tiers** — a confirmed negative across the family (PIM3, PRISM III/IV, PELOD-2), not an unsearched gap. Registries report **unit-level** standardised mortality ratios with funnel plots and outlier detection; they do not band individual patients. Calibration papers use post-hoc predicted-probability intervals **for goodness-of-fit only**, which is a check on a model's output and cannot be repurposed as a severity scale.
+2. **Dichotomising a continuous prediction is argued against on statistical grounds.** Altman DG, Royston P. _The cost of dichotomising continuous variables._ **BMJ 2006;332(7549):1080. PMID 16675816. PMCID PMC1458573.** — categorisation is "unnecessary for statistical analysis and has some serious drawbacks". See also Royston P, Altman DG, Sauerbrei W. _Dichotomizing continuous predictors in multiple regression: a bad idea._ **Stat Med 2006;25:127–141.**
+   **Provenance limit:** the widely-quoted "equivalent to discarding a third of the data" effect size was **not re-extracted** from either paper and is treated as WEAK. Do not quote a number for it.
+
+Same call, for the same reason, as `pim3`, `prism`, `fluid-balance` and `four-score`. Pinned by `pelod2.test.ts` → `"pelod2 ships no interpretation bands, by decision rather than backlog"`, so restoring `pending` requires deleting that test on purpose.
+
 ---
 
 ## References (full citations, PMID/DOI)

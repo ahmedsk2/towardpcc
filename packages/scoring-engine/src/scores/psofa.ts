@@ -83,7 +83,12 @@ function ageBand(ageMonths: number): AgeBand {
  *
  * Do NOT generalise the cap to sibling scores: `phoenix.ts` is built the
  * opposite way, scoring an unsupported patient 0 on respiratory however low
- * the ratio, with even 1 point requiring at least non-invasive support.
+ * the ratio, with even 1 point requiring at least non-invasive support. That
+ * contrast is no longer a structural inference from two printed tables — the
+ * Phoenix task force publishes its SQL, which derives one support flag
+ * (`fio2 > 0.21 OR vent = 1`) and multiplies the ratio tiers by it, so its
+ * floor at 0 is as explicit in code as pSOFA's ceiling at 2 is entailed by
+ * this table. Same child, same ratio, off support: pSOFA 2 and Phoenix 0.
  */
 function respiratoryFromPf(pf: number, support: boolean): number {
   if (pf >= 400) return 0;
@@ -155,7 +160,7 @@ export const psofa = defineScore({
   id: "psofa",
   slug: "psofa",
   name: "pSOFA (Pediatric SOFA)",
-  version: "1.3.0",
+  version: "1.4.0",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -170,6 +175,14 @@ export const psofa = defineScore({
       // and the bands cap at ">216 months", so 0–250 sits inside the studied
       // range; it is our validity window, not a published bound (psofa.md age
       // strata). Above 216 months the thresholds are adult SOFA's — see `notes`.
+      //
+      // DO NOT IMPORT PHOENIX'S CEILING HERE. The Phoenix implementation notes
+      // publish age [0, 216) months, and `phoenix.ts` declares exactly that —
+      // but it is Phoenix's own ELIGIBILITY domain (children under 18), not a
+      // plausibility bound for a paediatric age field. pSOFA's cohort ran to
+      // 252 months and its top band is explicitly ">216 months", so the two
+      // scores' age domains differ for a published reason. Adopting 216 here
+      // would refuse adolescents pSOFA was derived on.
       min: 0,
       max: 250,
       step: 1,
@@ -195,7 +208,11 @@ export const psofa = defineScore({
       unit: mmhgWithKpa,
       // Matics 2017 specifies NO plausibility bound for PaO₂ — confirmed absent
       // on full-text review, not merely unlocated (psofa.md). This is our
-      // input-validity window; prefer institutional analyzer limits.
+      // input-validity window; prefer institutional analyzer limits. Two
+      // OUTSIDE published comparators exist and neither is adopted: the Phoenix
+      // implementation notes' reasonable-value table gives PaO₂ [0, ∞) mmHg,
+      // and PICANet's Admission Dataset Definitions Manual v5.4 gives 3–60 kPa
+      // (22–450 mmHg). Ours sits between them, unchanged.
       min: 20,
       max: 600,
       helpText: defineText(
@@ -210,6 +227,11 @@ export const psofa = defineScore({
       required: false,
       type: "numeric",
       unit: { canonical: "%" },
+      // Matics 2017 publishes no bound; this pair happens to be IDENTICAL to
+      // the Phoenix implementation notes' published SpO₂ range of [0, 100],
+      // which also states separately that a value above 97 is unusable for an
+      // SpO₂:FiO₂ ratio — the same ≤97% gate applied in `calculate` below, from
+      // a source independent of Matics' Table 1 footnote.
       min: 0,
       max: 100,
       helpText: defineText(
@@ -224,6 +246,8 @@ export const psofa = defineScore({
       required: true,
       type: "numeric",
       unit: fractionWithPercent,
+      // Identical to the Phoenix implementation notes' published FiO₂ range
+      // [0.21, 1.00]; also the physical range of the quantity.
       min: 0.21,
       max: 1,
       helpText: defineText(
@@ -239,7 +263,7 @@ export const psofa = defineScore({
       type: "boolean",
       helpText: defineText(
         "psofa.resp_support.help",
-        "Invasive or non-invasive support both count here. Table 1 gates respiratory subscores 3–4 on being on respiratory support and never says what counts as support, so treating non-invasive support as sufficient is this calculator's reading rather than the paper's. Without support the respiratory subscore is capped at 2.",
+        "Invasive or non-invasive support both count here. Table 1 gates respiratory subscores 3–4 on being on respiratory support and never says what counts as support, so treating non-invasive support as sufficient is this calculator's reading rather than the paper's. Without support the respiratory subscore is capped at 2. High-flow nasal cannula falls inside that broad reading and counts here — worth knowing because the major paediatric registries go the other way: PICANet and ANZPIC both exclude high flow from the ventilation field they collect, so the same child counts as supported on this score and as not ventilated in either registry.",
       ),
     },
     {
@@ -250,7 +274,9 @@ export const psofa = defineScore({
       type: "numeric",
       unit: plateletUnit,
       // No published plausibility bound for platelets in Matics 2017 — confirmed
-      // absent (psofa.md). Input-validity window only.
+      // absent (psofa.md). Input-validity window only. The one outside published
+      // range for this analyte (Phoenix implementation notes) is [0, ∞) ×10³/µL,
+      // i.e. open above — no number to adopt, only a refusal to bound it.
       min: 1,
       max: 1000,
       helpText: defineText("psofa.platelets.help", "In ×10³/µL (equal to ×10⁹/L)."),
@@ -263,7 +289,9 @@ export const psofa = defineScore({
       type: "numeric",
       unit: bilirubinMgdl,
       // No published plausibility bound for bilirubin in Matics 2017 — confirmed
-      // absent (psofa.md). Input-validity window only.
+      // absent (psofa.md). Input-validity window only; narrower than the one
+      // outside published range, total bilirubin [0, 100] mg/dL in the Phoenix
+      // implementation notes. Kept: 50 is already twice the top scoring band.
       min: 0.1,
       max: 50,
       helpText: defineText("psofa.bilirubin.help", "Accepts mg/dL or µmol/L."),
@@ -277,7 +305,9 @@ export const psofa = defineScore({
       unit: mmHgUnit,
       // No published plausibility bound for MAP in Matics 2017 — confirmed
       // absent (psofa.md). The age-band MAP cut points below ARE published; this
-      // pair is only the input-validity window around them.
+      // pair is only the input-validity window around them. Narrower than the
+      // one outside published range, MAP [1, 300] mmHg in the Phoenix
+      // implementation notes; kept, since the highest cut point here is 70.
       min: 10,
       max: 150,
       helpText: defineText(
@@ -292,6 +322,12 @@ export const psofa = defineScore({
       required: false,
       type: "numeric",
       unit: vasoactiveUnit,
+      // The four infusion-rate windows below are ours and have NO published
+      // comparator of any kind — the only published bound for vasoactive
+      // support in this family of scores is Phoenix's COUNT of distinct agents
+      // (integer 0–6), which is a different quantity from a rate in µg/kg/min.
+      // The DOSE cut points these windows sit around (5, 15, 0.1) are of course
+      // published, in Matics 2017 Table 1.
       min: 0,
       max: 50,
       helpText: defineText("psofa.dopamine.help", "In µg/kg/min. 0 or omitted means not infusing."),
@@ -345,7 +381,9 @@ export const psofa = defineScore({
       required: true,
       type: "numeric",
       unit: NO_UNIT,
-      // GCS total range (3–15) is the instrument's own definition.
+      // GCS total range (3–15) is the instrument's own definition, and is also
+      // published verbatim as a reasonable-value range in the Phoenix
+      // implementation notes — the two agree, as they must.
       min: 3,
       max: 15,
       step: 1,
@@ -363,7 +401,9 @@ export const psofa = defineScore({
       unit: creatinineMgdl,
       // The published renal cut points are age-banded (psofa.md renal table);
       // Matics 2017 states no plausibility bound for creatinine — confirmed
-      // absent. This pair is the input-validity window only.
+      // absent. This pair is the input-validity window only, and is narrower
+      // than the one outside published range, creatinine [0, 50] mg/dL in the
+      // Phoenix implementation notes. Kept: the highest cut point here is 5.0.
       min: 0.1,
       max: 20,
       helpText: defineText(
@@ -462,6 +502,13 @@ export const psofa = defineScore({
         "The respiratory-support gate is now stated the way the published table states it, and NO NUMBER MOVED — no threshold, band, subscore or total changed, and the code was already doing this. v1.2.0 described the gate on subscores 3 and 4 as a MECHANICAL-VENTILATION requirement, in the notes, in the code comments and in the research note. That is narrower than the source: JAMA Pediatr Table 1 prints the row condition as being on respiratory support, which is also how round-1 verification read it against the full text, and it is narrower than this calculator, whose respiratory-support field has always accepted invasive or non-invasive support. So the shipped text asserted a stricter gate than the code applied — a clinically material gap for any child on non-invasive support alone, who was described as capped at 2 while actually being scored 3 or 4. The gate is now stated once, the same way, everywhere: subscores 3 and 4 require respiratory support. The argument that an unsupported patient cannot exceed 2 is restated in those terms and is strengthened rather than weakened by the correction, because it depends only on which bands are gated — 3 and 4 are, no lower band is — and not at all on what counts as support, so it holds under either reading. Newly disclosed with it: the paper prints the term and never defines it, so counting non-invasive support as satisfying the gate is this calculator's reading and not the paper's, and a reader who applies the narrower one will score a child on non-invasive support alone lower than this calculator does. That disclosure is a documented implementation reading of an undefined term, in the same class as the SpO₂:FiO₂ tie-break at 264 — the gate itself is sourced, and no claim is made about which reading the authors intended — so pSOFA still carries no unsourced claim. The v1.2.0 entry above is amended in place for the same reason, since it too told the reader the published table requires mechanical ventilation; the amendment is marked in brackets there rather than made silently.",
       reason: "clarification",
     },
+    {
+      version: "1.4.0",
+      date: "2026-08-04",
+      summary:
+        "NO NUMBER MOVED — no threshold, age band, subscore, total or input bound changed, and nothing that computed before is rejected now. Three things gain a source and one finding is new. (1) THE INPUT BOUNDS WERE ALL LABELLED OURS; NOW SOME OF THEM MATCH A PUBLISHED RANGE. Matics & Sanchez-Pinto still publish none — that is unchanged and still confirmed absent from the paper — but published plausibility ranges for the same analytes exist elsewhere, and every bound on this score has now been compared against them. FiO₂ 0.21–1.00, SpO₂ 0–100 and GCS 3–15 are identical to the reasonable-value table published in the Phoenix implementation notes; the SpO₂ match arrives together with that table's own statement that a value above 97 is unusable for an SpO₂:FiO₂ ratio, which reaches this calculator's ≤97% gate from a source independent of this paper's Table 1 footnote. PaO₂, MAP, creatinine, bilirubin and platelets are all NARROWER here than any published range and are deliberately kept, with the published alternative now named beside each; the age window is deliberately WIDER than Phoenix's [0, 216) and must stay so, because that is Phoenix's eligibility domain and pSOFA's cohort ran to 252 months. The four vasoactive infusion-rate windows have no published comparator of any kind. (2) VPS, PC4 AND PHIS PUBLISH NO PUBLIC PLAUSIBILITY BOUNDS — a confirmed negative rather than an unfinished search, recorded because it explains why two honest implementations of one score disagree about what they will accept. (3) THE PHOENIX CONTRAST IS NOW SOURCED FROM PHOENIX'S PUBLISHED CODE rather than inferred from comparing two printed tables. Their SQL derives one support flag — FiO₂ above 0.21 or invasive ventilation — and multiplies every ratio tier by it, so Phoenix's floor at 0 is explicit in code exactly as this score's ceiling at 2 is entailed by its table. The mechanism, not just the outcome, is now stated: Phoenix multiplies by a support flag, pSOFA attaches a support condition to its top two bands only. (4) NEW, AND USER-VISIBLE: high-flow nasal cannula falls inside the broad reading of respiratory support used here and so counts, while PICANet and ANZPIC both exclude high flow from the ventilation field they collect — the same child is supported for this score and not ventilated in either registry. The support field's help text now says so, since that is the moment the question is answered. Recorded as unretrieved and not to be assumed: no cohort has quantified how much the CPAP-versus-high-flow choice shifts this score's distribution. Nothing in this entry re-opens the respiratory-support gate settled in v1.3.0: subscores 3 and 4 require respiratory support, the term is undefined in the paper, and reading it broadly remains this calculator's disclosed choice.",
+      reason: "new-reference",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -475,7 +522,7 @@ export const psofa = defineScore({
   ),
   notes: defineText(
     "psofa.notes",
-    "Each subscore is the worst qualifying value in the assessment window; the total is their sum (0–24). Missing data is scored as normal (0) for that organ — this is the paper's own rule and not a convention of this platform: the Methods of Matics & Sanchez-Pinto 2017 state that a variable not measured within a 24-hour period was taken as normal, consistent with the original SOFA criteria. It still means a partially entered case reads lower than a fully entered one, so read a low total together with how much was supplied. A PaO₂:FiO₂ or SpO₂:FiO₂ falling in a subscore-3/4 band without respiratory support is capped at 2, the highest band carrying no support requirement. THAT CAP IS THE PUBLISHED TABLE'S OWN STRUCTURE, NOT A RULE THIS CALCULATOR ADDED, and it is no longer flagged as unsourced: subscores 3 and 4 each carry the table's respiratory-support requirement and no lower band carries any support requirement, so a patient who is not on respiratory support cannot satisfy either criterion however low the ratio falls, and 2 is the only band left. The paper prints no sentence spelling that out because it does not need one — the cap is entailed by the criteria as published rather than asserted on top of them. It was previously flagged as this implementation's own on the mistaken view that a rule the paper never states in words must be an invention. WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT. Table 1 gates those two bands on being on respiratory support and never defines the term, so this calculator's reading — invasive or non-invasive support both satisfy the gate, which is what the respiratory-support field accepts — is ours and not the paper's. A narrower reading, invasive ventilation only, is not ruled out by the source; under it a child on non-invasive support alone would cap at 2 where this calculator allows 3 or 4. The cap argument above is unaffected either way, because it turns on which bands are gated and not on what counts as support. DO NOT CARRY THE CAP ACROSS TO OTHER SCORES: Phoenix is structured the opposite way in the same situation. There a patient on no respiratory support scores 0 on the respiratory criterion however low the ratio goes, and even 1 point requires at least non-invasive support — so the same child can be pSOFA respiratory 2 and Phoenix respiratory 0 at once. Two scores, two structures; a reader moving between them should not assume that the ratio alone means the same thing in both. The second rule that is genuinely this implementation's is likewise a documented choice, and this one is forced by the source: the published SpO₂:FiO₂ bands overlap, because JAMA Pediatr Table 1 prints 264 as both the lower bound of the subscore-1 row and the upper bound of the subscore-2 row, so the table assigns an exact 264 to two rows at once; this calculator resolves it to the worse subscore (2), in keeping with pSOFA's worst-value rule. SpO₂:FiO₂ is used only when no PaO₂ is available and only at SpO₂ ≤97%; that ceiling is the paper's own (Table 1 footnote) and matches the window the ratio was derived over, SpO₂ 80–97% in Khemani 2009 and 2012. An SpO₂ >97% with no PaO₂ scores respiratory 0. Matics & Sanchez-Pinto specify no physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP or creatinine — confirmed absent from the paper, not merely unlocated — so the min/max on those inputs are this platform's input-validity windows and carry no clinical meaning; prefer institutional analyzer limits. Age: pSOFA was derived in children 21 years and younger, and the paper states that the >216-month MAP and creatinine cut points are identical to adult SOFA's, so a patient over 216 months is being scored against adult thresholds rather than paediatric ones. Neonates: the <1-month band exists, so pSOFA is defined rather than undefined there, but it was not derived in that population; nSOFA (Wynn & Polin, Pediatr Res 2020; a 0–15 scale) is the score derived for preterm very-low-birth-weight infants with late-onset sepsis. The >8 interpretation cut point is a single-center, statistically-derived threshold on the encounter maximum pSOFA and is descriptive, not directive.",
+    "Each subscore is the worst qualifying value in the assessment window; the total is their sum (0–24). Missing data is scored as normal (0) for that organ — this is the paper's own rule and not a convention of this platform: the Methods of Matics & Sanchez-Pinto 2017 state that a variable not measured within a 24-hour period was taken as normal, consistent with the original SOFA criteria. It still means a partially entered case reads lower than a fully entered one, so read a low total together with how much was supplied. A PaO₂:FiO₂ or SpO₂:FiO₂ falling in a subscore-3/4 band without respiratory support is capped at 2, the highest band carrying no support requirement. THAT CAP IS THE PUBLISHED TABLE'S OWN STRUCTURE, NOT A RULE THIS CALCULATOR ADDED, and it is no longer flagged as unsourced: subscores 3 and 4 each carry the table's respiratory-support requirement and no lower band carries any support requirement, so a patient who is not on respiratory support cannot satisfy either criterion however low the ratio falls, and 2 is the only band left. The paper prints no sentence spelling that out because it does not need one — the cap is entailed by the criteria as published rather than asserted on top of them. It was previously flagged as this implementation's own on the mistaken view that a rule the paper never states in words must be an invention. WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT. Table 1 gates those two bands on being on respiratory support and never defines the term, so this calculator's reading — invasive or non-invasive support both satisfy the gate, which is what the respiratory-support field accepts — is ours and not the paper's. A narrower reading, invasive ventilation only, is not ruled out by the source; under it a child on non-invasive support alone would cap at 2 where this calculator allows 3 or 4. The cap argument above is unaffected either way, because it turns on which bands are gated and not on what counts as support. DO NOT CARRY THE CAP ACROSS TO OTHER SCORES: Phoenix is structured the opposite way in the same situation. There a patient on no respiratory support scores 0 on the respiratory criterion however low the ratio goes, and even 1 point requires at least non-invasive support — so the same child can be pSOFA respiratory 2 and Phoenix respiratory 0 at once. Two scores, two structures; a reader moving between them should not assume that the ratio alone means the same thing in both. THAT CONTRAST IS NOW SOURCED FROM PHOENIX'S OWN PUBLISHED CODE rather than inferred from comparing two printed tables. The Phoenix task force publishes the SQL: it derives a single support flag — true when FiO₂ exceeds 0.21 or the child is invasively ventilated — and multiplies its ratio tiers by that flag, so the floor at 0 is explicit in their code exactly as the ceiling at 2 is entailed by pSOFA's table. The mechanism is the difference: Phoenix multiplies every tier by a support flag, pSOFA attaches a support condition only to its top two bands. Neither is to be harmonised to the other, and a reader comparing the two numbers is looking at a documented divergence between instruments, not at a disagreement about the child. HIGH-FLOW NASAL CANNULA IS WHERE THIS BITES IN PRACTICE. Phoenix counts high flow explicitly as respiratory support, and it falls inside the broad reading used here, so a child on high flow satisfies the support gate on both scores. The major paediatric registries go the other way: PICANet and ANZPIC both EXCLUDE high-flow nasal cannula from the mechanical-ventilation field they collect. The same child is therefore ‘supported’ for both of these scores and ‘not ventilated’ in either registry — which matters as soon as a score is read next to registry-derived case-mix or ventilation figures. What has NOT been retrieved, and must not be assumed: no cohort has quantified how much choosing CPAP over high flow, or counting high flow on one side and not the other, shifts the distribution of either score. The direction is obvious; the magnitude is unknown. The second rule that is genuinely this implementation's is likewise a documented choice, and this one is forced by the source: the published SpO₂:FiO₂ bands overlap, because JAMA Pediatr Table 1 prints 264 as both the lower bound of the subscore-1 row and the upper bound of the subscore-2 row, so the table assigns an exact 264 to two rows at once; this calculator resolves it to the worse subscore (2), in keeping with pSOFA's worst-value rule. SpO₂:FiO₂ is used only when no PaO₂ is available and only at SpO₂ ≤97%; that ceiling is the paper's own (Table 1 footnote) and matches the window the ratio was derived over, SpO₂ 80–97% in Khemani 2009 and 2012. An SpO₂ >97% with no PaO₂ scores respiratory 0. Matics & Sanchez-Pinto specify no physiologic plausibility bounds for PaO₂, platelets, bilirubin, MAP or creatinine — confirmed absent from the paper, not merely unlocated — so the min/max on those inputs are this platform's input-validity windows and carry no clinical meaning; prefer institutional analyzer limits. THAT REMAINS TRUE OF THE PAPER, BUT THE WINDOWS ARE NO LONGER UNCHECKABLE. Published plausibility ranges for the same analytes exist elsewhere, and every bound here has now been compared against them. Identical to a published range: FiO₂ 0.21–1.00, SpO₂ 0–100, and GCS 3–15, all three matching the reasonable-value table published in the Phoenix implementation notes — the SpO₂ match arriving with the published statement that a value above 97 is unusable for an SpO₂:FiO₂ ratio, which is the same ≤97% gate applied here and reaches it from a source independent of this paper's own Table 1 footnote. Narrower here than any published range, and DELIBERATELY UNCHANGED: PaO₂ 20–600 against a published range open above (and PICANet's tighter 3–60 kPa, 22–450 mmHg); MAP 10–150 against 1–300; creatinine 0.1–20 against 0–50; bilirubin 0.1–50 against a published total bilirubin range of 0–100; platelets 1–1000 against a range with no upper bound at all. NO BOUND ON THIS SCORE MOVED as a result — a form field refusing a typo does a different job from a data pipeline's outlier filter, and every window here already sits well outside the highest cut point it has to admit. One bound is deliberately WIDER than a published one and must stay so: age runs to 250 months here, where Phoenix declares [0, 216); that is Phoenix's eligibility domain, not a plausibility bound, and pSOFA's cohort ran to 252 months with a top band of >216, so importing 216 would refuse adolescents this score was derived on. The four vasoactive infusion-rate windows have no published comparator of any kind — the only published figure for vasoactive support in this family is Phoenix's count of distinct agents, integer 0–6, which is a different quantity. Second published comparator, from a different tradition: the PICANet Admission Dataset Definitions Manual v5.4 (November 2020), which publishes collection ranges including PaO₂ 3–60 kPa (22–450 mmHg), lactate 0.2–15.0 mmol/L, systolic pressure 20–180 with a check above 200, and base excess −30 to +20; no newer PICANet manual exists, confirmed. Provenance, so it is not overclaimed: the Phoenix reasonable-value table was read from that package's implementation-notes documentation, and the machine-readable units file that page refers to could not be retrieved, so nothing here is cited to that file. AND THE SILENCE ELSEWHERE IS ITSELF A FINDING: VPS, PC4 and PHIS publish NO public numeric plausibility or edit-check bounds — confirmed negative, theirs being proprietary rules behind login. That is why independent implementations of the same score disagree about what they will accept: for most inputs there is no public standard to converge on. Age: pSOFA was derived in children 21 years and younger, and the paper states that the >216-month MAP and creatinine cut points are identical to adult SOFA's, so a patient over 216 months is being scored against adult thresholds rather than paediatric ones. Neonates: the <1-month band exists, so pSOFA is defined rather than undefined there, but it was not derived in that population; nSOFA (Wynn & Polin, Pediatr Res 2020; a 0–15 scale) is the score derived for preterm very-low-birth-weight infants with late-onset sepsis. The >8 interpretation cut point is a single-center, statistically-derived threshold on the encounter maximum pSOFA and is descriptive, not directive.",
   ),
   composition: {
     total: "total",

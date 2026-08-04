@@ -122,7 +122,7 @@ the primary formula.
 | `bun`          | Blood urea nitrogen             | number | **mg/dL** (US) → ÷2.8 = urea mmol/L. If lab reports **urea** (SI), enter mmol/L and skip /2.8 | ~1–300 mg/dL BUN; input-validation bound [NEEDS SOURCE]                                                                                                                             |
 | `ethanol`      | Ethanol (optional)              | number | **mg/dL** → ÷3.7 (empiric, Purssell) or ÷4.6 (ideal); or mmol/L ×1.25 (empiric)               | 0 to several hundred mg/dL; optional term                                                                                                                                           |
 | `osm_measured` | Measured osmolality (for gap)   | number | **mOsm/kg** (osmometer). Required only to compute the gap                                     | implemented bound **100–600 mOsm/kg** — deliberately wider than the ~250–400 clinical range so marked toxic-alcohol elevations still compute; input-validation bound [NEEDS SOURCE] |
-| `osm_calc`     | Calculated osmolality (derived) | number | mOsm/kg (≈ mmol/L)                                                                            | reference range for the _value_ **275–295 mOsm/kg** (StatPearls NBK567764); paediatric 280–295 (Ranadive 2011); measured infant mean 285.8 ± 5.1 (PMC9920940)                       |
+| `osm_calc`     | Calculated osmolality (derived) | number | mOsm/kg (≈ mmol/L)                                                                            | reference range for the _value_ **275–295 mOsm/kg** (StatPearls NBK567764); paediatric 280–295 (Ranadive 2011); measured infant mean 285.8 ± 5.1 (Berska 2023)                      |
 | `osm_gap`      | Osmolar gap (derived)           | number | mOsm/kg = measured − calculated                                                               | normal < 10 (see bands)                                                                                                                                                             |
 
 Notes: Na↔mEq/L is 1:1 (monovalent). Glucose ÷18 (MW≈180) and BUN ÷2.8 (urea has
@@ -131,7 +131,7 @@ hard numeric input bounds above are engineering input-validation limits, **not**
 values from a specific publication — flagged [NEEDS SOURCE]; the bounds quoted
 are the ones the implementation actually enforces. The _reference range for
 calculated osmolality itself_ (275–295 mOsm/kg, StatPearls NBK567764; 280–295 in
-Ranadive & Rosenthal 2011; measured infant mean 285.8 ± 5.1, PMC9920940) is a
+Ranadive & Rosenthal 2011; measured infant mean 285.8 ± 5.1, Berska 2023) is a
 physiologic normal range, distinct from the gap threshold. Note also that the
 calculator collects **no age**, which is why the < 3-month "measure, don't
 calculate" caveat below is carried as a caution rather than as a rejection.
@@ -250,12 +250,25 @@ physiologic reference range. Both are descriptive, not management directives.
   healthy range**, not a line drawn outside it. Provenance: the −14 to +10 figure
   comes from secondary sources, not from the Hoffman abstract, and is labelled
   that way in the implementation. **Our band boundary is unchanged at 10.**
-- **State the threshold with its use case (Lynd et al. 2008).** A gap threshold
-  of 10 reached a **sensitivity and negative predictive value of 1** for
-  identifying patients for whom **haemodialysis** was recommended. For
-  identifying patients needing **antidotal therapy** the same threshold fell to
-  **sensitivity 0.90 / NPV 0.85**. The threshold is not one number with one
-  performance — quote the question it is answering.
+- **State the threshold with its use case AND its ethanol coefficient (Lynd et
+  al. 2008, full text read 2026-08-04).** Performance depends on both, and the
+  two ethanol coefficients Lynd reports are the same fork this score already
+  emits (SI coefficient **1.0 ≡ ÷4.6 ideal**, **1.25 ≡ ÷3.7 empiric**):
+
+  | Decision at gap ≥ 10  | Ethanol coeff. | Sensitivity             | Specificity | NPV | AUC   |
+  | --------------------- | -------------- | ----------------------- | ----------- | --- | ----- |
+  | **Haemodialysis**     | 1.0            | 1.0 (95% CI 0.80–1.00)  | 0.23        | 1.0 | 0.827 |
+  | **Haemodialysis**     | 1.25           | 1.0 (95% CI 0.80–1.00)  | 0.51        | 1.0 | 0.870 |
+  | **Antidotal therapy** | 1.0            | 0.90 (95% CI 0.68–0.99) | 0.22        | —   | 0.736 |
+  | **Antidotal therapy** | 1.25           | 0.85                    | 0.50        | —   | 0.785 |
+
+  **CORRECTION (round 4).** Rounds 2 and 3 rendered the antidote figures as
+  "sensitivity 0.90 / NPV 0.85". They are **two sensitivities**, one per ethanol
+  coefficient — not a sensitivity/NPV pair. The sensitivity-and-NPV-of-1 pairing
+  belongs to the **haemodialysis** row, where it holds under both coefficients.
+  Which decision each figure belongs to was already right; the labelling of the
+  0.85 was not, and the implementation now carries the full table.
+
 - **A normal gap does NOT exclude toxic alcohol ingestion — and here is the
   arithmetic, not just the assertion.** An individual's own true baseline may be
   **negative**. A patient sitting at the bottom of the population range (about
@@ -281,10 +294,11 @@ physiologic reference range. Both are descriptive, not management directives.
   _number_, not the gap. The paediatric range sits inside the wider one; they are
   not competing claims.
 - **Measured paediatric data agree.** 280 samples from day 1 to 2 years of age
-  give a mean of **285.8 ± 5.1 mOsm/kgH₂O** (**PMC9920940**, retrieved
-  2026-08-03). Cited by PMCID: the sourcing pass captured the cohort, the sample
-  count and the summary statistic but not the full bibliographic record, so
-  authors/journal are deliberately not asserted.
+  give a mean of **285.8 ± 5.1 mOsm/kgH₂O** (Berska et al. 2023, PMID 36819138 —
+  the paper previously carried by PMCID alone; full record captured 2026-08-04).
+  A second, older paediatric series agrees: 192 children, median age 6.6 years,
+  mean measured osmolality **284.2 ± 6.9**, range **265–311** (McQuillen &
+  Anderson 1999, PMID 9928973).
 
 **Age caveat — this is the real gap the round-2 pass closed.**
 
@@ -292,38 +306,73 @@ The gap threshold and the additive arithmetic are population-independent, but th
 _calculated value_ is not validated at every age, and this calculator does not ask
 for age.
 
-- **Below 3 months, osmolality should be MEASURED, not calculated.** The additive
-  formulas are not validated in that group. This is the clinically important half
-  of the caveat: nothing otherwise stops the calculator producing a confident
-  number for a neonate.
-- **From 3 months to 2 years**, a validation study (a Kraków cohort) found a
-  different equation agreed best with the osmometer on Bland–Altman analysis:
-  `1.86 × (Na + K) + 1.15 × glucose + urea + 14`. Smithline–Gardner may therefore
-  not be the closest estimate in infants.
-- **[NEEDS SOURCE]** — the full bibliographic record for that infant validation
-  was not captured in the round-2 pass. It is recorded here as a finding, with no
-  citation claimed for it. The alternative equation is **not** implemented: doing
-  so would also require a potassium this score does not collect.
+- **Below 3 months, osmolality should be MEASURED, not calculated** — and round 4
+  supplies the reason, which is stronger than "not validated": in that age group
+  **every** calculated formula tested showed **both systematic and proportional
+  error** on Passing–Bablok regression, and the authors conclude osmolality
+  should be measured (Berska 2023). This is the clinically important half of the
+  caveat: nothing otherwise stops the calculator producing a confident number for
+  a neonate.
+- **From 3 months to 2 years**, the same study found a different equation agreed
+  best with the osmometer: `1.86 × (Na + K) + 1.15 × glucose + urea + 14`.
+  Smithline–Gardner may therefore not be the closest estimate in infants.
+- **[NEEDS SOURCE] RESOLVED (round 4).** The infant validation the round-2 pass
+  could describe only as an uncited "Kraków cohort", and the measured-infant
+  statistic it carried by PMCID alone (PMC9920940), are **the same paper**:
+  Berska J, Bugajska J, Sztefko K. _The accuracy of serum osmolarity calculation
+  in small children._ J Med Biochem 2023;42(1):67–77, **PMID 36819138**, DOI
+  10.5937/jomb0-37490. Identified by the matching cohort (280 samples, day 1 to
+  2 years), the matching statistic (285.8 ± 5.1) and the matching equation. The
+  flag is cleared and the full record is now in `references`. The alternative
+  equation is still **not** implemented: doing so would require a potassium this
+  score does not collect.
 
-**NO PAEDIATRIC OSMOLAR-GAP DATA EXISTS — settled absent (round-3, 2026-08-04).**
+**PAEDIATRIC OSMOLAR-GAP DATA — the round-3 "settled absent" claim is WITHDRAWN
+(round 4, 2026-08-04).**
 
-This is stated at full strength because a paediatric platform is where it
-matters. The 10 mOsm/kg limit, the −2 ± 6 distribution beneath it and every
-performance figure attached to it (Lynd 2008) are **adult**. Searching did not
-merely fail to surface a paediatric osmolar-gap series; the absence is recorded
-as **settled**, so it is not an open task waiting on a better search.
+Round 3 asserted that **no paediatric osmolar-gap data exists** and recorded that
+absence as **settled**. That was wrong. "Settled absent" is a strong assertion —
+it tells a reader the question is closed and to stop looking — so it is retracted
+in the open here and in the implementation, rather than quietly edited away.
 
-What that does and does not license:
+Three paediatric datasets exist:
 
-- It does **not** change the threshold. The additive arithmetic is
-  population-independent, and there is no paediatric number to prefer over 10.
-- It **does** change how the threshold is described. Earlier wording on this page
-  called the gap threshold itself "population-independent"; that conflated the
-  arithmetic (which is) with the cut-point's evidence (which is adult-only). The
-  implementation now separates the two and carries the absence as a `caution`.
-- The paediatric literature on this page (Ranadive & Rosenthal 2011, PMC9920940)
-  is cited for the normal osmolality **VALUE** in children, which matches the
-  adult range. It says nothing about the gap.
+| Study                                                        | Population                                            | Finding                                                                                                        |
+| ------------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **McQuillen & Anderson 1999** (Acad Emerg Med, PMID 9928973) | 192 children, median age 6.6 y (7 days – 17.9 y), ED  | Measured osmolality **284.2 ± 6.9**, range **265–311**. Range of normal osmol gaps ≈ **22 mOsm**, any equation |
+| **Berska et al. 2023** (J Med Biochem, PMID 36819138)        | 280 samples, day 1 to 2 years (mean age 8.2 ± 7.6 mo) | Measured osmolality **285.8 ± 5.1 mOsm/kgH₂O**; systematic + proportional error < 3 months                     |
+| **Dursun et al. 2007** (Nephron Physiol, PMID 17139190)      | 101 children with chronic renal failure               | Osmolar gap **13.7 ± 14.5** (peritoneal dialysis), **15.2 ± 17.6** (post-haemodialysis) mOsm/kg                |
+
+McQuillen's conclusion is the clinically important one, and it is quoted rather
+than paraphrased because its scope clause carries the weight: **"the range of
+'normal' osmol gaps in the pediatric population is approximately 22 mOsm"** —
+regardless of which equation is used.
+
+What the correction does and does not change:
+
+- **It does NOT move the boundary.** None of these three papers proposes a
+  paediatric cut-point, and 10 mOsm/kg remains what the reference-limit
+  literature (Choy 2016) supports. **The band stays `< 10` / `≥ 10`.**
+- **It DOES change how firm 10 can be made to sound.** A normal paediatric range
+  spanning ≈ 22 mOsm is **more than twice the width of the threshold itself**, so
+  a gap a little above 10 in a child is weaker evidence of an unmeasured osmole
+  than the precision of a single cut-off implies. Dursun's SDs (14.5 and 17.6, in
+  a dialysis population) point the same way. The implementation now says this in
+  both gap bands and in a `caution`, which renders beside the number.
+- **Still true and unaffected:** the arithmetic is population-independent while
+  the cut-point's derivation (Choy 2016) and the Lynd 2008 performance figures
+  are adult. The round-3 pass was right to separate those two; it was wrong only
+  about the existence of paediatric measurements.
+- Ranadive & Rosenthal 2011 and Berska 2023 remain cited for the normal
+  osmolality **VALUE** in children, which is a different quantity from the gap.
+- **Provenance limit.** McQuillen was read as abstract plus the Wiley/PubMed
+  record; Berska 2023 full text; the Dursun numeric values come from the round-4
+  finding and PubMed carries no abstract for that article, so they were not
+  independently re-read here. Recorded rather than smoothed over.
+- **Unit note.** The McQuillen abstract prints its osmolality unit as "mOsm/dL",
+  which is not a unit of osmolality; the magnitude (284.2, range 265–311) is
+  unambiguously mOsm/kg and sits inside the 275–295 reference range. Read as
+  mOsm/kg, and flagged here so the discrepancy is not silently corrected.
 
 **Implementation behaviour — ethanol-explained gaps.** When a measured ethanol is
 entered and the residual gap is negative under **both** divisors, the raw gap is
@@ -385,13 +434,37 @@ implementation choice; no source prescribes it. It changes no computed number.
    Publishing. Serum-osmolality chapter, NCBI Bookshelf ID **NBK567764**.
    URL: https://www.ncbi.nlm.nih.gov/books/NBK567764/ (retrieved 2026-08-03).
 
-10. **Measured paediatric osmolality (280 samples, day 1 to 2 years; mean 285.8 ±
-    5.1 mOsm/kgH₂O):** PubMed Central **PMC9920940**.
-    URL: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9920940/ (retrieved
-    2026-08-03). Cited by PMCID — the full bibliographic record (authors,
-    journal, title) was not captured and is deliberately not asserted.
+10. **Measured paediatric osmolality + the infant-formula validation (280
+    samples, day 1 to 2 years; mean 285.8 ± 5.1 mOsm/kgH₂O; systematic AND
+    proportional error under 3 months; best formula 1.86·(Na+K) + 1.15·glucose +
+    urea + 14):** Berska J, Bugajska J, Sztefko K. The accuracy of serum
+    osmolarity calculation in small children. _J Med Biochem._
+    2023;42(1):67–77. PMID: **36819138**. DOI: **10.5937/jomb0-37490**.
+    PMCID: **PMC9920940**. Full text read 2026-08-04. **Resolves the round-2
+    [NEEDS SOURCE]** — this is the "Kraków cohort" and the PMCID-only citation,
+    identified by matching cohort, statistic and equation.
 
-11. **Overview / ethanol ÷3.7 note (secondary, corroborating):** Wikipedia,
+11. **PAEDIATRIC OSMOLAR-GAP DATA (the study round 3 wrongly said did not
+    exist):** McQuillen KK, Anderson AC. Osmol gaps in the pediatric population.
+    _Acad Emerg Med._ 1999;6(1):27–30. PMID: **9928973**.
+    DOI: **10.1111/j.1553-2712.1999.tb00090.x**. 192 children (90 girls, 102
+    boys), median age 6.6 y, range 7 days to 17.9 y; mean measured osmolality
+    284.2 ± 6.9, range 265–311; the range of normal paediatric osmol gaps is
+    ≈ **22 mOsm** whichever equation is used. Abstract + publisher record read
+    2026-08-04.
+
+12. **Paediatric osmolar gaps in renal failure (corroborating wide spread):**
+    Dursun H, Noyan A, Cengiz N, Attila G, Buyukcelik M, Soran M, Seydaoglu G,
+    Bayazit AK, Anarat A. Changes in osmolal gap and osmolality in children with
+    chronic and end-stage renal failure. _Nephron Physiol._ 2007;105(2):p19–21.
+    PMID: **17139190**. DOI: **10.1159/000097604**. 101 children with chronic
+    renal failure; osmolar gap 13.7 ± 14.5 (peritoneal dialysis) and 15.2 ± 17.6
+    (post-haemodialysis) mOsm/kg. Bibliographic record confirmed on PubMed
+    2026-08-04; **PubMed carries no abstract for this article**, so the numeric
+    values are as reported in the round-4 finding and were not independently
+    re-read.
+
+13. **Overview / ethanol ÷3.7 note (secondary, corroborating):** Wikipedia,
     "Osmol gap." URL: https://en.wikipedia.org/wiki/Osmol_gap (used only to
     corroborate the conventional-unit rendering and ethanol term; primary sources
     above are authoritative).
@@ -430,14 +503,18 @@ implementation choice; no source prescribes it. It changes no computed number.
 - **Pediatric applicability, split into its two halves.** The _arithmetic_ is
   population-independent, and the normal osmolality _range_ in children matches
   adults (280–295 mOsm/kg; Ranadive & Rosenthal 2011, corroborated by the
-  measured 285.8 ± 5.1 in PMC9920940). The _gap threshold's evidence_ is not:
-  **no paediatric osmolar-gap data exists at all — settled absent**, so 10 and
-  its performance figures are adult numbers applied to children unvalidated. No
-  pediatric-specific coefficient or threshold change is warranted, because there
-  is no paediatric number to prefer — **and see the age caveat above**: below
-  3 months the value should be measured rather than calculated, and from 3 months
-  to 2 years a different equation validated better. Both are applicability
-  limits, not coefficient changes.
+  measured 285.8 ± 5.1 in Berska 2023 and 284.2 ± 6.9 in McQuillen 1999). The
+  _gap cut-point's derivation_ is adult (Choy 2016), as are the Lynd 2008
+  performance figures — but **paediatric gap data does exist**, and round 3's
+  claim that it did not is withdrawn. What it shows is a **wide normal**: ≈ 22
+  mOsm of spread across 192 children (McQuillen 1999), and 13.7 ± 14.5 / 15.2 ±
+  17.6 in 101 children with renal failure (Dursun 2007). No pediatric-specific
+  coefficient or threshold change is warranted — none of those papers proposes a
+  paediatric cut-point — but the threshold should be read as a soft edge on a
+  normal range twice its width, not a sharp line. **And see the age caveat
+  above**: below 3 months the value should be measured rather than calculated,
+  and from 3 months to 2 years a different equation validated better. All of
+  these are applicability limits, not coefficient changes.
 - **The 10 cut-off is a convention with a use case, not a diagnostic boundary.**
   Its performance depends on the question (haemodialysis vs antidotal therapy —
   Lynd 2008), and the underlying normal distribution is centred at −2 ± 6, not 0,
@@ -521,9 +598,14 @@ against fetched primary sources.
 - **Gap threshold ≥ 10 — relabelled as partly conventional, with its use case.**
   Hoffman 1993 (PMID 8433417) added: normal gap −2 ± 6, range ≈ −5 to +15 by
   equation, so 10 ≈ mean + 2 SD. Lynd 2008 re-stated with the question attached:
-  sensitivity/NPV of 1 for identifying haemodialysis candidates, 0.90/0.85 for
-  antidotal therapy. Band text now says plainly that a normal gap does not
+  sensitivity/NPV of 1 for identifying haemodialysis candidates, ~~0.90/0.85 for
+  antidotal therapy~~. Band text now says plainly that a normal gap does not
   exclude toxic alcohol ingestion.
+  **Struck 2026-08-04 — the round-4 pass corrected this.** 0.90 and 0.85 are
+  two _sensitivities_ for the antidote decision, one per ethanol coefficient,
+  not a sensitivity paired with an NPV. The sensitivity-and-NPV-of-1 pairing
+  belongs only to the haemodialysis row. See the round-4 section below for the
+  figures as shipped.
 - **Defect fixed (behaviour change).** A raw gap ≥ 10 was flagged elevated even
   when the ethanol-adjusted residual was negative — an "unmeasured osmole"
   banner sitting directly above two negative rows. The raw gap is now emitted
@@ -555,7 +637,8 @@ Implementation version **1.2.0**.
   sentence is now in the normal band, the elevated band's framing, the caution
   and the notes, sourced to Hoffman 1993 for the distribution and Lynd 2008 for
   the not-in-isolation rule.
-- **NO PAEDIATRIC OSMOLAR-GAP DATA EXISTS — recorded as settled absent.** New
+- **NO PAEDIATRIC OSMOLAR-GAP DATA EXISTS — recorded as settled absent.**
+  **↳ THIS BULLET IS WRONG AND WITHDRAWN — see the round-4 pass below.** New
   `caution`, so it renders beside the number rather than in prose below it. The
   wording deliberately says the absence is settled rather than a search still
   running: a reader should stop expecting a paediatric cut-point, not wait for
@@ -565,3 +648,47 @@ Implementation version **1.2.0**.
 - **What was NOT changed:** the Smithline–Gardner coefficients, the ethanol
   divisors, the ethanol-explained suppression rule, the osmolality reference
   range, the age caveat, and the [NEEDS SOURCE] on the engineering input bounds.
+- **SUPERSEDED BY ROUND 4:** the "no paediatric osmolar-gap data exists — settled
+  absent" finding recorded above is **wrong and withdrawn**. See the round-4 pass
+  below. The rest of this round-3 entry stands.
+
+### Round-4 sourcing pass — 2026-08-04
+
+**No computed number changed and no band boundary moved.** Implementation version
+**1.3.0**. This pass exists mainly to retract a claim the previous one shipped.
+
+- **WITHDRAWN: "no paediatric osmolar-gap data exists — settled absent."** It
+  does exist. Round 3 turned a failed search into a positive assertion that the
+  question was closed, which is the one kind of error a reader cannot correct for
+  — a missing citation invites looking, a settled-absent claim tells them not to.
+  Retracted explicitly in the band text, the `caution`, the notes and the
+  changelog rather than silently overwritten.
+- **Replaced with the actual data.** McQuillen & Anderson 1999 (PMID 9928973):
+  192 children, median age 6.6 y, measured osmolality 284.2 ± 6.9 (range
+  265–311), and the normal osmol-gap **range ≈ 22 mOsm** whichever equation is
+  used. Dursun 2007 (PMID 17139190): 101 children with chronic renal failure,
+  gaps 13.7 ± 14.5 (PD) and 15.2 ± 17.6 (post-HD). Berska 2023 (PMID 36819138):
+  280 samples, day 1 to 2 years, measured 285.8 ± 5.1.
+- **The clinically load-bearing consequence, and the reason this is not merely a
+  bookkeeping fix.** A normal paediatric gap range of ≈ 22 mOsm is **more than
+  twice the width of the 10 mOsm/kg threshold**. **The band boundary stays at
+  10** — it is what the reference-limit literature supports and no paediatric
+  cut-point is published — but a paediatric reader is now told that a gap just
+  over 10 is weaker evidence than the threshold's precision suggests. Both gap
+  bands and a `caution` carry it.
+- **[NEEDS SOURCE] CLOSED.** Berska 2023 is the "Kraków cohort" and the
+  PMCID-only measured-infant citation, identified by matching cohort, statistic
+  and equation. It also strengthens the under-3-months rule from "not validated"
+  to what the study found: **systematic AND proportional error in every formula
+  tested**, hence measure rather than calculate. Said plainly at the point of
+  use, because the calculator asks for no age and will compute for a neonate.
+- **Lynd 2008 full text read; one mislabel corrected.** The dialysis/antidote
+  attribution was already right, and now carries numbers (see the table above).
+  The correction: rounds 2–3 printed the antidote figures as "sensitivity 0.90 /
+  NPV 0.85" when they are two **sensitivities**, one per ethanol coefficient. The
+  sensitivity-and-NPV-of-1 pairing belongs to the haemodialysis row.
+- **What was NOT changed:** the Smithline–Gardner coefficients, the ethanol
+  divisors, the ethanol-explained suppression rule, the 10 mOsm/kg boundary, the
+  Hoffman 1993 adult distribution, the osmolality reference range, and the
+  [NEEDS SOURCE] on the engineering input bounds (still open, still not
+  fabricated).

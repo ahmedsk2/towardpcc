@@ -128,7 +128,7 @@ export const pelod2 = defineScore({
   id: "pelod2",
   slug: "pelod2",
   name: "PELOD-2 (Pediatric Logistic Organ Dysfunction-2)",
-  version: "1.1.1",
+  version: "1.1.2",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -289,10 +289,41 @@ export const pelod2 = defineScore({
     },
   ] as const,
   interpretation: [],
-  // Bands are a CONTENT GAP here, not an absence by design: this score has
-  // published mortality strata and they have not been authored yet. Saying so
-  // is the difference between "no band applies" and "we have not written one".
-  interpretationStatus: "pending",
+  /*
+   * "not-applicable" and NOT "pending". This read "pending" until 2026-08-04 on
+   * the claim that PELOD-2 has published mortality strata still to be
+   * transcribed. It does not, and the question is now closed permanently rather
+   * than deferred — the absence is a sourced decision, not a content gap.
+   *
+   * WHAT LETEURTRE 2013 ACTUALLY PUBLISHES is a continuous 0–33 descriptor with
+   * no named severity categories. The two quantitative tables that were mistaken
+   * for strata are neither:
+   *   - Table 8 bins observed in-PICU mortality by the NUMBER OF DYSFUNCTIONAL
+   *     ORGANS, not by the score, so it cannot be turned into a score-to-band
+   *     mapping; and
+   *   - the logit (−6.61 + 0.47 × total) is the model's own output, so a table
+   *     of probabilities derived from it is a restatement of the model, not a
+   *     stratification of it.
+   * Both already ship, as context with the derivation cohort named, in `notes`.
+   *
+   * NO PAEDIATRIC MORTALITY MODEL PUBLISHES ENDORSED SEVERITY TIERS — a
+   * confirmed negative across this family, not an unsearched gap. Registries
+   * report unit-level SMRs with funnel plots and outlier detection, never
+   * per-patient bands, and calibration papers use post-hoc probability
+   * intervals for goodness-of-fit only.
+   *
+   * AND BANDING A CONTINUOUS PREDICTION IS ARGUED AGAINST ON ITS OWN TERMS:
+   * Altman DG, Royston P. The cost of dichotomising continuous variables. BMJ
+   * 2006;332(7549):1080 (PMID 16675816) calls categorisation "unnecessary for
+   * statistical analysis and has some serious drawbacks"; see also Royston,
+   * Altman & Sauerbrei, Stat Med 2006;25:127–141. Recorded in
+   * docs/research/scores/pelod2.md § Interpretation bands.
+   *
+   * Same call, for the same reason, as `pim3`, `prism`, `fluid-balance` and
+   * `four-score`. Pinned by pelod2.test.ts, so restoring "pending" requires
+   * deleting that test on purpose.
+   */
+  interpretationStatus: "not-applicable",
   references: [
     {
       citation:
@@ -330,6 +361,13 @@ export const pelod2 = defineScore({
         "NO AGE IS ACCEPTED OR REJECTED THAT WAS NOT BEFORE, and no computed value changed. The age ceiling is now declared as an exclusive bound (216 months, rejected) instead of as 215.99999999999997, the largest floating-point number below 216. Both express the identical domain — no representable age lies between those two numbers — but the old form was a workaround for a shared input type that could only state an INCLUSIVE maximum, and it read as a typo. What does change is the message an out-of-range age produces: it read 'must be between 0 and 215.99999999999997 months' and now reads 'must be at least 0 and less than 216 months', which is what the bound has always done.",
       reason: "clarification",
     },
+    {
+      version: "1.1.2",
+      date: "2026-08-04",
+      summary:
+        "The missing severity bands stop being described as unfinished work, because they are not. NOTHING COMPUTED CHANGED — no threshold, age band, coefficient, organ maximum or logit moved, and every worked example returns exactly what it returned before. This score declared `interpretationStatus: 'pending'`, which told a reader that PELOD-2 has published mortality strata this platform simply has not transcribed yet. It has none. Leteurtre 2013 defines no named severity categories; the two quantitative tables mistaken for them are a different thing in each case — Table 8 bins observed mortality by the NUMBER of dysfunctional organs rather than by the score, so it yields no score-to-band mapping, and the probability table is the published logit (-6.61 + 0.47 × total) restated, which is the model's own output rather than a stratification of it. Both continue to ship as context in the limitations, with the derivation cohort named, exactly as before. The status is now 'not-applicable' and the decision is permanent rather than deferred, resting on two things: no paediatric mortality model publishes endorsed severity tiers, and registries report unit-level standardised mortality ratios with funnel plots instead of per-patient bands, while calibration papers use probability intervals only to test goodness of fit; and cutting a validated continuous prediction into categories is argued against on statistical grounds (Altman & Royston, BMJ 2006;332(7549):1080, PMID 16675816; Royston, Altman & Sauerbrei, Stat Med 2006;25:127-141). The limitations now say so in place of rendering the same silence a genuine content gap would render.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -357,7 +395,7 @@ export const pelod2 = defineScore({
   ],
   notes: defineText(
     "pelod2.notes",
-    "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. AGE RANGE: the derivation excluded premature newborns and patients aged 18 years or older, so the eligible range is 0 to under 216 months and 216 months (18.0 years) or more is rejected rather than scored — the exclusion is on 18 and over, so exactly 18.0 years is outside it. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6, with one exception the source forces: in the 24–59 month band Table 6 prints ≥62 → 0, 46–61 → 2, 32–44 → 3 and ≤31 → 6, so a MAP of exactly 45 mmHg falls in no printed range. The other five age bands tile without a gap, so this is an omission in the published table, not a deliberate exclusion, and the paper states no rule for it. This calculator scores 45 mmHg as 3 points — the conservative (higher-severity) reading, closing the gap downward; the public ESPNIC calculator closes it upward and scores the same value 2. A 2–4-year-old with a MAP of exactly 45 mmHg will therefore total one point higher here than on that tool, and it is the only value at which the two disagree. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25.",
+    "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. AGE RANGE: the derivation excluded premature newborns and patients aged 18 years or older, so the eligible range is 0 to under 216 months and 216 months (18.0 years) or more is rejected rather than scored — the exclusion is on 18 and over, so exactly 18.0 years is outside it. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6, with one exception the source forces: in the 24–59 month band Table 6 prints ≥62 → 0, 46–61 → 2, 32–44 → 3 and ≤31 → 6, so a MAP of exactly 45 mmHg falls in no printed range. The other five age bands tile without a gap, so this is an omission in the published table, not a deliberate exclusion, and the paper states no rule for it. This calculator scores 45 mmHg as 3 points — the conservative (higher-severity) reading, closing the gap downward; the public ESPNIC calculator closes it upward and scores the same value 2. A 2–4-year-old with a MAP of exactly 45 mmHg will therefore total one point higher here than on that tool, and it is the only value at which the two disagree. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25. NO SEVERITY BANDS ARE SHOWN, AND NONE IS OWED — this is a settled decision, not work outstanding. Leteurtre 2013 defines no named severity categories, and neither figure set above is one: the first bins mortality by the NUMBER of failing organs rather than by the score, and the second is the score's own logit restated as probabilities. No paediatric mortality model publishes endorsed severity tiers; registries report unit-level standardised mortality ratios rather than per-patient bands. Cutting a continuous score into categories is also argued against in the methodology literature (Altman & Royston, BMJ 2006;332:1080), so the number is presented whole.",
   ),
   // Maxima are Leteurtre 2013 Table 7, independently re-derived term by term
   // from the branches above in docs/research/scores/pelod2.md §Organ maxima

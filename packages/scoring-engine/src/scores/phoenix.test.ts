@@ -927,4 +927,236 @@ describeScore(phoenix, (ctx) => {
       "declared maxima must sum to the published Phoenix maximum of 13",
     ).toBe(13);
   });
+
+  /**
+   * WHERE THIS CALCULATOR AND THE PUBLISHED SQL PART COMPANY, PINNED.
+   *
+   * The task force's published SQL derives its support flag FROM THE DATA:
+   * `other_respiratory_support = IIF(fio2 > 0.21 OR vent = 1, 1, 0)`. It has to,
+   * because it extracts from records with no support field. This calculator
+   * asks the clinician instead, so `resp_support: "none"` is taken at face
+   * value even when an FiO₂ above room air is also entered.
+   *
+   * That pairing is internally contradictory — a child on FiO₂ 0.5 is by
+   * definition receiving oxygen — and it is the ONE input combination where the
+   * two disagree: the extraction awards the 1-point tier, this calculator
+   * scores 0. Neither behaviour is a defect of the other; they are answering
+   * from different evidence. It is pinned rather than reconciled because
+   * silently overriding a clinician's explicit answer with an inference from
+   * another field is the worse of the two failure modes, and because a future
+   * edit that decided to "match the reference" would move a real number on a
+   * sepsis calculator with nothing else in this file objecting.
+   *
+   * Not a workedExample: the expected value here is THIS implementation's
+   * choice, not a published one, and dressing it in a citation would claim the
+   * source endorses the divergence it is a divergence from.
+   */
+  it("takes 'no respiratory support' at face value even with an FiO2 above room air", () => {
+    const contradictory = phoenix.compute({
+      age_months: { value: 36, unit: "months" },
+      suspected_infection: { value: true },
+      resp_support: { value: "none" },
+      pao2: { value: 100, unit: "mmHg" },
+      fio2: { value: 0.5, unit: "fraction" },
+    });
+    expect(contradictory.ok).toBe(true);
+    if (!contradictory.ok) return;
+    const respiratory = contradictory.result.values.find((v) => v.id === "respiratory")!.value;
+    // P/F = 200, which is under the 400 cut point, so the published extraction
+    // would read FiO₂ 0.5 as supplemental oxygen and award 1. Here: 0.
+    expect(respiratory, "the explicit answer wins over the FiO₂ inference").toBe(0);
+
+    // The same child with the support question answered consistently scores the
+    // point — so the 0 above is the contradiction being surfaced, not the
+    // 1-point tier being broken.
+    const consistent = phoenix.compute({
+      age_months: { value: 36, unit: "months" },
+      suspected_infection: { value: true },
+      resp_support: { value: "any-support" },
+      pao2: { value: 100, unit: "mmHg" },
+      fio2: { value: 0.5, unit: "fraction" },
+    });
+    expect(consistent.ok).toBe(true);
+    if (!consistent.ok) return;
+    expect(
+      consistent.result.values.find((v) => v.id === "respiratory")!.value,
+      "answering the support question consistently reaches the 1-point tier",
+    ).toBe(1);
+  });
+
+  /**
+   * THE INPUT BOUNDS ARE PINNED AGAINST THE PUBLISHED TABLE THAT NOW EXISTS.
+   *
+   * Every min/max on this score was labelled a guardrail of this platform's own
+   * invention until v2.2.0. The Phoenix implementation notes publish a
+   * reasonable-value table, and five of these bounds turn out to be identical
+   * to it — including age [0, 216) with an exclusive ceiling, which was argued
+   * here from the criteria's "children under 18 years" BEFORE that table was
+   * read and is therefore independent corroboration rather than a copy.
+   *
+   * The risk that creates runs opposite to the usual one. The usual failure is
+   * a bound drifting with no source; the new one is a bound being "corrected"
+   * towards the published numbers because a published range sounds better than
+   * an invented one. It would be wrong here: most of the published ranges are
+   * open above ([0, ∞) for platelets, INR, fibrinogen and PaO₂), so adopting
+   * them removes the guardrail rather than sourcing it. A form field refusing a
+   * typo is not a data pipeline's outlier filter.
+   *
+   * Each pair is asserted with its published comparator named, so an edit that
+   * adopts one has to delete the line saying why not.
+   */
+  it("keeps its own input windows where they differ from the published table", () => {
+    const bounds = (id: string) => {
+      const input = phoenix.inputs.find((i) => i.id === id);
+      return input && input.type === "numeric" ? { min: input.min, max: input.max } : undefined;
+    };
+
+    // MATCHES the published reasonable-value table.
+    expect(bounds("fio2"), "identical to the published FiO₂ range [0.21, 1.00]").toEqual({
+      min: 0.21,
+      max: 1,
+    });
+    expect(bounds("gcs_total"), "identical to the published GCS range 3-15").toEqual({
+      min: 3,
+      max: 15,
+    });
+    expect(bounds("n_vasoactives"), "identical to the published integer count 0-6").toEqual({
+      min: 0,
+      max: 6,
+    });
+    // Age is the one that matters most: the published domain is half-open, and
+    // so is this declaration. An inclusive 216 would admit exactly 18.0 years,
+    // which both the criteria and the published table exclude.
+    const age = phoenix.inputs.find((i) => i.id === "age_months");
+    expect(age?.type).toBe("numeric");
+    if (age?.type === "numeric") {
+      expect(age.min, "published lower bound is 0").toBe(0);
+      expect(age.max, "published upper bound is 216").toBe(216);
+      expect(age.maxExclusive, "and the published interval is half-open, [0, 216)").toBe(216);
+    }
+    // SpO₂ shares the published ceiling; the floor of 50 is still ours (the
+    // published floor is 0). The >97 half of the published statement is the S/F
+    // validity gate, exercised by the 97/98 cliff cases above.
+    expect(bounds("spo2"), "published ceiling 100 matches; the 50 floor is ours").toEqual({
+      min: 50,
+      max: 100,
+    });
+
+    // NARROWER than published, deliberately kept.
+    expect(bounds("pao2"), "published: [0, inf) mmHg; PICANet v5.4: 22-450").toEqual({
+      min: 20,
+      max: 700,
+    });
+    expect(bounds("map"), "published: [1, 300] mmHg").toEqual({ min: 10, max: 200 });
+    expect(bounds("lactate"), "published: [0, 50] mmol/L; PICANet v5.4: 0.2-15.0").toEqual({
+      min: 0.3,
+      max: 30,
+    });
+    expect(bounds("ddimer"), "published: [0, 500] mg/L FEU - ten times this ceiling").toEqual({
+      min: 0.1,
+      max: 50,
+    });
+    expect(bounds("platelets"), "published: [0, inf) - open above, nothing to adopt").toEqual({
+      min: 5,
+      max: 1000,
+    });
+    expect(bounds("inr"), "published: [0, inf) - open above").toEqual({ min: 0.8, max: 10 });
+    expect(bounds("fibrinogen"), "published: [0, inf) mg/dL - open above").toEqual({
+      min: 30,
+      max: 800,
+    });
+  });
+
+  /**
+   * THE v2.2.0 DISCLOSURES ARE PART OF THE PRODUCT, SO THEY GET A TEST.
+   *
+   * Three of them are the kind that decay quietly if nothing holds them: a
+   * confirmed negative re-read as an unfinished search, a sourced-from-code fact
+   * re-worded back into an inference, and an explicitly unquantified effect
+   * losing its qualifier. The fourth — high-flow nasal cannula counting here and
+   * not in the registries — is new and is the one a reader is most likely to
+   * need, because it is invisible until a Phoenix score is set beside registry
+   * ventilation data.
+   */
+  it("keeps the sourced support gate, the registry divergence and the bounds provenance", () => {
+    const notes = phoenix.notes.en;
+
+    // The gate is read off published SQL, and the MECHANISM is what makes the
+    // pSOFA contrast usable rather than merely surprising.
+    expect(notes, "the support gate must be attributed to the published code").toContain(
+      "READ OFF THE TASK FORCE'S OWN PUBLISHED CODE",
+    );
+    expect(notes, "with the flag the SQL derives").toMatch(
+      /other respiratory support is true when FiO₂ exceeds 0\.21 or the child is invasively ventilated/,
+    );
+    expect(notes, "and the pSOFA contrast, which inverts it").toContain(
+      "pSOFA IS BUILT THE OTHER WAY UP",
+    );
+    expect(notes, "stated as two numbers a reader can hold side by side").toMatch(
+      /Phoenix respiratory 0 and pSOFA respiratory 2 simultaneously/,
+    );
+    // The one input combination where this calculator and the extraction differ.
+    expect(notes, "the FiO₂-versus-support divergence must be disclosed").toMatch(
+      /the extraction would award the 1-point tier, this calculator scores 0/,
+    );
+
+    // HIGH FLOW: counted here, excluded by both registries.
+    expect(notes, "the high-flow divergence must be stated").toContain("HIGH-FLOW NASAL CANNULA");
+    expect(notes, "and name the registries that exclude it").toMatch(
+      /PICANet and ANZPIC both EXCLUDE high-flow nasal cannula/,
+    );
+    expect(notes, "the magnitude is unknown and must stay marked unretrieved").toMatch(
+      /no cohort has quantified/,
+    );
+
+    // BOUNDS: which match, which do not, and that none moved.
+    expect(notes, "the bounds must stop being described as all ours").toContain(
+      "PLAUSIBILITY BOUNDS ARE NO LONGER ALL OURS",
+    );
+    expect(notes, "the matching ones must be named individually").toMatch(
+      /age months \[0, 216\) with an exclusive ceiling/,
+    );
+    expect(notes, "and the kept-narrower ones must say nothing moved").toContain(
+      "NO BOUND ON THIS SCORE MOVED",
+    );
+    expect(notes, "PICANet must be cited by manual and version").toContain(
+      "PICANet Admission Dataset Definitions Manual v5.4 (November 2020)",
+    );
+    // Provenance limit: the docs page was read; the units file was not, and must
+    // not be cited as though it had been.
+    expect(notes, "the unretrieved units file must stay disclosed as unretrieved").toMatch(
+      /could not be retrieved, so nothing here is cited to that file/,
+    );
+    // The confirmed negative — silence IS the finding, and must not decay into
+    // an open search someone re-runs.
+    expect(notes, "the proprietary-registry negative must be stated as confirmed").toMatch(
+      /VPS, PC4 and PHIS publish NO public numeric plausibility or edit-check bounds\. Confirmed negative/,
+    );
+
+    // The two behaviours the reference splits between halting and nulling are
+    // distinguished, because the older note claimed rejection was wholly source
+    // behaviour and that is only true of GCS and the support flags.
+    expect(notes, "the halt/null split in the reference must be stated").toContain(
+      "The R package's own argument checks HALT",
+    );
+
+    // High flow is decided at the field, so it belongs on the field too.
+    const help = (id: string) => phoenix.inputs.find((i) => i.id === id)?.helpText?.en ?? "";
+    expect(help("resp_support"), "high flow is the case the reader is deciding").toContain(
+      "High-flow nasal cannula counts as support here",
+    );
+    expect(help("resp_support"), "and the FiO₂ contradiction belongs where it is entered").toMatch(
+      /entering an FiO₂ above 0\.21 alongside 'no respiratory support' is contradictory/,
+    );
+    // The option label itself must name high flow — a reader picking from three
+    // options should not have to open the help text to learn it belongs there.
+    const support = phoenix.inputs.find((i) => i.id === "resp_support");
+    expect(support?.type).toBe("categorical");
+    if (support?.type === "categorical") {
+      const anySupport = support.options.find((o) => o.value === "any-support");
+      expect(anySupport?.label.en, "the non-invasive option must name high flow").toContain(
+        "high-flow nasal cannula",
+      );
+    }
+  });
 });

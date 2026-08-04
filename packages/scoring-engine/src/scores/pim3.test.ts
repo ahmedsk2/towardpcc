@@ -603,6 +603,35 @@ describe("pim3 surfaces its group-level-only warning beside the result", () => {
     expect(cautions).toContain("individual");
   });
 
+  /**
+   * The restriction is the PAPER's, not this platform's editorial caution, and
+   * a reader must be able to tell which. Straney 2013's own sentence is carried
+   * verbatim and attributed on both surfaces; a later edit that softens it back
+   * into a paraphrase loses the authority and fails here.
+   */
+  it("carries the derivation paper's own words, not a paraphrase of them", () => {
+    const verbatim = "These models are not intended for prognostic use on individual patients";
+    const cautions = (pim3.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toContain(verbatim);
+    expect(cautions).toContain("Straney 2013");
+    expect(pim3.notes.en).toContain(verbatim);
+  });
+
+  /**
+   * No bands, and no promise of bands. `interpretation: []` with
+   * `interpretationStatus: "not-applicable"` is a settled decision recorded in
+   * pim3.md — Straney 2013 publishes no cut-points, no paediatric mortality
+   * model publishes endorsed severity tiers, and banding a continuous
+   * prediction is argued against on statistical grounds. Restoring "pending"
+   * would re-assert that a published stratification exists and is merely
+   * untranscribed, and requires deleting this test on purpose.
+   */
+  it("ships no interpretation bands, permanently rather than pending", () => {
+    expect(pim3.interpretation).toEqual([]);
+    expect(pim3.interpretationStatus).toBe("not-applicable");
+    expect(pim3.notes.en).toContain("no risk bands");
+  });
+
   it("states the age range as under 16 and flags the paper's own contradiction", () => {
     expect(pim3.notes.en).toContain("younger than 16");
     expect(pim3.notes.en).toContain("younger than 18");
@@ -685,7 +714,7 @@ describe("pim3 version tracks its user-visible text", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = pim3.changelog[pim3.changelog.length - 1];
     expect(pim3.version).toBe(newest?.version);
-    expect(pim3.version).toBe("1.2.1");
+    expect(pim3.version).toBe("1.2.2");
   });
 
   it("keeps InputValues in step with the declared inputs", () => {

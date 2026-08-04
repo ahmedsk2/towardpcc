@@ -549,6 +549,51 @@ The old value promised a page that could never be written, and contradicted the
 line directly above it in `pim3.ts`, which already said the paper defines no
 bands.
 
+### Closed permanently, not pending further search — 2026-08-04
+
+The 2026-08-03 correction fixed the status but left the question looking open.
+It is not. Two independent grounds close it:
+
+1. **No paediatric mortality model publishes endorsed severity tiers** — a
+   confirmed negative across the family, not an unsearched gap. Registries
+   report **unit-level** SMRs with funnel plots and outlier detection, never
+   per-patient bands; calibration papers use post-hoc predicted-probability
+   intervals **for goodness-of-fit only**, which is a check on the model's
+   output and not a severity scale that can be lifted out of it.
+2. **Dichotomising a continuous prediction is argued against on statistical
+   grounds.** Altman DG, Royston P. _The cost of dichotomising continuous
+   variables._ **BMJ 2006;332(7549):1080. PMID 16675816. PMCID PMC1458573.** —
+   categorisation is "unnecessary for statistical analysis and has some serious
+   drawbacks". See also Royston P, Altman DG, Sauerbrei W. _Dichotomizing
+   continuous predictors in multiple regression: a bad idea._ **Stat Med
+   2006;25:127–141.**
+   **Provenance limit:** the widely-quoted "equivalent to discarding a third of
+   the data" effect size was **not re-extracted** and is treated as WEAK — do
+   not quote a number for it.
+
+Both are now stated in `pim3.ts` → `notes`, so a reader is told the absence is
+settled rather than being left to infer it from silence.
+
+### The individual-use restriction, in the authors' own words
+
+Straney 2013 was read in **full text** on 2026-08-04. It states the restriction
+directly, and this is now carried **verbatim and attributed** in `pim3.ts` —
+both in the caution beside the result and in `notes` — in place of this
+platform's earlier paraphrase of it:
+
+> "These models are not intended for prognostic use on individual patients;
+> however, they have been used to assess..."
+
+The sentence continues into the group-level uses the model **is** for, which is
+why the platform quotes the leading clause and describes the remainder rather
+than reproducing it. Pinned by `pim3.test.ts` → `"carries the derivation paper's
+own words, not a paraphrase of them"`.
+
+**Do not manufacture parallels.** The equivalent verbatim statements from
+**PRISM IV (Pollack 2016)** and **PIM2 (Slater 2003)** were **NOT retrieved**.
+Their individual-use positions are WEAK on this page and no quotation may be
+attributed to either until its full text is read.
+
 ---
 
 ## References (full citations, PMID/DOI)

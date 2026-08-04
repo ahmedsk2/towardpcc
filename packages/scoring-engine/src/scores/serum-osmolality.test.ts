@@ -344,13 +344,112 @@ describeScore(serumOsmolality, (ctx) => {
     expect(bandText("gap-normal")).toMatch(/own true baseline may be NEGATIVE/);
   });
 
-  it("records the absent paediatric gap data as settled, not as an open search", () => {
-    // Settled-absent and not-yet-found are different claims, and only one of
-    // them tells a reader to stop waiting for it.
+  /**
+   * Round-4 (2026-08-04) WITHDRAWAL. Version 1.2.0 shipped "no paediatric
+   * osmolar-gap data exists — settled absent". Three paediatric datasets exist.
+   * "Settled absent" tells a reader to stop looking, so shipping it wrongly is
+   * worse than never having claimed it, and these assertions exist to stop the
+   * claim quietly reappearing. Nothing here moves a boundary — the ≥ 10 band is
+   * asserted unchanged alongside the retraction.
+   */
+  const surfaces = (): string[] => [
+    ...(serumOsmolality.cautions ?? []).map((c) => c.en),
+    ...serumOsmolality.interpretation.map((b) => b.description.en),
+    serumOsmolality.notes.en,
+  ];
+
+  it("no longer asserts paediatric osmolar-gap data is settled absent", () => {
+    const text = surfaces().join("\n");
+    // The exact 1.2.0 formulations. Each told a reader the question was closed.
+    expect(text).not.toContain("settled rather than a search still running");
+    expect(text).not.toContain("settled absent, not as an unfinished search");
+    expect(text).not.toContain("settled absent, not unfound");
+    expect(text).not.toContain("that absence is settled rather than merely unfound");
+    expect(text).not.toContain("none of it has been measured in children");
+    // The sentence may survive ONLY as a quoted retraction, so any surface that
+    // still utters it has to mark it withdrawn in the same breath.
+    for (const surface of surfaces()) {
+      if (/no paediatric osmolar-gap data exists/i.test(surface)) {
+        expect(surface, "a settled-absent claim must be marked withdrawn").toMatch(
+          /WITHDRAWN|withdrawn|retracted/,
+        );
+      }
+    }
+  });
+
+  it("carries the paediatric gap data that replaces the withdrawn claim", () => {
     const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
-    expect(cautions).toContain("No paediatric osmolar-gap data exists");
-    expect(cautions).toMatch(/settled rather than a search still running/);
-    expect(serumOsmolality.notes.en).toContain("NO PAEDIATRIC OSMOLAR-GAP DATA EXISTS");
-    expect(serumOsmolality.notes.en).toMatch(/settled absent, not as an unfinished search/);
+    // McQuillen 1999 — the study whose existence 1.2.0 denied.
+    expect(cautions).toContain("192 children");
+    expect(cautions).toContain("22 mOsm");
+    // Dursun 2007 — a wide spread corroborated in a second paediatric cohort.
+    expect(cautions).toContain("13.7 ± 14.5");
+    expect(cautions).toContain("15.2 ± 17.6");
+    // Both gap bands must tell a paediatric reader the normal range is wide,
+    // because that is the half of this change that reaches the bedside.
+    expect(bandText("gap-normal")).toContain("22 mOsm");
+    expect(bandText("gap-elevated")).toContain("22 mOsm");
+    // Every new claim must be citable, not just stated.
+    const ids = serumOsmolality.references.map((r) => ("pmid" in r ? r.pmid : undefined));
+    expect(ids).toContain("9928973"); // McQuillen 1999
+    expect(ids).toContain("17139190"); // Dursun 2007
+    expect(ids).toContain("36819138"); // Berska 2023
+  });
+
+  it("keeps the boundary at 10 while saying the paediatric normal is wider", () => {
+    // The point of the correction is NOT to move the cut-off — no paediatric
+    // cut-point is published — but to stop 10 reading as a sharp line.
+    const elevated = serumOsmolality.interpretation.find((b) => b.id === "gap-elevated");
+    const normal = serumOsmolality.interpretation.find((b) => b.id === "gap-normal");
+    expect(elevated?.min).toBe(10);
+    expect(normal?.max).toBe(10);
+    expect(bandText("gap-elevated")).toMatch(/weaker evidence/);
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toMatch(/weaker evidence/);
+  });
+
+  it("states the under-3-months rule with the error type behind it", () => {
+    // "Not validated" is weaker than what the study actually found, and the
+    // calculator will compute for a neonate regardless — so say it at the point
+    // of use, with the reason.
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toMatch(/systematic and proportional error/i);
+    expect(cautions).toMatch(/MEASURED rather than calculated/);
+    expect(cautions).toContain("Berska 2023");
+    // The [NEEDS SOURCE] this closes: the infant validation is no longer an
+    // uncited "Kraków cohort" carried by PMCID alone.
+    expect(serumOsmolality.notes.en).not.toContain(
+      "was not captured, so it is stated as a finding and no citation is claimed for it",
+    );
+    expect(serumOsmolality.notes.en).toMatch(/RESOLVED \[NEEDS SOURCE\]/);
+  });
+
+  it("ties each Lynd figure to its decision and its ethanol coefficient", () => {
+    // Full text read in round 4. The dialysis figures and the antidote figures
+    // are different numbers for different questions, and each pair also depends
+    // on which ethanol coefficient was used — the same fork this score emits.
+    const elevated = bandText("gap-elevated");
+    expect(elevated).toMatch(/HAEMODIALYSIS/);
+    expect(elevated).toContain("0.80–1.00"); // dialysis sensitivity CI
+    expect(elevated).toContain("0.827");
+    expect(elevated).toContain("0.870");
+    expect(elevated).toMatch(/ANTIDOTAL THERAPY/);
+    expect(elevated).toContain("0.68–0.99"); // antidote sensitivity CI
+    expect(elevated).toContain("0.736");
+    expect(elevated).toContain("0.785");
+    // The mislabel 1.1.0–1.2.0 shipped: 0.90 and 0.85 are two SENSITIVITIES,
+    // one per ethanol coefficient, not a sensitivity/NPV pair.
+    expect(serumOsmolality.notes.en).toMatch(/two sensitivities, one per ethanol coefficient/);
+    expect(serumOsmolality.notes.en).not.toContain(
+      "falling to 0.90 and 0.85 for identifying those needing antidotal therapy",
+    );
+  });
+
+  it("records the withdrawal in the changelog at a bumped version", () => {
+    const latest = serumOsmolality.changelog[serumOsmolality.changelog.length - 1];
+    expect(latest?.version).toBe("1.3.0");
+    expect(serumOsmolality.version).toBe("1.3.0");
+    expect(latest?.summary).toMatch(/WITHDRAWS A FALSE CLAIM/);
+    expect(latest?.summary).toMatch(/NO BAND BOUNDARY MOVED/);
   });
 });

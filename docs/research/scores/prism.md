@@ -552,7 +552,19 @@ Every row at its worst tier simultaneously: **74 = 16 neurologic + 58 non-neurol
 - **PRISM IV outputs a continuous probability, not a band** (source spec §2.3: _"PRISM IV outputs a continuous probability, not a band. No interpretation table."_). Its calibration data — the decile-style table that an earlier version of this page pointed at as "something to author" — bins by **predicted probability**, never by score, which is the correct design for a covariate-adjusted model and is exactly why [no score-to-mortality curve is quotable](#why-no-score-at-which-mortality-reaches-50-is-quoted-anywhere-on-this-page). A calibration table is a check on the model's own output; it is not a severity stratification of the score and cannot be turned into one.
 - **PRISM III score-only has no published severity band at all**, and none may be invented. With the mortality output gone there is nothing left here to band.
 
-So nothing is awaiting a later pass, which is precisely what `not-applicable` declares. Same call, for the same reason, as `fluid-balance` and `four-score`. Pinned by `prism.test.ts` → `"declares no interpretation bands, and declares that as not-applicable"`, so restoring `pending` requires deleting that test on purpose.
+So nothing is awaiting a later pass, which is precisely what `not-applicable` declares. Same call, for the same reason, as `pim3`, `pelod2`, `fluid-balance` and `four-score`. Pinned by `prism.test.ts` → `"declares no interpretation bands, and declares that as not-applicable"`, so restoring `pending` requires deleting that test on purpose.
+
+#### Closed permanently, not pending further search — re-checked 2026-08-04
+
+The correction above resolved this score. The re-check adds the two grounds that make the answer permanent across the whole family rather than a per-score accident:
+
+1. **No paediatric mortality model publishes endorsed severity tiers** — a confirmed negative, not an unsearched gap. Registries report **unit-level** SMRs with funnel plots and outlier detection, never per-patient bands; calibration papers use post-hoc predicted-probability intervals **for goodness-of-fit only**. That is exactly the shape of PRISM IV's own calibration table, which is why it was already ruled out above: a check on a model's output is not a stratification of its score.
+2. **Dichotomising a continuous prediction is argued against on statistical grounds.** Altman DG, Royston P. _The cost of dichotomising continuous variables._ **BMJ 2006;332(7549):1080. PMID 16675816. PMCID PMC1458573.** — categorisation is "unnecessary for statistical analysis and has some serious drawbacks". See also Royston P, Altman DG, Sauerbrei W. _Dichotomizing continuous predictors in multiple regression: a bad idea._ **Stat Med 2006;25:127–141.**
+   **Provenance limit:** the widely-quoted "equivalent to discarding a third of the data" effect size was **not re-extracted** and is treated as WEAK — do not quote a number for it.
+
+**One figure that must never appear on this page.** A review reported **"Albuali 2020, PRISM III, AUC 0.955"**. That is a misreading: the full text reports PRISM III **ACCURACY 95.25%**, with **specificity 98.51%** and **sensitivity 78.46%** — an accuracy percentage, not an area under the curve. Checked across the repository on 2026-08-04: **0.955 appears in no shipped figure — not in `prism.ts`, not in any other scoring-engine file, and in this file only inside this paragraph and the reference entry that records the misreading** — so nothing was removed. This paragraph exists so a later pass that meets the review figure again recognises it and does not add it.
+
+**Individual-use statements — what is and is not held.** PIM3 carries its authors' own words on individual use, read from the full text (Straney 2013; see `pim3.md`). The equivalent verbatim statements from **PRISM IV (Pollack 2016)** and **PIM2 (Slater 2003)** were **NOT retrieved**. No parallel quotation may be attributed to either, and none is shipped in `prism.ts`; the individual-use framing there stands on this project's own wording.
 
 The published quantitative anchors, for reference and not as bands:
 

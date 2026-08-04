@@ -610,8 +610,20 @@ export const prism = defineScore({
    * inventing one is not an option.
    *
    * Set explicitly, because on this score the silence is a decision and should
-   * read as one. Same call, for the same reason, as `fluid-balance` and
-   * `four-score`.
+   * read as one. Same call, for the same reason, as `pim3`, `pelod2`,
+   * `fluid-balance` and `four-score`.
+   *
+   * CLOSED PERMANENTLY, NOT PENDING FURTHER SEARCH. Re-checked 2026-08-04 and
+   * the negative is confirmed across the family: no paediatric mortality model
+   * publishes endorsed severity tiers; registries report unit-level SMRs with
+   * funnel plots and outlier detection rather than per-patient bands; and
+   * calibration papers use predicted-probability intervals for goodness-of-fit
+   * only. Independently, cutting a validated continuous prediction into
+   * categories is argued against on statistical grounds — Altman DG, Royston P,
+   * BMJ 2006;332(7549):1080 (PMID 16675816), "unnecessary for statistical
+   * analysis and has some serious drawbacks"; Royston, Altman & Sauerbrei,
+   * Stat Med 2006;25:127–141. Recorded in docs/research/scores/prism.md
+   * § Interpretation bands. No user-visible text changed with this note.
    */
   interpretationStatus: "not-applicable",
   /**
