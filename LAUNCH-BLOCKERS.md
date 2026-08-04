@@ -160,6 +160,23 @@ then — no figure is invented.
       page content, since a stale-but-healthy deploy is exactly the failure a
       content canary cannot see.
 
+      **Recurred 2026-08-04, and the mid-build explanation does not cover it.**
+          PRs #37 and #39 were merged about ninety seconds apart to `805cc25`. The
+          container stayed on `6f9945b` — the #36 merge, up 33 hours — so *neither*
+          merge deployed, and no build was in flight for the first one to collide
+          with. `running:healthy` again reported a site three commits stale. A
+          manual `/api/v1/deploy` produced `805cc25` and the site is now current.
+
+          Two things this second occurrence establishes. The trigger is not a
+          build-collision race, so the queueing theory above is at best incomplete;
+          treat push-to-deploy as **not working** rather than as flaky. And the
+          Coolify status field lags the container: right after the rolling update
+          the API said `running:unhealthy` while Docker's own healthcheck said
+          `healthy` and both `/api/v1/health` and `/api/v1/ready` returned OK — so
+          the API's status is not usable as a deploy gate in either direction.
+          Verify by comparing the container image tag against `origin/main`; that
+          is currently the only signal that has been right every time.
+
 ## Security (from docs/security/threat-model.md, 2026-07-24)
 
 - [~] **Domain trust program (TM-008, high/firm)** — **verified against the
