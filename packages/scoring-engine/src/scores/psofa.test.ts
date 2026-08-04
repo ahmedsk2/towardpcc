@@ -237,6 +237,49 @@ describeScore(psofa, (ctx) => {
       { id: "respiratory", value: 2 },
     ],
   );
+  /**
+   * THE 264 OVERLAP, PINNED FROM BOTH SIDES.
+   *
+   * The overlap is in the SOURCE: JAMA Pediatr Table 1 prints the SpO₂:FiO₂
+   * bands as ≥292 / 264–291 / 221–264 / 148–220 / <148, so 264 is the lower
+   * bound of the subscore-1 row and the upper bound of the subscore-2 row at
+   * once. No reading of the published table assigns an exact 264 a single
+   * subscore, so a tie-break is unavoidable; taking the worse one is THIS
+   * implementation's documented choice (psofa.ts respiratoryFromSf).
+   *
+   * Nothing asserted a value at exactly 264 before — every band example landed
+   * strictly inside a band, so flipping the comparison from `>` to `>=` would
+   * have moved a real patient's subscore from 2 to 1 with the whole suite green.
+   *
+   * SpO₂ 66% on FiO₂ 0.25 is 264 EXACTLY in binary floating point (66/0.25;
+   * both operands are exactly representable), so this pins the boundary itself
+   * rather than a value near it. 66.5/0.25 = 266 is likewise exact.
+   */
+  ctx.workedExample(
+    {
+      ...matics,
+      locator:
+        "SpO₂:FiO₂ exactly 264 — printed in BOTH the subscore-1 and subscore-2 rows of Table 1; worse subscore taken → respiratory 2 (66/0.25 = 264)",
+    },
+    { ...normal, fio2: { value: 0.25, unit: "fraction" }, spo2: { value: 66, unit: "%" } },
+    [
+      { id: "total", value: 2 },
+      { id: "respiratory", value: 2 },
+    ],
+  );
+  ctx.workedExample(
+    {
+      ...matics,
+      locator:
+        "SpO₂:FiO₂ 266, just above the overlapped 264 → respiratory 1 (Table 1 264–291 row; 66.5/0.25 = 266)",
+    },
+    { ...normal, fio2: { value: 0.25, unit: "fraction" }, spo2: { value: 66.5, unit: "%" } },
+    [
+      { id: "total", value: 1 },
+      { id: "respiratory", value: 1 },
+    ],
+  );
+
   ctx.workedExample(
     {
       ...matics,
@@ -288,14 +331,18 @@ describeScore(psofa, (ctx) => {
     ],
   );
 
-  // Missing oxygenation (no PaO₂ and no SpO₂) → respiratory 0 (SOFA
-  // missing-as-normal, psofa.md notes). This all-normal vector also exercises
-  // the 60–143-month age band; every subscore is 0.
+  // Missing oxygenation (no PaO₂ and no SpO₂) → respiratory 0. This is the
+  // PAPER's rule, not ours: the Matics & Sanchez-Pinto Methods state that a
+  // variable not measured in a 24-hour period was taken as normal, consistent
+  // with the original SOFA criteria. Round-2 sourcing established this against
+  // the full text; it was previously mislabelled here as our own convention.
+  // This all-normal vector also exercises the 60–143-month age band; every
+  // subscore is 0.
   ctx.workedExample(
     {
       ...matics,
       locator:
-        "no PaO₂/SpO₂ provided → respiratory 0; all-normal vector (psofa.md missing-as-normal)",
+        "no PaO₂/SpO₂ provided → respiratory 0; all-normal vector (Matics 2017 Methods: an unmeasured variable is taken as normal)",
     },
     { ...normal },
     [
@@ -389,6 +436,12 @@ describeScore(psofa, (ctx) => {
    * correctness. Flagged by an external review on 2026-08-01, which reached the
    * conclusion by the wrong route — it argued pSOFA needed a second SOFTWARE
    * implementation — but the underlying gap it pointed at was real.
+   *
+   * The >216-month pair below is worth reading twice: Matics & Sanchez-Pinto
+   * state that band's MAP and creatinine cut points are identical to adult
+   * SOFA's, and the cohort ran to 21 years (≤252 months). So these two examples
+   * pin ADULT thresholds being applied inside a paediatric score — correct
+   * behaviour, and a caveat `notes` now spells out rather than a defect.
    */
   ctx.workedExample(
     {
@@ -424,7 +477,7 @@ describeScore(psofa, (ctx) => {
     {
       ...matics,
       locator:
-        "MAP 69 mmHg in the >216 mo band (threshold 70) → cardiovascular 1 (Table 1 MAP row)",
+        "MAP 69 mmHg in the >216 mo band (threshold 70, stated by the paper to be adult SOFA's) → cardiovascular 1 (Table 1 MAP row)",
     },
     {
       ...normal,
@@ -439,7 +492,8 @@ describeScore(psofa, (ctx) => {
   ctx.workedExample(
     {
       ...matics,
-      locator: "creatinine 3.5 mg/dL in the >216 mo band (cuts 1.2/2.0/3.5/5.0) → renal 3",
+      locator:
+        "creatinine 3.5 mg/dL in the >216 mo band (cuts 1.2/2.0/3.5/5.0, stated by the paper to be adult SOFA's) → renal 3",
     },
     {
       ...normal,
@@ -595,5 +649,363 @@ describeScore(psofa, (ctx) => {
       composition.components.reduce((n, c) => n + c.max, 0),
       "declared maxima must sum to the published pSOFA maximum of 24",
     ).toBe(24);
+  });
+
+  /**
+   * THE DISCLOSURES ARE PART OF THE PRODUCT, SO THEY GET A TEST.
+   *
+   * pSOFA carried more [NEEDS SOURCE] markers than any other score on the site.
+   * Rounds 2–4 closed every one of them, and each closed in a specific
+   * direction that is easy to undo by accident:
+   *
+   *   - missing-as-normal was labelled OUR convention when it is the paper's own
+   *     Methods rule. That marker is withdrawn because it was our error;
+   *   - the plausibility bounds went from [NEEDS SOURCE] (implying a source
+   *     might exist) to confirmed-absent (a stronger, more honest claim);
+   *   - the 264 overlap was re-attributed to the published table, leaving only
+   *     the tie-break as ours;
+   *   - the ≤97% ceiling gained two citations;
+   *   - the neonatal caveat was softened from "inapplicable" to "defined but not
+   *     derived here", with nSOFA named;
+   *   - round 4 (2026-08-04) closed the LAST one, the non-support cap. It is not
+   *     ours: subscores 3–4 are each gated on respiratory support and no lower
+   *     band is, so a patient who is not on support cannot reach either and 2 is
+   *     all that is left. The cap is entailed by the published criteria, so the
+   *     marker was mis-labelled rather than unresolved;
+   *   - round 5 (2026-08-04) fixed how that gate was WORDED. Round 4 wrote it as
+   *     a "mechanical-ventilation requirement", which is narrower than Table 1
+   *     (whose row condition is "with respiratory support") and narrower than
+   *     this code, whose `resp_support` input has always accepted non-invasive
+   *     support too. The entailment was therefore argued on the narrow reading
+   *     while the calculator ran on the broad one. Both are now the broad one.
+   *
+   * pSOFA therefore carries ZERO unsourced claims, and the count is pinned at
+   * zero rather than merely asserted absent. That direction of pinning is the
+   * one that matters now: the failure mode is no longer a marker vanishing
+   * because someone asserted a source we lack — it is a future edit
+   * REINTRODUCING an unsourced claim and it passing unnoticed. Any new
+   * [NEEDS SOURCE] anywhere in the notes fails here and has to be argued for.
+   * The cap's new attribution is asserted alongside the count, so quietly
+   * re-labelling it "an implementation convention" also fails.
+   *
+   * WHY THE OPEN TERM IS NOT A MARKER. The paper prints "respiratory support"
+   * and never defines it, so counting non-invasive support as satisfying the
+   * gate is a reading of ours — the same class as the 264 tie-break, and
+   * disclosed the same way. It is not [NEEDS SOURCE] because the gate itself IS
+   * sourced and no claim is made about which reading the authors intended. The
+   * assertions below pin the disclosure, so dropping it silently fails too.
+   */
+  it("carries no unsourced claim at all, and keeps the cap's attribution", () => {
+    const notes = psofa.notes.en;
+
+    // Missing-as-normal: the paper's rule, attributed to its Methods.
+    expect(notes, "missing-as-normal must be attributed to the paper").toContain(
+      "Methods of Matics & Sanchez-Pinto 2017",
+    );
+    expect(notes, "it is no longer ours to call a convention").not.toContain(
+      "following the SOFA missing-as-normal convention",
+    );
+
+    // Zero markers survive. Round 4 closed the last one.
+    const markers = notes.match(/\[NEEDS SOURCE\]/g) ?? [];
+    expect(markers, "pSOFA carries no unsourced claim; a new one must be justified").toHaveLength(
+      0,
+    );
+
+    // The cap still exists as BEHAVIOUR — closing the marker changed the label,
+    // not the number. If the rule itself were dropped, this catches it.
+    expect(notes, "the cap is still what an unsupported 3/4-band ratio scores").toContain(
+      "capped at 2",
+    );
+    // …and it is the table's structure, not ours. Re-labelling it a convention
+    // of this platform would be a regression to the mis-attribution round 4
+    // corrected, so the entailment wording is pinned.
+    expect(notes, "the cap must stay attributed to the published table").toContain(
+      "THE PUBLISHED TABLE'S OWN STRUCTURE, NOT A RULE THIS CALCULATOR ADDED",
+    );
+    expect(notes, "with the reasoning that makes it an entailment, not an assertion").toMatch(
+      /subscores 3 and 4 each carry the table's respiratory-support requirement and no lower band carries any support requirement/,
+    );
+
+    // THE GATE MUST BE STATED AS BROADLY AS IT IS IMPLEMENTED. `resp_support` is
+    // one boolean satisfied by non-invasive support, so wording the gate as
+    // "mechanical ventilation" — as v1.2.0 did here, in the notes and in
+    // psofa.ts — promises a stricter rule than the code applies, and argues the
+    // cap on a reading the calculator does not run. Table 1's row condition is
+    // respiratory support; that is the only wording allowed to appear.
+    //
+    // SCOPED TO pSOFA'S OWN GATE, which is the whole of what round 5 needed.
+    // v1.3.0 wrote this as a ban on the phrase anywhere in the notes, because
+    // at the time the notes discussed no instrument but this one. v1.4.0 added
+    // a paragraph about two REGISTRIES whose collection field is literally
+    // named for mechanical ventilation (PICANet and ANZPIC both exclude
+    // high-flow nasal cannula from it), and a global ban would force that
+    // finding to be paraphrased into something less accurate to satisfy a test
+    // aimed at a different sentence. So the ban now covers everything up to the
+    // marker that starts the cross-score material, and the marker is pinned
+    // below so the region cannot be widened by deleting it. The protection is
+    // unchanged where it was aimed: no sentence describing THIS score's gate
+    // may narrow it.
+    const CROSS_SCORE_MARKER = "DO NOT CARRY THE CAP ACROSS TO OTHER SCORES";
+    expect(
+      notes,
+      "the cross-score section must stay marked, since the ban is scoped to it",
+    ).toContain(CROSS_SCORE_MARKER);
+    const ownGate = notes.slice(0, notes.indexOf(CROSS_SCORE_MARKER));
+    expect(ownGate, "the gate must not be re-narrowed to mechanical ventilation").not.toMatch(
+      /mechanical[ -]ventilation/i,
+    );
+    // And the region really does contain the gate discussion — otherwise a
+    // future edit that moved the marker earlier would shrink the ban to nothing
+    // while still passing.
+    expect(ownGate, "the scoped region must be the one holding the gate discussion").toContain(
+      "WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT",
+    );
+    // The term is undefined in the paper, so the broad reading is OURS and has
+    // to be visible as such — not silently adopted.
+    expect(notes, "the reading of the undefined term must stay disclosed").toContain(
+      "WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT",
+    );
+    expect(notes, "and it must say which reading this calculator runs").toMatch(
+      /invasive or non-invasive support both satisfy the gate/,
+    );
+    expect(notes, "and name the narrower reading the source does not exclude").toContain(
+      "not ruled out by the source",
+    );
+    // The entailment survives either reading — that is what makes the cap safe
+    // to keep while the term stays open. Losing this sentence would leave the
+    // argument looking contingent on the reading.
+    expect(notes, "the cap must be shown to be independent of the reading").toContain(
+      "turns on which bands are gated and not on what counts as support",
+    );
+
+    // The Phoenix contrast: same clinical situation, opposite structure. It is
+    // in the notes precisely because the entailment invites over-generalisation.
+    expect(notes, "the Phoenix contrast must survive").toContain("Phoenix");
+    expect(notes, "and it must state the opposite behaviour, not just name it").toMatch(
+      /scores 0 on the respiratory criterion/,
+    );
+    // v1.4.0: that contrast stopped being a structural inference from two
+    // printed tables. Phoenix publishes SQL that derives ONE support flag and
+    // multiplies its tiers by it, so its floor at 0 is explicit in code. The
+    // MECHANISM is what a reader needs — "the two scores differ" invites
+    // harmonising them; "one multiplies by a support flag, the other attaches a
+    // condition to its top two bands" does not.
+    expect(notes, "the contrast must be attributed to Phoenix's published code").toContain(
+      "SOURCED FROM PHOENIX'S OWN PUBLISHED CODE",
+    );
+    expect(notes, "with the flag the SQL actually derives").toMatch(
+      /FiO₂ exceeds 0\.21 or the child is invasively ventilated/,
+    );
+    expect(notes, "and the structural difference, not just the outcome").toMatch(
+      /Phoenix multiplies every tier by a support flag, pSOFA attaches a support condition only to its top two bands/,
+    );
+
+    // THE HFNC FINDING. A child on high flow satisfies the broad support gate
+    // here and is recorded as not ventilated by both major registries, so a
+    // score read next to registry data is not comparing like with like.
+    expect(notes, "the high-flow divergence must be stated").toContain("HIGH-FLOW NASAL CANNULA");
+    expect(notes, "and it must name the registries that go the other way").toMatch(
+      /PICANet and ANZPIC both EXCLUDE high-flow nasal cannula/,
+    );
+    // …and stop there. The magnitude is genuinely unknown, and an unqualified
+    // "this shifts scores" would be the kind of claim this file exists to catch.
+    expect(notes, "the unquantified part must stay marked unretrieved").toMatch(
+      /no cohort has quantified/,
+    );
+
+    // Confirmed-absent, not unfound — a reader must not go hunting for bounds
+    // the paper never printed. This claim is about MATICS, and v1.4.0 must not
+    // have blurred it by adding outside comparators: the paper still publishes
+    // nothing, and the new material is explicitly about ranges published
+    // elsewhere for the same analytes.
+    expect(notes).toContain("confirmed absent from the paper, not merely unlocated");
+    expect(notes, "outside comparators must not be mistaken for the paper's own").toContain(
+      "THAT REMAINS TRUE OF THE PAPER",
+    );
+    // The three bounds that turned out to match a published range are named,
+    // because "some of our bounds are corroborated" is worth nothing unless a
+    // reader can see WHICH.
+    expect(notes, "the matching bounds must be named individually").toMatch(
+      /FiO₂ 0\.21–1\.00, SpO₂ 0–100, and GCS 3–15/,
+    );
+    // And the ones that differ keep ours, with the published alternative shown.
+    expect(notes, "the differing bounds must say ours is kept").toContain(
+      "NO BOUND ON THIS SCORE MOVED",
+    );
+    expect(notes, "and name what the published alternative is").toMatch(/MAP 10–150 against 1–300/);
+    // The age window is the one that is deliberately WIDER than a published
+    // figure, and the reason is not a guardrail preference — Phoenix's 216 is an
+    // eligibility ceiling for a different score. Importing it would refuse
+    // adolescents pSOFA was derived on, so the reason is pinned with the number.
+    expect(notes, "the age window must justify being wider, not just be wider").toMatch(
+      /that is Phoenix's eligibility domain, not a plausibility bound/,
+    );
+    // The registry comparator, named precisely enough to be found.
+    expect(notes, "PICANet must be cited by manual and version, not vaguely").toContain(
+      "PICANet Admission Dataset Definitions Manual v5.4 (November 2020)",
+    );
+    // Provenance limit: the numeric table came from the docs page, not from the
+    // machine-readable file, and the file must not be cited as if it had been.
+    expect(notes, "the unretrieved units file must stay disclosed as unretrieved").toMatch(
+      /could not be retrieved, so nothing here is cited to that file/,
+    );
+    // THE CONFIRMED NEGATIVE. Three registries publish nothing, which is what
+    // explains why two honest implementations of one score disagree on what
+    // they accept. Silence is the finding; it must not decay into an unfinished
+    // search that someone re-runs.
+    expect(notes, "the proprietary-registry negative must be stated as confirmed").toMatch(
+      /VPS, PC4 and PHIS publish NO public numeric plausibility or edit-check bounds — confirmed negative/,
+    );
+
+    // The overlap is in the source; only the tie-break is ours.
+    expect(notes).toContain("JAMA Pediatr Table 1 prints 264");
+
+    // The ≤97% ceiling is sourced twice over; the neonatal caveat names nSOFA.
+    expect(notes).toContain("Khemani");
+    expect(notes).toContain("nSOFA");
+
+    // Above 216 months the cut points are adult SOFA's — a real caveat, stated.
+    expect(notes).toContain("216 months");
+
+    // Every source the prose leans on must resolve to a reference entry.
+    // Matics (the score), Khemani 2009 + 2012 (the ≤97% ceiling), Wynn & Polin
+    // (nSOFA). A citation named in notes but absent from `references` renders as
+    // an authority the reader cannot follow.
+    const refs = JSON.stringify(psofa.references);
+    for (const pmid of ["28783810", "19029434", "22202709", "31394566"]) {
+      expect(refs, `notes cite a source missing from references (PMID ${pmid})`).toContain(pmid);
+    }
+
+    // The two input fields that carry a caveat of their own must carry it where
+    // it is read — beside the field, not only in the notes below the result.
+    const help = (id: string) => psofa.inputs.find((i) => i.id === id)?.helpText?.en ?? "";
+    expect(help("spo2"), "the ≤97% ceiling's provenance belongs on the field").toContain("Khemani");
+    expect(help("age_months"), "the adult-cut-point caveat belongs on the field").toContain(
+      "adult SOFA",
+    );
+    // The support field is the one being ticked at the moment the reading
+    // matters, so what it counts — and that counting it is ours — belongs here
+    // and not only in the notes below the result.
+    expect(help("resp_support"), "the field must say non-invasive support counts").toContain(
+      "Invasive or non-invasive support both count",
+    );
+    expect(help("resp_support"), "and that this is our reading of an undefined term").toContain(
+      "this calculator's reading rather than the paper's",
+    );
+    expect(help("resp_support"), "the field must not re-narrow the gate either").not.toMatch(
+      /mechanical[ -]ventilation/i,
+    );
+    // High flow is the concrete case where "does this count?" is actually asked,
+    // so it belongs on the field being ticked and not only in the notes below
+    // the result — together with the fact that the registries answer it the
+    // other way.
+    expect(help("resp_support"), "high flow is the case the reader is deciding").toContain(
+      "High-flow nasal cannula",
+    );
+    expect(help("resp_support"), "and the registries disagree, which the reader needs").toContain(
+      "PICANet and ANZPIC",
+    );
+  });
+
+  /**
+   * THE INPUT BOUNDS ARE PINNED AGAINST THE PUBLISHED TABLE THAT NOW EXISTS.
+   *
+   * Until v1.4.0 every min/max here was labelled this platform's own invention,
+   * because Matics & Sanchez-Pinto publish none — which is still true of the
+   * paper. What changed is that published plausibility ranges for the SAME
+   * ANALYTES were found elsewhere (the Phoenix implementation notes' reasonable-
+   * value table; PICANet v5.4), so for the first time these windows can be
+   * checked against something. Three of them turned out to be identical to a
+   * published range.
+   *
+   * The risk that creates is the reason for this test, and it runs in the
+   * opposite direction to the usual one. The usual failure is a bound drifting
+   * with no source. The new one is a bound being "corrected" TOWARDS the
+   * published numbers on the reasonable-sounding grounds that a published range
+   * beats an invented one — which would be wrong here twice over:
+   *
+   *   - a form field refusing a typo is not a data pipeline's outlier filter.
+   *     Most of the published ranges are open above ([0, ∞) for platelets, PaO₂
+   *     and others); adopting them would remove the guardrail entirely;
+   *   - the age window must stay WIDER than Phoenix's [0, 216), because that is
+   *     Phoenix's ELIGIBILITY domain for a different score. pSOFA's cohort ran
+   *     to 252 months and its top band is ">216 months", so importing 216 here
+   *     would refuse adolescents this score was derived on.
+   *
+   * Every pair below is asserted with the published comparator named beside it,
+   * so a future edit that adopts one has to delete a line that says why not.
+   */
+  it("keeps its own input windows, and does not adopt the published ones", () => {
+    const bounds = (id: string) => {
+      const input = psofa.inputs.find((i) => i.id === id);
+      return input && input.type === "numeric" ? { min: input.min, max: input.max } : undefined;
+    };
+
+    // MATCHES a published range — these three are no longer only ours.
+    expect(bounds("fio2"), "identical to the published FiO₂ range [0.21, 1.00]").toEqual({
+      min: 0.21,
+      max: 1,
+    });
+    expect(bounds("spo2"), "identical to the published SpO₂ range [0, 100]").toEqual({
+      min: 0,
+      max: 100,
+    });
+    expect(bounds("gcs"), "identical to the published GCS range 3-15").toEqual({ min: 3, max: 15 });
+
+    // NARROWER than the published range, deliberately kept.
+    expect(bounds("pao2"), "published: [0, inf); PICANet: 22-450 mmHg. Ours sits between").toEqual({
+      min: 20,
+      max: 600,
+    });
+    expect(bounds("map"), "published: [1, 300] mmHg; highest cut point here is 70").toEqual({
+      min: 10,
+      max: 150,
+    });
+    expect(bounds("creatinine"), "published: [0, 50] mg/dL; highest cut point here is 5.0").toEqual(
+      {
+        min: 0.1,
+        max: 20,
+      },
+    );
+    expect(bounds("bilirubin"), "published total bilirubin: [0, 100] mg/dL").toEqual({
+      min: 0.1,
+      max: 50,
+    });
+    expect(bounds("platelets"), "published: [0, inf) - open above, nothing to adopt").toEqual({
+      min: 1,
+      max: 1000,
+    });
+
+    // WIDER than a published figure, and it must stay that way.
+    expect(bounds("age_months"), "Phoenix's [0, 216) is its eligibility, not a bound").toEqual({
+      min: 0,
+      max: 250,
+    });
+    // The distinction is only meaningful if 216 really is inside our window: a
+    // 17-year-old must compute, and must be scored against the >216-month band
+    // only once past it.
+    const at216 = psofa.compute({
+      age_months: { value: 216, unit: "months" },
+      fio2: { value: 0.21, unit: "fraction" },
+      resp_support: { value: false },
+      platelets: { value: 300, unit: "10^3/µL" },
+      bilirubin: { value: 0.5, unit: "mg/dL" },
+      gcs: { value: 15, unit: "" },
+      creatinine: { value: 1.5, unit: "mg/dL" },
+    });
+    expect(at216.ok, "216 months is inside pSOFA's cohort and must compute").toBe(true);
+    if (at216.ok) {
+      // 144-216 band: creatinine 1.5 is in [1.0, 1.7) -> renal 1. The >216 band
+      // would give 0, so this also proves the band edge is inclusive at 216.
+      const renal = at216.result.values.find((v) => v.id === "renal")?.value;
+      expect(renal, "216 months is still the paediatric 144-216 band, not the adult one").toBe(1);
+    }
+
+    // No published comparator of any kind for an infusion RATE — the only
+    // published vasoactive figure in this family is Phoenix's count of agents.
+    for (const id of ["dopamine", "dobutamine", "epinephrine", "norepinephrine"]) {
+      expect(bounds(id)?.min, `${id}: 0 must mean not infusing`).toBe(0);
+    }
   });
 });

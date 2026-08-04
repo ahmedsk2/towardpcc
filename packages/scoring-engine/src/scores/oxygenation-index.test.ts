@@ -61,6 +61,29 @@ describeScore(oxygenationIndex, (ctx) => {
     [{ id: "oi", value: 3.33, tolerance: 0.1 }],
   );
 
+  // ×100 CONVENTION ANCHOR (oi-osi.md worked example 7). Worked examples 1 and 3 above
+  // both happen to fail if the ×100 is dropped, but neither says so — this one exists
+  // to state it, with inputs chosen so the three candidate answers are orders of
+  // magnitude apart rather than adjacent:
+  //   correct, fraction + ×100 : (20 × 1.0 × 100) / 100 = 20
+  //   ×100 dropped             : (20 × 1.0)       / 100 = 0.2    (100× too small)
+  //   ×100 applied to a percent: (20 × 100 × 100) / 100 = 2000   (100× too large)
+  // A tolerance of 0.1 cannot absorb either error, so what is pinned is the ORDER OF
+  // MAGNITUDE of the FiO₂ convention, not just this row's arithmetic.
+  ctx.workedExample(
+    {
+      ...slaughter2025,
+      locator:
+        "oi-osi.md worked example 7 — ×100 convention anchor: OI = 2000/100 = 20, not 0.2 and not 2000",
+    },
+    {
+      map_awp: { value: 20, unit: "cmH2O" },
+      fio2: { value: 1, unit: "fraction" },
+      pao2: { value: 100, unit: "mmHg" },
+    },
+    [{ id: "oi", value: 20, tolerance: 0.1 }],
+  );
+
   const base = {
     map_awp: { value: 20, unit: "cmH2O" },
     fio2: { value: 0.6, unit: "fraction" },

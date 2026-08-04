@@ -23,6 +23,20 @@ const jamaTable2 = {
   doi: "10.1001/jama.2024.0196",
 };
 
+// Expected values that are OUTPUT OF THE TASK FORCE'S OWN SOFTWARE, executed
+// against the stated inputs, rather than read off a printed table. Used for the
+// two places where the published tables cannot settle the question by
+// themselves: the neurologic row (whose three mutually exclusive columns do not
+// say what a fixed pupil with a normal or unrecorded GCS scores) and the four
+// boundary values where the printed integer bands and the continuous software
+// comparisons disagree. Provenance is recorded in
+// docs/research/scores/phoenix.md; the module is CU-DBMI-Peds/phoenix, MIT.
+const phoenixModule = {
+  citation:
+    "DeWitt PE, Russell S, Rebull MN, Sanchez-Pinto LN, Bennett TD. phoenix: an R package and Python module for calculating the Phoenix pediatric sepsis score and criteria. JAMIA Open. 2024;7(3):ooae066 — official Python module (CU-DBMI-Peds/phoenix) executed against these inputs.",
+  doi: "10.1093/jamiaopen/ooae066",
+};
+
 describeScore(phoenix, (ctx) => {
   // Worked example 1 — septic shock (phoenix.md, package clinical vignette 1):
   // previously healthy 3-yr-old (36 mo), BP 67/32 → MAP ≈ 43.67, on norepinephrine
@@ -127,6 +141,39 @@ describeScore(phoenix, (ctx) => {
     { age_months: { value: 300, unit: "months" }, suspected_infection: { value: true } },
     { inputId: "age_months", code: "out-of-range" },
   );
+
+  /**
+   * THE AGE CEILING IS EXCLUSIVE OF 216 MONTHS, AND 215 IS NOT THE LAST VALUE.
+   *
+   * The criteria are "children under 18 years", so the eligible domain is the
+   * half-open [0, 216) months. Until v2.1.0 this was declared `max: 215`,
+   * because the shared numeric type had only an inclusive maximum: correct for
+   * whole months, but it also refused 215.5 — a real age the criteria admit,
+   * two weeks short of the eighteenth birthday.
+   *
+   * `boundaryTest` above proves that something just under the ceiling computes
+   * and that the ceiling itself rejects. It cannot prove the ceiling is 216
+   * rather than 215, which is the whole point of the change, so these pin the
+   * boundary from both sides at the values a clinician would actually enter.
+   */
+  it("accepts the final month of eligibility and rejects exactly 216 months", () => {
+    for (const months of [215, 215.5, 215.999]) {
+      const outcome = phoenix.compute({
+        ...requiredBase,
+        age_months: { value: months, unit: "months" },
+      });
+      expect(outcome.ok, `${months} months is under 18 years and must compute`).toBe(true);
+    }
+
+    const at216 = phoenix.compute({ ...requiredBase, age_months: { value: 216, unit: "months" } });
+    expect(at216.ok, "exactly 18.0 years is outside the criteria").toBe(false);
+    if (!at216.ok) {
+      const err = at216.errors.find((e) => e.inputId === "age_months");
+      expect(err?.code).toBe("out-of-range");
+      // The message must not name 216 as acceptable, nor 215 as the last value.
+      expect(err?.message).toBe("Age must be at least 0 and less than 216 months.");
+    }
+  });
 
   ctx.rejectsImplausible(
     "an implausibly high lactate",
@@ -457,18 +504,244 @@ describeScore(phoenix, (ctx) => {
     [{ id: "coagulation", value: 2 }],
   );
 
-  // ---------------------------------------------------------------------------
-  // Neurologic (0–2) — additive, capped at 2 (phoenix.md §4). GCS ≤ 10 (1 pt) +
-  // bilaterally fixed pupils (1 pt) = 2. Covers the fixed-pupils arm and the cap.
-  // ---------------------------------------------------------------------------
+  /**
+   * NEUROLOGIC (0–2) — HIERARCHICAL, and this is the row the calculator got
+   * wrong until 2026-08-03.
+   *
+   * It was implemented as GCS ≤ 10 (+1) plus fixed pupils (+1), capped at 2.
+   * That agrees with the published rule at exactly one input — fixed pupils
+   * with a GCS ≤ 10 — and disagrees everywhere else a pupil is fixed, which is
+   * why a single passing "GCS 8 + fixed pupils → 2" case (the only neurologic
+   * case this file used to carry) could not see it.
+   *
+   * The published tables print three mutually exclusive columns and cannot be
+   * read as an addition. The whole edge-case table below is real output from
+   * the task force's Python module, so it settles the two questions the printed
+   * table leaves open: a fixed pupil with a NORMAL GCS, and a fixed pupil with
+   * NO GCS at all.
+   *
+   * The missing-GCS row is the clinically load-bearing one. GCS imputes to 15
+   * and pupil status imputes to 'not fixed' INDEPENDENTLY, so a child with
+   * bilaterally fixed pupils and no GCS recorded scores the full 2 — which on
+   * its own reaches the total ≥ 2 sepsis threshold. The old additive-with-cap
+   * form scored that child 1 and put them below it.
+   */
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: fixed pupils, GCS 15 → 2" },
+    { ...rr, gcs_total: { value: 15, unit: "" }, fixed_pupils: { value: true } },
+    [{ id: "neurologic", value: 2 }],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: fixed pupils, GCS 8 → 2" },
+    { ...rr, gcs_total: { value: 8, unit: "" }, fixed_pupils: { value: true } },
+    [{ id: "neurologic", value: 2 }],
+  );
+  // The one that changes a diagnosis: no GCS entered at all, pupils fixed.
+  // Nothing else abnormal, so the neurologic 2 IS the total, and the total
+  // crossing 2 is what the sepsis criterion turns on.
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "phoenix_neurologic executed: fixed pupils, GCS missing (imputed 15) → 2",
+    },
+    { ...rr, fixed_pupils: { value: true } },
+    [
+      { id: "neurologic", value: 2 },
+      { id: "phoenix_total", value: 2 },
+      { id: "sepsis", value: 1 },
+      { id: "septic_shock", value: 0 },
+    ],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 15 → 0" },
+    { ...rr, gcs_total: { value: 15, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 0 }],
+  );
+  // 11 and 10 straddle the published cut point from below.
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 11 → 0" },
+    { ...rr, gcs_total: { value: 11, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 0 }],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 10 → 1" },
+    { ...rr, gcs_total: { value: 10, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 1 }],
+  );
+  ctx.workedExample(
+    { ...phoenixModule, locator: "phoenix_neurologic executed: pupils not fixed, GCS 3 → 1" },
+    { ...rr, gcs_total: { value: 3, unit: "" }, fixed_pupils: { value: false } },
+    [{ id: "neurologic", value: 1 }],
+  );
+  // The mirror of the load-bearing case: pupil status missing must not suppress
+  // the GCS point either. Imputation is per input, in both directions.
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "phoenix_neurologic executed: GCS 8, pupil status missing (imputed not fixed) → 1",
+    },
+    { ...rr, gcs_total: { value: 8, unit: "" } },
+    [{ id: "neurologic", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "phoenix_neurologic executed: GCS and pupil status both missing → 0",
+    },
+    { ...rr },
+    [{ id: "neurologic", value: 0 }],
+  );
+
+  /**
+   * The neurologic component must never exceed 2. An uncapped sum of the two
+   * criteria would return 3 for fixed pupils at GCS 8 — out of range for the
+   * subscore and an inflated total — and the reference package guards against
+   * it with an explicit cap. The hierarchical form here makes 3 unreachable by
+   * construction rather than by a cap, so this asserts the property directly
+   * across every combination of the two inputs.
+   */
+  it("neurologic is 0-2 for every combination of GCS and pupil status", () => {
+    const observed = new Set<number>();
+    for (const gcs of [undefined, 3, 10, 11, 15]) {
+      for (const fixed of [undefined, false, true]) {
+        const outcome = phoenix.compute({
+          age_months: { value: 36, unit: "months" },
+          suspected_infection: { value: true },
+          ...(gcs === undefined ? {} : { gcs_total: { value: gcs, unit: "" } }),
+          ...(fixed === undefined ? {} : { fixed_pupils: { value: fixed } }),
+        } as never);
+        expect(outcome.ok).toBe(true);
+        if (!outcome.ok) continue;
+        const neuro = outcome.result.values.find((v) => v.id === "neurologic")!.value;
+        expect(neuro, `GCS ${gcs}, fixed pupils ${fixed}`).toBeGreaterThanOrEqual(0);
+        expect(neuro, `GCS ${gcs}, fixed pupils ${fixed}`).toBeLessThanOrEqual(2);
+        observed.add(neuro);
+      }
+    }
+    // All three points of the range are reachable — otherwise "never exceeds 2"
+    // would pass on a subscore that had silently stopped scoring.
+    expect([...observed].sort()).toEqual([0, 1, 2]);
+  });
+
+  /**
+   * THE FOUR BOUNDARY DIVERGENCES, PINNED.
+   *
+   * The published tables are written for the bedside — integer MAP bands, a
+   * one-decimal lactate band — while the reference software compares every
+   * input continuously. That produces a small, complete, enumerable set of
+   * values where the printed table and the software disagree. There are exactly
+   * four, and this calculator follows the software at all four; the choice is
+   * stated in `formula` so a reader who checks against the printed table finds
+   * the discrepancy explained rather than surprising.
+   *
+   * These cases exist because "we follow the software" is otherwise a claim in
+   * prose with nothing holding it: every other test in this file sits inside a
+   * band where the two conventions agree, so a future edit to a comparison
+   * operator would move all four of these silently and break nothing.
+   */
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: MAP 30.5 at age < 1 mo → 1 (printed 0-point band starts at 31)",
+    },
+    {
+      age_months: { value: 0, unit: "months" },
+      suspected_infection: { value: true },
+      map: { value: 30.5, unit: "mmHg" },
+    },
+    [{ id: "cardiovascular", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: lactate 10.95 → 1 (printed 1-point band 5-10.9 leaves it in a gap)",
+    },
+    { ...rr, lactate: { value: 10.95, unit: "mmol/L" } },
+    [{ id: "cardiovascular", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: P/F exactly 200 on IMV → 1 (printed 2-point band 100-200 reads 2)",
+    },
+    {
+      ...rr,
+      resp_support: { value: "imv" },
+      pao2: { value: 200, unit: "mmHg" },
+      fio2: { value: 1, unit: "fraction" },
+    },
+    [{ id: "respiratory", value: 1 }],
+  );
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator: "executed: S/F exactly 220 on IMV → 1 (printed 2-point band 148-220 reads 2)",
+    },
+    {
+      ...rr,
+      resp_support: { value: "imv" },
+      spo2: { value: 88, unit: "%" },
+      fio2: { value: 0.4, unit: "fraction" },
+    },
+    [{ id: "respiratory", value: 1 }],
+  );
+
+  /**
+   * BOTH oxygenation ratios are tested at every tier, and either can trigger
+   * one. The published respiratory rows are disjunctions ("P/F < 200 OR
+   * S/F < 220") and the reference expression evaluates both terms; a ratio that
+   * cannot be computed imputes to 500, above every cut point, so it contributes
+   * nothing rather than vetoing the other one.
+   *
+   * Until 2026-08-03 this calculator used P/F ALONE whenever an arterial gas
+   * was present and only fell back to S/F when it was not, so an S/F that
+   * crossed a tier was discarded the moment a PaO₂ existed. The two ratios do
+   * disagree in practice, because a gas and a saturation are rarely drawn at
+   * the same instant: below, P/F 250/0.6 = 417 clears the 400 cut point while
+   * S/F 96/0.6 = 160 sits inside the 2-point band. The published rule scores
+   * that child 2; the old code scored 0 and left them below the sepsis
+   * threshold. The correction can only ever raise a respiratory score.
+   */
+  ctx.workedExample(
+    {
+      ...phoenixModule,
+      locator:
+        "executed: IMV, P/F 417 (no points on its own) with S/F 160 → 2, per the disjunction in the respiratory rows",
+    },
+    {
+      ...rr,
+      resp_support: { value: "imv" },
+      pao2: { value: 250, unit: "mmHg" },
+      spo2: { value: 96, unit: "%" },
+      fio2: { value: 0.6, unit: "fraction" },
+    },
+    [
+      { id: "respiratory", value: 2 },
+      { id: "phoenix_total", value: 2 },
+      { id: "sepsis", value: 1 },
+      { id: "septic_shock", value: 0 },
+    ],
+  );
+
+  /**
+   * Respiratory is cumulative, and the ceiling that matters clinically is the
+   * one on NON-invasive support: it is 1, however bad the ratio gets, because
+   * the 2- and 3-point tiers are gated on invasive ventilation. A ratio deep
+   * below the 3-point cut point still scores 1 without a tube.
+   */
   ctx.workedExample(
     {
       ...jamaTable2,
       locator:
-        "derived from formula in JAMA Table 2 (phoenix.md §4): GCS 8 ≤ 10 + fixed pupils → 2",
+        "JAMA Table 2 respiratory row: P/F 50 on non-invasive support → 1, the 2- and 3-point tiers requiring IMV",
     },
-    { ...rr, gcs_total: { value: 8, unit: "" }, fixed_pupils: { value: true } },
-    [{ id: "neurologic", value: 2 }],
+    {
+      ...rr,
+      resp_support: { value: "any-support" },
+      pao2: { value: 50, unit: "mmHg" },
+      fio2: { value: 1, unit: "fraction" },
+    },
+    [{ id: "respiratory", value: 1 }],
   );
 
   // ---------------------------------------------------------------------------
@@ -599,7 +872,7 @@ describeScore(phoenix, (ctx) => {
         map: { value: 40, unit: "mmHg" },
       },
       // The ceiling: resp 3 (S/F 97 < 148 on IMV) + cardio 6 (2 + 2 + 2) +
-      // coag 2 (capped) + neuro 2 (capped) = 13.
+      // coag 2 (capped) + neuro 2 (fixed pupils, which is the whole 2) = 13.
       {
         ...ventilatedOnPureOxygen,
         spo2: { value: 97, unit: "%" },
@@ -653,5 +926,237 @@ describeScore(phoenix, (ctx) => {
       composition.components.reduce((n, c) => n + c.max, 0),
       "declared maxima must sum to the published Phoenix maximum of 13",
     ).toBe(13);
+  });
+
+  /**
+   * WHERE THIS CALCULATOR AND THE PUBLISHED SQL PART COMPANY, PINNED.
+   *
+   * The task force's published SQL derives its support flag FROM THE DATA:
+   * `other_respiratory_support = IIF(fio2 > 0.21 OR vent = 1, 1, 0)`. It has to,
+   * because it extracts from records with no support field. This calculator
+   * asks the clinician instead, so `resp_support: "none"` is taken at face
+   * value even when an FiO₂ above room air is also entered.
+   *
+   * That pairing is internally contradictory — a child on FiO₂ 0.5 is by
+   * definition receiving oxygen — and it is the ONE input combination where the
+   * two disagree: the extraction awards the 1-point tier, this calculator
+   * scores 0. Neither behaviour is a defect of the other; they are answering
+   * from different evidence. It is pinned rather than reconciled because
+   * silently overriding a clinician's explicit answer with an inference from
+   * another field is the worse of the two failure modes, and because a future
+   * edit that decided to "match the reference" would move a real number on a
+   * sepsis calculator with nothing else in this file objecting.
+   *
+   * Not a workedExample: the expected value here is THIS implementation's
+   * choice, not a published one, and dressing it in a citation would claim the
+   * source endorses the divergence it is a divergence from.
+   */
+  it("takes 'no respiratory support' at face value even with an FiO2 above room air", () => {
+    const contradictory = phoenix.compute({
+      age_months: { value: 36, unit: "months" },
+      suspected_infection: { value: true },
+      resp_support: { value: "none" },
+      pao2: { value: 100, unit: "mmHg" },
+      fio2: { value: 0.5, unit: "fraction" },
+    });
+    expect(contradictory.ok).toBe(true);
+    if (!contradictory.ok) return;
+    const respiratory = contradictory.result.values.find((v) => v.id === "respiratory")!.value;
+    // P/F = 200, which is under the 400 cut point, so the published extraction
+    // would read FiO₂ 0.5 as supplemental oxygen and award 1. Here: 0.
+    expect(respiratory, "the explicit answer wins over the FiO₂ inference").toBe(0);
+
+    // The same child with the support question answered consistently scores the
+    // point — so the 0 above is the contradiction being surfaced, not the
+    // 1-point tier being broken.
+    const consistent = phoenix.compute({
+      age_months: { value: 36, unit: "months" },
+      suspected_infection: { value: true },
+      resp_support: { value: "any-support" },
+      pao2: { value: 100, unit: "mmHg" },
+      fio2: { value: 0.5, unit: "fraction" },
+    });
+    expect(consistent.ok).toBe(true);
+    if (!consistent.ok) return;
+    expect(
+      consistent.result.values.find((v) => v.id === "respiratory")!.value,
+      "answering the support question consistently reaches the 1-point tier",
+    ).toBe(1);
+  });
+
+  /**
+   * THE INPUT BOUNDS ARE PINNED AGAINST THE PUBLISHED TABLE THAT NOW EXISTS.
+   *
+   * Every min/max on this score was labelled a guardrail of this platform's own
+   * invention until v2.2.0. The Phoenix implementation notes publish a
+   * reasonable-value table, and five of these bounds turn out to be identical
+   * to it — including age [0, 216) with an exclusive ceiling, which was argued
+   * here from the criteria's "children under 18 years" BEFORE that table was
+   * read and is therefore independent corroboration rather than a copy.
+   *
+   * The risk that creates runs opposite to the usual one. The usual failure is
+   * a bound drifting with no source; the new one is a bound being "corrected"
+   * towards the published numbers because a published range sounds better than
+   * an invented one. It would be wrong here: most of the published ranges are
+   * open above ([0, ∞) for platelets, INR, fibrinogen and PaO₂), so adopting
+   * them removes the guardrail rather than sourcing it. A form field refusing a
+   * typo is not a data pipeline's outlier filter.
+   *
+   * Each pair is asserted with its published comparator named, so an edit that
+   * adopts one has to delete the line saying why not.
+   */
+  it("keeps its own input windows where they differ from the published table", () => {
+    const bounds = (id: string) => {
+      const input = phoenix.inputs.find((i) => i.id === id);
+      return input && input.type === "numeric" ? { min: input.min, max: input.max } : undefined;
+    };
+
+    // MATCHES the published reasonable-value table.
+    expect(bounds("fio2"), "identical to the published FiO₂ range [0.21, 1.00]").toEqual({
+      min: 0.21,
+      max: 1,
+    });
+    expect(bounds("gcs_total"), "identical to the published GCS range 3-15").toEqual({
+      min: 3,
+      max: 15,
+    });
+    expect(bounds("n_vasoactives"), "identical to the published integer count 0-6").toEqual({
+      min: 0,
+      max: 6,
+    });
+    // Age is the one that matters most: the published domain is half-open, and
+    // so is this declaration. An inclusive 216 would admit exactly 18.0 years,
+    // which both the criteria and the published table exclude.
+    const age = phoenix.inputs.find((i) => i.id === "age_months");
+    expect(age?.type).toBe("numeric");
+    if (age?.type === "numeric") {
+      expect(age.min, "published lower bound is 0").toBe(0);
+      expect(age.max, "published upper bound is 216").toBe(216);
+      expect(age.maxExclusive, "and the published interval is half-open, [0, 216)").toBe(216);
+    }
+    // SpO₂ shares the published ceiling; the floor of 50 is still ours (the
+    // published floor is 0). The >97 half of the published statement is the S/F
+    // validity gate, exercised by the 97/98 cliff cases above.
+    expect(bounds("spo2"), "published ceiling 100 matches; the 50 floor is ours").toEqual({
+      min: 50,
+      max: 100,
+    });
+
+    // NARROWER than published, deliberately kept.
+    expect(bounds("pao2"), "published: [0, inf) mmHg; PICANet v5.4: 22-450").toEqual({
+      min: 20,
+      max: 700,
+    });
+    expect(bounds("map"), "published: [1, 300] mmHg").toEqual({ min: 10, max: 200 });
+    expect(bounds("lactate"), "published: [0, 50] mmol/L; PICANet v5.4: 0.2-15.0").toEqual({
+      min: 0.3,
+      max: 30,
+    });
+    expect(bounds("ddimer"), "published: [0, 500] mg/L FEU - ten times this ceiling").toEqual({
+      min: 0.1,
+      max: 50,
+    });
+    expect(bounds("platelets"), "published: [0, inf) - open above, nothing to adopt").toEqual({
+      min: 5,
+      max: 1000,
+    });
+    expect(bounds("inr"), "published: [0, inf) - open above").toEqual({ min: 0.8, max: 10 });
+    expect(bounds("fibrinogen"), "published: [0, inf) mg/dL - open above").toEqual({
+      min: 30,
+      max: 800,
+    });
+  });
+
+  /**
+   * THE v2.2.0 DISCLOSURES ARE PART OF THE PRODUCT, SO THEY GET A TEST.
+   *
+   * Three of them are the kind that decay quietly if nothing holds them: a
+   * confirmed negative re-read as an unfinished search, a sourced-from-code fact
+   * re-worded back into an inference, and an explicitly unquantified effect
+   * losing its qualifier. The fourth — high-flow nasal cannula counting here and
+   * not in the registries — is new and is the one a reader is most likely to
+   * need, because it is invisible until a Phoenix score is set beside registry
+   * ventilation data.
+   */
+  it("keeps the sourced support gate, the registry divergence and the bounds provenance", () => {
+    const notes = phoenix.notes.en;
+
+    // The gate is read off published SQL, and the MECHANISM is what makes the
+    // pSOFA contrast usable rather than merely surprising.
+    expect(notes, "the support gate must be attributed to the published code").toContain(
+      "READ OFF THE TASK FORCE'S OWN PUBLISHED CODE",
+    );
+    expect(notes, "with the flag the SQL derives").toMatch(
+      /other respiratory support is true when FiO₂ exceeds 0\.21 or the child is invasively ventilated/,
+    );
+    expect(notes, "and the pSOFA contrast, which inverts it").toContain(
+      "pSOFA IS BUILT THE OTHER WAY UP",
+    );
+    expect(notes, "stated as two numbers a reader can hold side by side").toMatch(
+      /Phoenix respiratory 0 and pSOFA respiratory 2 simultaneously/,
+    );
+    // The one input combination where this calculator and the extraction differ.
+    expect(notes, "the FiO₂-versus-support divergence must be disclosed").toMatch(
+      /the extraction would award the 1-point tier, this calculator scores 0/,
+    );
+
+    // HIGH FLOW: counted here, excluded by both registries.
+    expect(notes, "the high-flow divergence must be stated").toContain("HIGH-FLOW NASAL CANNULA");
+    expect(notes, "and name the registries that exclude it").toMatch(
+      /PICANet and ANZPIC both EXCLUDE high-flow nasal cannula/,
+    );
+    expect(notes, "the magnitude is unknown and must stay marked unretrieved").toMatch(
+      /no cohort has quantified/,
+    );
+
+    // BOUNDS: which match, which do not, and that none moved.
+    expect(notes, "the bounds must stop being described as all ours").toContain(
+      "PLAUSIBILITY BOUNDS ARE NO LONGER ALL OURS",
+    );
+    expect(notes, "the matching ones must be named individually").toMatch(
+      /age months \[0, 216\) with an exclusive ceiling/,
+    );
+    expect(notes, "and the kept-narrower ones must say nothing moved").toContain(
+      "NO BOUND ON THIS SCORE MOVED",
+    );
+    expect(notes, "PICANet must be cited by manual and version").toContain(
+      "PICANet Admission Dataset Definitions Manual v5.4 (November 2020)",
+    );
+    // Provenance limit: the docs page was read; the units file was not, and must
+    // not be cited as though it had been.
+    expect(notes, "the unretrieved units file must stay disclosed as unretrieved").toMatch(
+      /could not be retrieved, so nothing here is cited to that file/,
+    );
+    // The confirmed negative — silence IS the finding, and must not decay into
+    // an open search someone re-runs.
+    expect(notes, "the proprietary-registry negative must be stated as confirmed").toMatch(
+      /VPS, PC4 and PHIS publish NO public numeric plausibility or edit-check bounds\. Confirmed negative/,
+    );
+
+    // The two behaviours the reference splits between halting and nulling are
+    // distinguished, because the older note claimed rejection was wholly source
+    // behaviour and that is only true of GCS and the support flags.
+    expect(notes, "the halt/null split in the reference must be stated").toContain(
+      "The R package's own argument checks HALT",
+    );
+
+    // High flow is decided at the field, so it belongs on the field too.
+    const help = (id: string) => phoenix.inputs.find((i) => i.id === id)?.helpText?.en ?? "";
+    expect(help("resp_support"), "high flow is the case the reader is deciding").toContain(
+      "High-flow nasal cannula counts as support here",
+    );
+    expect(help("resp_support"), "and the FiO₂ contradiction belongs where it is entered").toMatch(
+      /entering an FiO₂ above 0\.21 alongside 'no respiratory support' is contradictory/,
+    );
+    // The option label itself must name high flow — a reader picking from three
+    // options should not have to open the help text to learn it belongs there.
+    const support = phoenix.inputs.find((i) => i.id === "resp_support");
+    expect(support?.type).toBe("categorical");
+    if (support?.type === "categorical") {
+      const anySupport = support.options.find((o) => o.value === "any-support");
+      expect(anySupport?.label.en, "the non-invasive option must name high flow").toContain(
+        "high-flow nasal cannula",
+      );
+    }
   });
 });

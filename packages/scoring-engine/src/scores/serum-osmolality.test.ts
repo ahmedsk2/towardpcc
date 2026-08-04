@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { serumOsmolality } from "./serum-osmolality";
 
@@ -126,6 +127,132 @@ describeScore(serumOsmolality, (ctx) => {
     ],
   );
 
+  // Example 6 — ethanol MORE than accounts for the gap, so the raw gap must not
+  // be flagged elevated. ethanol = 200 mg/dL, measured = 320, base calc 290.
+  //   raw gap = +30 (would have read "≥ 10, unmeasured osmole")
+  //   ÷3.7: +200/3.7 = 54.05 → calc 344.05, residual −24.05
+  //   ÷4.6: +200/4.6 = 43.48 → calc 333.48, residual −13.48
+  // Both residuals negative → the raw gap is emitted as osm_gap_ethanol_explained.
+  ctx.workedExample(
+    {
+      ...purssell,
+      locator: "serum-osmolality.md worked example 6 (ethanol over-accounts; gap suppressed)",
+    },
+    {
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 90, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      ethanol: { value: 200, unit: "mg/dL" },
+      osm_measured: { value: 320, unit: "mOsm/kg" },
+    },
+    [
+      { id: "osm_gap_ethanol_explained", value: 30, tolerance: TOL },
+      { id: "osm_gap_ethanol_empiric", value: -24.054, tolerance: 0.001 },
+      { id: "osm_gap_ethanol_ideal", value: -13.478, tolerance: 0.001 },
+    ],
+  );
+
+  // Example 7 — the two divisors DISAGREE in sign, so the flag stands.
+  // ethanol = 100 mg/dL, measured = 315, base calc 290 → raw gap +25.
+  //   ÷3.7: residual 315 − 317.03 = −2.03 (negative)
+  //   ÷4.6: residual 315 − 311.74 = +3.26 (positive)
+  // Suppression requires BOTH negative, so this stays `osm_gap` and reads ≥ 10.
+  ctx.workedExample(
+    {
+      ...purssell,
+      locator: "serum-osmolality.md worked example 7 (divisors disagree; flag stands)",
+    },
+    {
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 90, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      ethanol: { value: 100, unit: "mg/dL" },
+      osm_measured: { value: 315, unit: "mOsm/kg" },
+    },
+    [
+      { id: "osm_gap", value: 25, tolerance: TOL },
+      { id: "osm_gap_ethanol_empiric", value: -2.027, tolerance: 0.001 },
+      { id: "osm_gap_ethanol_ideal", value: 3.261, tolerance: 0.001 },
+    ],
+  );
+
+  /**
+   * The defect this guards: the raw gap and the residual gaps were both on the
+   * page, and the raw one carried an "≥ 10, unmeasured osmole" band while the
+   * residuals under it were negative. A `workedExample` asserts the ids it names
+   * are present; only an explicit check can assert the OTHER id is absent, which
+   * is the whole mechanism — `osm_gap` is what carries the elevated band, so
+   * emitting the number under a different id is what suppresses the flag.
+   */
+  it("emits the raw gap under the unflagged id when both ethanol residuals are negative", () => {
+    const outcome = serumOsmolality.compute({
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 90, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      ethanol: { value: 200, unit: "mg/dL" },
+      osm_measured: { value: 320, unit: "mOsm/kg" },
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const ids = outcome.result.values.map((v) => v.id);
+    expect(ids).toContain("osm_gap_ethanol_explained");
+    expect(ids, "the banded id must be absent, or the flag is still shown").not.toContain(
+      "osm_gap",
+    );
+  });
+
+  it("keeps the banded id when only the ÷3.7 residual is negative", () => {
+    const outcome = serumOsmolality.compute({
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 90, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      ethanol: { value: 100, unit: "mg/dL" },
+      osm_measured: { value: 315, unit: "mOsm/kg" },
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const ids = outcome.result.values.map((v) => v.id);
+    expect(ids).toContain("osm_gap");
+    expect(ids).not.toContain("osm_gap_ethanol_explained");
+  });
+
+  it("keeps the banded id when no ethanol is entered, however large the gap", () => {
+    const outcome = serumOsmolality.compute({
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 90, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      osm_measured: { value: 330, unit: "mOsm/kg" },
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const ids = outcome.result.values.map((v) => v.id);
+    expect(ids).toContain("osm_gap");
+    expect(ids).not.toContain("osm_gap_ethanol_explained");
+  });
+
+  // `ethanol` has min 0, so 0 is a legitimate entry meaning "measured, none
+  // detected". With ethanol 0 both residuals collapse onto the raw gap, so a
+  // guard testing only "both residuals negative" credited an ethanol of zero
+  // with explaining EVERY negative gap — asserting that nothing accounted for
+  // something. It displaced `gap-normal` on exactly the value Hoffman 1993 puts
+  // at the centre of the healthy distribution: a gap of -2.
+  it("does not credit an ethanol of zero with explaining an ordinary negative gap", () => {
+    const outcome = serumOsmolality.compute({
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 90, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      osm_measured: { value: 288, unit: "mOsm/kg" }, // calculated 290 → raw gap -2
+      ethanol: { value: 0, unit: "mg/dL" },
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const ids = outcome.result.values.map((v) => v.id);
+    expect(ids).toContain("osm_gap");
+    expect(ids).not.toContain("osm_gap_ethanol_explained");
+    const gap = outcome.result.values.find((v) => v.id === "osm_gap");
+    expect(gap?.value).toBeCloseTo(-2, 6);
+  });
+
   // Boundary coverage for every numeric input (required and optional). The base
   // panel is valid so each edge isolates the input under test.
   const base = {
@@ -178,4 +305,151 @@ describeScore(serumOsmolality, (ctx) => {
   ctx.expectBand("osm_gap", 9.9, "gap-normal");
   ctx.expectBand("osm_gap", 10, "gap-elevated");
   ctx.expectBand("osm_gap", 40, "gap-elevated");
+
+  // The suppressed id carries one band at every magnitude — a raw gap of 30 that
+  // the ethanol term over-accounts for reads "accounted for", never "≥ 10".
+  ctx.expectBand("osm_gap_ethanol_explained", 30, "gap-ethanol-explained");
+  ctx.expectBand("osm_gap_ethanol_explained", 0, "gap-ethanol-explained");
+
+  /**
+   * Round-3 (2026-08-04) did not move a number; it widened what the page says
+   * about the number. These three assertions exist because the whole change is
+   * prose, so nothing else in this file would notice it being deleted.
+   */
+  const bandText = (id: string): string => {
+    const band = serumOsmolality.interpretation.find((b) => b.id === id);
+    if (!band) throw new Error(`no band ${id}`);
+    return band.description.en;
+  };
+
+  it("carries the full measured spread, not only the −2 ± 6 summary", () => {
+    // The boundary is unchanged; what changed is that the reader can see how
+    // wide the healthy distribution is and where 10 sits inside it.
+    const normal = bandText("gap-normal");
+    expect(normal).toContain("321");
+    expect(normal).toContain("−5 to +15");
+    expect(normal).toContain("−14 to +10");
+    expect(bandText("gap-elevated")).toContain("−14 to +10");
+    // The cut-off itself must not have drifted while the description grew.
+    const elevated = serumOsmolality.interpretation.find((b) => b.id === "gap-elevated");
+    expect(elevated?.min).toBe(10);
+  });
+
+  it("states the negative-baseline reason a normal gap cannot exclude ingestion", () => {
+    // "Does not exclude" on its own reads as boilerplate. The arithmetic is what
+    // makes it actionable: a baseline near −14 leaves +10 a >20 mOsm/kg rise.
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toContain("DOES NOT EXCLUDE TOXIC ALCOHOL INGESTION");
+    expect(cautions).toMatch(/baseline may be NEGATIVE/);
+    expect(bandText("gap-normal")).toMatch(/own true baseline may be NEGATIVE/);
+  });
+
+  /**
+   * Round-4 (2026-08-04) WITHDRAWAL. Version 1.2.0 shipped "no paediatric
+   * osmolar-gap data exists — settled absent". Three paediatric datasets exist.
+   * "Settled absent" tells a reader to stop looking, so shipping it wrongly is
+   * worse than never having claimed it, and these assertions exist to stop the
+   * claim quietly reappearing. Nothing here moves a boundary — the ≥ 10 band is
+   * asserted unchanged alongside the retraction.
+   */
+  const surfaces = (): string[] => [
+    ...(serumOsmolality.cautions ?? []).map((c) => c.en),
+    ...serumOsmolality.interpretation.map((b) => b.description.en),
+    serumOsmolality.notes.en,
+  ];
+
+  it("no longer asserts paediatric osmolar-gap data is settled absent", () => {
+    const text = surfaces().join("\n");
+    // The exact 1.2.0 formulations. Each told a reader the question was closed.
+    expect(text).not.toContain("settled rather than a search still running");
+    expect(text).not.toContain("settled absent, not as an unfinished search");
+    expect(text).not.toContain("settled absent, not unfound");
+    expect(text).not.toContain("that absence is settled rather than merely unfound");
+    expect(text).not.toContain("none of it has been measured in children");
+    // The sentence may survive ONLY as a quoted retraction, so any surface that
+    // still utters it has to mark it withdrawn in the same breath.
+    for (const surface of surfaces()) {
+      if (/no paediatric osmolar-gap data exists/i.test(surface)) {
+        expect(surface, "a settled-absent claim must be marked withdrawn").toMatch(
+          /WITHDRAWN|withdrawn|retracted/,
+        );
+      }
+    }
+  });
+
+  it("carries the paediatric gap data that replaces the withdrawn claim", () => {
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    // McQuillen 1999 — the study whose existence 1.2.0 denied.
+    expect(cautions).toContain("192 children");
+    expect(cautions).toContain("22 mOsm");
+    // Dursun 2007 — a wide spread corroborated in a second paediatric cohort.
+    expect(cautions).toContain("13.7 ± 14.5");
+    expect(cautions).toContain("15.2 ± 17.6");
+    // Both gap bands must tell a paediatric reader the normal range is wide,
+    // because that is the half of this change that reaches the bedside.
+    expect(bandText("gap-normal")).toContain("22 mOsm");
+    expect(bandText("gap-elevated")).toContain("22 mOsm");
+    // Every new claim must be citable, not just stated.
+    const ids = serumOsmolality.references.map((r) => ("pmid" in r ? r.pmid : undefined));
+    expect(ids).toContain("9928973"); // McQuillen 1999
+    expect(ids).toContain("17139190"); // Dursun 2007
+    expect(ids).toContain("36819138"); // Berska 2023
+  });
+
+  it("keeps the boundary at 10 while saying the paediatric normal is wider", () => {
+    // The point of the correction is NOT to move the cut-off — no paediatric
+    // cut-point is published — but to stop 10 reading as a sharp line.
+    const elevated = serumOsmolality.interpretation.find((b) => b.id === "gap-elevated");
+    const normal = serumOsmolality.interpretation.find((b) => b.id === "gap-normal");
+    expect(elevated?.min).toBe(10);
+    expect(normal?.max).toBe(10);
+    expect(bandText("gap-elevated")).toMatch(/weaker evidence/);
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toMatch(/weaker evidence/);
+  });
+
+  it("states the under-3-months rule with the error type behind it", () => {
+    // "Not validated" is weaker than what the study actually found, and the
+    // calculator will compute for a neonate regardless — so say it at the point
+    // of use, with the reason.
+    const cautions = (serumOsmolality.cautions ?? []).map((c) => c.en).join(" ");
+    expect(cautions).toMatch(/systematic and proportional error/i);
+    expect(cautions).toMatch(/MEASURED rather than calculated/);
+    expect(cautions).toContain("Berska 2023");
+    // The [NEEDS SOURCE] this closes: the infant validation is no longer an
+    // uncited "Kraków cohort" carried by PMCID alone.
+    expect(serumOsmolality.notes.en).not.toContain(
+      "was not captured, so it is stated as a finding and no citation is claimed for it",
+    );
+    expect(serumOsmolality.notes.en).toMatch(/RESOLVED \[NEEDS SOURCE\]/);
+  });
+
+  it("ties each Lynd figure to its decision and its ethanol coefficient", () => {
+    // Full text read in round 4. The dialysis figures and the antidote figures
+    // are different numbers for different questions, and each pair also depends
+    // on which ethanol coefficient was used — the same fork this score emits.
+    const elevated = bandText("gap-elevated");
+    expect(elevated).toMatch(/HAEMODIALYSIS/);
+    expect(elevated).toContain("0.80–1.00"); // dialysis sensitivity CI
+    expect(elevated).toContain("0.827");
+    expect(elevated).toContain("0.870");
+    expect(elevated).toMatch(/ANTIDOTAL THERAPY/);
+    expect(elevated).toContain("0.68–0.99"); // antidote sensitivity CI
+    expect(elevated).toContain("0.736");
+    expect(elevated).toContain("0.785");
+    // The mislabel 1.1.0–1.2.0 shipped: 0.90 and 0.85 are two SENSITIVITIES,
+    // one per ethanol coefficient, not a sensitivity/NPV pair.
+    expect(serumOsmolality.notes.en).toMatch(/two sensitivities, one per ethanol coefficient/);
+    expect(serumOsmolality.notes.en).not.toContain(
+      "falling to 0.90 and 0.85 for identifying those needing antidotal therapy",
+    );
+  });
+
+  it("records the withdrawal in the changelog at a bumped version", () => {
+    const latest = serumOsmolality.changelog[serumOsmolality.changelog.length - 1];
+    expect(latest?.version).toBe("1.3.0");
+    expect(serumOsmolality.version).toBe("1.3.0");
+    expect(latest?.summary).toMatch(/WITHDRAWS A FALSE CLAIM/);
+    expect(latest?.summary).toMatch(/NO BAND BOUNDARY MOVED/);
+  });
 });

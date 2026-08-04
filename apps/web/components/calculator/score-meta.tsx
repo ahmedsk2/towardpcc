@@ -83,10 +83,19 @@ export function InterpretationTable({ score }: { score: ScoreDefinition }) {
    *
    * Thirteen of the shipped scores declare no interpretation at all. For BSA,
    * ideal body weight and ETT size that is correct — they are estimators, and a
-   * band would be an invention. For PIM3, PRISM and PELOD-2 it is a content
-   * gap: those scores have published strata that have not been authored yet.
-   * Rendering nothing for both told a reader the same thing about two different
-   * situations, and one of those things was untrue.
+   * band would be an invention. PIM3, PRISM and PELOD-2 were once marked
+   * "pending" here on the belief that they had published strata nobody had
+   * transcribed yet; on 2026-08-03/04 that turned out to be false and all three
+   * moved to "not-applicable". No paediatric mortality model publishes endorsed
+   * severity tiers: registries report unit-level standardised mortality ratios,
+   * calibration papers bin predicted probability only for goodness of fit, and
+   * cutting a validated continuous prediction into categories is argued against
+   * on statistical grounds (Altman & Royston, BMJ 2006;332(7549):1080).
+   *
+   * So no score currently ships as "pending", and the branch below is
+   * deliberately kept for the case where one genuinely is mid-authoring —
+   * rendering nothing would tell a reader the same thing about a settled
+   * absence and an unfinished one.
    */
   if (score.interpretation.length === 0) {
     if (score.interpretationStatus !== "pending") return null;

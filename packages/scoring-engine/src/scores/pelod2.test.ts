@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import type { InputValues } from "../types";
 import { pelod2 } from "./pelod2";
@@ -246,6 +246,54 @@ describeScore(pelod2, (ctx) => {
     ctx.boundaryTest(id, "max", normal);
   }
 
+  /**
+   * THE AGE CEILING IS EXCLUSIVE OF 216 MONTHS.
+   *
+   * Leteurtre 2013 excluded "age 18 years or older", so the eligible domain is
+   * [0, 216) months. The declaration once read `max: 216`, and `max` is
+   * INCLUSIVE — so exactly 18.0 years was accepted and scored, one month of
+   * patients the paper excludes. It was then written as 215.99999999999997, the
+   * largest double below 216, which was exact but read as a typo; v1.1.1
+   * states it as `maxExclusive: 216` and accepts the identical set of ages.
+   *
+   * `boundaryTest` above already proves that the accepted side computes and
+   * that the declared value rejects. What it cannot prove is that the declared
+   * value is the RIGHT one: it would pass just as happily at 217, or at 200.
+   * These assertions pin the number itself, and pin that it is the EXCLUSIVE
+   * bound doing the work rather than the inclusive one.
+   */
+  it("declares 216 months as an exclusive ceiling, not an inclusive one", () => {
+    const age = pelod2.inputs.find((i) => i.id === "age_months");
+    expect(age?.type).toBe("numeric");
+    if (age?.type !== "numeric") return;
+
+    expect(age.maxExclusive).toBe(216);
+    expect(age.min).toBe(0);
+    // No stray IEEE-754 workaround left behind: the inclusive bound is a round
+    // number, and it is the exclusive one that decides the boundary.
+    expect(age.max).toBe(216);
+  });
+
+  it("rejects exactly 216 months (18.0 years) and accepts everything below it", () => {
+    const at216 = pelod2.compute({ ...normal, age_months: { value: 216, unit: "months" } });
+    expect(at216.ok, "exactly 18.0 years is outside the derivation cohort").toBe(false);
+    if (!at216.ok) {
+      const err = at216.errors.find((e) => e.inputId === "age_months");
+      expect(err?.code).toBe("out-of-range");
+      // The message must not claim 216 is acceptable, which "between 0 and 216"
+      // would: 216 is the one value this bound exists to reject.
+      expect(err?.message).toBe("Patient age must be at least 0 and less than 216 months.");
+    }
+
+    // Everything below still computes, including the last representable month
+    // and an ordinary fractional age near the top — the reason the ceiling is
+    // not a whole-month 215, which would reject both.
+    for (const months of [215.99999999999997, 215.5, 215]) {
+      const outcome = pelod2.compute({ ...normal, age_months: { value: months, unit: "months" } });
+      expect(outcome.ok, `${months} months must compute`).toBe(true);
+    }
+  });
+
   // Required categorical: an unrecognized pupillary state is rejected.
   ctx.rejectsImplausible(
     "an unrecognized pupillary state",
@@ -378,5 +426,42 @@ describeScore(pelod2, (ctx) => {
       composition.components.reduce((n, c) => n + c.max, 0),
       "declared maxima must sum to the published PELOD-2 maximum of 33",
     ).toBe(33);
+  });
+});
+
+/**
+ * The no-bands decision, pinned so it cannot silently revert.
+ *
+ * This score declared `interpretationStatus: "pending"` until 2026-08-04, which
+ * asserted that PELOD-2 has published mortality strata awaiting transcription.
+ * It has none. Leteurtre 2013 defines no named severity categories; Table 8
+ * bins observed mortality by the NUMBER of dysfunctional organs rather than by
+ * the score, and the probability table is the published logit restated. Both
+ * still ship as context in `notes`, which is where an association belongs —
+ * neither is a band. The decision is permanent, not deferred, and is recorded
+ * with its sources in docs/research/scores/pelod2.md § Interpretation bands.
+ * Restoring "pending" means deleting this test on purpose.
+ */
+describe("pelod2 ships no interpretation bands, by decision rather than backlog", () => {
+  it("declares no bands and declares that as not-applicable", () => {
+    expect(pelod2.interpretation).toEqual([]);
+    expect(pelod2.interpretationStatus).toBe("not-applicable");
+  });
+
+  /**
+   * And says so where a reader sees it. Silence in `interpretation` renders the
+   * same nothing whether the bands are absent by design or merely unwritten;
+   * the limitations are what distinguish the two.
+   */
+  it("states in the limitations that the absence is settled, not outstanding", () => {
+    expect(pelod2.notes.en).toContain("NO SEVERITY BANDS ARE SHOWN");
+    expect(pelod2.notes.en).toContain("not work outstanding");
+  });
+
+  /** The version must track the user-visible text this decision changed. */
+  it("declares the version its newest changelog entry describes", () => {
+    const newest = pelod2.changelog[pelod2.changelog.length - 1];
+    expect(pelod2.version).toBe(newest?.version);
+    expect(pelod2.version).toBe("1.1.2");
   });
 });

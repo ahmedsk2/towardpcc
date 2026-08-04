@@ -54,12 +54,37 @@ export function runValidation(
         });
         continue;
       }
-      if (converted < input.min || converted > input.max) {
+      /**
+       * THE STRICTER UPPER BOUND WINS, and it decides the wording too.
+       *
+       * `max` is inclusive and required; `maxExclusive` is optional and rejects
+       * its own value. Only one of them can ever be the binding constraint, so
+       * this resolves which and then applies it once:
+       *
+       * - `maxExclusive <= max` — it binds. Everything `max` would reject
+       *   (`v > max`) it rejects too, since `v > max >= maxExclusive`.
+       * - `maxExclusive > max`, or absent — `max` binds and `maxExclusive` is
+       *   inert, because `max` already rejects every value it would.
+       *
+       * The message must follow, or it misdescribes the bound it enforces:
+       * "must be between 0 and 216" is a false statement when 216 is the one
+       * value the exclusive bound exists to reject.
+       */
+      const exclusiveMax =
+        input.maxExclusive !== undefined && input.maxExclusive <= input.max
+          ? input.maxExclusive
+          : undefined;
+      const aboveUpperBound =
+        exclusiveMax === undefined ? converted > input.max : converted >= exclusiveMax;
+      if (converted < input.min || aboveUpperBound) {
         const unitSuffix = input.unit.canonical ? ` ${input.unit.canonical}` : "";
         errors.push({
           inputId: input.id,
           code: "out-of-range",
-          message: `${input.label.en} must be between ${input.min} and ${input.max}${unitSuffix}.`,
+          message:
+            exclusiveMax === undefined
+              ? `${input.label.en} must be between ${input.min} and ${input.max}${unitSuffix}.`
+              : `${input.label.en} must be at least ${input.min} and less than ${exclusiveMax}${unitSuffix}.`,
         });
         continue;
       }

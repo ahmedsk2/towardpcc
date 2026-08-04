@@ -116,6 +116,34 @@ export interface ScoreTestContext<TInputs extends readonly ScoreInput[]> {
 
 const EPSILON_FACTOR = 1e-9;
 
+/** Smallest nudge that reliably crosses a bound at this magnitude. */
+function nudge(value: number): number {
+  return Math.max(Math.abs(value) * EPSILON_FACTOR, 1e-6);
+}
+
+/**
+ * The last accepted value at an edge, and the first rejected one past it.
+ *
+ * `maxExclusive` inverts the max edge: the declared number is the first
+ * REJECTED value, not the last accepted one, so asserting `compute(max).ok`
+ * there would assert the opposite of what the declaration means. Resolved the
+ * same way `runValidation` resolves it — the stricter upper bound binds, and a
+ * `maxExclusive` above `max` is inert — so the harness and the validator cannot
+ * drift apart on which bound is in force.
+ */
+export function boundaryValues(
+  input: NumericInput,
+  edge: "min" | "max",
+): { bound: number; past: number } {
+  if (edge === "min") return { bound: input.min, past: input.min - nudge(input.min) };
+  const exclusiveMax =
+    input.maxExclusive !== undefined && input.maxExclusive <= input.max
+      ? input.maxExclusive
+      : undefined;
+  if (exclusiveMax === undefined) return { bound: input.max, past: input.max + nudge(input.max) };
+  return { bound: exclusiveMax - nudge(exclusiveMax), past: exclusiveMax };
+}
+
 export function describeScore<TInputs extends readonly ScoreInput[]>(
   definition: ScoreDefinition<TInputs>,
   suite: (ctx: ScoreTestContext<TInputs>) => void,
@@ -147,11 +175,7 @@ export function describeScore<TInputs extends readonly ScoreInput[]>(
 
       boundaryTest(inputId, edge, baseInputs) {
         const input = resolveNumericInput(definition, inputId as string);
-        const bound = edge === "min" ? input.min : input.max;
-        const past =
-          edge === "min"
-            ? input.min - Math.max(Math.abs(input.min) * EPSILON_FACTOR, 1e-6)
-            : input.max + Math.max(Math.abs(input.max) * EPSILON_FACTOR, 1e-6);
+        const { bound, past } = boundaryValues(input, edge);
         state.rejectionInputIds.add(input.id);
 
         it(`${input.id} computes at ${edge} bound (${bound} ${input.unit.canonical})`, () => {

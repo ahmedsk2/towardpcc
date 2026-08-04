@@ -9,7 +9,8 @@ ventilated children** under both PALICC 2015 and PALICC-2 (2023).
 
 - **OI** needs an arterial PaO2 → requires an arterial line (invasive).
 - **OSI** substitutes pulse-oximeter SpO2 for PaO2 → non-invasive, but only
-  interpretable when **SpO2 ≤ 97%**.
+  interpretable when **SpO2 ≤ 97%**, and only validated down to **SpO2 80%**
+  (see the SpO2-floor note under Inputs).
 
 Both are only defined on positive-pressure ventilation (a mean airway pressure
 must exist). Higher value = worse oxygenation.
@@ -84,19 +85,38 @@ ensure SpO2 ≤ 97%. Source: PALICC-2 (Emeriaud 2023, PMID 36661420).
 
 ## Inputs (id, label, type, units + conversions, plausible min/max with source)
 
-| id        | label                             | type   | units / conversion                                                    | plausible min/max                                                                                                                                                   |
-| --------- | --------------------------------- | ------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `map_awp` | Mean airway pressure              | number | **cmH2O** (ventilator-reported). 1 cmH2O ≈ 0.9806 hPa/mbar (near 1:1) | typical ventilated range ~5–35 cmH2O; only defined on positive-pressure ventilation. Hard numeric bounds are input-validation, not a cited threshold [NEEDS SOURCE] |
-| `fio2`    | Fraction of inspired O2           | number | fraction 0.21–1.0. From %: ÷100                                       | 0.21 (room air) – 1.0 (definitional; PALICC/PALICC-2)                                                                                                               |
-| `pao2`    | Arterial partial pressure of O2   | number | **mmHg**. From kPa: ×7.50062                                          | ~10–700 mmHg (input-validity bound, not a cited threshold) [NEEDS SOURCE]                                                                                           |
-| `spo2`    | Pulse oximeter O2 saturation      | number | %. **Valid for OSI only when ≤ 97%** (Thomas 2010; PALICC-2)          | 0–100%; OSI uninterpretable when > 97%                                                                                                                              |
-| `oi`      | Oxygenation index (derived)       | number | (MAP × FiO2 × 100) / PaO2                                             | ~0 upward; OI > 40 is the ELSO neonatal-ECMO consideration threshold (Slaughter 2025 citing ELSO) — neonatal context, not a pediatric-severity cutoff               |
-| `osi`     | Oxygen saturation index (derived) | number | (MAP × FiO2 × 100) / SpO2                                             | ~0 upward; **only valid when SpO2 ≤ 97%**                                                                                                                           |
+| id        | label                             | type   | units / conversion                                                                                             | plausible min/max                                                                                                                                                   |
+| --------- | --------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `map_awp` | Mean airway pressure              | number | **cmH2O** (ventilator-reported). 1 cmH2O ≈ 0.9806 hPa/mbar (near 1:1)                                          | typical ventilated range ~5–35 cmH2O; only defined on positive-pressure ventilation. Hard numeric bounds are input-validation, not a cited threshold [NEEDS SOURCE] |
+| `fio2`    | Fraction of inspired O2           | number | fraction 0.21–1.0. From %: ÷100                                                                                | 0.21 (room air) – 1.0 (definitional; PALICC/PALICC-2)                                                                                                               |
+| `pao2`    | Arterial partial pressure of O2   | number | **mmHg**. From kPa: ×7.50062                                                                                   | ~10–700 mmHg (input-validity bound, not a cited threshold) [NEEDS SOURCE]                                                                                           |
+| `spo2`    | Pulse oximeter O2 saturation      | number | %. **Valid for OSI only in 80–97%** (ceiling: Thomas 2010 / PALICC-2; floor: Khemani 80–97% derivation window) | **80–97%** enforced. Above 97 OSI is uninterpretable (cited). Below 80 it is outside the derivation window — a documented implementation choice, see below          |
+| `oi`      | Oxygenation index (derived)       | number | (MAP × FiO2 × 100) / PaO2                                                                                      | ~0 upward; OI > 40 is the ELSO neonatal-ECMO consideration threshold (Slaughter 2025 citing ELSO) — neonatal context, not a pediatric-severity cutoff               |
+| `osi`     | Oxygen saturation index (derived) | number | (MAP × FiO2 × 100) / SpO2                                                                                      | ~0 upward; **only valid for SpO2 80–97%**                                                                                                                           |
 
-Notes on bounds: FiO2 0.21–1.0 and SpO2 0–100% are definitional. The SpO2 ≤ 97%
-ceiling for OSI is a cited hard constraint (Thomas 2010; PALICC-2). Absolute MAP
-and PaO2 numeric limits are engineering input-validation values, **not** from a
-specific publication — flagged [NEEDS SOURCE].
+Notes on bounds: FiO2 0.21–1.0 is definitional. The SpO2 ≤ 97% ceiling for OSI is a
+cited hard constraint (Thomas 2010; PALICC-2). Absolute MAP and PaO2 numeric limits
+are engineering input-validation values, **not** from a specific publication — flagged
+[NEEDS SOURCE].
+
+**The OSI SpO2 FLOOR (added 2026-08-03) — a documented implementation choice, not a
+citation.** The two ends of the OSI SpO2 window do not have the same standing and the
+file should not imply they do:
+
+- **Ceiling 97% — CITED.** Thomas 2010 restricted its data to SpO2 ≤ 97% and PALICC-2
+  requires the same; above the plateau of the dissociation curve SpO2 stops tracking
+  PaO2 and OSI cannot discriminate.
+- **Floor 80% — NO OSI-SPECIFIC PUBLISHED BOUND EXISTS.** OSI was validated inside the
+  same SpO2 **80–97%** window as the SpO2-based S/F models (Khemani 2009, Chest
+  135(3):662–668, derivation restricted to SpO2 80–97%; Khemani 2012, Crit Care Med
+  40(4):1309–1316). 80 is therefore the **derivation floor**, adopted here as the
+  accepted lower bound so OSI is graded only where it was validated — and it is the
+  same window `pf-sf.md` already applies to S/F. State it as an implementation choice
+  anchored to the derivation window; do not cite it as an OSI threshold.
+- **What was rejected:** the implementation previously accepted SpO2 down to **1%**.
+  That floor is not defensible against any primary source and has been removed. A
+  saturation of 70% is a real reading, but grading it with OSI is extrapolation beyond
+  the evidence, so the calculator refuses rather than extrapolates.
 
 ---
 
@@ -148,6 +168,25 @@ specific publication — flagged [NEEDS SOURCE].
 - Inputs: MAP = 10 cmH2O, FiO2 = 0.50, PaO2 = 150 mmHg
 - OI = (10 × 0.50 × 100) / 150 = 500 / 150 = **3.33**
 - OI < 4 → does **not** meet the IMV oxygenation criterion for PARDS.
+
+**Example 7 — ×100 convention ANCHOR (both indices)** _(derived; the magnitude guard the implementation pins by test)_
+
+Example 3 shows the two renderings agree. This one exists to make the two ways of
+getting it WRONG visible, at inputs chosen so the candidate answers are orders of
+magnitude apart rather than adjacent:
+
+- OI inputs: MAP = 20 cmH2O, FiO2 = 1.0 (fraction), PaO2 = 100 mmHg
+  - correct (fraction + ×100): (20 × 1.0 × 100) / 100 = **20**
+  - ×100 dropped: (20 × 1.0) / 100 = 0.2 — **100× too small**
+  - ×100 applied to a percentage: (20 × 100 × 100) / 100 = 2000 — **100× too large**
+- OSI inputs: MAP = 20 cmH2O, FiO2 = 1.0 (fraction), SpO2 = 80% (the floor of the
+  valid window; 100% would be rejected as > 97)
+  - correct: (20 × 1.0 × 100) / 80 = **25**
+  - ×100 dropped: 0.25; ×100 on a percentage: 2500.
+
+Both vectors are asserted in the test suites (`oxygenation-index.test.ts`,
+`oxygen-saturation-index.test.ts`) with a tolerance far too tight to absorb a
+100-fold slip, so a future "simplification" of the formula fails loudly.
 
 ---
 
@@ -221,6 +260,20 @@ OI/OSI = worse oxygenation defect. All apply to invasively ventilated children.
    DOI: **10.3389/fped.2025.1586985**. (Neonatal population — cited for the
    formula rendering and the OI↔OSI cross-check, flagged as neonatal-derived.)
 
+6. **SpO2 80–97% derivation window (source of this score's SpO2 floor):**
+   Khemani RG, Patel NR, Bart RD 3rd, Newth CJL. Comparison of the pulse oximetric
+   saturation/fraction of inspired oxygen ratio and the PaO2/fraction of inspired
+   oxygen ratio in children. _Chest._ 2009;135(3):662–668. PMID: **19029434**.
+   DOI: **10.1378/chest.08-2239**. — _Pediatric derivation restricted to SpO2
+   80–97%._
+
+7. **Pediatric prospective validation in the same window:** Khemani RG, Thomas NJ,
+   Venkatachalam V, et al; PALISI. Comparison of SpO2 to PaO2 based markers of lung
+   disease severity for children with acute lung injury. _Crit Care Med._
+   2012;40(4):1309–1316. PMID: **22202709**. DOI: **10.1097/CCM.0b013e31823bc61b**.
+   — _Same SpO2 80–97% window; bibliographic details as already verified in
+   `pf-sf.md`._
+
 ---
 
 ## Limitations & notes
@@ -228,7 +281,10 @@ OI/OSI = worse oxygenation defect. All apply to invasively ventilated children.
 - **OI is invasive, OSI is not.** OI requires an arterial PaO2 (arterial line);
   OSI uses pulse oximetry and spares arterial draws. OSI is the practical choice
   when no arterial line is present, at the cost of validity constraints below.
-- **OSI valid only when SpO2 ≤ 97% (hard guard).** Above ~97% the oxyhemoglobin
+- **OSI valid only for SpO2 80–97%.** The ceiling is cited; the floor is a
+  documented implementation choice anchored to the Khemani derivation window — the
+  two are not equally sourced, and the Inputs section says which is which.
+- **The 97% ceiling itself (hard guard).** Above ~97% the oxyhemoglobin
   dissociation curve plateaus and SpO2 no longer tracks PaO2, so OSI cannot
   discriminate severity. Thomas 2010 used only data points with SpO2 ≤ 97%;
   PALICC-2 requires the same. Note Slaughter 2025 (neonatal) did **not** enforce
@@ -372,3 +428,42 @@ the pass above), rather than trusting the existing Verification section as-is.
 **Corrections made in this second pass: none.** No discrepancies were found
 between the file's stated values and the independently fetched primary/
 secondary sources.
+
+### Round-3 sourcing resolution (2026-08-03)
+
+Scope: the FiO2 convention, the PALICC edition actually implemented, and the OSI
+SpO2 floor. Provenance stated per item.
+
+- **FiO2 percentage form — CONFIRMED, and now guarded.** PALICC-2 (2023) defines
+  the index as **MAP(cmH2O) × FiO2(percent) ÷ PaO2(mmHg)**; FiO2 must be the
+  percentage form in that rendering. Both implementations here take FiO2 as a
+  fraction and multiply by 100, which is the identical quantity — **verified
+  correct, no behaviour changed**. What changed is that the convention is now
+  stated as a requirement in each score's user-visible formula text, and worked
+  example 7 pins the magnitude in both test suites. Nothing previously stopped a
+  future "simplification" from dropping the ×100 and shipping a silent 100-fold
+  error; something does now.
+- **PALICC-2 two-tier bands — CONFIRMED, already correct.** OI ≥ 4 (or OSI ≥ 5)
+  defines PARDS on invasive ventilation; mild–moderate is OI < 16 / OSI < 12;
+  severe is OI ≥ 16 / OSI ≥ 12. **The implementation was already on the 2023
+  edition, including the OSI severe cutoff of 12 rather than the 2015 value of
+  12.3** — checked specifically because tertiary sources routinely conflate the
+  two editions and a reader may arrive expecting 12.3. No divergence found, so
+  no band was changed; the OSI band description now says outright that 12 is the
+  applied value and 12.3 is the superseded one.
+- **PALICC 2015 three-tier scheme** (OI 4–<8 / 8–<16 / ≥16; OSI 5–<7.5 /
+  7.5–<12.3 / ≥12.3) is retained in this note for lineage only. It is not what
+  either score computes.
+- **OSI SpO2 floor — CHANGED, 1% → 80%.** This is the one behavioural change of
+  the round. There is **no published OSI-specific lower bound**; 80% is the lower
+  end of the SpO2 80–97% window OSI was validated in (Khemani 2009/2012,
+  references 6–7), and the same window `pf-sf.md` already enforces for S/F. The
+  previous 1% floor was not defensible against any primary source. Recorded as a
+  documented implementation choice anchored to the derivation window — **not** as
+  an OSI threshold, which would claim more than the literature says.
+- **Still [NEEDS SOURCE], unchanged:** `map_awp` (5–50 cmH2O) and `pao2`
+  (10–700 mmHg) input-validation bounds. No publication specifies them.
+
+**Corrections to computed values in this round:** none for OI. For OSI, no formula
+or band changed; only the accepted SpO2 domain narrowed, so any reading the score
+previously graded inside 80–97% is unchanged.
