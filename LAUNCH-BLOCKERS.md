@@ -145,20 +145,44 @@ then — no figure is invented.
       (private, https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
       fails without admin on this machine (EPERM in Program Files); pnpm is
       installed via `npm i -g pnpm@10.34.5`, documented in README.
-- [ ] **Push-to-deploy silently drops a merge that lands during a build —
-      observed 2026-08-03.** PRs #35 and #36 were merged three minutes apart.
-      Both webhook deliveries returned 200 OK (GitHub hook 657319469, 04:10:33
-      and 04:13:29), Coolify's `/api/v1/deployments` was empty, and the app
-      reported `running:healthy` — every signal said the site was current. It
-      was not: the running container was tagged `3ec4350` (the #35 merge) and
-      #36 never deployed. Coolify was mid-build when the second event arrived
-      and discarded it rather than queueing. Nothing surfaces this; the only
-      tell is comparing the container's image tag to `origin/main`. Until it is
-      fixed, after merging two PRs close together, verify the deployed SHA and
-      force a deploy via the documented API call if it is behind. Worth teaching
-      `scripts/check-integrity.mjs` to assert a deployed commit rather than only
-      page content, since a stale-but-healthy deploy is exactly the failure a
-      content canary cannot see.
+
+### Push-to-deploy does not work — verify every deploy by hand
+
+- [ ] **Merging to `main` does not reliably deploy. Confirmed twice.**
+
+Treat push-to-deploy as broken, not flaky, and check the deployed SHA after
+every merge.
+
+**2026-08-03.** PRs #35 and #36 merged three minutes apart. Both webhook
+deliveries returned 200 OK (GitHub hook 657319469, 04:10:33 and 04:13:29),
+Coolify's `/api/v1/deployments` was empty, and the app reported
+`running:healthy` — every signal said the site was current. It was not: the
+running container was tagged `3ec4350` (the #35 merge) and #36 never deployed.
+The reading at the time was that Coolify was mid-build when the second event
+arrived and discarded it rather than queueing.
+
+**2026-08-04, and that explanation does not cover it.** PRs #37 and #39 merged
+about ninety seconds apart to `805cc25`. The container stayed on `6f9945b` —
+the #36 merge, up 33 hours — so _neither_ merge deployed, and no build was in
+flight for the first one to collide with. `running:healthy` again reported a
+site three commits stale. A manual `/api/v1/deploy` produced `805cc25`.
+
+So the trigger is not a build-collision race, and the queueing theory is at
+best incomplete.
+
+**Coolify's status field is not a deploy gate in either direction.**
+Immediately after the rolling update the API said `running:unhealthy` while
+Docker's own healthcheck said `healthy` and both `/api/v1/health` and
+`/api/v1/ready` returned OK. Comparing the container image tag against
+`origin/main` is the only signal that has been right every time:
+
+```bash
+sudo docker ps --filter name=gpsokvxzncr7ks1vzqz7wkr4 --format '{{.Image}}'
+```
+
+Worth teaching `scripts/check-integrity.mjs` to assert a deployed commit rather
+than only page content — a stale-but-healthy deploy is exactly the failure a
+content canary cannot see.
 
 ## Security (from docs/security/threat-model.md, 2026-07-24)
 
