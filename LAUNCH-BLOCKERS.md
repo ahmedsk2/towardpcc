@@ -145,6 +145,20 @@ then — no figure is invented.
       (private, https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
       fails without admin on this machine (EPERM in Program Files); pnpm is
       installed via `npm i -g pnpm@10.34.5`, documented in README.
+- [ ] **Push-to-deploy silently drops a merge that lands during a build —
+      observed 2026-08-03.** PRs #35 and #36 were merged three minutes apart.
+      Both webhook deliveries returned 200 OK (GitHub hook 657319469, 04:10:33
+      and 04:13:29), Coolify's `/api/v1/deployments` was empty, and the app
+      reported `running:healthy` — every signal said the site was current. It
+      was not: the running container was tagged `3ec4350` (the #35 merge) and
+      #36 never deployed. Coolify was mid-build when the second event arrived
+      and discarded it rather than queueing. Nothing surfaces this; the only
+      tell is comparing the container's image tag to `origin/main`. Until it is
+      fixed, after merging two PRs close together, verify the deployed SHA and
+      force a deploy via the documented API call if it is behind. Worth teaching
+      `scripts/check-integrity.mjs` to assert a deployed commit rather than only
+      page content, since a stale-but-healthy deploy is exactly the failure a
+      content canary cannot see.
 
 ## Security (from docs/security/threat-model.md, 2026-07-24)
 
