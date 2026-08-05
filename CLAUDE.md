@@ -27,12 +27,25 @@ a score, `apps/web/CLAUDE.md` for UI, UX and the privacy invariants.
 1. **Calculator inputs never cross the browser→server boundary.** Threat-model
    TB3 states this as a negative requirement, and `/trust` promises it publicly.
    It holds on every future runtime too — React Native, Electron, white-label —
-   "different runtime" is not an available argument (ADR-0005).
+   "different runtime" is not an available argument (ADR-0005). **This was broken
+   for weeks while every guard reported fine** (found and fixed 2026-08-05): field
+   state was mirrored into the URL fragment because browsers never transmit a
+   fragment — true of the BROWSER, and silent about any SCRIPT in the same
+   document. Cloudflare's JS Detections read `location.href` and POSTed it. The
+   lesson generalises past this one bug: **assert a property, not an absence.**
+   "No third-party scripts" requires knowing who else is executing; "entered
+   values are not in `location.href`" does not, so it holds against code that
+   does not exist yet. Reach for that shape whenever a guard is available in
+   both.
 2. **No calculator input reaches a server store.** `packages/db` exists only for
    the submission and admin surfaces. Client-side persistence is deliberate,
    disclosed on `/legal/data-protection`, and allow-listed: sessionStorage
    carries `age`, `age_months`, `weight`, `weight_kg` and nothing else;
    localStorage holds favourites. Widening either needs the allow-list amended.
+   **Live open question:** since the fragment fix, a reload no longer restores a
+   form. Persisting the remaining fields would fix that and is the obvious ask —
+   it is exactly the amendment this invariant governs, so it is a decision to
+   put to the founder, never a convenience to slip in alongside other work.
 3. **Processing is KSA-first but NOT yet wholly in-Kingdom — and the site says
    so on purpose.** Two things leave today, both disclosed: requests transit the
    Cloudflare edge (migration staged 2026-07-29, DNS not cut over), and the
@@ -50,7 +63,12 @@ a score, `apps/web/CLAUDE.md` for UI, UX and the privacy invariants.
 Runs the CI `quality` job verbatim, in order — typecheck → lint → format:check →
 test → build → web bundle budget.
 
-Three traps it exists to remove:
+Run it as `pnpm gate > "$TEMP/gate.log" 2>&1; echo $?` and read the log after.
+**Piping it hides the failure**: `pnpm gate | tail` reports the exit status of
+`tail`, so a run whose last line is `ELIFECYCLE Command failed with exit code 1`
+still looks like a pass, and has been reported as one.
+
+Four traps it exists to remove:
 
 - **`pnpm test` does not typecheck.** Vitest never has. Running tests and lint
   while skipping typecheck is exactly how a type error reached `main` on
@@ -84,6 +102,16 @@ Lighthouse (warn-only) and the container build.
   `docker-compose.prod.yml` and `docs/runbooks/deploy.md` describe a stack that
   was designed first and **is not what runs** — editing them changes nothing in
   production. `docs/runbooks/deploy-production.md` is the live setup.
+- **Push-to-deploy does not work — check the deployed tag after every merge.**
+  Confirmed twice (2026-08-03, 2026-08-04). On the second occasion no build was
+  in flight, which rules out the mid-build race first blamed, so treat it as
+  broken rather than flaky. Coolify's `status` is not a gate in either direction:
+  it read `running:healthy` over a container three commits stale, and
+  `running:unhealthy` over one that Docker and both probes called healthy. The
+  image tag is the only signal that has been right every time —
+  `sudo docker ps --filter name=gpsokvxzncr7ks1vzqz7wkr4 --format '{{.Image}}'`
+  on the host, compared against `origin/main`. The deploy API call is in
+  `docs/runbooks/deploy-production.md`.
 - **Cloudflare proxying stays ON.** The OCI security list accepts 80/443 only
   from Cloudflare's edge ranges, so grey-clouding takes the site offline and
   breaks certificate renewal. That lock is also what makes trusting
@@ -107,6 +135,15 @@ Lighthouse (warn-only) and the container build.
 
 ## Environment
 
+- **Check what you can reach before calling something the founder's job.** SSH is
+  `ssh -i ~/.ssh/oci_server ubuntu@145.241.105.239`, with passwordless sudo. The
+  Coolify API token is `~/.coolify-token` **on the host**. The OCI CLI is
+  `~/.local/bin/oci` **on this machine, not the server**, and the `oracle-oci`
+  MCP is usually disconnected. The Cloudflare token (`~/.cloudflare-token` on the
+  host) **can edit DNS** but is refused on zone settings and WAF — so DNS moves
+  are yours to make, while Bot Fight Mode, JS Detections, WAF rules and Turnstile
+  are genuinely founder-only. Branch protection 403s: a private repo needs GitHub
+  Pro. Getting this wrong wastes the founder's time in both directions.
 - **Docker 29.6.2 is installed.** This file previously claimed otherwise and the
   error cost two agents real work — verify before asserting an absence.
 - `corepack enable` fails with EPERM; pnpm comes from `npm -g`, pinned 10.34.5.
@@ -128,7 +165,11 @@ Lighthouse (warn-only) and the container build.
   each run indents the continuation further, so `pnpm format` succeeds while
   `pnpm format:check` fails and CI goes red on a file nobody meaningfully
   changed. Promote anything longer to a `###` subsection with a one-line
-  checkbox and the prose beneath it.
+  checkbox and the prose beneath it. Broken three times now, most recently
+  2026-08-04 — the pull is real, because the detail genuinely belongs with the
+  item. **Confirm with two consecutive `prettier --check` runs, not one:** the
+  first can pass on output the next run reformats again, which is the whole
+  non-idempotency and exactly what a single check misses.
 - Filter command output — tail, grep, dot reporters. Don't dump full logs.
 - Subagent review verifiers run `model=sonnet`, `effort=low`.
 - An agent asked to produce a document writes the file itself and returns a
@@ -137,3 +178,13 @@ Lighthouse (warn-only) and the container build.
   have been wrong roughly half the time, and so was this file — twice. Check the
   primary source (the code, the paper, the running system) before acting on a
   claim, and prefer running the command over reasoning about what it would do.
+  It cuts both ways: on 2026-08-05 an external note reporting a privacy breach
+  was **right**, against a reassuring conclusion reached here from a test that
+  had not covered the failing case. Check reports rather than believing or
+  dismissing them, and say plainly which parts you reproduced and which you took
+  on trust.
+- **A guard that has never failed deserves suspicion, not confidence.** Two
+  found on 2026-08-05: an edge-script check whose regex could not match the
+  markup it was written for, and a `- [ ]` inventory where seven entries had
+  been done for weeks. When a check has been green forever, make it fail on
+  purpose once before trusting it.
