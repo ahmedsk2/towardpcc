@@ -33,6 +33,123 @@ test.describe("TM-001 calculator privacy invariant (runtime)", () => {
    */
   test.use({ serviceWorkers: "allow" });
 
+  /**
+   * TM-013 — entered values must never sit in `location.href`.
+   *
+   * This exists because the invariant was broken for weeks and every guard we
+   * had said it was fine. Field state used to be mirrored into the fragment on
+   * every keystroke, on the reasoning that browsers never transmit a fragment.
+   * That is true of the BROWSER and irrelevant to a SCRIPT: Cloudflare's JS
+   * Detections, injected into every page while the edge fronts the site, reads
+   * `document.location.href` and POSTs it as `{"lhr": …}`. Confirmed 2026-08-05
+   * by deobfuscating it and capturing the plaintext payload with the fragment's
+   * values in it.
+   *
+   * Why this asserts on the URL rather than on requests. The existing test
+   * below already inspects every request body, and it never caught this —
+   * Cloudflare does not run against localhost, so no e2e can observe the actual
+   * exfiltration. What CAN be asserted here is the property that makes the
+   * exfiltration impossible for ANY script, present or future, ours or the
+   * edge's: the values are not in the URL to be read. That is the durable
+   * invariant, and unlike "no third-party scripts" it does not depend on
+   * knowing who else is executing in the document.
+   *
+   * The fragment stays the SHARING format — a shared link must still restore a
+   * form, which is why this asserts hydration works before asserting the URL is
+   * clean. A fix that simply broke shared links would pass a weaker test.
+   */
+  test("TM-013: a shared fragment hydrates the form and is then gone from the URL", async ({
+    page,
+  }) => {
+    await page.goto(`${CALC}#na=137~mEq%2FL;cl=101~mEq%2FL;hco3=22~mEq%2FL`, {
+      waitUntil: "networkidle",
+    });
+
+    // Sharing still works: the values arrived in the form.
+    await expect(page.locator("#field-na")).toHaveValue("137");
+    await expect(page.locator("#field-cl")).toHaveValue("101");
+    await expect(page.locator("#field-hco3")).toHaveValue("22");
+
+    // ...and the URL that carried them is clean.
+    const afterLoad = await page.evaluate(() => window.location.href);
+    expect(afterLoad, "the fragment was left in the URL for any script to read").not.toContain(
+      "137",
+    );
+    expect(afterLoad).not.toContain("101");
+    expect(afterLoad).not.toContain("22");
+    expect(await page.evaluate(() => window.location.hash)).toBe("");
+
+    // Typing must not put them back. This is the regression that matters: the
+    // old mirroring effect wrote the URL on every keystroke.
+    await page.locator("#field-na").fill("155");
+    await expect(page.locator("#field-na")).toHaveValue("155");
+    const afterTyping = await page.evaluate(() => window.location.href);
+    expect(afterTyping, "typing re-introduced values into the URL").not.toContain("155");
+    expect(await page.evaluate(() => window.location.hash)).toBe("");
+  });
+
+  /**
+   * The other half of the same change, and the half that fails silently.
+   *
+   * "Copy link with these values" used to copy `window.location.href`, which
+   * worked only because the address bar already held the values. It now composes
+   * the URL from state. If that composition is wrong, nothing else in the suite
+   * notices — the form still works, the URL still looks like a URL, and the
+   * clinician discovers it when the link they sent a colleague opens blank.
+   */
+  test("TM-013: copy link still produces a URL that carries the values", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto(CALC, { waitUntil: "networkidle" });
+
+    await page.locator("#field-na").fill("137");
+    await page.locator("#field-cl").fill("101");
+    await page.locator("#field-hco3").fill("22");
+
+    await page.getByRole("button", { name: /copy link with these values/i }).click();
+
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain("/calculators/anion-gap#");
+    expect(copied).toContain("na=137");
+    expect(copied).toContain("cl=101");
+    expect(copied).toContain("hco3=22");
+    // Absolute, so it is pasteable somewhere other than this tab.
+    expect(copied).toMatch(/^https?:\/\//);
+
+    // Copying must not have put the values back into this page's own URL.
+    expect(await page.evaluate(() => window.location.hash)).toBe("");
+  });
+
+  /**
+   * An in-page anchor is not field state, and must not be treated as any.
+   *
+   * The fragment-lifting script listens for `hashchange`, and this site has a
+   * skip-to-content link (`href="#content"`). Without the `=` test in that
+   * script, activating it would stash `#content`, decode it to no known field,
+   * and blank a form the clinician had already filled — and removing it from
+   * the URL would also stop the browser jumping to the target, breaking the
+   * accessibility affordance the link exists for.
+   *
+   * So this asserts both halves: the values survive, and the anchor still works.
+   */
+  test("TM-013: an in-page anchor neither clears the form nor gets swallowed", async ({ page }) => {
+    await page.goto(CALC, { waitUntil: "networkidle" });
+    await page.locator("#field-na").fill("137");
+    await expect(page.locator("#field-na")).toHaveValue("137");
+
+    await page.evaluate(() => {
+      window.location.hash = "content";
+    });
+    await page.waitForFunction(() => window.location.hash === "#content");
+
+    // The anchor is left in place for the browser to act on.
+    expect(await page.evaluate(() => window.location.hash)).toBe("#content");
+    // And the entered value is untouched.
+    await expect(page.locator("#field-na")).toHaveValue("137");
+  });
+
   test("anion gap computes in airplane mode (network cut, client-side only)", async ({
     page,
     context,
