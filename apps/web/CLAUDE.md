@@ -8,13 +8,23 @@ review it with `ui-ux-pro-max` after.
 
 Calculator inputs never leave the browser. Concretely:
 
-- **Field state lives in the URL fragment only**, encoded `id=value~unit` joined
-  by `;`, mirrored with `history.replaceState`. The fragment is the one part of
-  a URL the browser never transmits. Never the query string.
-- **Never link with `href="#..."` inside calculator UI.** Jump links, evidence
-  links, in-page anchors — navigating by fragment overwrites the fragment
-  holding field state and silently discards every entered value. Use a
-  `type="button"` with `scrollIntoView` + `focus`.
+- **Field state lives in React state and NEVER in the URL.** It reaches a URL
+  only when the clinician presses "Copy link with these values", which composes
+  one from state at that moment. The fragment remains the sharing FORMAT —
+  `id=value~unit` joined by `;`, never the query string — and an inline script
+  at the top of `<body>` in `app/layout.tsx` lifts an incoming fragment into
+  `window.__TPCC_FRAGMENT__` and `replaceState`s it out of the URL during parse,
+  before anything can read it. `calculator-form.tsx` hydrates from that stash
+  and deliberately has no fallback to `location.hash`. See "Do not reintroduce
+  fragment mirroring" below before touching any of it.
+- **Prefer a `type="button"` with `scrollIntoView` + `focus` over `href="#..."`
+  inside calculator UI.** This used to be absolute, because an anchor overwrote
+  the fragment holding field state and discarded every entered value. It no
+  longer can: the lifting script acts only on fragments containing `=`, so
+  anchors pass through untouched and are left in the URL for the browser to jump
+  to — asserted by the anchor case in `e2e/calculator-privacy.spec.ts`. Buttons
+  are still preferred for focus management, but an anchor is no longer a
+  data-loss bug.
 - **No file under `app/calculators/**` or `components/calculator/**` may contain
   the text `useSearchParams`, `searchParams`, or `"use server"`.** The TM-001
   guard in `content/privacy-invariant.test.ts` is a raw regex over source, so
@@ -45,6 +55,33 @@ Know the guards' limits (ADR-0005 documents them): the runtime spec exercises
 one calculator, the static scan matches three patterns of which `fetch(` is not
 one and walks only two directories, and `connect-src 'self'` does not stop
 same-origin exfiltration.
+
+### Do not reintroduce fragment mirroring
+
+Until 2026-08-05, field state was written into the URL fragment on every
+keystroke. The justification was that the fragment is the one part of a URL the
+browser never transmits — true of the BROWSER, and silent about any SCRIPT
+sharing the document.
+
+Cloudflare's JS Detections is injected into every page and cannot be disabled on
+the Free plan. It reads `document.location.href` and POSTs it as `{"lhr": …}`.
+The script was deobfuscated and its plaintext payload captured with real entered
+values in it, so this is measured rather than theorised. Every reload, restored
+tab, bookmark and shared link leaked the full field set to the edge.
+
+Two things about how it survived so long are worth keeping in mind, because both
+generalise:
+
+- **Every guard we had was looking elsewhere.** The privacy spec inspected
+  request URLs and bodies, but Cloudflare does not run against localhost. The
+  edge-script check matched `<script src="/cdn-cgi/…">`, and the injection has no
+  `src` — it builds the element at runtime, so that check returned zero matches
+  for its entire life while the script was demonstrably on the page.
+  `privacy-claims.test.ts` asserts on COPY, not behaviour.
+- **The replacement asserts a property, not an absence.** "No third-party
+  scripts" requires knowing who else is executing. "Entered values are not in
+  `location.href`" does not, and therefore holds against scripts that do not
+  exist yet. Prefer that shape whenever you have the choice.
 
 ## Design tokens
 

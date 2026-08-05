@@ -127,6 +127,49 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${fontBody.variable} ${fontDisplay.variable} ${fontNumeric.variable}`}
     >
       <body className="flex min-h-dvh flex-col">
+        {/* FIRST, BEFORE ANYTHING ELSE: take the fragment out of the URL.
+
+            A shared or reloaded calculator link carries every entered value in
+            its fragment. That was chosen because browsers never transmit a
+            fragment — true of the BROWSER, and false in effect, because a
+            script running in the document can read `location.href` and send it
+            itself. Cloudflare's JS Detections does exactly that: it builds
+            `{"lhr": document.location.href, …}`, JSON-stringifies it and POSTs
+            it to /cdn-cgi/challenge-platform/…/jsd/oneshot/… . Confirmed
+            2026-08-05 by deobfuscating the script and capturing the plaintext
+            payload — the fragment's values arrived verbatim.
+
+            So the fragment stays as the SHARING format and stops being live
+            page state. This runs during parse, and the only listener that
+            script registers is DOMContentLoaded, so the URL is already clean
+            before it ever reads it. `calculator-form.tsx` hydrates from
+            `__TPCC_FRAGMENT__` instead of `location.hash`, and deliberately has
+            no fallback to the live hash: if this ever fails to run, the form
+            starts empty, which is visible. A fallback would silently restore
+            the leak, and a silent false pass is how this survived in the first
+            place.
+
+            THE `indexOf("=")` TEST IS LOAD-BEARING, in both directions. Field
+            state always contains `id=value`; an in-page anchor never does. Without
+            it, activating the skip-to-content link below (`href="#content"`) would
+            stash `#content`, decode it to no known field, and wipe a form the
+            clinician had filled — and stripping it from the URL would also stop
+            the browser jumping to the target, breaking the accessibility
+            affordance it exists for. Anchors are left entirely alone.
+
+            It also runs on `hashchange`, which is not decoration. Pasting a
+            shared link into a tab already sitting on that same calculator
+            changes only the fragment, so the browser performs a same-document
+            navigation and no script re-runs — without this the link would
+            appear to do nothing. That path leaves the values in the URL for as
+            long as this handler takes to strip them, which is one synchronous
+            turn; the load-time case, which is the one an injected script is
+            actually bound to, has no such window at all. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){function l(){try{var h=location.hash;if(h&&h.length>1&&h.indexOf("=")>-1){window.__TPCC_FRAGMENT__=h;history.replaceState(null,"",location.pathname+location.search);window.dispatchEvent(new Event("tpcc:fragment"));}}catch(e){}}l();addEventListener("hashchange",l);})();`,
+          }}
+        />
         {/* Site-wide identity for search engines. Inline JSON-LD has no `src`,
             so it costs nothing against the route JS budget — the gate counts
             script tags that load a file. Per-page nodes (calculators) emit

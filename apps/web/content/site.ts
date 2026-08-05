@@ -965,14 +965,23 @@ export const site = {
     clearSelection: "Clear",
     clearSelectionLabel: "Clear the selection for",
     // Privacy line — must be architecturally true (PRD §6.4)
-    // "Nothing transmitted or stored" was architecturally true and quietly
-    // incomplete: values are mirrored into the page fragment on every
-    // keystroke, so they sit in the address bar, in session history, and in any
-    // bookmark or screenshot. On a shared PICU workstation that is a real
-    // exposure, and the honest line is the one that says so and points at the
-    // control that clears it.
+    // This line has now been wrong twice, in opposite directions.
+    //
+    // First it said "Nothing transmitted or stored", which was architecturally
+    // true and quietly incomplete: values were mirrored into the fragment on
+    // every keystroke, so they sat in the address bar, in session history and
+    // in any bookmark or screenshot. On a shared PICU workstation that is a
+    // real exposure, so the line was rewritten to disclose it.
+    //
+    // That disclosure then became the problem. It described the address bar as
+    // a merely local exposure, when a script in the page could read the whole
+    // address and send it — which the CDN's bot detection was doing. The fix
+    // was to stop putting values there at all (2026-08-05), so the line now
+    // describes the behaviour that actually holds, and names the two things a
+    // clinician will otherwise be surprised by: sharing is an explicit action,
+    // and a reload does not bring the form back.
     privacyLine:
-      "Calculations run entirely in your browser — nothing you enter leaves this device. Values do appear in this page's address bar, so the link can be bookmarked or shared. Clear all values removes them.",
+      "Calculations run entirely in your browser — nothing you enter leaves this device, and values are not put in the address bar. Copy link with these values builds a shareable link when you ask for one; reloading this page starts a blank form.",
     // Validation badge (PRD §6.4 — honest pending state)
     validationPending: "Independent clinical validation: pending",
     validationPendingDetail:

@@ -97,10 +97,20 @@ export default function TrustPage() {
             how="A test fills a calculator with the network disabled, asserts the result is still correct, and fails the build if any request carries data. A second scan fails the build if any file under the calculator routes reads the query string or declares a server action."
           >
             <p>
-              The scoring engine ships to your browser and runs there. Shareable links carry your
-              inputs in the URL <em>fragment</em>, the part after the <code>#</code>, which browsers
-              never send to a server. This is the one guarantee the whole platform is built around,
-              so it is enforced by architecture and not by policy.
+              The scoring engine ships to your browser and runs there. What you enter stays in the
+              page and is never put into the address bar, so nothing on the page can read it back
+              out. Pressing <em>Copy link with these values</em> builds a shareable link at that
+              moment, and only then; opening one restores the form and immediately clears the values
+              from the address bar again. This is the one guarantee the whole platform is built
+              around, so it is enforced by architecture and not by policy.
+            </p>
+            <p>
+              <strong>Corrected on 5 August 2026.</strong> This page previously said your inputs
+              rode in the URL fragment, &ldquo;which browsers never send to a server&rdquo;. That
+              was true of the browser and wrong in effect: a bot-detection script that our CDN
+              injects into every page read the whole address, fragment included, and sent it. Values
+              entered before that date could reach the CDN on any reload or shared link. The address
+              bar no longer holds them, which closes it regardless of what any script does.
             </p>
           </Claim>
 

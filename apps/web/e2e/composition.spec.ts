@@ -87,13 +87,20 @@ async function openWithValues(
   slug: string,
   fragment: string,
 ) {
+  /* NO `page.reload()` here, and it must not come back.
+
+     This used to goto-then-reload, because the form read the fragment once on
+     mount and a second call for the same calculator was a same-document
+     navigation that mounted nothing. Reloading worked only because the fragment
+     survived in the address bar — which is exactly the property that leaked
+     every entered value to the edge, and is now deliberately gone (TM-013).
+     A reload today re-requests a URL with no fragment and yields a blank form.
+
+     The same-document case is handled properly instead: the inline script in
+     `layout.tsx` lifts the fragment on `hashchange` too and emits
+     `tpcc:fragment`, which the form listens for. So each call applies its own
+     values whether or not the document is reused. */
   await page.goto(`/calculators/${slug}${fragment}`);
-  /* The form reads the fragment ONCE, on mount, and owns its state from then on
-     — after that it only writes the fragment back. So navigating between two
-     fragments of the SAME calculator is a same-document navigation that mounts
-     nothing and leaves the previous values on screen. Reloading is what makes
-     each call actually apply its own values. */
-  await page.reload();
   await expect(page.locator(RESULT)).toContainText("What makes up this total");
 
   for (const [id] of fragment

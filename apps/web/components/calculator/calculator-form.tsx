@@ -146,21 +146,45 @@ function CalculatorFormInner({
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // Hydrate from the URL fragment once on mount. Reading the hash in the
-  // state initializer would diverge from the server render (no window there)
-  // and cause a hydration mismatch, so the post-mount setState is correct
-  // and intentional here.
+  // Hydrate once on mount from the fragment the inline script in `layout.tsx`
+  // lifted out of the URL before parse finished. Reading it in the state
+  // initializer would diverge from the server render (no window there) and
+  // cause a hydration mismatch, so the post-mount setState is correct and
+  // intentional here.
+  //
+  // NOT `window.location.hash`, and with no fallback to it. By the time this
+  // runs the hash is gone by design — see the comment in `layout.tsx`. If the
+  // stash is missing the form starts empty, which someone will notice; a
+  // fallback would quietly put every entered value back into `location.href`
+  // for the edge script to collect.
+  //
+  // The `tpcc:fragment` listener covers the same-document case: pasting a
+  // shared link into a tab already on this calculator changes only the
+  // fragment, so nothing remounts and the mount read above never fires again.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (window.location.hash) setState(decodeFragment(window.location.hash, inputs));
+    const hydrate = () => {
+      const stashed = window.__TPCC_FRAGMENT__;
+      if (stashed) setState(decodeFragment(stashed, inputs));
+    };
+    hydrate();
+    window.addEventListener("tpcc:fragment", hydrate);
+    return () => window.removeEventListener("tpcc:fragment", hydrate);
   }, [inputs]);
 
-  // Mirror state into the fragment as the user types (replaceState — no history spam).
-  useEffect(() => {
-    const frag = encodeFragment(state);
-    const url = `${window.location.pathname}${window.location.search}${frag ? `#${frag}` : ""}`;
-    window.history.replaceState(null, "", url);
-  }, [state]);
+  // THE FRAGMENT IS NO LONGER MIRRORED AS THE USER TYPES, and that is the fix.
+  //
+  // This effect used to run `history.replaceState` on every keystroke, so the
+  // address bar held the live clinical values. Anything that then re-read the
+  // URL — a reload, a restored tab, or Cloudflare's JS Detections reading
+  // `document.location.href` at DOMContentLoaded — saw them. The values now
+  // live in React state only, and reach a URL solely when the clinician presses
+  // "Copy link with these values", which builds one on demand.
+  //
+  // The cost is deliberate and was accepted: a reload no longer restores the
+  // form. Persisting the rest of the fields to sessionStorage would fix that,
+  // but the allow-list in Invariant 2 is `age`, `age_months`, `weight`,
+  // `weight_kg` and widening it is its own decision, not a side effect of this
+  // one.
 
   const setField = useCallback((id: string, patch: { raw?: string; unit?: string }) => {
     setState((prev) => {
@@ -396,32 +420,43 @@ function CalculatorFormInner({
     setCopied(false);
     setLinkCopied(false);
     dismissCarried();
-    // KEEPS THE QUERY STRING. This dropped `window.location.search`, so a visit
-    // carrying a campaign or referral parameter lost it the moment the form was
-    // cleared — and permanently, because the mirroring effect above then
-    // re-derives the URL from the search it can no longer see. Field values are
-    // this button's business; the query string is not.
-    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    // The URL no longer carries field values, so there is nothing here to
+    // strip: the inline script in `layout.tsx` removed the fragment before this
+    // component mounted, and nothing writes one back. The `replaceState` that
+    // used to live here — carefully preserving `window.location.search` so a
+    // campaign or referral parameter survived a clear — is gone with the
+    // mirroring effect it existed to correct.
+    //
+    // The stash goes too, so a later remount cannot resurrect the values the
+    // clinician just cleared.
+    delete window.__TPCC_FRAGMENT__;
   }, [inputs, dismissCarried]);
 
   /**
-   * Copying the link is DELIBERATE, and says what it contains.
+   * Copying the link is DELIBERATE, and is now the ONLY way values reach a URL.
    *
-   * The capability already existed and was invisible: state is mirrored into
-   * the fragment on every keystroke, so the address bar has always been
-   * shareable. Naming the action is what turns an accident into a choice — and
-   * the privacy line now says the same thing, because "nothing is transmitted"
-   * was architecturally true while the values sat in plain sight in the URL.
+   * This used to copy `window.location.href`, which worked only because the
+   * address bar already held the values. It no longer does, so the link is
+   * composed here from state at the moment it is asked for. That is the whole
+   * shape of the fix: the fragment is a sharing format the clinician opts into,
+   * not ambient page state that anything reading `location.href` can collect.
+   *
+   * The query string is preserved, matching `clearAll` below — a visit carrying
+   * a campaign or referral parameter keeps it.
    */
   const copyLink = useCallback(() => {
+    const frag = encodeFragment(state);
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${
+      frag ? `#${frag}` : ""
+    }`;
     void navigator.clipboard
-      .writeText(window.location.href)
+      .writeText(url)
       .then(() => {
         setLinkCopied(true);
         setTimeout(() => setLinkCopied(false), 2000);
       })
       .catch(() => {});
-  }, []);
+  }, [state]);
 
   return (
     /**
