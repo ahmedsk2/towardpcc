@@ -155,11 +155,35 @@ async function checkNoForeignScripts() {
  */
 const EDGE_SCRIPTS_ALLOWED = new Set([]);
 
+/**
+ * Why this scans the whole body and not just `<script src=…>`.
+ *
+ * It used to match only `<script[^>]+src="/cdn-cgi/…"`, and that made the check
+ * a FALSE PASS for the entire time it ran. Cloudflare's JS Detections does not
+ * emit a script tag with a src attribute at all. It emits an INLINE script that
+ * builds the element at runtime:
+ *
+ *   var a=document.createElement('script');
+ *   a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';
+ *   document.getElementsByTagName('head')[0].appendChild(a);
+ *
+ * There is no `src=` attribute anywhere in that markup, so the old pattern
+ * returned zero matches while the script was demonstrably in the body and
+ * running on every calculator page. Measured on 2026-08-05: regex matches 0,
+ * `body.includes("jsd/main.js")` true. An empty allow-list above a pattern that
+ * cannot match anything is not strictness, it is silence.
+ *
+ * So the test is now the presence of a `/cdn-cgi/` script path ANYWHERE in the
+ * document, however it is introduced. That is narrow enough not to fire on
+ * Next's own runtime — which does create script elements, but never from
+ * `/cdn-cgi/` — and broad enough that the next edge feature cannot hide from it
+ * by using a loader instead of a tag.
+ */
 async function checkEdgeInjectedScripts() {
   const { body } = await get("/calculators/pim3");
-  const injected = [...body.matchAll(/<script[^>]+src="(\/cdn-cgi\/[^"]+)"/g)]
+  const injected = [...body.matchAll(/\/cdn-cgi\/[^"'\s<>()]*?\.js/g)]
     // The path carries a rotating cache-busting segment, so compare filenames.
-    .map((m) => m[1].split("/").pop())
+    .map((m) => m[0].split("/").pop())
     .filter(Boolean);
   const unexpected = [...new Set(injected)].filter((f) => !EDGE_SCRIPTS_ALLOWED.has(f));
   record(
