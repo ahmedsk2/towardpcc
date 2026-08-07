@@ -53,8 +53,21 @@ module.exports = {
     },
     assert: {
       assertions: {
-        // The hard gzipped JS-size gate lives in scripts/check-bundle-budget.mjs;
-        // this only reports transfer size.
+        /*
+         * THE NUMBER HERE IS BORROWED FROM A DIFFERENT MEASUREMENT, and cannot
+         * be met. 174080 is 170 KB — the GZIPPED per-route budget enforced by
+         * scripts/check-bundle-budget.mjs, which every route currently passes.
+         * This assertion counts UNCOMPRESSED transfer bytes of ALL scripts on
+         * the page: measured 180,740 on `/` and 310,566 on every calculator
+         * route, 2026-08-07. The two were never the same quantity, so this has
+         * warned since the day it was written and will warn forever.
+         *
+         * Left in place rather than deleted because the trend is worth watching,
+         * but do NOT flip it to error against this number, and do not "fix" the
+         * routes to satisfy it — they already satisfy the budget that matters.
+         * Re-set it against what Lighthouse actually reports, or drop it and let
+         * check-bundle-budget.mjs be the single JS-size authority.
+         */
         "resource-summary:script:size": ["warn", { maxNumericValue: 174080 }],
 
         // ERROR, as of 2026-08-03. Every one of the nine routes now measures
@@ -65,12 +78,37 @@ module.exports = {
         // is invisible in review and only shows on the longest page.
         "cumulative-layout-shift": ["error", { maxNumericValue: 0.1 }],
 
-        // Still warn. Measured 2545-3655ms across the nine routes; the budget is
-        // 2500. It is network-bound, not main-thread bound (TBT is 23-60ms
-        // everywhere), and the largest single item is that the home document
-        // inlines the hero mesh geometry twice. Flip to error once that lands
-        // and the numbers actually clear — a gate nobody can pass gets ignored,
-        // and then it protects nothing.
+        /*
+         * MEASURED ACROSS ALL NINE ROUTES, 2026-08-07 (CI run 92842902929).
+         * Recorded here so the next person argues with numbers rather than
+         * with the budget:
+         *
+         *   route                   perf    LCP    TTI   script bytes
+         *   /                       0.88   2888   4027        180,740
+         *   /calculators            0.86   3061   4479        310,566
+         *   /calculators/anion-gap    ok   2913   3666        310,566
+         *   /calculators/prism        ok     ok   3680        310,566
+         *   /calculators/phoenix      ok   2941   3629        310,566
+         *   /trust                    ok   3053   3061             ok
+         *   /validation               ok   2653   3062             ok
+         *   /services                 ok   3154   3347             ok
+         *   /knowledge                ok   2579   3187             ok
+         *
+         * LCP misses by 3-26%; it is network-bound, not main-thread bound (TBT
+         * is 23-60ms everywhere), and the largest single item is that the home
+         * document inlines the hero mesh geometry twice.
+         *
+         * TTI is the outlier: 1.5-2.2x over on EVERY route, including static
+         * content pages with almost no interactivity. A target nothing can
+         * approach is not calibration, it is decoration — and this one has never
+         * been within reach on any route since it was written. Either it moves
+         * to something a React app on Lighthouse's throttled 4G can actually
+         * hit, or it goes.
+         *
+         * These stay `warn` deliberately. A gate nobody can pass gets ignored,
+         * and then it protects nothing — which is precisely the failure this
+         * project spent 2026-08-07 fixing in the integrity canary.
+         */
         "largest-contentful-paint": ["warn", { maxNumericValue: 2500 }],
         interactive: ["warn", { maxNumericValue: 2000 }],
         "categories:performance": ["warn", { minScore: 0.9 }],
