@@ -44,10 +44,16 @@ only**, not identity; the salt is a server secret, truncation defeats reversal),
 `createdAt`, `updatedAt`, `triagedById` (FK → AdminUser, nullable).
 **Retention: 24 months from `createdAt`, then purged** (§8.4). A submitter can
 request earlier deletion via `[CONTACT_EMAIL]`.
-**Threat-model note (TM):** the submitter is emailed an acknowledgement only
+**Threat-model note (TM):** ~~the submitter is emailed an acknowledgement only
 _after_ a human triages (never an auto-reply that confirms the address is
-monitored to a spammer); admin rendering of `payload`/`internalNotes` is
-always output-encoded (no `dangerouslySetInnerHTML`).
+monitored to a spammer)~~ — **struck 2026-08-07: no submitter acknowledgement
+exists at all.** ADR-0004 decision 3 removed that path outright, so the only mail
+the platform sends is the operator notification. The reasoning is kept because it
+still governs any future acknowledgement: an auto-reply confirms to a spammer
+that an address is monitored, so if one is ever added it waits for human triage.
+
+Admin rendering of `payload`/`internalNotes` is always output-encoded (no
+`dangerouslySetInnerHTML`), and that part is unchanged.
 
 ### `CalculatorMeta`
 
