@@ -386,3 +386,75 @@ container write and is not a factor here. `revalidatePath` in the admin server
 actions targets the same `.next/cache` path and is covered by the same mount,
 but the authenticated admin routes were not exercised under read-only — verify
 that before assuming it.
+
+## Coolify environment variables: two things that cost an hour
+
+### A multi-line value is stored and then silently dropped
+
+Coolify accepts a multi-line variable through the API without complaint and
+returns it intact on read — all 1203 characters of a PEM came back. It then
+never injects it into the container.
+
+Measured on 2026-08-08 while enabling database TLS: after creating
+`DATABASE_CA_CERT`, then a `restart`, then a forced full rebuild, the variable
+was **absent from `docker inspect`'s env list entirely** while `DATABASE_URL` and
+`AUTH_SECRET` sat right beside it. Nothing warned. There was no empty string to
+notice — the key simply did not exist.
+
+So any value with embedded newlines must be base64-encoded to a single line
+before it goes in. `packages/db/src/index.ts` accepts either form and sniffs
+which it was given.
+
+```bash
+base64 -w0 < cert.pem      # single line, safe to paste into Coolify
+```
+
+The diagnostic that actually settles it, since reading the value back from the
+API tells you nothing:
+
+```bash
+CID=$(sudo docker ps --format '{{.Names}}' | grep ^gpsokvxzncr7ks1vzqz7wkr4)
+sudo docker inspect "$CID" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -o '^[A-Z_]*='
+```
+
+`e3b0c44298fc` as a `sha256sum` fingerprint means the variable is **empty or
+absent** — that is the hash of the empty string, not of your value.
+
+### The API's `restart` does not pick up an environment change
+
+The rotation section above says to prefer `restart_only`. That holds for the
+Coolify UI action, but `POST /api/v1/applications/<uuid>/restart` did **not**
+regenerate the environment here — two consecutive restarts left the container
+without the new variable. A deploy did recreate it.
+
+When `main` is already the deployed commit, `GET /api/v1/deploy?...&force=true`
+ships no extra code and is the reliable option.
+
+## Running a migration: the `<build-image>` step is stale
+
+The command earlier in this file passes `<build-image>`. **No build-stage image
+survives on the host** — every retained `gpsokvxzncr7ks1vzqz7wkr4:*` tag is the
+runtime image, and none of them contain `/repo`, the Prisma CLI, or the
+migrations directory (checked across the last three).
+
+What works, and what was used to apply `20260808120000_audit_nullable_actor`:
+ship `packages/db` (schema, `prisma.config.ts`, `prisma/migrations/`) to the
+host, then run the CLI in a throwaway Node container on the `coolify` network.
+
+```bash
+tar -czf /tmp/db.tgz -C packages/db prisma prisma.config.ts     # from a checkout
+scp /tmp/db.tgz ubuntu@145.241.105.239:/tmp/
+ssh ubuntu@145.241.105.239
+mkdir -p /tmp/mig && tar -xzf /tmp/db.tgz -C /tmp/mig
+printf '%s' '{"name":"mig","private":true,"type":"module"}' > /tmp/mig/package.json
+
+sudo docker run --rm --network coolify --env-file /home/ubuntu/towardpcc-secrets.env \
+  -v /tmp/mig:/mig -w /mig node:24-alpine sh -c \
+  'npm install --no-audit --no-fund prisma@7.9.1 >/dev/null 2>&1; \
+   DATABASE_URL="$DATABASE_URL_OWNER" ./node_modules/.bin/prisma migrate status'
+```
+
+Run `migrate status` first — it reports pending migrations **and** validates the
+checksums of the applied ones, so it catches drift before you write anything.
+Swap `status` for `deploy` to apply. `node` is not installed on the host itself,
+only in containers; `python3` is.
