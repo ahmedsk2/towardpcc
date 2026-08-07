@@ -65,10 +65,33 @@ function totpCode(base32Secret: string, atMs = Date.now()): string {
   return String(binary % 10 ** CODE_DIGITS).padStart(CODE_DIGITS, "0");
 }
 
+/**
+ * The "a skip in CI is a fault" contract, made executable.
+ *
+ * A supply-chain review pointed out that three files ASSERTED this and nothing
+ * ENFORCED it: Playwright exits 0 when a whole describe block skips, and the
+ * github reporter does not fail on skips. Drop the `env:` block, rename the
+ * variable, or let the service come up unreachable, and all three login tests
+ * would skip while CI stayed green — the login path silently unguarded again.
+ *
+ * That is the same failure this project spent 2026-08-07 fixing twice already:
+ * an edge-script check whose regex matched nothing for its entire life, and a
+ * canary that reported success while being blocked. A documented intention is
+ * not a control.
+ *
+ * So the skip stays a local convenience and becomes impossible in CI.
+ */
+if (process.env.CI && !process.env.E2E_DATABASE_URL) {
+  throw new Error(
+    "E2E_DATABASE_URL must be set in CI — the admin-login spec may never silently skip there. " +
+      "Check the postgres service and the env block in .github/workflows/ci.yml.",
+  );
+}
+
 test.describe("admin login", () => {
   test.skip(
     !process.env.E2E_DATABASE_URL,
-    "needs E2E_DATABASE_URL — see e2e/global-setup.mjs. CI always sets it, so a skip there is a fault.",
+    "needs E2E_DATABASE_URL — see e2e/global-setup.mjs. Impossible in CI: the throw above.",
   );
 
   test("a correct password and TOTP code reach the admin area", async ({ page }) => {

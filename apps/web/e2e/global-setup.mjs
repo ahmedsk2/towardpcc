@@ -17,6 +17,7 @@
 import { execSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { assertDisposableDatabase } from "../../../packages/db/scripts/assert-disposable-db.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dbPackage = join(here, "..", "..", "..", "packages", "db");
@@ -31,6 +32,18 @@ export default async function globalSetup() {
     );
     return;
   }
+
+  /*
+   * GUARD FIRST, BEFORE ANYTHING TOUCHES THE DATABASE.
+   *
+   * A supply-chain review on 2026-08-07 found this in the wrong order: the check
+   * lived only inside the seeder, so `prisma db push` — the SCHEMA-MUTATING step
+   * — connected and applied DDL to whatever it was handed with no check at all,
+   * and playwright.config.ts forwarded the same URL to the app server unchecked
+   * too. The one documented control protected the least dangerous of the three
+   * consumers. The seeder keeps its own call as defence in depth.
+   */
+  assertDisposableDatabase(databaseUrl);
 
   // `db push` rather than `migrate deploy`: this database is discarded after the
   // run, so migration history is irrelevant and pushing is markedly faster.

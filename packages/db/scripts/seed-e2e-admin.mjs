@@ -28,25 +28,9 @@ import { argon2id } from "hash-wasm";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { TEST_ADMIN } from "./e2e-admin-fixture.mjs";
-
-/**
- * Refuse to seed anything that might be real.
- *
- * The account below has a password published in the repository. The only thing
- * between this script and a total compromise is the connection string it is
- * handed, so that is checked rather than trusted: the host must be local and the
- * database name must announce itself as a test.
- */
-function assertDisposableDatabase(url) {
-  const ok = /@(localhost|127\.0\.0\.1|postgres)[:/]/.test(url) && /e2e|test/i.test(url);
-  if (!ok) {
-    throw new Error(
-      "REFUSING TO SEED: the e2e admin has a published password and may only be " +
-        "created in a throwaway database. DATABASE_URL must point at " +
-        "localhost/127.0.0.1/postgres AND name a database containing 'e2e' or 'test'.",
-    );
-  }
-}
+// Shared with the Playwright global setup, which calls it FIRST — before
+// `prisma db push` touches anything. This call is defence in depth.
+import { assertDisposableDatabase } from "./assert-disposable-db.mjs";
 
 function encryptSecret(secretBase32, encKeyBase64) {
   const key = Buffer.from(encKeyBase64 ?? "", "base64");
