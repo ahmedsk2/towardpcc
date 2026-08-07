@@ -155,20 +155,34 @@ export function resolveClientIp(headers: Headers): string {
     return edgeClientIp(headers) ?? "unknown";
   }
 
-  // Chain A, unchanged. Cloudflare sets this on every proxied request,
-  // overwriting anything the client sent. Absent locally and on direct origin
-  // access, which is why the fallbacks below still matter.
+  /*
+   * Chain A. EVERY source below is now shape-checked before it is believed
+   * (SPC-API-002) — previously only chain B was, and the asymmetry was not
+   * deliberate.
+   *
+   * The argument for checking chain B applies here word for word: a value is
+   * only trustworthy if a proxy we trust actually wrote it, and if one did not,
+   * what arrives is whatever the caller sent. Chain A's safety rests on the OCI
+   * security list admitting 80/443 only from Cloudflare's ranges — which this
+   * file already calls "a DEPENDENCY, not an invariant". Validation is what
+   * keeps a malformed value out of the salted forensic hash on the day that
+   * dependency stops holding, rather than the day someone notices.
+   *
+   * A rejected value falls through to the next source rather than failing the
+   * request. The worst case is `unknown`: a shared rate-limit bucket, which is
+   * the documented fallback, and no poisoned hash.
+   */
   const cf = headers.get("cf-connecting-ip")?.trim();
-  if (cf) return cf;
+  if (cf && isIpLiteral(cf)) return cf;
 
   // Set by our own reverse proxy to the address it observed.
   const real = headers.get("x-real-ip")?.trim();
-  if (real) return real;
+  if (real && isIpLiteral(real)) return real;
 
   // RIGHTMOST, never the leftmost: the last hop is the address our own proxy
   // saw, while the first is whatever the caller chose to send (CWE-348).
   const hop = rightmostHop(headers);
-  if (hop) return hop;
+  if (hop && isIpLiteral(hop)) return hop;
 
   // Better a single shared bucket than a crash — a request we cannot attribute
   // is still rate limited, just not individually.

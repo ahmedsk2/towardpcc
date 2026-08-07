@@ -186,4 +186,52 @@ describe("resolveClientIp", () => {
       ).toBe("203.0.113.7");
     });
   });
+
+  /**
+   * SPC-API-002. Every chain-A source is shape-checked before it is believed.
+   *
+   * Only chain B validated before, and the asymmetry was not deliberate. Chain
+   * A's safety rests on the OCI security list admitting 80/443 only from
+   * Cloudflare — which client-ip.ts itself calls "a DEPENDENCY, not an
+   * invariant". These cases are what stops a malformed value being stored as
+   * though it were an address on the day that dependency stops holding.
+   *
+   * A rejected value FALLS THROUGH to the next source rather than failing the
+   * request, so each case below also asserts what it falls through to.
+   */
+  describe("chain A rejects values that are not IP literals (SPC-API-002)", () => {
+    it("falls through a non-IP cf-connecting-ip to x-real-ip", () => {
+      expect(
+        resolveClientIp(h({ "cf-connecting-ip": "not-an-ip", "x-real-ip": "203.0.113.9" })),
+      ).toBe("203.0.113.9");
+    });
+
+    it("falls through a non-IP x-real-ip to the rightmost forwarded hop", () => {
+      expect(
+        resolveClientIp(h({ "x-real-ip": "<script>", "x-forwarded-for": "1.2.3.4, 5.6.7.8" })),
+      ).toBe("5.6.7.8");
+    });
+
+    it("returns 'unknown' rather than storing a garbage forwarded hop", () => {
+      expect(resolveClientIp(h({ "x-forwarded-for": "1.2.3.4, junk" }))).toBe("unknown");
+    });
+
+    it("rejects an octet above 255 rather than trusting a plausible-looking string", () => {
+      expect(resolveClientIp(h({ "cf-connecting-ip": "999.1.1.1", "x-real-ip": "8.8.8.8" }))).toBe(
+        "8.8.8.8",
+      );
+    });
+
+    it("still accepts a valid IPv6 address", () => {
+      expect(resolveClientIp(h({ "cf-connecting-ip": "2001:db8::1" }))).toBe("2001:db8::1");
+    });
+
+    it("returns 'unknown' when every source is malformed", () => {
+      expect(
+        resolveClientIp(
+          h({ "cf-connecting-ip": "a b c", "x-real-ip": "!!", "x-forwarded-for": "nope" }),
+        ),
+      ).toBe("unknown");
+    });
+  });
 });

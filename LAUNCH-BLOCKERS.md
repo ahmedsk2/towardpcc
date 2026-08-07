@@ -991,16 +991,32 @@ its own image on the OCI host**. Signing the CI image would attest to an artefac
 that never existed in production and whose digest differs from the deployed one.
 Cosign without moving the builder is theatre.
 
-### SPC-API-002 — the rewrite relocated the trust rather than removing it
+### SPC-API-002 — chain A now validates too, 2026-08-07
 
-- [ ] Anti-forgery on the client-IP resolver.
+- [x] **Shape-checking applied to every chain-A source.**
 
-`resolveClientIp` validates nothing on the Cloudflare path, which serves 100% of
-live traffic today, and stakes the edge path entirely on one hand-observed
-infrastructure behaviour with no in-code check. The "Client IP is Cloudflare's"
-item above is ticked, but its own caveat — "widening those rules re-opens
-CWE-348 and means revisiting that file" — was triggered by the KSA migration work
-and never acted on.
+`isIpLiteral()` guarded chain B only, and the asymmetry was not deliberate:
+`cf-connecting-ip`, `x-real-ip` and the rightmost forwarded hop were all returned
+verbatim on the path serving 100% of live traffic. All three are checked now, and
+a rejected value falls through to the next source rather than failing the
+request — worst case `unknown`, which is a shared rate-limit bucket and the
+documented fallback, rather than a poisoned forensic hash.
+
+The argument was already in the file, written for chain B: a value is only
+trustworthy if a proxy we trust actually wrote it. Chain A's safety rests on the
+OCI security list admitting 80/443 only from Cloudflare's ranges, which
+`client-ip.ts` itself calls "a DEPENDENCY, not an invariant" — so validation is
+what holds on the day that dependency stops, rather than the day someone notices.
+
+Six tests added, and proven to bite before landing: with the validation reverted,
+five of the six fail. The sixth is a positive control (a valid IPv6 address is
+still accepted) and passes either way, which is the point of including it.
+
+**Still true, and not addressed here:** the edge path stakes chain-B detection on
+one hand-observed infrastructure behaviour — that Traefik overwrites a
+client-supplied `x-real-ip` once it trusts the upstream. That was verified by
+sending a forged one against the running system, but it remains an observation
+about topology rather than something the code can check.
 
 ### Gitleaks pre-commit
 
