@@ -70,10 +70,16 @@ verified and "they currently pass" is not._
   `definition.compute(...)` (line 145) inside a `useMemo`. The detail route
   `apps/web/app/calculators/[slug]/page.tsx` is statically prerendered
   (`generateStaticParams`, line 27) and passes only a slug.
-- **Shareable state is in the fragment, never the query string.** The form
+- **Shareable state is in the fragment, never the query string.** ~~The form
   encodes inputs as `id=value~unit` joined by `;` and writes them with
   `window.history.replaceState`. Browsers do not send the fragment to the server,
-  so a shared link cannot land in an access log.
+  so a shared link cannot land in an access log.~~
+  **Superseded 2026-08-05 — this reasoning is the bug (TM-013).** The conclusion
+  about access logs was right and irrelevant. A fragment is not sent by the
+  BROWSER; it is trivially readable by any SCRIPT in the document, and one the
+  CDN injects was reading it and posting it. The form no longer writes state into
+  the URL at all — the fragment survives only as a share format, lifted out
+  during parse. See the addendum under "What those guards do NOT cover".
 - **`/api/v1` has exactly two endpoints and neither takes an input.**
   `apps/web/app/api/v1/health/route.ts` and `apps/web/app/api/v1/ready/route.ts`
   are both parameterless `GET`s returning a fixed JSON shape. The only other
@@ -440,6 +446,57 @@ limits of.
 - **The engine's `fetch` ban is scoped to the engine.** `apps/web` has its own
   flat ESLint config without that rule. The engine cannot phone home; the form
   wrapped around it is guarded only by items 1 and 2 above.
+- **Every item above assumes the only code on the page came from this
+  repository.** Nothing here covers a script this repo did not write, running on
+  a calculator page, put there by the CDN. That is the limit TM-013 turned out
+  to exploit — see the addendum below.
+
+### Addendum — 2026-08-05: the limit this list did not name (TM-013)
+
+The invariant was broken in production for weeks, and every guard listed above
+reported fine.
+
+Field state was mirrored into the URL fragment on every keystroke. The
+justification was that browsers never transmit a fragment — true of the
+**browser**, and silent about a **script in the same document**. Cloudflare's JS
+Detections is injected into every page and cannot be disabled on the Free plan;
+it reads `document.location.href` and POSTs it as `{"lhr": …}`. Every reload,
+restored tab, bookmark and shared link sent the full field set to the edge.
+
+It was measured rather than argued: the script was deobfuscated (269-entry
+string table recovered, 462 call sites resolved, none left over) and executed in
+real Chromium against a stubbed calculator page with a server-side capture, and
+the fragment's values arrived verbatim. Sixteen tokens seeded into input values,
+selects, textarea, checkbox, `sessionStorage`, `localStorage`, `document.cookie`,
+a text node, `<title>`, form name, `window.name` and a global reached the wire in
+none of the runs — the script cannot touch a form field and never needed to,
+because the site had put the values in the URL.
+
+**Why nothing caught it**, which is the part worth keeping:
+
+- The POST is **same-origin**, so `checkNoForeignScripts` — which judges by
+  origin — was structurally incapable of seeing it.
+- The edge-script check matched `<script src="/cdn-cgi/…">`. The injection has no
+  `src`; an inline bootstrap builds the element at runtime. That check returned
+  zero matches for its entire life while the script was demonstrably on the page,
+  beneath an empty allow-list that read as strictness.
+- `privacy-claims.test.ts` asserts on **copy**, not behaviour.
+- The runtime e2e inspects request bodies, but Cloudflare does not run against
+  localhost, so no e2e could ever have observed it.
+
+**The fix, and the shape to copy.** Values no longer enter the URL: an inline
+script lifts an incoming fragment and `replaceState`s it out during parse, before
+the `DOMContentLoaded` the injected script binds, and sharing composes a URL on
+demand. The new assertion is that entered values are **not in `location.href`** —
+a property of our own page, requiring no knowledge of who else is executing, so
+it holds against scripts that do not exist yet. Prefer that over any guard shaped
+as "nothing hostile is present".
+
+§2.3 of the threat model already had the mechanism right, in its **Error
+tracking** row: "Client SDKs capture `window.location.href` **including the
+fragment**". It named a Sentry SDK we never shipped and did not generalise to
+"anything that reads the URL". Getting the actor wrong was enough to miss it.
+
 - **The runtime `window`/`document` assertion in `no-runtime-deps.test.ts` is a
   weak backstop.** It proves the Node test environment has no DOM globals, not
   that the engine avoids them; the tsconfig and ESLint rules are the real
