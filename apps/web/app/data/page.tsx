@@ -24,10 +24,26 @@ export default function DataPage() {
       faq={d.faq}
       imageLabel="Registry dashboard"
       imageHint="save as public/images/registry-dashboard.jpg"
-      imageSrc="/images/registry-dashboard.jpg"
-      imageAlt="A PICU registry dashboard showing admissions, bed occupancy and length-of-stay charts."
-      // 1000x850. This was the worst of the four crops — 80% of a dashboard
-      // showing through a 99px slit, which made the charts unreadable.
+      // NO `imageSrc` UNTIL THE PILOT UNIT HAS APPROVED ONE IN WRITING.
+      //
+      // It carried `/images/registry-dashboard.jpg` until 2026-08-07, and that
+      // was a live screenshot of the pilot unit's own Command Center: a real
+      // 30-day admissions and discharges curve with real dates, and one real
+      // consultant caseload. No patient names and no hospital named, but real
+      // operating figures belonging to someone else.
+      //
+      // `content/site.ts` said all along that dashboard imagery "cannot be
+      // published until the pilot unit approves it", and commit 9682cfd — "show
+      // the registry's stage instead of imagery it cannot publish" — added the
+      // StageTimeline below but never removed the image. So the repository
+      // asserted the thing was unpublished while the site served it, which is
+      // the exact failure mode this project keeps finding: a claim nobody
+      // re-checked against what was actually running.
+      //
+      // The ImageSlot degrades to its designed placeholder and the StageTimeline
+      // stands on its own, so the page reads correctly without it. Restore only
+      // with either written permission on file, or a screenshot of a demo or
+      // seeded instance that shows no real unit's figures.
       imageAspect="aspect-[1000/850]"
       imageFit="contain"
       imageFrame

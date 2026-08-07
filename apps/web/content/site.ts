@@ -461,7 +461,18 @@ export const site = {
     data: {
       /**
        * Shown in place of dashboard imagery, which cannot be published until
-       * the pilot unit approves it. Process transparency is the honest
+       * the pilot unit approves it.
+       *
+       * THAT SENTENCE WAS FALSE FROM 2026-07-27 TO 2026-08-07 and nobody
+       * noticed, because it describes an intention rather than a check. Commit
+       * 9682cfd ("show the registry's stage instead of imagery it cannot
+       * publish") added the timeline below but left `imageSrc` in
+       * `app/data/page.tsx`, so the site served the screenshot the whole time
+       * this comment said it could not. If a claim like this is worth writing,
+       * it is worth a guard — prefer asserting the property over describing the
+       * intention.
+       *
+       * Process transparency is the honest
        * substitute: a unit deciding whether to join learns more from what the
        * next stage requires than from a screenshot. The unit stays unnamed.
        */
