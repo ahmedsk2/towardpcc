@@ -61,15 +61,29 @@ export default defineConfig({
     serviceWorkers: "block",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  /**
+   * Pushes the schema and seeds a known admin, but ONLY when
+   * `E2E_DATABASE_URL` is set. See `e2e/global-setup.mjs` for why that is
+   * optional and why the skip is announced rather than silent.
+   */
+  globalSetup: "./e2e/global-setup.mjs",
   webServer: {
     command: "pnpm build && pnpm start",
-    // Dummy secrets so the auth-dependent pages (e.g. /admin/login) render — no
-    // real login is exercised here; the header assertions are what matter.
     env: {
       PORT: String(PORT),
       AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-dummy-auth-secret-not-for-production-use-only",
       TOTP_ENC_KEY: process.env.TOTP_ENC_KEY ?? Buffer.alloc(32, 7).toString("base64"),
       SUBMISSION_IP_SALT: process.env.SUBMISSION_IP_SALT ?? "e2e-dummy-ip-salt-value",
+      /**
+       * Only present when a throwaway database is available. Without it the
+       * server still builds and serves — the calculators need no database — and
+       * `admin-login.spec.ts` skips.
+       *
+       * The comment that stood here until 2026-08-07 said "no real login is
+       * exercised here". That was true, and it was the problem: the path whose
+       * failure locks the only operator out had no coverage at all.
+       */
+      ...(process.env.E2E_DATABASE_URL ? { DATABASE_URL: process.env.E2E_DATABASE_URL } : {}),
     },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
