@@ -153,6 +153,15 @@ then — no figure is invented.
 Treat push-to-deploy as broken, not flaky, and check the deployed SHA after
 every merge.
 
+- [ ] **Diagnose it, rather than recording it again.** Read Coolify's webhook
+      receiver logs against the four known failure timestamps.
+
+Concretely: `sudo docker logs coolify --since <ts>` around each failure, and the
+GitHub side under repo → Settings → Webhooks → hook `657319469` → Recent
+Deliveries, which shows the response Coolify actually returned. Four dated
+paragraphs is three more than this deserved; the cost is now a hand-run deploy
+on every session close, forever, until someone reads those logs.
+
 **2026-08-05 and 2026-08-07 — it has now failed on single merges too.** The
 earlier entries both involved two merges close together, which is what made the
 collision theory tempting. On 2026-08-05 the container sat on `bcd4100` for 29

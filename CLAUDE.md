@@ -68,6 +68,17 @@ Run it as `pnpm gate > "$TEMP/gate.log" 2>&1; echo $?` and read the log after.
 `tail`, so a run whose last line is `ELIFECYCLE Command failed with exit code 1`
 still looks like a pass, and has been reported as one.
 
+**When every changed path is markdown it runs `format:check` alone**, because
+nothing else can observe a markdown change — verified 2026-08-07, not assumed:
+no test reads a `.md` file at runtime (every `docs/` mention in a test is a
+comment), ESLint has no markdown coverage, and typecheck, build and the budget
+cannot see one. Any non-markdown path in the diff runs everything, so a mixed
+batch is never scoped down. `pnpm gate --full` forces the lot, `pnpm gate
+--explain` prints the decision without running it, and **any uncertainty — no
+`origin/main`, a git error, an empty file list — runs the FULL gate.** Never
+fast-path on doubt; the fast path is the shortcut this gate was written to
+prevent, and it is only safe because it is bounded to a file type proven inert.
+
 Four traps it exists to remove:
 
 - **`pnpm test` does not typecheck.** Vitest never has. Running tests and lint
@@ -102,10 +113,19 @@ Lighthouse (warn-only) and the container build.
   `docker-compose.prod.yml` and `docs/runbooks/deploy.md` describe a stack that
   was designed first and **is not what runs** — editing them changes nothing in
   production. `docs/runbooks/deploy-production.md` is the live setup.
-- **Push-to-deploy does not work — check the deployed tag after every merge.**
-  Confirmed twice (2026-08-03, 2026-08-04). On the second occasion no build was
-  in flight, which rules out the mid-build race first blamed, so treat it as
-  broken rather than flaky. Coolify's `status` is not a gate in either direction:
+- **Deploy once at the end of a session, then check the tag.** Merges accumulate;
+  one hand-triggered deploy closes the session, and the tag check below runs
+  once. **The carve-out:** a merge that closes something _actively wrong in
+  production_ — a live incorrect clinical number, a false public claim, or a
+  privacy leak — deploys immediately. On 2026-08-05 the fragment fix sat green
+  and unmerged while production leaked and `/trust` told visitors something
+  untrue; batching would have lengthened that window, not shortened it. Trigger
+  the deploy and keep working rather than blocking on the poll.
+- **Push-to-deploy does not work — the deployed tag is the only thing that
+  proves a deploy landed.** Confirmed four times (2026-08-03, 08-04, 08-05,
+  08-07). The last two failed on merges with no build in flight, which kills the
+  mid-build race first blamed, so treat it as broken rather than flaky. Coolify's
+  `status` is not a gate in either direction:
   it read `running:healthy` over a container three commits stale, and
   `running:unhealthy` over one that Docker and both probes called healthy. The
   image tag is the only signal that has been right every time —
@@ -159,7 +179,21 @@ Lighthouse (warn-only) and the container build.
 
 - Conventional Commits; commitlint (`@commitlint/config-conventional`) rejects
   capitalised subjects. Husky runs `commit-msg` and `pre-commit`.
-- One slice per branch. Branch before touching `main`.
+- **Branch before touching `main`. What gets its own branch depends on risk.** A
+  change stands alone when it can alter _a number a clinician reads, a claim the
+  site makes, or how production is built and served_ — that means
+  `packages/scoring-engine/**`, `components/calculator/**`, `app/calculators/**`,
+  anything touching a privacy invariant, `content/site.ts` where a public claim
+  moves, `proxy.ts`, `Dockerfile`, `.github/workflows/**`, the Prisma schema, and
+  `scripts/check-*.mjs` (they assert production against published claims, so a
+  mistake there fakes a green canary). **Markdown anywhere and comment-only edits
+  batch into one PR per session.** Four markdown-only PRs landed between
+  2026-08-04 and 2026-08-07 that should have been one.
+- **Run the fixers before the gate**, not after it fails. `pnpm lint --fix` and
+  `pnpm format` — or just commit and let husky's `lint-staged` do it. Three of
+  eight gate runs in one session died on an unused `eslint-disable` and prettier
+  on two markdown files, each costing a full build to discover a nit that
+  auto-fixes.
 - **Never put more than a sentence or two inside a `- [ ]` markdown item.**
   Prettier's markdown printer is not idempotent on multi-paragraph list items —
   each run indents the continuation further, so `pnpm format` succeeds while

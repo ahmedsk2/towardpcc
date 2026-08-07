@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
-    "gate": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm --filter @towardpcc/web budget:check",
+    "gate": "node scripts/gate.mjs",
     "check:residency": "node scripts/check-residency.mjs",
     "check:integrity": "node scripts/check-integrity.mjs"
   },
