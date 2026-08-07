@@ -104,14 +104,16 @@ export default function TrustPage() {
               from the address bar again. This is the one guarantee the whole platform is built
               around, so it is enforced by architecture and not by policy.
             </p>
-            <p>
-              <strong>Corrected on 5 August 2026.</strong> This page previously said your inputs
-              rode in the URL fragment, &ldquo;which browsers never send to a server&rdquo;. That
-              was true of the browser and wrong in effect: a bot-detection script that our CDN
-              injects into every page read the whole address, fragment included, and sent it. Values
-              entered before that date could reach the CDN on any reload or shared link. The address
-              bar no longer holds them, which closes it regardless of what any script does.
-            </p>
+            {/* The dated TM-013 retraction that stood here from 2026-08-05 was
+                removed on the founder's instruction on 2026-08-07, once it was
+                settled that the historical exposure carries no notification
+                duty. Removing it does not thin the record: the full account —
+                what the injected script read, how it was measured, why every
+                guard missed it — is permanent in docs/decisions/ADR-0005
+                (addendum) and §2.3 of the threat model, and the fix itself is
+                enforced by the TM-013 cases in e2e/calculator-privacy.spec.ts.
+                What is left on this page is the claim as it stands today, which
+                is true and tested. */}
           </Claim>
 
           <Claim

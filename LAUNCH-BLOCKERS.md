@@ -209,8 +209,14 @@ For the record on the notification question, since it was open for two days: the
 values were clinical observations carrying no identifiers, the recipient was
 Cloudflare acting as an infrastructure processor, and the scope could not be
 reconstructed because there is no analytics and no server-side record of
-calculator use — by design. `/trust` carries a dated public retraction
-regardless, so the site is not silent about it either way.
+calculator use — by design.
+
+The dated retraction that stood on `/trust` was removed on 2026-08-07 on the
+founder's instruction, once the notification question was settled. The record is
+not thinner for it: the technical account is permanent in the ADR-0005 addendum
+and §2.3 of the threat model, and the fix is enforced by the TM-013 cases in
+`e2e/calculator-privacy.spec.ts`. What `/trust` states today is the claim as it
+now stands, which is true and tested.
 
 - [~] **Domain trust program (TM-008, high/firm)** — **verified against the
   registry 2026-07-27, and more of it is already done than this item
