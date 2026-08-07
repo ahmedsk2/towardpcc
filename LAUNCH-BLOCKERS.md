@@ -918,21 +918,41 @@ normal path**: `app/admin/login/page.tsx:10` redirects an authenticated session
 to `/admin`, while the guard redirected back to `/admin/login` without clearing
 the cookie.
 
-### SPC-TM-001 — auth events still never reach the audit trail
+### SPC-TM-001 — logins now reach the audit trail; failures deliberately do not
 
-- [ ] Record login success, failure, TOTP replay, recovery-code burn, lockout
-      and logout in `AuditLog`.
+- [x] **Login successes recorded**, 2026-08-07, with the second factor used and
+      the remaining recovery-code count.
+- [ ] **Failures, lockouts and TOTP replays — blocked on a schema change**, and
+      that is a deliberate hold rather than an oversight.
 
-`recordAudit` is called from exactly four content-mutation server actions and
-from nothing in the auth path; `auth.ts` has zero references. These events exist
-only as pino lines on stdout, and `lib/logger.ts:15` redacts `*.email`, so even
-that record is low-attribution. No migration, grant or env var is needed — the
-app role already holds INSERT on `AuditLog`.
+`auth.ts` had zero references to `recordAudit`; successful logins now write
+`admin.login` with `{ method, role }` and, on the recovery-code path,
+`recoveryCodesRemaining`. A recovery-code login means the authenticator was
+unavailable, which is worth seeing afterwards, and the remaining count makes
+depletion legible before it becomes a lockout. No email, code or token enters
+`diff`. A failed audit write logs loudly and lets the login proceed, because
+locking the platform's only operator out is the worse failure.
 
-The proposed fix was refuted: it computed the IP hash at statement level outside
-any try/catch, so a missing `SUBMISSION_IP_SALT` would become **100% admin login
-failure** rather than a missing audit row. (The audit's `auth.ts:84` pin is
-stale — that is now the cookie block.)
+**Why failures are not recorded, and what it would take.** `AuditLog.actorId` is
+a required FK to `AdminUser`, so a row can only be written when the account
+exists. Writing one on a failed attempt against a REAL address, and not against
+an unknown one, costs an extra INSERT on exactly one of those paths — restoring
+the user-enumeration oracle that `authorize()` is built to deny. It runs Argon2id
+against a dummy hash when no user exists precisely to keep the two costs equal,
+and a measurable delta would give that back.
+
+Doing it properly means making `actorId` nullable so the write happens
+unconditionally. That is a Prisma migration, and this repo routes schema changes
+through the `database-security-scanner` agent, so it is its own scoped change —
+not something to slip in beside a login refactor. Until then failed attempts
+remain in pino, and `failedLoginCount` / `lockedUntil` on the row stay the
+durable evidence of an attack in progress.
+
+An earlier proposed fix was refuted for an unrelated reason worth keeping: it
+computed the IP hash at statement level outside any try/catch, so a missing
+`SUBMISSION_IP_SALT` would have become **100% admin login failure** rather than a
+missing audit row. (The audit's `auth.ts:84` pin is stale — that is now the
+cookie block.)
 
 ### SPC-CON-009 — decided and written down, 2026-08-01
 

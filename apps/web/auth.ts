@@ -13,6 +13,7 @@ import {
   verifyTotpStep,
 } from "@/lib/auth/totp";
 import { lockoutArm } from "@/lib/auth/lockout";
+import { recordAudit } from "@/lib/admin/audit";
 import { logger } from "@/lib/logger";
 
 // A fixed dummy Argon2id hash (of a random string, computed once) so the
@@ -156,8 +157,56 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        const ok = (u: AdminUser) => {
-          logger.info({ userId: u.id }, "admin login");
+        /**
+         * The single success funnel for both second-factor paths, and the only
+         * place an auth event reaches the audit trail.
+         *
+         * WHY ONLY SUCCESSES, when the gap reported was "auth events never reach
+         * the audit trail". Failures cannot be recorded here without undoing the
+         * enumeration defence above. `AuditLog.actorId` is a required FK to
+         * `AdminUser`, so a row can only be written when the account exists —
+         * which would make a failed attempt against a REAL address cost one
+         * extra INSERT that a failed attempt against an unknown address does
+         * not. This whole function is built to keep that timing flat (Argon2id
+         * runs against a dummy hash when no user exists, precisely so the two
+         * cases cost the same), and a measurable delta would hand back the
+         * oracle that care bought.
+         *
+         * Auditing failures properly needs `actorId` to become nullable so the
+         * write happens unconditionally. That is a schema migration, and this
+         * repo routes schema changes through the database-security-scanner
+         * agent — so it is its own scoped change, tracked in LAUNCH-BLOCKERS,
+         * not something to slip in beside a login refactor.
+         *
+         * Failed attempts still reach pino, and `failedLoginCount` /
+         * `lockedUntil` on the row remain the durable evidence of an attack in
+         * progress.
+         *
+         * WHICH FACTOR WAS USED IS RECORDED. A recovery-code login is a rare
+         * event that should be visible afterwards — it means the authenticator
+         * was unavailable — and the remaining count makes depletion legible
+         * before it becomes a lockout.
+         */
+        const ok = async (u: AdminUser, method: "totp" | "recovery-code", remaining?: number) => {
+          logger.info({ userId: u.id, method }, "admin login");
+          try {
+            await recordAudit({
+              actorId: u.id,
+              action: "admin.login",
+              entity: `AdminUser:${u.id}`,
+              // No email, no code, no token — the model's contract is that
+              // `diff` carries changed fields with PII redacted.
+              diff:
+                remaining === undefined
+                  ? { method, role: u.role }
+                  : { method, role: u.role, recoveryCodesRemaining: remaining },
+            });
+          } catch (error) {
+            // A failed audit write must not lock the only operator out of the
+            // platform, so this proceeds — but loudly, because a trail that
+            // silently stops recording is worse than one that was never there.
+            logger.error({ err: error, userId: u.id }, "AUDIT WRITE FAILED for admin login");
+          }
           return { id: u.id, email: u.email, role: u.role };
         };
         const resetData = { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() };
@@ -176,18 +225,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
             data: { ...resetData, lastTotpStep: BigInt(totpStep) },
           });
-          return res.count === 1 ? ok(user) : null;
+          return res.count === 1 ? await ok(user, "totp") : null;
         }
 
         // Recovery-code path — atomic single-use via a `has` guard.
+        const surviving = user.totpRecoveryCodes.filter((h) => h !== recoveryHash);
         const res = await db.adminUser.updateMany({
           where: { id: user.id, totpRecoveryCodes: { has: recoveryHash! } },
-          data: {
-            ...resetData,
-            totpRecoveryCodes: user.totpRecoveryCodes.filter((h) => h !== recoveryHash),
-          },
+          data: { ...resetData, totpRecoveryCodes: surviving },
         });
-        return res.count === 1 ? ok(user) : null;
+        return res.count === 1 ? await ok(user, "recovery-code", surviving.length) : null;
       },
     }),
   ],
