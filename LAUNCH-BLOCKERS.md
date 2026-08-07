@@ -843,9 +843,22 @@ an integrity incident out of its own blindness. **Still to verify:** whether the
 named User-Agent is actually allowed through from GitHub's IP ranges — only a
 run after this merges can establish that.
 
-### SPC-WEB-001 — keep `'unsafe-inline'`, and say so
+### SPC-WEB-001 — WAIVED, and the live grade is recorded
 
-- [ ] Re-grade to low and record the waiver instead of tracking it as a to-do.
+- [x] **Waiver accepted 2026-08-07.** `'unsafe-inline'` stays in `script-src` on
+      the public tier. This is a recorded decision, not an open item.
+- [x] **Live grade measured the same day: A− public tier, A+ `/admin` tier.**
+
+The A−/A+ split is caused by exactly this waiver and nothing else. Every other
+header a scanner looks at is present at its strong value: HSTS
+`max-age=63072000; includeSubDomains; preload`, `x-frame-options: DENY` alongside
+`frame-ancestors 'none'`, `nosniff`, `referrer-policy:
+strict-origin-when-cross-origin`, and a Permissions-Policy denying camera,
+microphone and geolocation. `/admin` carries the strict nonce policy, so the
+mechanism works where it can be applied.
+
+The reasoning below is unchanged and is why the waiver is correct rather than
+merely convenient.
 
 Both reviewers agreed on the outcome. The built output settles it: `/` contains
 **101 bare inline `<script>` elements** (all `self.__next_f.push`), 1,077 across
@@ -883,6 +896,85 @@ Corrections: the directive is at `proxy.ts:68`, the nonce at `proxy.ts:92-94`.
 `ADR-security-headers.md:41` justifies it with "React sets a few inline style
 attributes", false for the admin subtree. Note CSP3 `style-src` **does** govern
 `style=` attributes, via the `style-src-attr` fallback.
+
+### LB certificate expiry — 2026-10-27, and it is NOT what the runbook says
+
+- [ ] **Reinstall acme.sh and wire renewal, WITHOUT touching root's crontab.**
+
+Two corrections to the recorded state, both found 2026-08-07:
+
+- **acme.sh is not installed on the host at all.** Only its config home survives
+  at `/opt/acme-staging` (`account.conf`, `ca/`, `http.header`,
+  `towardpcc.com_ecc/`). It was clearly run once from a temp location with
+  `--config-home` and then removed. So this was never "no cron" — there is
+  nothing to cron.
+- **The description is in the wrong file.** It lives in
+  `docs/runbooks/edge-migration-ksa.md` (lines ~164-169), not
+  `deploy-production.md`, whose ACME mention is Traefik's separate and working
+  HTTP-01 renewal for the Coolify domains.
+
+The 2026-10-27 expiry is correct, verified three independent ways. Nothing is
+blocking renewal: the **Cloudflare DNS-01 token is still present and still
+valid**, so renewal works the moment acme.sh exists again.
+
+**THE CO-TENANT HAZARD, which is why this is not a quick fix.** root's crontab
+contains exactly one job: the co-tenant's `backup-mylibrary-sqlite.sh` at 03:30
+— the off-site backup of an application holding real patient data. **acme.sh's
+installer writes to root's crontab by default.** A botched rewrite silently kills
+that backup, and nobody would notice until a restore was needed. Any install must
+use `--nocron` and register the timer separately, and the crontab must be
+captured before and diffed after.
+
+Not urgent by date, but it gates the DNS cutover: cutting over with a cert that
+nobody renews just moves the outage.
+
+### SPC-DB-005 — investigated 2026-08-07; the plan changed twice
+
+- [ ] **Ship the purge runtime in the image, add `--skip-audit`, then create the
+      Coolify scheduled task.** Not urgent — see the runway below.
+
+**Nothing is due, and nothing can be until 2027-07-29.** `Submission` holds **0
+rows**; `AuditLog` holds 3, the oldest dated 2026-07-29. This is a
+claim-correctness problem — four public forms promise 24-month deletion with no
+mechanism behind it — not a live retention breach. There is room to do it right.
+
+**Coolify scheduled tasks work and are API-creatable**, so the mechanism is
+settled. Two premises behind the earlier plan were wrong:
+
+- **No co-tenant precedent.** The `scheduled_tasks` table is empty, so there is
+  no house style to follow here.
+- **The standalone image cannot run the script at all.** Next bundles
+  `@prisma/client`, `@prisma/adapter-pg` and `pg` into `.next/server/chunks/*.js`.
+  The one `@prisma/client` entry left on disk contains a single WASM file and
+  zero JavaScript, and `/app/node_modules` holds nothing but `.pnpm` with no
+  top-level symlinks. `node purge-retention.mjs` dies at its first import. It
+  needs a small self-contained runtime shipped beside it (~88 MB with an explicit
+  three-dependency manifest; `pnpm deploy` was tried and pulls 323 MB including
+  the Prisma CLI and Studio).
+
+**The blocker nobody had flagged, and the reason this is not a one-liner.** A
+Coolify task runs inside the **app** container, which holds `DATABASE_URL` for
+`towardpcc_app` — and that role has INSERT + SELECT only on `AuditLog`, exactly
+as SPC-DB-003 intends. The script would purge submissions, then fail the
+audit-log half with `permission denied` and exit 1 — nightly, with retries.
+Giving the web container owner credentials would mean a server-side RCE gains
+DELETE on the append-only audit trail, which defeats the control outright.
+
+So the work splits along the privilege boundary rather than fighting it:
+
+- **Submissions (24 months — the actual public promise)** run from the app
+  container on the existing credential. `towardpcc_app` already holds DELETE on
+  `Submission`. No new secret anywhere.
+- **Audit logs (12 months — and note the site says only "12 months", never "then
+  deleted")** stay a privileged maintenance action, off the web container.
+
+That needs a `--skip-audit` flag on the script, which is repo-visible and
+testable. Without it the nightly job is permanently red.
+
+Schedule at **03:30 UTC**, not 03:00 — Coolify's database backups all fire at
+03:00, and the co-tenant's backup job is in root's crontab at 03:30, so neither
+should be crowded. Create the task with `--dry-run` first and read one execution
+before switching it live.
 
 ### SPC-DB-005 — worse than "no scheduler"
 
@@ -1018,14 +1110,30 @@ client-supplied `x-real-ip` once it trusts the upstream. That was verified by
 sending a forged one against the running system, but it remains an observation
 about topology rather than something the code can check.
 
-### Gitleaks pre-commit
+### Gitleaks pre-commit — hook landed 2026-08-07; one command left
 
-- [ ] Add a graceful-degradation hook; installing the binary needs a human.
+- [x] **Graceful-degradation hook added.** `.husky/pre-commit` runs
+      `gitleaks protect --staged --redact` when the binary is present, and
+      prints a one-line notice when it is not. Verified both branches.
+- [ ] **Install the binary to switch it from warn to enforce** (founder, one
+      command, no admin rights):
 
-`.husky/pre-commit` is one line (`pnpm exec lint-staged`) with no secret scan.
-The hook is writable today and would stay inert-but-loud until a binary exists;
-what is blocked is installing gitleaks on this box (Windows 11 ARM64; no go,
-scoop or choco — only winget).
+```
+winget install Gitleaks.Gitleaks --version 8.24.3 --accept-package-agreements --accept-source-agreements
+```
+
+Two things the previous entry had wrong. winget **does** carry gitleaks as a
+portable (zip) install needing no admin rights, and it offers **the exact
+CI-pinned 8.24.3** — its installer SHA256 was checked against the upstream
+`gitleaks_8.24.3_checksums.txt` and matches. So this was never blocked on
+anything but someone running it.
+
+The hook warns rather than fails when the binary is absent, deliberately.
+gitleaks is a Go binary and cannot be a repo dependency, so requiring it would
+break `git commit` on a fresh clone — and a hook that blocks work it cannot
+perform gets disabled with `--no-verify`, after which it protects nothing. CI
+remains the authority either way: it installs a pinned, checksum-verified copy
+and scans full history.
 
 The proposed hook was refuted for reproducing the bug it claimed to fix: it
 treated **any** non-zero gitleaks exit as a leak, and gitleaks exits non-zero for
