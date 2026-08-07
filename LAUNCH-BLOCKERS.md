@@ -148,10 +148,19 @@ then — no figure is invented.
 
 ### Push-to-deploy does not work — verify every deploy by hand
 
-- [ ] **Merging to `main` does not reliably deploy. Confirmed twice.**
+- [ ] **Merging to `main` does not reliably deploy. Confirmed four times.**
 
 Treat push-to-deploy as broken, not flaky, and check the deployed SHA after
 every merge.
+
+**2026-08-05 and 2026-08-07 — it has now failed on single merges too.** The
+earlier entries both involved two merges close together, which is what made the
+collision theory tempting. On 2026-08-05 the container sat on `bcd4100` for 29
+hours across two merges, and on 2026-08-07 the merge of #41 did not deploy
+either. Both needed a manual `/api/v1/deploy`. Four occurrences, no successful
+automatic deploy observed since 2026-08-03, and no theory left standing — this
+should now be diagnosed properly (webhook receiver logs on the Coolify side)
+rather than accumulating another dated paragraph here.
 
 **2026-08-03.** PRs #35 and #36 merged three minutes apart. Both webhook
 deliveries returned 200 OK (GitHub hook 657319469, 04:10:33 and 04:13:29),
@@ -185,6 +194,34 @@ than only page content — a stale-but-healthy deploy is exactly the failure a
 content canary cannot see.
 
 ## Security (from docs/security/threat-model.md, 2026-07-24)
+
+### TM-013 — calculator inputs reached the Cloudflare edge (fixed; disclosure question open)
+
+- [ ] **Decide whether the historical exposure needs notifying, and record the
+      decision either way.**
+
+The leak itself is **fixed and deployed** (2026-08-05, `339b3fd`). Full account
+in the ADR-0005 addendum and §2.3 of the threat model. What is _not_ settled is
+what is owed for the period before the fix.
+
+**What happened, in one line.** Calculator field state was mirrored into the URL
+fragment, and Cloudflare's JS Detections — injected into every page, not
+disableable on the Free plan — read `document.location.href` and POSTed it. Any
+reload, restored tab, bookmark or shared link sent the entered values to the
+edge.
+
+**Scope, stated honestly.** Unknown. There is no analytics and no server-side
+record of calculator use — by design — so how many entries were affected cannot
+be reconstructed from anything we hold. What is known: the values are clinical
+observations without identifiers, the receiving processor is Cloudflare, and the
+window is roughly the life of the fragment-mirroring feature up to 2026-08-05.
+
+**The open question for counsel.** Whether unidentified clinical values reaching
+a processor outside the disclosed set constitutes a personal-data breach under
+PDPL, and if so whether SDAIA notification and any user-facing notice are owed.
+This sits with the same counsel review already queued for the legal pages, and
+is a reason not to defer that item further. `/trust` already carries a dated
+public retraction, so the site is not silent about it either way.
 
 - [~] **Domain trust program (TM-008, high/firm)** — **verified against the
   registry 2026-07-27, and more of it is already done than this item
