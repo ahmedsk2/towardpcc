@@ -124,7 +124,13 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
           {audit.length === 0 && <li className="text-sm text-ink-muted">No changes yet.</li>}
           {audit.map((a) => (
             <li key={a.id} className="font-numeric text-xs text-ink-muted">
-              {a.ts.toISOString().replace("T", " ").slice(0, 16)} · {a.action} · {a.actor.email}
+              {/* `actor` became nullable so failed logins can be recorded without
+                  creating a user-enumeration timing oracle (see the AuditLog
+                  model). A null actor means the event had no known account —
+                  which cannot happen for a submission edit, but rendering
+                  "unknown" is the honest fallback rather than a crash. */}
+              {a.ts.toISOString().replace("T", " ").slice(0, 16)} · {a.action} ·{" "}
+              {a.actor?.email ?? "unknown actor"}
             </li>
           ))}
         </ul>

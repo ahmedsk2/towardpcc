@@ -101,16 +101,47 @@ model CalculatorMeta {
 /// Append-only audit trail of every admin mutation (PRD §9). Code never updates
 /// or deletes rows. Retention: 12 months from ts, then purged (§8.4).
 model AuditLog {
-  id      String    @id @default(cuid())
-  actor   AdminUser @relation(fields: [actorId], references: [id])
-  actorId String
-  action  String
-  entity  String // "table:id"
-  diff    Json // before/after of changed fields, PII redacted
-  ts      DateTime  @default(now())
+  id String @id @default(cuid())
+
+  /// NULLABLE SINCE 2026-08-07, and the reason is a timing oracle.
+  ///
+  /// A required actor meant a row could only be written when the account
+  /// existed. Recording a failed login against a REAL address but not an unknown
+  /// one costs one extra INSERT on exactly one of those paths — which hands back
+  /// the user-enumeration signal `authorize()` is built to deny (it runs Argon2id
+  /// against a dummy hash when no user exists precisely to keep the two costs
+  /// equal). Nullable lets the write happen unconditionally, so the two paths
+  /// stay indistinguishable.
+  ///
+  /// A null actor means "this event had no known account" — a failed attempt
+  /// against an address that does not exist. It never means "we lost track of
+  /// who did this": every mutating admin action still carries its actor, and the
+  /// CHECK constraint in the migration enforces that as a database rule.
+  ///
+  /// `onDelete: Restrict` IS LOAD-BEARING AND MUST NOT BE DROPPED. Prisma's
+  /// default referential action for an OPTIONAL relation is `SET NULL`, so
+  /// making this field nullable silently rewrites the foreign key unless the
+  /// action is pinned — `prisma migrate diff` emits the DROP CONSTRAINT / ADD
+  /// CONSTRAINT pair without a word about it. That default is a write path INTO
+  /// this table: referential actions are executed by the RI system rather than
+  /// the invoking role, so `REVOKE UPDATE, DELETE ON "AuditLog"` (SPC-DB-003)
+  /// does not cover them. Reproduced on a throwaway database — as `towardpcc_app`
+  /// with UPDATE and DELETE both revoked, one `DELETE FROM "AdminUser"` blanked
+  /// `actorId` on every historical row for that admin. Pinning the action keeps
+  /// the paragraph above true by construction: with `Restrict`, a null can only
+  /// ever arrive by INSERT.
+  actor   AdminUser? @relation(fields: [actorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  actorId String?
+
+  action String
+  entity String // "table:id"
+  diff   Json // before/after of changed fields, PII redacted
+  ts     DateTime @default(now())
 
   @@index([ts])
   @@index([entity])
+  /// Auth events are queried by action when reviewing an attack.
+  @@index([action, ts])
 }
 
 /// Registry spine — designed now, dormant in v1 (no feature reads/writes these).

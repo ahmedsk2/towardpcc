@@ -57,3 +57,34 @@ enhancement; v1 needs one or two operators.
 - Follow-ups: admin user-management + TOTP enrolment UI; a shared rate-limit
   store if the app ever runs more than one replica (the login lockout is in the
   DB and is already shared-safe; the public-form limiter is in-memory).
+
+## Addendum, 2026-08-08 — every authentication outcome is audited
+
+Both halves of the login path now write to `AuditLog`. Successes record the
+second factor used and the remaining recovery-code count; rejections record a
+reason (`credentials`, `locked`, `totp-replay`, `concurrent`) under the action
+`admin.login.failed`.
+
+**The failure write is unconditional, and that is the design rather than an
+implementation detail.** The generic failure message above is only half of the
+enumeration defence — the other half is that a wrong address and a wrong password
+must cost the same, which is why `authorize()` runs Argon2id against a dummy hash
+when no user matches. Auditing only the attempts that hit a real account would
+have added one INSERT to exactly one of those paths and handed the oracle back.
+`AuditLog.actorId` was therefore made nullable first
+(`20260808120000_audit_nullable_actor`) so the row can be written either way; a
+null actor means "no such account", and a database CHECK constraint keeps that
+the only situation in which null is legal.
+
+The attempted address is recorded as a salted HMAC, never in plaintext — it is
+attacker-controlled personal data landing in an append-only table that the
+scheduled purge skips.
+
+**JWT sessions are unchanged, and an adapter was tried and rejected.** Adding a
+`Session` model shaped for `@auth/prisma-adapter` would not have made sessions
+revocable: the adapter is not a dependency, it resolves `prisma.user` where this
+schema has `AdminUser`, and Auth.js does not support database sessions on the
+Credentials provider — which is what the JWT decision above already says. The
+table would have stayed permanently empty. The workable design is a JWT
+allow-list checked in the `jwt` callback; it is specced under SPC-TM-002 in
+`LAUNCH-BLOCKERS.md` and remains open.
