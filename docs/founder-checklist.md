@@ -131,21 +131,23 @@ raising with counsel in item 1.
 
 ## Two small open questions
 
-### Which mailbox was verified?
+### The published contact address — RESOLVED 2026-08-07
 
-`info@towardpicu.com` is confirmed working — that is the SMTP **sender** used for
-operator notifications, and it is genuinely good news because it means the relay
-path is proven end to end.
+Every published address is now `info@towardpicu.com`, the mailbox confirmed
+working: `/contact`, the footer, `/legal/data-protection` as the deletion route,
+`SECURITY.md` and `/.well-known/security.txt`.
 
-But the address the **site publishes** is `info@towardpcc.com`, in five places:
-`/contact`, `/legal/data-protection` as the deletion-request route, `SECURITY.md`
-and `/.well-known/security.txt` as the security-disclosure contact, plus the
-footer.
+There is a better reason for this than "that mailbox works". `towardpcc.com`
+publishes `v=spf1 -all` — it authorises **no** senders, deliberately, so that the
+domain can never be spoofed (ADR-0004 decision 5). An address there could receive
+mail but could never legitimately reply without failing its own SPF.
+`towardpicu.com` is the domain actually authorised to send, so the address people
+write to is now one that can answer.
 
-Both domains resolve to the same SiteGround MX, so they are very likely the same
-mailbox or the same account — but "very likely" is not "checked", and this is the
-address an outside security researcher would use. **Send one message to
-`info@towardpcc.com` from a personal address and confirm it lands.**
+**It changes nothing about residency, and the site should not imply otherwise.**
+Both domains resolve to the same SiteGround filter outside the Kingdom, so
+inbound mail is exactly as disclosed as it was. That remains the sharpest open
+exception in ADR-0004.
 
 ### The `/admin` password
 

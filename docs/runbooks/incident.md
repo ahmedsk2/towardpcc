@@ -2,7 +2,7 @@
 
 Fast paths for the common failures of the single-VM prod stack
 (`docker-compose.prod.yml`). Escalation contact: the founder
-(ahmedsk2@gmail.com). Security disclosures: info@towardpcc.com (SECURITY.md).
+(ahmedsk2@gmail.com). Security disclosures: info@towardpicu.com (SECURITY.md).
 
 ## Severity classification
 

@@ -183,7 +183,7 @@ that produced every false claim this project has had to correct.
 
 6. **Inbound mail is now the sharpest open contradiction.** `towardpcc.com`'s MX
    points at SiteGround's SpamExperts filter on Google Cloud, which reads every
-   message sent to `info@towardpcc.com` — the address the privacy page names for
+   message sent to `info@towardpicu.com` — the address the privacy page names for
    deletion requests. Fixing it needs a KSA mail host that does not yet exist in
    the stack. Tracked, not yet solved.
 7. **"Confirmable" must mean checked, not asserted.** A published data-flow map

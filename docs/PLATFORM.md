@@ -478,7 +478,7 @@ Honestly outstanding:
   still runs through Cloudflare. See section 6.
 - **Inbound mail** — the sharpest open contradiction. `towardpcc.com`'s MX
   points at a filter outside the Kingdom that reads every message sent to
-  `info@towardpcc.com` — the address on `/contact`, named in the legal pages as
+  `info@towardpicu.com` — the address on `/contact`, named in the legal pages as
   the deletion contact, and published in `security.txt`. Fixing it needs a KSA
   mail host that does not yet exist in the stack.
 - **Counsel review** of the legal pages.

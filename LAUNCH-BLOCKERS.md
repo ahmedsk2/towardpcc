@@ -96,6 +96,9 @@ then — no figure is invented.
 ## Variables (founder-provided 2026-07-25)
 
 - [x] `[CONTACT_EMAIL]` = info@towardpcc.com (SECURITY.md, /contact updated).
+      **Changed to `info@towardpicu.com` on 2026-08-07** — that mailbox is
+      confirmed working, and `towardpcc.com` publishes `v=spf1 -all`, so an
+      address there can receive but can never legitimately reply.
       **Remaining:** verify the mailbox actually exists and receives mail
       before launch — a dead contact address is a trust failure.
 - [x] `[ADMIN_EMAIL]` = ahmedsk2@gmail.com ("for now") — used as the form
@@ -331,7 +334,7 @@ Order matters, and two of the four are done:
 - [ ] Move MX off SiteGround to a KSA-hosted mail provider.
 
 `towardpcc.com`'s MX points at SiteGround's SpamExperts filter on Google Cloud,
-which reads every message sent to `info@towardpcc.com` — the address printed on
+which reads every message sent to `info@towardpicu.com` — the address printed on
 `/contact`, named in `/legal/data-protection` as the deletion contact, and used
 in `security.txt`. OCI Email Delivery is outbound-only and does nothing for it.
 
