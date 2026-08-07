@@ -136,7 +136,7 @@ async function checkNoForeignScripts() {
  * script — and nothing here would notice. So the exemption is pinned to the
  * exact filenames known to be enabled, and anything new fails.
  *
- * THE LIST IS NOW EMPTY, and that is the point of it.
+ * THE LIST HELD NOTHING FOR A WHILE, AND NOW HOLDS EXACTLY ONE THING.
  *
  * It briefly held `email-decode.min.js` — Cloudflare's Email Address
  * Obfuscation, switched on in the dashboard and required by nothing this site
@@ -145,15 +145,40 @@ async function checkNoForeignScripts() {
  * every calculator page. Neither had ever collected anything: the CSP
  * (`script-src 'self'`) blocked the third-party beacon outright.
  *
- * So the exemption exists only to be empty. Anything the edge injects from here
- * fails this check, which is the correct posture for pages whose promise is
- * that nothing they touch leaves the browser — and it stays correct through the
- * DNS cutover, when Cloudflare stops fronting the site entirely.
+ * `jsd/main.js` is different, and is pinned on 2026-08-07 for reasons worth
+ * stating in full, because a pin is how an exemption becomes permanent by
+ * accident.
  *
- * If a future edge feature is genuinely wanted, add its filename here
- * deliberately, with a reason. Do not widen the pattern.
+ * It is Cloudflare's JS Detections. Unlike the two above it CANNOT BE TURNED
+ * OFF: the zone is on the Free plan, where JS Detections ships with bot
+ * protection and the dashboard renders the control read-only. Bot Fight Mode was
+ * switched off on 2026-08-05 and this script kept being injected. So the choice
+ * is not "allow it or remove it" — it is "record it, or leave this check red
+ * every day until the DNS cutover". A canary that is always red is one nobody
+ * reads, which would cost more than it protects.
+ *
+ * What it does was MEASURED, not assumed, on 2026-08-05: the script was
+ * deobfuscated (269-entry string table recovered, 462 call sites resolved, none
+ * left unresolved) and executed in real Chromium against a stubbed calculator
+ * page with a server-side capture. It reads `document.location.href` and posts
+ * it as `{"lhr": …}`. Sixteen magic tokens seeded into input values, selects,
+ * textarea, checkbox, sessionStorage, localStorage, `document.cookie`, a text
+ * node, `<title>`, form name, `window.name` and a global reached the wire in
+ * NONE of the runs; only fragment tokens did. Instrumented getters recorded zero
+ * accesses to `.value`, `.checked`, storage or `innerHTML`, and the only
+ * listener it registers is `DOMContentLoaded`.
+ *
+ * That is why the pin is defensible TODAY and was not defensible before: the
+ * one thing it could reach was the URL, and TM-013 removed entered values from
+ * the URL entirely (2026-08-05). It now reads a path and nothing else.
+ *
+ * REMOVE THIS PIN when the DNS cutover lands and Cloudflare stops fronting the
+ * site — at which point this script disappears and the entry becomes a lie that
+ * would silently permit a future one. Anything else the edge injects still
+ * fails, which is the whole point of pinning a filename rather than widening
+ * the pattern.
  */
-const EDGE_SCRIPTS_ALLOWED = new Set([]);
+const EDGE_SCRIPTS_ALLOWED = new Set(["jsd/main.js"]);
 
 /**
  * Why this scans the whole body and not just `<script src=…>`.
@@ -182,8 +207,23 @@ const EDGE_SCRIPTS_ALLOWED = new Set([]);
 async function checkEdgeInjectedScripts() {
   const { body } = await get("/calculators/pim3");
   const injected = [...body.matchAll(/\/cdn-cgi\/[^"'\s<>()]*?\.js/g)]
-    // The path carries a rotating cache-busting segment, so compare filenames.
-    .map((m) => m[0].split("/").pop())
+    /*
+     * Keyed on the LAST TWO path segments, not the filename.
+     *
+     * `main.js` alone is far too generic to pin — it would exempt any future
+     * `/cdn-cgi/**\/main.js` from a feature nobody has evaluated, which is
+     * exactly the open-ended exemption this list exists to refuse. `jsd/main.js`
+     * names the product.
+     *
+     * Two segments is also all that is stable. The NETWORK request for this
+     * script carries a rotating cache-busting segment
+     * (`/h/g/scripts/jsd/<hash>/main.js`), which is where the previous comment's
+     * warning came from — but this reads the HTML BODY, and the bootstrap there
+     * writes a fixed `/cdn-cgi/challenge-platform/scripts/jsd/main.js`. Measured
+     * across three consecutive fetches on 2026-08-07: identical every time, no
+     * hash. If that ever changes, this check fails loudly, which is correct.
+     */
+    .map((m) => m[0].split("/").slice(-2).join("/"))
     .filter(Boolean);
   const unexpected = [...new Set(injected)].filter((f) => !EDGE_SCRIPTS_ALLOWED.has(f));
   record(
