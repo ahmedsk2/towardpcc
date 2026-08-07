@@ -37,16 +37,30 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 
+/**
+ * Whole command strings, run through a shell.
+ *
+ * Two constraints meet here. On Windows `pnpm` is `pnpm.cmd`, and Node refuses
+ * to spawn a `.cmd` without a shell — so `shell: true` is not optional. But
+ * passing an ARGS ARRAY alongside `shell: true` trips DEP0190, because the args
+ * are concatenated rather than escaped. A single command string is the ordinary,
+ * non-deprecated form of the same call, and every string below is a hardcoded
+ * constant with nothing interpolated into it.
+ *
+ * Verified on 2026-08-07: naming `pnpm.cmd` with `shell: false` fails
+ * immediately with no output, which is exactly the kind of "fix" that looks
+ * right and silently breaks the gate.
+ */
 const FULL = [
-  ["pnpm", ["typecheck"]],
-  ["pnpm", ["lint"]],
-  ["pnpm", ["format:check"]],
-  ["pnpm", ["test"]],
-  ["pnpm", ["build"]],
-  ["pnpm", ["--filter", "@towardpcc/web", "budget:check"]],
+  "pnpm typecheck",
+  "pnpm lint",
+  "pnpm format:check",
+  "pnpm test",
+  "pnpm build",
+  "pnpm --filter @towardpcc/web budget:check",
 ];
 
-const MARKDOWN_ONLY = [["pnpm", ["format:check"]]];
+const MARKDOWN_ONLY = ["pnpm format:check"];
 
 const git = (args) =>
   execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
@@ -79,11 +93,11 @@ function changedPaths() {
 
 function run(steps, label) {
   console.error(`\n[gate] ${label}\n`);
-  for (const [cmd, args] of steps) {
-    console.error(`[gate] → ${cmd} ${args.join(" ")}`);
-    const res = spawnSync(cmd, args, { stdio: "inherit", shell: process.platform === "win32" });
+  for (const cmd of steps) {
+    console.error(`[gate] → ${cmd}`);
+    const res = spawnSync(cmd, { stdio: "inherit", shell: true });
     if (res.status !== 0) {
-      console.error(`\n[gate] FAILED at: ${cmd} ${args.join(" ")}`);
+      console.error(`\n[gate] FAILED at: ${cmd}`);
       process.exit(res.status ?? 1);
     }
   }

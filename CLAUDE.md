@@ -113,25 +113,24 @@ Lighthouse (warn-only) and the container build.
   `docker-compose.prod.yml` and `docs/runbooks/deploy.md` describe a stack that
   was designed first and **is not what runs** — editing them changes nothing in
   production. `docs/runbooks/deploy-production.md` is the live setup.
-- **Deploy once at the end of a session, then check the tag.** Merges accumulate;
-  one hand-triggered deploy closes the session, and the tag check below runs
-  once. **The carve-out:** a merge that closes something _actively wrong in
-  production_ — a live incorrect clinical number, a false public claim, or a
-  privacy leak — deploys immediately. On 2026-08-05 the fragment fix sat green
-  and unmerged while production leaked and `/trust` told visitors something
-  untrue; batching would have lengthened that window, not shortened it. Trigger
-  the deploy and keep working rather than blocking on the poll.
-- **Push-to-deploy does not work — the deployed tag is the only thing that
-  proves a deploy landed.** Confirmed four times (2026-08-03, 08-04, 08-05,
-  08-07). The last two failed on merges with no build in flight, which kills the
-  mid-build race first blamed, so treat it as broken rather than flaky. Coolify's
-  `status` is not a gate in either direction:
-  it read `running:healthy` over a container three commits stale, and
-  `running:unhealthy` over one that Docker and both probes called healthy. The
-  image tag is the only signal that has been right every time —
+- **Push-to-deploy WORKS. Merging is enough — do not deploy by hand.** This file
+  claimed the opposite until 2026-08-07 and the claim was false; the correction
+  matters because acting on it wasted a redundant build on every single merge.
+  Coolify's own queue shows every `main` push producing a `is_webhook=true`
+  deployment that finished with the right commit. **Builds take 125–308 seconds**
+  (measured across eight deploys), and Coolify does a rolling update, so the OLD
+  container keeps serving until the new one is healthy. Checking the image tag
+  thirty seconds after a merge shows the previous commit and means nothing.
+  **Wait ~5 minutes, then check.** Every "dropped deploy" recorded here was that
+  mistake, followed by a manual deploy of the same commit that then took credit.
+- **The tag check is still the right check — just not immediately.**
   `sudo docker ps --filter name=gpsokvxzncr7ks1vzqz7wkr4 --format '{{.Image}}'`
-  on the host, compared against `origin/main`. The deploy API call is in
-  `docs/runbooks/deploy-production.md`.
+  against `origin/main`, once, after the build has had time. Coolify's `status`
+  field remains useless in both directions: it read `running:healthy` over a
+  stale container and `running:unhealthy` over one Docker and both probes called
+  healthy. Deploy by hand only when a deployment genuinely **failed** — one has,
+  on 2026-08-03, when a helper container vanished mid-build under two merges
+  three minutes apart. The API call is in `docs/runbooks/deploy-production.md`.
 - **Cloudflare proxying stays ON.** The OCI security list accepts 80/443 only
   from Cloudflare's edge ranges, so grey-clouding takes the site offline and
   breaks certificate renewal. That lock is also what makes trusting
