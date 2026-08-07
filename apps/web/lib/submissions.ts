@@ -1,5 +1,4 @@
 import "server-only";
-import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { db, type SubmissionType } from "@towardpcc/db";
@@ -7,6 +6,7 @@ import { resolveClientIp } from "@/lib/client-ip";
 import { notifyAdminOfSubmission } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { createRateLimiter } from "@/lib/rate-limit";
+import { saltedHash } from "@/lib/salted-hash";
 import { classifyDrop } from "@/lib/submission-guards";
 
 /**
@@ -69,14 +69,10 @@ const MAX_TRACKED_IPS = 20_000;
 const limiter = createRateLimiter(PER_IP, GLOBAL, MAX_TRACKED_IPS);
 
 // ── IP hashing (abuse forensics only, never identity) ───────────────────────
-function ipSalt(): string {
-  const s = process.env.SUBMISSION_IP_SALT;
-  if (s && s.length >= 16) return s;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("SUBMISSION_IP_SALT must be set (>=16 chars) in production");
-  }
-  return "dev-only-salt-not-for-production";
-}
+// The salt accessor and the HMAC itself moved to `lib/salted-hash.ts` when
+// `auth.ts` needed the same construction for a different value (the address a
+// failed login was attempted against). Same property, same guarantees — see that
+// file for why the salt is load-bearing rather than decorative.
 
 // Client IP for rate limiting and the salted abuse hash. The header precedence
 // and the reasoning about why cf-connecting-ip can be trusted here live in
@@ -88,8 +84,7 @@ async function clientIp(): Promise<string> {
 }
 
 async function hashClientIp(): Promise<string> {
-  const ip = await clientIp();
-  return createHmac("sha256", ipSalt()).update(ip).digest("hex").slice(0, 24);
+  return saltedHash(await clientIp());
 }
 
 /**

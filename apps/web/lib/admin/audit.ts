@@ -8,7 +8,15 @@ import { db, Prisma } from "@towardpcc/db";
  * redacted; `entity` is "table:id".
  */
 export async function recordAudit(params: {
-  actorId: string;
+  /**
+   * Null ONLY for an authentication event with no matching account — a failed
+   * login against an address that does not exist. Every mutation carries a real
+   * actor, and the database enforces that rather than trusting this comment:
+   * `AuditLog_null_actor_is_auth_event` rejects a null actor on any action
+   * outside the auth allow-list, so a caller that passes null here for a
+   * mutation gets a constraint violation, not a silent unattributed row.
+   */
+  actorId: string | null;
   action: string;
   entity: string;
   diff: Record<string, unknown>;

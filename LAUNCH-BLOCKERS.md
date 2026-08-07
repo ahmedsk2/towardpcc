@@ -1039,12 +1039,42 @@ normal path**: `app/admin/login/page.tsx:10` redirects an authenticated session
 to `/admin`, while the guard redirected back to `/admin/login` without clearing
 the cookie.
 
-### SPC-TM-001 — logins now reach the audit trail; failures deliberately do not
+#### The obvious second fix is also wrong — attempted and withdrawn 2026-08-08
+
+A `Session` model shaped for `@auth/prisma-adapter` was written, reviewed, and
+removed before it shipped. It would have been **inert**: the table would have
+stayed empty forever while the item looked closed, which is worse than leaving it
+open. Three independent reasons, each verified rather than reasoned about.
+
+`@auth/prisma-adapter` appears in no `package.json` in the repo. The adapter
+calls `prisma.user`, `prisma.account` and `prisma.verificationToken`; this schema
+has `AdminUser`, so `prisma.user` is `undefined` and `@@map` cannot help, because
+the client property comes from the model name. And Auth.js does not support
+database sessions on the Credentials provider at all — `ADR-admin-auth.md:38`
+already says exactly that, so the change contradicted an accepted decision that
+had not been amended.
+
+**What would actually work is a JWT allow-list**, not an adapter. Keep
+`strategy: "jwt"`, mint a random session id in `authorize()`, write the row
+directly, put the id in the token, and check it in the `jwt` callback — which
+does run on every `auth()` read. Revocation becomes "delete the row", and it
+fixes the renews-forever half too, which a bare adapter would not.
+
+Three constraints for whoever picks this up. Store `sha256(token)`, never the raw
+token: nightly `pg_dump` and routine operator `psql` reads would otherwise both
+yield live admin sessions that bypass password AND TOTP. Mint with
+`randomBytes(32)`, not `cuid()`, which is not a CSPRNG. And the new table needs
+an explicit table-scoped `GRANT` in its migration or admin login breaks on first
+request — the `AppSetting` precedent, since migrations run as `towardpcc_owner`
+and the app role inherits nothing. Never `GRANT … ON ALL TABLES`: that restores
+UPDATE and DELETE on `AuditLog` and silently kills SPC-DB-003.
+
+### SPC-TM-001 — logins reach the audit trail, successes and failures
 
 - [x] **Login successes recorded**, 2026-08-07, with the second factor used and
       the remaining recovery-code count.
-- [ ] **Failures, lockouts and TOTP replays — blocked on a schema change**, and
-      that is a deliberate hold rather than an oversight.
+- [x] **Failures, lockouts, replays and unknown addresses recorded**, 2026-08-08,
+      once the schema change that unblocked them landed.
 
 `auth.ts` had zero references to `recordAudit`; successful logins now write
 `admin.login` with `{ method, role }` and, on the recovery-code path,
@@ -1054,20 +1084,44 @@ depletion legible before it becomes a lockout. No email, code or token enters
 `diff`. A failed audit write logs loudly and lets the login proceed, because
 locking the platform's only operator out is the worse failure.
 
-**Why failures are not recorded, and what it would take.** `AuditLog.actorId` is
-a required FK to `AdminUser`, so a row can only be written when the account
-exists. Writing one on a failed attempt against a REAL address, and not against
-an unknown one, costs an extra INSERT on exactly one of those paths — restoring
-the user-enumeration oracle that `authorize()` is built to deny. It runs Argon2id
-against a dummy hash when no user exists precisely to keep the two costs equal,
-and a measurable delta would give that back.
+**How failures were unblocked, 2026-08-08.** `AuditLog.actorId` was a required FK
+to `AdminUser`, so a row could only be written when the account existed. Writing
+one on a failed attempt against a REAL address and not against an unknown one
+costs an extra INSERT on exactly one of those paths — restoring the
+user-enumeration oracle `authorize()` is built to deny, since it runs Argon2id
+against a dummy hash when no user exists precisely to keep the two costs equal.
 
-Doing it properly means making `actorId` nullable so the write happens
-unconditionally. That is a Prisma migration, and this repo routes schema changes
-through the `database-security-scanner` agent, so it is its own scoped change —
-not something to slip in beside a login refactor. Until then failed attempts
-remain in pino, and `failedLoginCount` / `lockedUntil` on the row stay the
-durable evidence of an attack in progress.
+`20260808120000_audit_nullable_actor` makes the column nullable so the write
+happens unconditionally. `auditFailedLogin` in `auth.ts` now runs on every
+rejection — bad credentials, lockout, TOTP replay, and the lost side of a
+concurrent-login race — with a null actor when the address is unknown. Verified
+end to end against a live database: both a real and an unknown address produce a
+row, so there is no delta to measure.
+
+The attempted address is stored as a salted HMAC, never in plaintext. It is
+attacker-controlled unbounded personal data, and the scheduled purge runs
+`--skip-audit`, so a raw address would sit in a table the app cannot delete from
+until the 12-month sweep. Row growth is bounded by the per-IP throttle, which
+rejects before any of this runs.
+
+#### Two traps the database-security-scanner caught here
+
+Both were verified by reproducing them, not by reading the diff.
+
+Making the relation optional silently rewrote the foreign key to
+`ON DELETE SET NULL` — Prisma's default for an optional relation, emitted by
+`migrate diff` with no comment. Referential actions run outside the invoking
+role's privileges, so that is a write path INTO the append-only table that
+SPC-DB-003's `REVOKE` does not cover: as `towardpcc_app` with UPDATE and DELETE
+both revoked, one `DELETE FROM "AdminUser"` blanked `actorId` across the trail.
+Pinning `onDelete: Restrict` collapses the migration to a single
+`ALTER COLUMN … DROP NOT NULL` and blocks the delete instead.
+
+A nullable actor also needs a rule saying WHEN null is legitimate, or a future
+code path could write an unattributed mutation. `AuditLog_null_actor_is_auth_event`
+permits null only on the auth action allow-list; an unattributed
+`submission.update` is rejected by the database. Proven by making it fail, not by
+assuming it works.
 
 An earlier proposed fix was refuted for an unrelated reason worth keeping: it
 computed the IP hash at statement level outside any try/catch, so a missing

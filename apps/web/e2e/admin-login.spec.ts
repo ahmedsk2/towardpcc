@@ -125,6 +125,28 @@ test.describe("admin login", () => {
   });
 
   /**
+   * An address that does not exist must be rejected exactly like a wrong
+   * password — same page, same absence of any distinguishing signal.
+   *
+   * This is the path `auditFailedLogin` in `auth.ts` is shaped around. Since
+   * 2026-08-08 a failed attempt writes an AuditLog row, and doing that ONLY when
+   * the account exists would have reintroduced the user-enumeration oracle the
+   * dummy-Argon2id verify was added to close. The row for this case carries a
+   * null actor and a SALTED HASH of the attempted address — never the address —
+   * which is why `AuditLog.actorId` had to become nullable first.
+   */
+  test("an address that does not exist is rejected like any other failure", async ({ page }) => {
+    await page.goto("/admin/login");
+
+    await page.locator("#email").fill("no-such-operator@example.test");
+    await page.locator("#password").fill(TEST_ADMIN.password);
+    await page.locator("#token").fill(totpCode(TEST_ADMIN.totpSecret));
+    await page.locator('button[type="submit"]').click();
+
+    await expect(page).toHaveURL(/\/admin\/login/, { timeout: 15_000 });
+  });
+
+  /**
    * A recovery code is the documented way back in when the authenticator is
    * gone, and `docs/runbooks/deploy-production.md` now tells an operator to mint
    * one with `psql` during a lockout. That procedure is worth exercising rather

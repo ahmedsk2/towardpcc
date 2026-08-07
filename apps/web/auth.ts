@@ -15,6 +15,7 @@ import {
 import { lockoutArm } from "@/lib/auth/lockout";
 import { recordAudit } from "@/lib/admin/audit";
 import { logger } from "@/lib/logger";
+import { saltedHash } from "@/lib/salted-hash";
 
 // A fixed dummy Argon2id hash (of a random string, computed once) so the
 // no-such-user path runs a real verify and costs the same as a real login —
@@ -23,6 +24,61 @@ let dummyHashPromise: Promise<string> | null = null;
 function dummyHash(): Promise<string> {
   dummyHashPromise ??= hashPassword(randomBytes(24).toString("hex"));
   return dummyHashPromise;
+}
+
+/** Why an attempt was rejected. Recorded for forensics, never returned to the caller. */
+type FailureReason = "credentials" | "locked" | "totp-replay" | "concurrent";
+
+/**
+ * Record a rejected login — UNCONDITIONALLY, whether or not the address exists.
+ *
+ * THE UNCONDITIONAL PART IS THE WHOLE DESIGN. Until 2026-08-08 `AuditLog.actorId`
+ * was a required FK, so a row could only be written when the account existed.
+ * Auditing failures under that schema would have meant one extra INSERT on
+ * attempts against REAL addresses and none against unknown ones — handing back
+ * exactly the user-enumeration oracle the rest of `authorize()` is built to deny
+ * (it runs Argon2id against a dummy hash when no user matches precisely so the
+ * two paths cost the same). Making `actorId` nullable is what lets the write
+ * happen on both paths, which is why the migration came first.
+ *
+ * SO DO NOT MAKE THIS CALL CONDITIONAL. Skipping it when `actorId` is null, or
+ * short-circuiting it behind any test of whether the user exists, silently
+ * restores the oracle — and it would restore it in the one shape no test would
+ * notice, because both paths still return the same `null`.
+ *
+ * The attempted address is HASHED, never stored. It is attacker-controlled,
+ * unbounded, and personal data, and the scheduled purge runs `--skip-audit`, so
+ * a raw address written here would sit in an append-only table the app cannot
+ * delete from until the 12-month retention sweep. The salted digest still
+ * answers the only question worth asking of it — "is this the same address
+ * again?" — without keeping the address.
+ *
+ * Row growth is bounded by the per-IP throttle above, which rejects before any
+ * of this runs; that is what stops an attacker turning a cheap rejection into
+ * unbounded writes.
+ */
+async function auditFailedLogin(
+  actorId: string | null,
+  attemptedHash: string,
+  reason: FailureReason,
+): Promise<null> {
+  try {
+    await recordAudit({
+      actorId,
+      // A CONSTANT, never derived from input: this string is on the CHECK
+      // constraint's allow-list, and an unlisted action with a null actor throws.
+      action: "admin.login.failed",
+      entity: actorId ? `AdminUser:${actorId}` : `AdminUser:unknown:${attemptedHash}`,
+      // No email, no password, no token — `reason` is a closed union, not user input.
+      diff: { reason },
+    });
+  } catch (error) {
+    // Mirrors `ok()`: a failed audit write must never change the outcome of the
+    // login itself. Loud, because a trail that quietly stops recording is worse
+    // than one that was never there.
+    logger.error({ err: error, reason }, "AUDIT WRITE FAILED for failed admin login");
+  }
+  return null;
 }
 
 /** Atomic failure bump + lockout (avoids the lost-update lockout bypass). */
@@ -151,36 +207,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         const secondFactorOk = totpStep !== null || recoveryHash !== null;
 
+        // Computed on every path, not just the failing one, so the hashing cost
+        // is identical for a real and an unknown address.
+        const attemptedHash = saltedHash(email);
+
         if (!user || locked || !passwordOk || !secondFactorOk) {
           if (user && !locked) await bumpFailure(user.id);
           logger.warn({ locked }, "admin login failed");
-          return null;
+          return await auditFailedLogin(
+            user?.id ?? null,
+            attemptedHash,
+            locked ? "locked" : "credentials",
+          );
         }
 
         /**
-         * The single success funnel for both second-factor paths, and the only
-         * place an auth event reaches the audit trail.
+         * The single success funnel for both second-factor paths.
          *
-         * WHY ONLY SUCCESSES, when the gap reported was "auth events never reach
-         * the audit trail". Failures cannot be recorded here without undoing the
-         * enumeration defence above. `AuditLog.actorId` is a required FK to
-         * `AdminUser`, so a row can only be written when the account exists —
-         * which would make a failed attempt against a REAL address cost one
-         * extra INSERT that a failed attempt against an unknown address does
-         * not. This whole function is built to keep that timing flat (Argon2id
-         * runs against a dummy hash when no user exists, precisely so the two
-         * cases cost the same), and a measurable delta would hand back the
-         * oracle that care bought.
-         *
-         * Auditing failures properly needs `actorId` to become nullable so the
-         * write happens unconditionally. That is a schema migration, and this
-         * repo routes schema changes through the database-security-scanner
-         * agent — so it is its own scoped change, tracked in LAUNCH-BLOCKERS,
-         * not something to slip in beside a login refactor.
-         *
-         * Failed attempts still reach pino, and `failedLoginCount` /
-         * `lockedUntil` on the row remain the durable evidence of an attack in
-         * progress.
+         * Failures are recorded too, by `auditFailedLogin` above — read the note
+         * there before changing either, because the two halves are load-bearing
+         * together. The comment that stood here until 2026-08-08 explained at
+         * length why failures COULD NOT be audited: `AuditLog.actorId` was a
+         * required FK, so a row could only exist when the account did, and
+         * writing one would have leaked which addresses are real. That is no
+         * longer true — the column is nullable as of
+         * `20260808120000_audit_nullable_actor`, specifically so the failure
+         * write happens on both paths and the timing stays flat.
          *
          * WHICH FACTOR WAS USED IS RECORDED. A recovery-code login is a rare
          * event that should be visible afterwards — it means the authenticator
@@ -215,7 +267,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Replay guard: reject a step already consumed.
           if (user.lastTotpStep !== null && BigInt(totpStep) <= user.lastTotpStep) {
             await bumpFailure(user.id);
-            return null;
+            // Worth its own reason: a replayed step means a correct code arrived
+            // twice, which is a captured code rather than a guess.
+            return await auditFailedLogin(user.id, attemptedHash, "totp-replay");
           }
           // Atomic: only succeed if no concurrent login consumed this step first.
           const res = await db.adminUser.updateMany({
@@ -225,7 +279,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             },
             data: { ...resetData, lastTotpStep: BigInt(totpStep) },
           });
-          return res.count === 1 ? await ok(user, "totp") : null;
+          return res.count === 1
+            ? await ok(user, "totp")
+            : await auditFailedLogin(user.id, attemptedHash, "concurrent");
         }
 
         // Recovery-code path — atomic single-use via a `has` guard.
@@ -234,7 +290,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { id: user.id, totpRecoveryCodes: { has: recoveryHash! } },
           data: { ...resetData, totpRecoveryCodes: surviving },
         });
-        return res.count === 1 ? await ok(user, "recovery-code", surviving.length) : null;
+        return res.count === 1
+          ? await ok(user, "recovery-code", surviving.length)
+          : await auditFailedLogin(user.id, attemptedHash, "concurrent");
       },
     }),
   ],

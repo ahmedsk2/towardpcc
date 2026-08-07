@@ -93,6 +93,23 @@ sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -tAc \
   "SELECT rolsuper FROM pg_roles WHERE rolname='towardpcc_app'"           # → false
 ```
 
+Run these too after `20260808120000_audit_nullable_actor`. The first is the one
+that matters: a `REVOKE` on the table does **not** cover foreign-key referential
+actions, because those run outside the invoking role's privileges. If this ever
+returns `n` (`SET NULL`) instead of `r` (`RESTRICT`), deleting one admin blanks
+`actorId` across the whole trail and the append-only control is bypassed without
+a single denied statement.
+
+```bash
+sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -d towardpcc -tAc \
+  "SELECT confdeltype FROM pg_constraint WHERE conname='AuditLog_actorId_fkey'"  # → r
+sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -d towardpcc -tAc \
+  "SELECT conname FROM pg_constraint
+   WHERE conname='AuditLog_null_actor_is_auth_event'"                            # → 1 row
+sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -d towardpcc -tAc \
+  "SELECT has_table_privilege('towardpcc_app','\"AdminUser\"','DELETE')"         # → false
+```
+
 ## Deploying a change
 
 Coolify builds from `main` on the host. Trigger a deploy with the API token at
