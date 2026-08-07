@@ -110,6 +110,23 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Throwaway Postgres for admin-login.spec.ts, which is the only spec needing
+    # one. Everything else is client-side by design. Without this the login spec
+    # SKIPS — and a skip here means something is broken, not absent, because the
+    # service below is always provided.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: towardpcc_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -124,6 +141,11 @@ jobs:
         run: pnpm --filter @towardpcc/web exec playwright install --with-deps chromium
       - name: Run privacy-invariant e2e (builds + serves prod, airplane mode)
         run: pnpm --filter @towardpcc/web test:e2e
+        env:
+          # Names a database containing "e2e" deliberately: the seeder REFUSES to
+          # run against anything that does not look disposable, because the test
+          # admin's password is published in the repository.
+          E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/towardpcc_e2e
 
   lighthouse:
     # Performance budgets on the calculator pages (PRD §10). JS-size and CLS are
