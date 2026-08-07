@@ -389,32 +389,41 @@ that before assuming it.
 
 ## Coolify environment variables: two things that cost an hour
 
-### A multi-line value is stored and then silently dropped
+### A multi-line value breaks EVERY subsequent deployment
 
 Coolify accepts a multi-line variable through the API without complaint and
-returns it intact on read — all 1203 characters of a PEM came back. It then
-never injects it into the container.
+returns it intact on read — all 1203 characters of a PEM came back. From that
+moment on, every deployment of the application fails.
 
-Measured on 2026-08-08 while enabling database TLS: after creating
-`DATABASE_CA_CERT`, then a `restart`, then a forced full rebuild, the variable
-was **absent from `docker inspect`'s env list entirely** while `DATABASE_URL` and
-`AUTH_SECRET` sat right beside it. Nothing warned. There was no empty string to
-notice — the key simply did not exist.
+Measured on 2026-08-08 while enabling database TLS. After creating
+`DATABASE_CA_CERT` as a raw PEM, four consecutive deployments failed at ~16s
+(`App\Jobs\ApplicationDeploymentJob ... FAIL`), including a merge to `main`
+that would otherwise have shipped normally. Deleting the variable and
+redeploying the same commit succeeded immediately, which is what pins the cause.
+
+**The failure mode is nasty because the site stays up.** The rolling update
+never replaces the running container, so health stays 200, `/api/v1/ready`
+stays `ready`, and nothing about the site looks wrong. What is actually broken
+is the pipeline: pushes to `main` stop reaching production and the last good
+image just keeps serving. The first symptom I noticed was the wrong thing
+entirely — the variable missing from `docker inspect` — which reads as "Coolify
+dropped it" when the truth is that no deployment carrying it ever completed.
 
 So any value with embedded newlines must be base64-encoded to a single line
-before it goes in. `packages/db/src/index.ts` accepts either form and sniffs
-which it was given.
+before it goes in. Verified afterwards: the same certificate as single-line
+base64 deployed cleanly and the app's connections came up on TLSv1.3.
+`packages/db/src/index.ts` accepts either form and sniffs which it was given.
 
 ```bash
 base64 -w0 < cert.pem      # single line, safe to paste into Coolify
 ```
 
-The diagnostic that actually settles it, since reading the value back from the
-API tells you nothing:
+**If deployments start failing for no apparent reason, check for a multi-line
+environment variable first.** The deployment list is where it shows:
 
 ```bash
-CID=$(sudo docker ps --format '{{.Names}}' | grep ^gpsokvxzncr7ks1vzqz7wkr4)
-sudo docker inspect "$CID" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -o '^[A-Z_]*='
+TOKEN=$(cat ~/.coolify-token)
+curl -s -H "Authorization: Bearer $TOKEN"   "http://localhost:8000/api/v1/deployments/applications/gpsokvxzncr7ks1vzqz7wkr4?take=6"
 ```
 
 `e3b0c44298fc` as a `sha256sum` fingerprint means the variable is **empty or

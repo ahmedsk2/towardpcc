@@ -47,14 +47,20 @@ const globalForDb = globalThis as unknown as { db?: PrismaClient };
  *
  * BASE64 IS ACCEPTED, AND IN PRODUCTION IT IS THE ONLY FORM THAT WORKS.
  * Coolify stores a multi-line value happily — the API returned all 1203
- * characters of the PEM back on read — and then never injects it into the
- * container. Measured: after creating the variable, a `restart`, and a forced
- * full rebuild, `DATABASE_CA_CERT` was absent from `docker inspect`'s env list
- * entirely while `DATABASE_URL` and `AUTH_SECRET` sat right there. It is
- * dropped silently: no warning in the deploy log, no empty string, nothing to
- * notice. A PEM's embedded newlines cannot survive the env-file mechanism
- * underneath, so the variable has to be a single line by the time Coolify sees
- * it.
+ * characters of the PEM back on read — and from that moment every deployment of
+ * the application FAILS. Measured 2026-08-08: four consecutive deploys failed
+ * at ~16s with the raw PEM set, including a merge to `main`; deleting the
+ * variable and redeploying the same commit succeeded immediately.
+ *
+ * The failure mode is worth knowing because the site stays up. The rolling
+ * update never replaces the running container, so health and readiness stay
+ * green and nothing looks wrong — what is broken is that pushes stop reaching
+ * production. The first symptom is misleading: the variable is missing from
+ * `docker inspect`, which reads as "Coolify dropped it" when in fact no
+ * deployment carrying it ever finished.
+ *
+ * Single-line base64 deploys cleanly — verified, with the app's connections
+ * coming up on TLSv1.3 afterwards.
  *
  * The form is sniffed rather than configured, because a second env var saying
  * which encoding the first one uses is one more thing to get wrong at 3am.
