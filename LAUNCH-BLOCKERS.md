@@ -1110,6 +1110,22 @@ client-supplied `x-real-ip` once it trusts the upstream. That was verified by
 sending a forged one against the running system, but it remains an observation
 about topology rather than something the code can check.
 
+The argument was already in the file, written for chain B: a value is only
+trustworthy if a proxy we trust actually wrote it. Chain A's safety rests on the
+OCI security list admitting 80/443 only from Cloudflare's ranges, which
+`client-ip.ts` itself calls "a DEPENDENCY, not an invariant" — so validation is
+what holds on the day that dependency stops, rather than the day someone notices.
+
+Six tests added, and proven to bite before landing: with the validation reverted,
+five of the six fail. The sixth is a positive control (a valid IPv6 address is
+still accepted) and passes either way, which is the point of including it.
+
+**Still true, and not addressed here:** the edge path stakes chain-B detection on
+one hand-observed infrastructure behaviour — that Traefik overwrites a
+client-supplied `x-real-ip` once it trusts the upstream. That was verified by
+sending a forged one against the running system, but it remains an observation
+about topology rather than something the code can check.
+
 ### Gitleaks pre-commit — hook landed 2026-08-07; one command left
 
 - [x] **Graceful-degradation hook added.** `.husky/pre-commit` runs
