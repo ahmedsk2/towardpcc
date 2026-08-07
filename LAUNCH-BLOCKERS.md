@@ -146,91 +146,71 @@ then — no figure is invented.
       fails without admin on this machine (EPERM in Program Files); pnpm is
       installed via `npm i -g pnpm@10.34.5`, documented in README.
 
-### Push-to-deploy does not work — verify every deploy by hand
+### Push-to-deploy: RESOLVED — it was working, and the diagnosis was wrong
 
-- [ ] **Merging to `main` does not reliably deploy. Confirmed four times.**
+- [x] **Closed 2026-08-07.** Merging to `main` deploys. No manual step is needed.
 
-Treat push-to-deploy as broken, not flaky, and check the deployed SHA after
-every merge.
+**This entry previously claimed four failures. One was real.** The correction is
+recorded rather than deleted, because the mistake it describes is the more
+useful artefact.
 
-- [ ] **Diagnose it, rather than recording it again.** Read Coolify's webhook
-      receiver logs against the four known failure timestamps.
+**What the evidence actually shows.** Coolify's own deployment queue
+(`application_deployment_queues`, 156 rows) has an `is_webhook=true` deployment
+for every single `main` push, and all of them reached `finished` with the
+correct commit. Every "manual fix" in the history sits **one minute after** a
+webhook deployment that had already been queued and went on to finish with the
+same commit — the manual deploys were redundant and then took the credit.
 
-Concretely: `sudo docker logs coolify --since <ts>` around each failure, and the
-GitHub side under repo → Settings → Webhooks → hook `657319469` → Recent
-Deliveries, which shows the response Coolify actually returned. Four dated
-paragraphs is three more than this deserved; the cost is now a hand-run deploy
-on every session close, forever, until someone reads those logs.
+**Why it looked broken.** Builds take **125–308 seconds** (measured across eight
+webhook deploys) and Coolify performs a rolling update, so the previous
+container keeps serving until the new one passes its healthcheck. The tag was
+being checked about thirty seconds after each merge, which shows the old commit
+every time and proves nothing. `Up 29 hours` on the old container was read as
+"the deploy never happened" when it meant "the replacement is still building".
 
-**2026-08-05 and 2026-08-07 — it has now failed on single merges too.** The
-earlier entries both involved two merges close together, which is what made the
-collision theory tempting. On 2026-08-05 the container sat on `bcd4100` for 29
-hours across two merges, and on 2026-08-07 the merge of #41 did not deploy
-either. Both needed a manual `/api/v1/deploy`. Four occurrences, no successful
-automatic deploy observed since 2026-08-03, and no theory left standing — this
-should now be diagnosed properly (webhook receiver logs on the Coolify side)
-rather than accumulating another dated paragraph here.
+**The one real failure: 2026-08-03 04:13**, deploying `6f9945b` after PRs #35
+and #36 merged three minutes apart. Its log ends
+`Error response from daemon: No such container: z12fitlh15n9ir4zjlwxeviq` — the
+helper container disappeared mid-build. So the original collision theory was
+roughly right about the mechanism and wrong about the frequency: it has happened
+once, under two merges in quick succession, not four times.
 
-**2026-08-03.** PRs #35 and #36 merged three minutes apart. Both webhook
-deliveries returned 200 OK (GitHub hook 657319469, 04:10:33 and 04:13:29),
-Coolify's `/api/v1/deployments` was empty, and the app reported
-`running:healthy` — every signal said the site was current. It was not: the
-running container was tagged `3ec4350` (the #35 merge) and #36 never deployed.
-The reading at the time was that Coolify was mid-build when the second event
-arrived and discarded it rather than queueing.
-
-**2026-08-04, and that explanation does not cover it.** PRs #37 and #39 merged
-about ninety seconds apart to `805cc25`. The container stayed on `6f9945b` —
-the #36 merge, up 33 hours — so _neither_ merge deployed, and no build was in
-flight for the first one to collide with. `running:healthy` again reported a
-site three commits stale. A manual `/api/v1/deploy` produced `805cc25`.
-
-So the trigger is not a build-collision race, and the queueing theory is at
-best incomplete.
-
-**Coolify's status field is not a deploy gate in either direction.**
-Immediately after the rolling update the API said `running:unhealthy` while
-Docker's own healthcheck said `healthy` and both `/api/v1/health` and
-`/api/v1/ready` returned OK. Comparing the container image tag against
-`origin/main` is the only signal that has been right every time:
+**What to do instead.** Merge and leave it. Check the image tag once, after the
+build has had time (five minutes is comfortable), against `origin/main`:
 
 ```bash
 sudo docker ps --filter name=gpsokvxzncr7ks1vzqz7wkr4 --format '{{.Image}}'
 ```
 
-Worth teaching `scripts/check-integrity.mjs` to assert a deployed commit rather
-than only page content — a stale-but-healthy deploy is exactly the failure a
-content canary cannot see.
+Deploy by hand only when a deployment genuinely reports `failed`. Coolify's
+`status` field stays useless as a gate in either direction — it read
+`running:healthy` over a stale container and `running:unhealthy` over one Docker
+and both probes called healthy.
+
+- [ ] **Still worth doing:** teach `scripts/check-integrity.mjs` to assert the
+      deployed commit, not only page content.
+
+A stale-but-healthy deploy is exactly the failure a content canary cannot see,
+and the one genuine 2026-08-03 failure went unnoticed until someone compared
+tags by hand.
 
 ## Security (from docs/security/threat-model.md, 2026-07-24)
 
-### TM-013 — calculator inputs reached the Cloudflare edge (fixed; disclosure question open)
+### TM-013 — calculator inputs reached the Cloudflare edge (CLOSED)
 
-- [ ] **Decide whether the historical exposure needs notifying, and record the
-      decision either way.**
+- [x] **Fixed, deployed, and no notification owed.** Founder decision,
+      2026-08-07: the historical exposure requires no notification.
 
-The leak itself is **fixed and deployed** (2026-08-05, `339b3fd`). Full account
-in the ADR-0005 addendum and §2.3 of the threat model. What is _not_ settled is
-what is owed for the period before the fix.
+The leak is fixed and live (2026-08-05, `339b3fd`). The full account — what
+happened, how it was measured, and why every existing guard missed it — is in
+the ADR-0005 addendum and §2.3 of the threat model, which is where it belongs.
 
-**What happened, in one line.** Calculator field state was mirrored into the URL
-fragment, and Cloudflare's JS Detections — injected into every page, not
-disableable on the Free plan — read `document.location.href` and POSTed it. Any
-reload, restored tab, bookmark or shared link sent the entered values to the
-edge.
-
-**Scope, stated honestly.** Unknown. There is no analytics and no server-side
-record of calculator use — by design — so how many entries were affected cannot
-be reconstructed from anything we hold. What is known: the values are clinical
-observations without identifiers, the receiving processor is Cloudflare, and the
-window is roughly the life of the fragment-mirroring feature up to 2026-08-05.
-
-**The open question for counsel.** Whether unidentified clinical values reaching
-a processor outside the disclosed set constitutes a personal-data breach under
-PDPL, and if so whether SDAIA notification and any user-facing notice are owed.
-This sits with the same counsel review already queued for the legal pages, and
-is a reason not to defer that item further. `/trust` already carries a dated
-public retraction, so the site is not silent about it either way.
+For the record on the notification question, since it was open for two days: the
+values were clinical observations carrying no identifiers, the recipient was
+Cloudflare acting as an infrastructure processor, and the scope could not be
+reconstructed because there is no analytics and no server-side record of
+calculator use — by design. `/trust` carries a dated public retraction
+regardless, so the site is not silent about it either way.
 
 - [~] **Domain trust program (TM-008, high/firm)** — **verified against the
   registry 2026-07-27, and more of it is already done than this item

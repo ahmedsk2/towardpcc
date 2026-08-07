@@ -77,6 +77,15 @@ re-check it instead of trusting it.
 
 ### 3. Deploy once at end of session, with one carve-out
 
+> **Superseded later the same day.** This section was written believing
+> push-to-deploy was broken and every deploy had to be triggered by hand. It is
+> not: Coolify's queue shows an `is_webhook=true` deployment finishing for every
+> `main` push, and the "dropped deploys" were the tag being checked ~30 seconds
+> after a merge while a 125–308 second rolling build was still running. There is
+> nothing to schedule — merging deploys. What survives is the **tag check**,
+> once, after the build has had time. The carve-out below is moot for the same
+> reason: nothing waits, so nothing needs excusing from waiting.
+
 Merges accumulate; one deploy at the end, then one container-tag check against
 `origin/main`.
 
