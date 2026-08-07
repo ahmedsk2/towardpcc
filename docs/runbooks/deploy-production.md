@@ -325,3 +325,47 @@ keeping in a password manager is the `/admin` password.
   first widening the security list takes the site fully offline and breaks
   ACME HTTP-01 renewal.
 - **Secondary on-call contact** still unnamed (bus-factor-1).
+
+## Container hardening: read-only rootfs
+
+Not applied yet — Coolify does not set `read_only` by default and nothing in the
+repo sets it for the live application. These are the exact mounts, measured
+against the built image rather than copied from a hardening guide.
+
+```yaml
+read_only: true
+tmpfs:
+  - /tmp:size=64m
+  - /app/apps/web/.next/cache:uid=100,gid=101,mode=0700,size=64m
+```
+
+`uid=100,gid=101` are `app`'s ids in this image and are **not** optional — a
+tmpfs mounted root-owned is as unwritable as the read-only layer underneath it.
+
+### Why a health check is not enough to verify this
+
+The second mount is the one that is easy to miss, and the way it fails is the
+reason to write it down.
+
+`next.config.ts` declares no `images` block, so the built-in optimiser runs and
+writes to `<distDir>/cache/images` — a directory the image does not contain.
+Under `--read-only` with only `/tmp` mounted, `/api/v1/health` returns 200, the
+container reports `healthy`, and `/_next/image` still returns 200. Nothing looks
+wrong. But every optimised image request throws
+`ENOENT: no such file or directory, mkdir '/app/apps/web/.next/cache'` as an
+unhandled rejection, and the image cache is silently disabled.
+
+That last part is the actual cost. `/_next/image` takes `w` and `q` from the
+query string, so with no cache absorbing them every combination forces a fresh
+re-encode — a cheap CPU-exhaustion lever on a host shared with other live
+applications. With the mount in place: three widths requested, three cache
+entries written, zero unhandled rejections.
+
+A smoke test that only checks health cannot see any of this. Request an
+optimised image and read the logs.
+
+Two related notes. The service worker precaches in the BROWSER, so it needs no
+container write and is not a factor here. `revalidatePath` in the admin server
+actions targets the same `.next/cache` path and is covered by the same mount,
+but the authenticated admin routes were not exercised under read-only — verify
+that before assuming it.
