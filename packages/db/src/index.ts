@@ -45,13 +45,37 @@ const globalForDb = globalThis as unknown as { db?: PrismaClient };
  * protect, and this avoids mounting a file into a Coolify-built image whose
  * Dockerfile we do not control at deploy time.
  *
+ * BASE64 IS ACCEPTED, AND IN PRODUCTION IT IS THE ONLY FORM THAT WORKS.
+ * Coolify stores a multi-line value happily — the API returned all 1203
+ * characters of the PEM back on read — and then never injects it into the
+ * container. Measured: after creating the variable, a `restart`, and a forced
+ * full rebuild, `DATABASE_CA_CERT` was absent from `docker inspect`'s env list
+ * entirely while `DATABASE_URL` and `AUTH_SECRET` sat right there. It is
+ * dropped silently: no warning in the deploy log, no empty string, nothing to
+ * notice. A PEM's embedded newlines cannot survive the env-file mechanism
+ * underneath, so the variable has to be a single line by the time Coolify sees
+ * it.
+ *
+ * The form is sniffed rather than configured, because a second env var saying
+ * which encoding the first one uses is one more thing to get wrong at 3am.
+ *
  * Unset means unchanged: connections stay exactly as they are today. That is
  * deliberate, so this can ship before the server has a certificate, and so a
  * developer machine and CI need no TLS setup at all.
  */
 function tlsOptions(): { ssl?: { ca: string; rejectUnauthorized: true } } {
-  const ca = process.env.DATABASE_CA_CERT;
-  if (!ca) return {};
+  const raw = process.env.DATABASE_CA_CERT?.trim();
+  if (!raw) return {};
+  // A PEM announces itself. Anything else is assumed base64-wrapped, which is
+  // what production must use — see above.
+  const ca = raw.startsWith("-----BEGIN") ? raw : Buffer.from(raw, "base64").toString("utf8");
+  if (!ca.startsWith("-----BEGIN")) {
+    throw new Error(
+      "DATABASE_CA_CERT is neither a PEM nor base64 of one. Expected it to start " +
+        "with '-----BEGIN' after decoding. Refusing to start rather than falling " +
+        "back to an unencrypted database connection.",
+    );
+  }
   return { ssl: { ca, rejectUnauthorized: true } };
 }
 
