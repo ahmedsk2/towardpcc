@@ -48,20 +48,37 @@ const JOBS = [
    */
   { src: "services-statistics.jpg", out: "services-statistics.jpg", width: 1400 },
   /**
-   * Registry dashboard. The source shows that unit's real operating figures —
-   * year-to-date admissions, bed occupancy above 100%, live census and dated
-   * admissions. Those are not ours to publish, and labelling real numbers
-   * "illustrative" would be a lie. So the sensitive regions are cropped away
-   * instead: this window keeps the sidebar and the admissions/discharges chart,
-   * which shows what the product looks like without asserting anything about a
-   * real unit's performance.
+   * Registry dashboard — DISABLED 2026-08-07. Do not re-enable without written
+   * permission from the pilot unit, or a different source screenshot.
+   *
+   * The reasoning below was right about the problem and wrong about the fix, so
+   * it is kept rather than deleted:
+   *
+   *   "The source shows that unit's real operating figures — year-to-date
+   *    admissions, bed occupancy above 100%, live census and dated admissions.
+   *    Those are not ours to publish, and labelling real numbers 'illustrative'
+   *    would be a lie. So the sensitive regions are cropped away instead: this
+   *    window keeps the sidebar and the admissions/discharges chart, which
+   *    shows what the product looks like without asserting anything about a
+   *    real unit's performance."
+   *
+   * The crop was not enough. What it KEPT is a 30-day admissions and discharges
+   * curve with real dates, plus one real consultant caseload — which is that
+   * unit's performance, stated as a chart instead of a number. Cropping reduced
+   * how much of someone else's data was published; it did not stop publishing
+   * it. `content/site.ts` meanwhile said the imagery "cannot be published until
+   * the pilot unit approves it" while the site served it, and it stayed live
+   * until 2026-08-07.
+   *
+   * Re-enable only with permission on file, or by pointing `src` at a demo or
+   * seeded instance carrying no real unit's figures.
    */
-  {
-    src: "Screenshot 2026-07-27 170852.png",
-    out: "registry-dashboard.jpg",
-    width: 1200,
-    sourceCrop: { x: 0, y: 180, w: 1000, h: 850 },
-  },
+  // {
+  //   src: "Screenshot 2026-07-27 170852.png",
+  //   out: "registry-dashboard.jpg",
+  //   width: 1200,
+  //   sourceCrop: { x: 0, y: 180, w: 1000, h: 850 },
+  // },
 ];
 
 mkdirSync(OUT, { recursive: true });

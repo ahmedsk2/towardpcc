@@ -17,7 +17,29 @@ import { expect, test, type Page } from "@playwright/test";
  * A deliberate crop is still allowed; it just has to be declared, with
  * data-crop="intentional" on the image's container.
  */
-const PAGES = ["/", "/about", "/knowledge", "/data", "/services"];
+/**
+ * `imageless: true` says the page is EXPECTED to render no images, so the
+ * "at least one image" assertion is skipped for it — the crop checks still run
+ * over whatever it does render.
+ *
+ * `/data` earned that flag on 2026-08-07. It carried a screenshot of the pilot
+ * unit's Command Center showing their real dated admissions curve, published
+ * without permission, and the image was pulled (see
+ * `content/unpublished-imagery.test.ts`). The page is deliberately imageless
+ * until a permitted replacement exists.
+ *
+ * Kept in the list rather than removed, and flagged rather than silently
+ * exempted: if an image reappears on `/data`, the crop assertions below still
+ * measure it, and the flag is a visible thing to delete when a permitted image
+ * arrives. Dropping the page entirely would have removed both.
+ */
+const PAGES = [
+  { path: "/" },
+  { path: "/about" },
+  { path: "/knowledge" },
+  { path: "/data", imageless: true },
+  { path: "/services" },
+] as const;
 
 /** A photograph can lose a little to a container without harm. Past this it is
  *  no longer the picture that was chosen. */
@@ -99,7 +121,7 @@ async function measure(page: Page): Promise<Measured[]> {
 }
 
 test.describe("image framing", () => {
-  for (const path of PAGES) {
+  for (const { path, imageless } of PAGES.map((p) => ({ imageless: false, ...p }))) {
     test(`${path} renders every image without unintended cropping`, async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
 
@@ -119,7 +141,11 @@ test.describe("image framing", () => {
 
       expect(measured, `could not measure ${path} without a service-worker reload`).not.toBeNull();
       const images = measured ?? [];
-      expect(images.length, `${path} should render at least one image`).toBeGreaterThan(0);
+      if (imageless) {
+        expect(images.length, `${path} is flagged imageless but rendered images`).toBe(0);
+      } else {
+        expect(images.length, `${path} should render at least one image`).toBeGreaterThan(0);
+      }
 
       for (const m of images) {
         expect(m.naturalWidth, `could not decode ${m.src}`).toBeGreaterThan(0);
@@ -171,7 +197,7 @@ test.describe("no authoring metadata reaches the page", () => {
     /public\/images\//i,
   ];
 
-  for (const path of PAGES) {
+  for (const { path } of PAGES) {
     test(`${path} exposes no filenames or save-as notes`, async ({ page }) => {
       await page.goto(path);
       await page.waitForLoadState("load");

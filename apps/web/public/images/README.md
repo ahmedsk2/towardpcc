@@ -12,16 +12,16 @@ The originals are stock resolution — one was 6500x4338 / 36 MB, which is
 indefensible for a tool used at the bedside on hospital wifi. After the pass the
 whole set is well under 1 MB.
 
-| File                     | Used on                           | Subject                                                |
-| ------------------------ | --------------------------------- | ------------------------------------------------------ |
-| `og-waveform.jpg`        | social share card                 | glowing respiratory waveform on oxblood                |
-| `brand-waveform.jpg`     | `/` and `/about` founder sections | layered crimson waveforms on dark                      |
-| `care-nurse-smiling.jpg` | `/` mission split                 | nurse laughing with a child holding a teddy            |
-| `registry-dashboard.jpg` | `/data`                           | PICU registry dashboard, institution branding redacted |
-| `care-thermometer.jpg`   | `/services`                       | clinician taking a child's temperature                 |
-| `library-screenshot.jpg` | `/knowledge`                      | PedsCC Library browse view                             |
-| `care-teddy-oxygen.jpg`  | `/about`                          | teddy bear in a hospital bed wearing an oxygen mask    |
-| `care-resting.jpg`       | `/` mission split                 | child asleep in a hospital bed with a teddy            |
+| File                         | Used on                           | Subject                                                                        |
+| ---------------------------- | --------------------------------- | ------------------------------------------------------------------------------ |
+| `og-waveform.jpg`            | social share card                 | glowing respiratory waveform on oxblood                                        |
+| `brand-waveform.jpg`         | `/` and `/about` founder sections | layered crimson waveforms on dark                                              |
+| `care-nurse-smiling.jpg`     | `/` mission split                 | nurse laughing with a child holding a teddy                                    |
+| ~~`registry-dashboard.jpg`~~ | _removed 2026-08-07_              | pulled: showed the pilot unit's real dated admissions curve without permission |
+| `care-thermometer.jpg`       | `/services`                       | clinician taking a child's temperature                                         |
+| `library-screenshot.jpg`     | `/knowledge`                      | PedsCC Library browse view                                                     |
+| `care-teddy-oxygen.jpg`      | `/about`                          | teddy bear in a hospital bed wearing an oxygen mask                            |
+| `care-resting.jpg`           | `/` mission split                 | child asleep in a hospital bed with a teddy                                    |
 
 ## Deliberately NOT used
 
