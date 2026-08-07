@@ -663,6 +663,54 @@ P8 deploy-gated go-live checklist.
       drill; CI image build + SBOM + signed provenance + scan; error tracker DSN + Uptime Kuma monitors + SLOs; branch protection + required review on main + a SAST job; OCI Vault for secrets + at-rest volume encryption; DPAs +
       PDPL breach clock + counsel privacy-policy review.
 
+### PDPL breach clock — sourced 2026-08-07; two things left, both founder-only
+
+- [x] **The duty is now written down**, in `docs/runbooks/incident.md` under
+      "Regulatory notification (PDPL)", with sources.
+- [ ] **Register on the National Data Governance Platform, before you need it.**
+- [ ] **Name counsel who answers inside 72 hours, and settle the hour-60
+      default now.**
+
+`CMP-03` asked for "the PDPL 72h breach clock + SDAIA contact". The number turned
+out to be right, and it was in the repo only as an unsourced open question — it is
+now sourced to SDAIA's _Personal Data Breach Incidents Procedural Guide_, Issue
+1.0, October 2024. **72 hours to notify SDAIA from becoming aware**, on a harm
+test with no size floor; a separate and looser "without undue delay" duty to
+notify data subjects; and no encryption carve-out, unlike GDPR.
+
+**"SDAIA contact" was the wrong shape of question.** There is no contact to find:
+notification is an e-service on the National Data Governance Platform, and
+registration is a prerequisite that **cannot be completed inside the 72 hours**.
+That is why registering is its own item rather than a step in the runbook.
+
+**The hour-60 decision.** The patient-data runbook says to get counsel the same
+day and not to notify on your own initiative. Against a hard deadline that is
+incomplete, because silence from counsel at hour 60 is itself a decision. Settle
+it in advance and record it here. The recommendation is to notify — the notice
+carries no admission and late notice is the sanctionable failure — but it is the
+founder's call to own, not the runbook's to assume.
+
+**One coupling worth seeing.** The missing DPAs stop being paperwork here: a
+processor who tells us late burns our own 72 hours, and there are three disclosed
+sub-processors with no executed agreement.
+
+### Admin lockout — CLOSED 2026-08-07, and the alarm was wrong
+
+- [x] **Recoverable, with a two-command break-glass now documented.**
+
+`docs/go-live-checklist.md` called this failure "unrecoverable", which was false.
+Verified against production: one `OWNER` admin, all ten recovery codes present
+and unconsumed, successful TOTP login that morning, clock NTP-synced. A fresh
+recovery code can be minted with `psql` alone, because the stored hash is plain
+`sha256(lowercased)` and Postgres yields a byte-identical digest — the statement
+was dry-run on production inside a rolled-back transaction. Procedure is in
+`docs/runbooks/deploy-production.md`.
+
+The one credential genuinely worth protecting is the **`/admin` password**:
+Argon2id cannot be recomputed on the host, so losing it costs about an hour of
+re-seeding over an SSH tunnel. Worth a ten-second check that it is in a password
+manager; nothing more.
+
 ## Triage of every remaining item (2026-08-01)
 
 Each open item was re-read against the code by one reviewer and then
