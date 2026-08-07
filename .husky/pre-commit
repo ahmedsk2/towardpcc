@@ -1,1 +1,38 @@
 pnpm exec lint-staged
+
+# Secret scan on staged content, and it DEGRADES rather than blocks.
+#
+# CI is the authority: the `gitleaks` job installs a pinned, checksum-verified
+# 8.24.3 and scans full history, so nothing reaches main unscanned either way.
+# This hook exists to catch a secret one commit earlier, on the machine where
+# fixing it is still cheap and does not require a history rewrite.
+#
+# WHY IT WARNS INSTEAD OF FAILING WHEN THE BINARY IS MISSING. gitleaks is not a
+# repo dependency and cannot be — it is a Go binary, not an npm package — so
+# requiring it would break `git commit` for anyone who has not installed it,
+# including a fresh clone. A hook that blocks work it cannot perform gets
+# disabled with --no-verify, and then it protects nothing. Absent means warn;
+# present means enforce.
+#
+# To enable enforcement on this machine (winget carries the exact CI-pinned
+# build, portable, no admin rights needed):
+#
+#   winget install Gitleaks.Gitleaks --version 8.24.3 \
+#     --accept-package-agreements --accept-source-agreements
+#
+# Verified 2026-08-07: winget's installer SHA256 for that version matches the
+# upstream gitleaks_8.24.3_checksums.txt exactly.
+if command -v gitleaks >/dev/null 2>&1; then
+  # --staged scans exactly what is about to be committed, which is both the
+  # fastest option and the only one that can block THIS commit.
+  if ! gitleaks protect --staged --redact --no-banner; then
+    echo ""
+    echo "gitleaks found a secret in the staged changes — commit blocked."
+    echo "Remove it and re-stage. Do not use --no-verify: CI scans full"
+    echo "history and will fail anyway, after the secret is already in a commit."
+    exit 1
+  fi
+else
+  echo "gitleaks not installed — skipping the local secret scan (CI still scans)."
+  echo "  winget install Gitleaks.Gitleaks --version 8.24.3"
+fi
