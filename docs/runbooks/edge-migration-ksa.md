@@ -161,12 +161,39 @@ client tries to forge it. Verified by forging one.
 **Nothing structural — but three operational items, and the first has a
 deadline.**
 
-1. **Certificate renewal is manual.** acme.sh issued into `/opt/acme-staging`
-   on the host; the load balancer holds an uploaded copy. Nothing renews it.
-   The certificate expires **2026-10-27**, so a cutover before that date needs a
-   renewal path first, or the site fails at the edge months later. The OCI CLI
-   is not installed on the host, so this needs either that plus an API key, or a
-   scheduled job run from elsewhere. **Do not cut over without solving this.**
+1. **Certificate renewal — HALF SOLVED 2026-08-07. Renewal is automatic; the
+   UPLOAD to the load balancer is not.**
+
+   The original note said "acme.sh issued into `/opt/acme-staging`… nothing
+   renews it". The truer statement was worse: **acme.sh was not installed on the
+   host at all** — only its config home survived, so there was nothing to
+   schedule.
+
+   Now in place, and verified:
+
+   - acme.sh **3.1.4**, downloaded as a pinned release tarball rather than
+     piped from a URL, installed with `--home /root/.acme.sh --config-home
+/opt/acme-staging`.
+   - **`--nocron`, deliberately.** root's crontab on this host contains exactly
+     one entry: the co-tenant's `backup-mylibrary-sqlite.sh` at 03:30, the
+     off-site backup of an application holding real patient data. acme.sh writes
+     its own cron entry by default. The crontab SHA-256 was captured before and
+     after and is byte-identical (`5489fe46…9560`).
+   - Renewal runs as **`acme-towardpcc.timer`**, daily at 04:15 UTC with up to
+     15 minutes of jitter — clear of both the Coolify database backups at 03:00
+     and the co-tenant backup at 03:30.
+   - Executed once to prove the path: exit 0, acme.sh reached Let's Encrypt and
+     correctly skipped, next renewal **2026-09-27**, a month before the
+     2026-10-27 expiry. The Cloudflare DNS-01 credentials in `account.conf` are
+     still valid.
+
+   **STILL MANUAL: pushing the renewed certificate to the load balancer.** The
+   OCI CLI is not on the host and installing it there was not done — the CLI
+   lives on the dev machine (`~/.local/bin/oci`). So after a renewal the new
+   certificate has to be uploaded from there. **Do not cut over until that step
+   is either automated or diarised**, because a renewal that never reaches the
+   load balancer looks like success and fails at the edge anyway.
+
 2. **The WAF is created but NOT attached**, so it protects nothing. See below.
 3. Once cut over, the residency copy on `/trust` and `/legal/data-protection`
    must change in the SAME deploy — it currently says requests may be processed

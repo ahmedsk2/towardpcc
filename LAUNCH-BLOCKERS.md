@@ -899,7 +899,10 @@ attributes", false for the admin subtree. Note CSP3 `style-src` **does** govern
 
 ### LB certificate expiry — 2026-10-27, and it is NOT what the runbook says
 
-- [ ] **Reinstall acme.sh and wire renewal, WITHOUT touching root's crontab.**
+- [x] **Done 2026-08-07 — acme.sh installed and renewal automated, root's
+      crontab provably untouched.**
+- [ ] **Remaining: push the renewed cert to the load balancer.** Renewal is
+      automatic; the upload is not.
 
 Two corrections to the recorded state, both found 2026-08-07:
 
@@ -917,13 +920,23 @@ The 2026-10-27 expiry is correct, verified three independent ways. Nothing is
 blocking renewal: the **Cloudflare DNS-01 token is still present and still
 valid**, so renewal works the moment acme.sh exists again.
 
-**THE CO-TENANT HAZARD, which is why this is not a quick fix.** root's crontab
-contains exactly one job: the co-tenant's `backup-mylibrary-sqlite.sh` at 03:30
-— the off-site backup of an application holding real patient data. **acme.sh's
-installer writes to root's crontab by default.** A botched rewrite silently kills
-that backup, and nobody would notice until a restore was needed. Any install must
-use `--nocron` and register the timer separately, and the crontab must be
-captured before and diffed after.
+**THE CO-TENANT HAZARD, and how it was handled.** root's crontab contains
+exactly one job: the co-tenant's `backup-mylibrary-sqlite.sh` at 03:30 — the
+off-site backup of an application holding real patient data. **acme.sh's
+installer writes to root's crontab by default.** So it was installed with
+`--nocron`, and the crontab SHA-256 captured before and after: byte-identical
+(`5489fe46…9560`), re-checked after enabling the timer.
+
+Renewal now runs as `acme-towardpcc.timer`, daily at 04:15 UTC with jitter —
+clear of the Coolify backups at 03:00 and the co-tenant's at 03:30. acme.sh
+3.1.4 was taken as a pinned release tarball rather than piped from a URL. The
+service was run once: exit 0, reached Let's Encrypt, correctly skipped, next
+renewal 2026-09-27.
+
+**What is still manual: the upload to the load balancer.** The OCI CLI is not on
+the host and was not installed there — it lives on the dev machine. A renewal
+that never reaches the load balancer looks like success and fails at the edge
+anyway, so this must be automated or diarised before any cutover.
 
 Not urgent by date, but it gates the DNS cutover: cutting over with a cert that
 nobody renews just moves the outage.
