@@ -663,8 +663,15 @@ P8 deploy-gated go-live checklist.
       (OBS-07), clipboard catch (TST-10), incident SEV tiers (OPS-04), LOG_LEVEL
       (CFG-06), CHANGELOG (DOC-05), README runbooks line (DOC-09), legal TODO
       marker (UX-02).
-- [ ] **OPS-02** — name a secondary on-call / escalation contact + route alerts
-      to a pager before launch (bus-factor-1). Requires a real person → founder.
+- [x] **OPS-02 — DECLINED by the founder, 2026-08-07.** No secondary on-call
+      contact will be named; bus-factor-one is an accepted operating condition.
+
+If he is unreachable during an incident, nothing happens until he is reachable.
+What makes that tolerable is that the calculators are client-side — a backend
+outage never touches the core clinical tool — so the exposure is the submission
+pipeline and the admin surface, not the bedside. Recorded as a decision so the
+absence is not later read as an oversight.
+
 - [ ] P8 deploy-gated (verify at go-live, not codebase defects): backup restore
       drill; CI image build + SBOM + signed provenance + scan; error tracker DSN + Uptime Kuma monitors + SLOs; branch protection + required review on main + a SAST job; OCI Vault for secrets + at-rest volume encryption; DPAs +
       PDPL breach clock + counsel privacy-policy review.
@@ -1145,17 +1152,19 @@ client-supplied `x-real-ip` once it trusts the upstream. That was verified by
 sending a forged one against the running system, but it remains an observation
 about topology rather than something the code can check.
 
-### Gitleaks pre-commit — hook landed 2026-08-07; one command left
+### Gitleaks pre-commit — DONE 2026-08-07
 
 - [x] **Graceful-degradation hook added.** `.husky/pre-commit` runs
       `gitleaks protect --staged --redact` when the binary is present, and
       prints a one-line notice when it is not. Verified both branches.
-- [ ] **Install the binary to switch it from warn to enforce** (founder, one
-      command, no admin rights):
+- [x] **Binary installed 2026-08-07**, version 8.24.3 via winget with a verified
+      installer hash. The hook now enforces.
 
-```
-winget install Gitleaks.Gitleaks --version 8.24.3 --accept-package-agreements --accept-source-agreements
-```
+Proven rather than assumed: staging a GitHub PAT pattern makes gitleaks exit 1
+and the hook exit 1, blocking the commit. Note gitleaks allowlists the well-known
+AWS _documentation_ example key, so that specific string will not trip it — real
+credential patterns do. It resolves in any newly-opened terminal (winget updates
+the User PATH).
 
 Two things the previous entry had wrong. winget **does** carry gitleaks as a
 portable (zip) install needing no admin rights, and it offers **the exact
