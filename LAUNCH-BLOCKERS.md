@@ -930,8 +930,10 @@ nobody renews just moves the outage.
 
 ### SPC-DB-005 — investigated 2026-08-07; the plan changed twice
 
-- [ ] **Ship the purge runtime in the image, add `--skip-audit`, then create the
-      Coolify scheduled task.** Not urgent — see the runway below.
+- [x] **Script rewritten onto `pg` and `--skip-audit` added**, 2026-08-07. No
+      Prisma runtime is needed in the image at all.
+- [ ] **Copy the script into the image, then create the Coolify scheduled task.**
+      Not urgent — see the runway below.
 
 **Nothing is due, and nothing can be until 2027-07-29.** `Submission` holds **0
 rows**; `AuditLog` holds 3, the oldest dated 2026-07-29. This is a
@@ -948,9 +950,13 @@ settled. Two premises behind the earlier plan were wrong:
   The one `@prisma/client` entry left on disk contains a single WASM file and
   zero JavaScript, and `/app/node_modules` holds nothing but `.pnpm` with no
   top-level symlinks. `node purge-retention.mjs` dies at its first import. It
-  needs a small self-contained runtime shipped beside it (~88 MB with an explicit
-  three-dependency manifest; `pnpm deploy` was tried and pulls 323 MB including
-  the Prisma CLI and Studio).
+  **needed** a small self-contained runtime shipped beside it — ~88 MB with an
+  explicit three-dependency manifest, and `pnpm deploy` was worse at 323 MB
+  including the Prisma CLI and Studio. **Resolved by removing the requirement
+  instead:** the job does two counts and two deletes, each on one indexed date
+  column, so it now uses `pg` directly — already a direct dependency of
+  `packages/db`. Nothing extra ships. Both statements were run against the live
+  schema on 2026-08-07 and resolved.
 
 **The blocker nobody had flagged, and the reason this is not a one-liner.** A
 Coolify task runs inside the **app** container, which holds `DATABASE_URL` for
