@@ -106,7 +106,7 @@ function from(settings: MailSettings): string {
 /**
  * Where replies go, when it differs from where mail is sent from.
  *
- * Unset under the OCI relay, since From: goes back to info@towardpcc.com and
+ * Unset under the OCI relay, since From: goes back to info@towardpicu.com and
  * replies reach it directly. Kept because it costs nothing and the alternative
  * — deleting it and rediscovering the need — is how the towardpicu detour
  * started.

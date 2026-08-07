@@ -230,14 +230,11 @@ is in a password manager.
       host, user and `MAIL_FROM`. Nothing sends while `SMTP_HOST` is blank, so
       the other fields are safe to stage first. Until this is done, submissions
       are stored but no one is told they arrived.
-- [ ] **`info@towardpcc.com` verified to receive mail** — unverified, and it has
-      grown a second problem since this line was written: the MX points at
-      SiteGround's SpamExperts on Google Cloud, which reads every message sent
-      to the address printed on `/contact`, named in `/legal/data-protection` as
-      the deletion contact, and published in `security.txt`. That contradicts
-      ADR-0004 and needs a KSA mail host that is not yet in the stack. A dead
-      contact address is a trust failure; an out-of-Kingdom one is a residency
-      failure. Both are open.
+- [x] **Published contact mailbox verified** — the address moved to
+      `info@towardpicu.com` on 2026-08-07 and the founder confirms it
+      receives. `towardpcc.com`'s SPF is `v=spf1 -all`, so an address there
+      could receive but never legitimately reply; `towardpicu.com` is the
+      domain actually authorised to send.
 - [x] **DNS resolves and the site serves** — with a precision the old wording
       lost. DNS does **not** point at the VM: the Cloudflare zone is proxied
       (orange cloud) and the OCI security list admits 80/443 from Cloudflare's

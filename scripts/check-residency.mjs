@@ -74,9 +74,15 @@ async function checkEdge() {
 }
 
 /**
- * Inbound mail. This is the sharpest disclosed exception: the MX for the
- * address printed on the site — and named in the privacy policy as the deletion
- * contact — is a third-party filter outside Saudi Arabia.
+ * Inbound mail. This is the sharpest disclosed exception: the MX is a
+ * third-party filter outside Saudi Arabia.
+ *
+ * NOTE, 2026-08-07: the published contact address moved to
+ * `info@towardpicu.com`, so this no longer checks the exact domain a visitor
+ * writes to. It is kept pointed at the apex deliberately — `towardpcc.com` still
+ * accepts mail, and a change there is still worth seeing. The residency position
+ * is UNCHANGED either way: both domains resolve to the same SiteGround filter,
+ * so moving the address moved nothing outside the Kingdom back inside it.
  *
  * Checked so that it cannot quietly become something else, and so that the day
  * it moves in-region is noticed rather than discovered months later.

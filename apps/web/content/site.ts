@@ -45,7 +45,7 @@ export const site = {
   },
 
   utility: {
-    email: "info@towardpcc.com",
+    email: "info@towardpicu.com",
     emailLabel: "Email TowardPCC",
     residency: "Servers in Saudi Arabia",
     followLabel: "Follow",
@@ -352,7 +352,7 @@ export const site = {
     heading: "Contact",
     lede: "Questions, feedback, or a correction on a calculator? Send a message and we'll reply by email. You can also reach us directly.",
     emailLabel: "Or email us at",
-    email: "info@towardpcc.com",
+    email: "info@towardpicu.com",
     metaDescription: "Reach the TowardPCC team: a message form and direct email.",
   },
 
@@ -773,7 +773,7 @@ export const site = {
     deletionBody:
       "You can ask us what we hold about you, correct it, or have it deleted, at any time. Email us and we will act on it. Calculator use leaves nothing to delete.",
     contactLabel: "Email",
-    contactEmail: "info@towardpcc.com",
+    contactEmail: "info@towardpicu.com",
     // TODO(counsel-review): full privacy policy pending counsel review before
     // launch — tracked in LAUNCH-BLOCKERS.md (kept out of the shipped copy).
     pendingNote:

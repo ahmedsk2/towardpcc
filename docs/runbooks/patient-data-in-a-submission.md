@@ -503,7 +503,7 @@ Two constraints on how:
 - **Do not quote what they wrote back at them.** A reply that helpfully includes
   "the text you sent was: …" re-transmits the identifiers through a mail path
   that is, today, outside the Kingdom in both directions — outbound via the
-  SiteGround relay, and inbound to `info@towardpcc.com` via SiteGround's
+  SiteGround relay, and inbound to `info@towardpicu.com` via SiteGround's
   SpamExperts filter on Google Cloud (ADR-0004 consequence 6). Reference it as
   "the request you sent on <date>" and nothing more.
 

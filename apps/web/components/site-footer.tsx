@@ -75,7 +75,7 @@ export function SiteFooter() {
             <p className="mt-4 text-sm leading-relaxed text-ink-on-dark/70">{site.footer.vision}</p>
             {/* `flex w-fit`, not `inline-flex`. Both links were inline-level, so
                 they shared a line box and ran together as
-                "info@towardpcc.comFounder ORCID profile" — the margin-top on the
+                "info@towardpicu.comFounder ORCID profile" — the margin-top on the
                 second one cannot separate two boxes that are on the same line.
                 `w-fit` keeps each hit area to its own text rather than the
                 column width. */}
