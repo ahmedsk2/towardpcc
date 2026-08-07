@@ -562,38 +562,58 @@ encrypted at rest". If the distinction turns out to matter to counsel, it is one
 OCI console inspection to close, and closing it also resolves a contradiction
 that currently sits under a live public claim (§8).
 
-**On the PDPL clock, plainly: this repository cannot tell you what it is.** A
-breach-notification figure appears in exactly one place — written `72h`, in
-`docs/ops/production-readiness-review-2026-07-25.md` line 245 — and it appears
-there as an **open question about work not yet done**: "❓ [CMP-03] … PDPL 72h
-breach-notification clock + SDAIA contact in the incident runbook."
+**On the PDPL clock: the answer landed on 2026-08-07.** This section previously
+said the repository could not tell you, which was true and is no longer. The full
+duty, with sources, now lives in `docs/runbooks/incident.md` under "Regulatory
+notification (PDPL)". In summary:
 
-Be careful searching for it, because the obvious search misleads. The string
-"72 hours" _does_ occur elsewhere in the repo — `SECURITY.md` line 11 and the
-P0 plan that generated it — but that is the security-disclosure acknowledgement
-SLA ("We aim to acknowledge within 72 hours"), an unrelated promise about
-answering researchers. Do not let a grep hit on our own vulnerability-disclosure
-courtesy get mistaken for a statutory deadline; that is precisely how a wrong
-number acquires a citation.
+- **72 hours to notify SDAIA**, running from when you became AWARE, where the
+  incident is expected to harm the data or the data subjects. There is no size
+  floor, only that harm test.
+- **"Without undue delay" to notify affected data subjects** — a different and
+  looser clock than the regulator's, triggered where damage actually results.
+- The route is the **National Data Governance Platform e-service**, not a contact
+  address. Registration is a prerequisite and cannot be completed inside 72 hours.
 
-There is no statutory citation anywhere in this repo, no DPIA, no signed DPAs,
-and the counsel review of the legal pages is still outstanding (`CMP-06`, plus
-the `TODO(counsel-review)` markers at `apps/web/content/site.ts` lines 779 and
-812, and the `pendingNote` callouts those pages render telling the reader the
-text awaits counsel). Treating that unsourced number as the rule would be exactly
-the kind of confident-and-unverified claim this project has already had to
-retract more than once.
+Source: SDAIA, _Personal Data Breach Incidents Procedural Guide_, Issue 1.0,
+October 2024, giving effect to PDPL Art. 20 and Art. 24 of the Implementing
+Regulations. This is research and not legal advice; counsel confirms it.
 
-So the honest operating instruction, until counsel replaces it:
+**One thing this changes about the advice below, and it matters.** The previous
+instruction — "do not notify a regulator on your own initiative… get counsel on
+it the same day" — is safe only if counsel actually answers inside the window.
+Against a hard 72-hour deadline it is not a complete instruction, because
+silence from counsel at hour 60 is itself a decision. What to do in that case is
+a standing decision for the founder, recorded in `LAUNCH-BLOCKERS.md`, not
+something to improvise during an incident.
 
-- Escalate within the hour and start the timeline. If a clock does exist, it
-  almost certainly starts at "became aware", and the timeline is what proves
-  when that was.
-- Do not notify a regulator or an institution on your own initiative, and do not
-  decide you are exempt either. Get counsel on it the same day.
-- **Before launch, replace this section** with the actual duty, the actual
-  deadline, the actual SDAIA contact route, and a source. That work is already
-  tracked as `CMP-03`; this runbook is where the answer belongs when it lands.
+**Also note there is still no encryption escape hatch.** Where §8 and the
+surrounding discussion lean on the database being encrypted at rest: that
+mitigates, and under PDPL it does not exempt you from notifying data subjects.
+GDPR Art. 34(3)(a) has such a carve-out; PDPL has no equivalent.
+
+Be careful searching for the deadline, because the obvious search still
+misleads. The string "72 hours" also occurs in `SECURITY.md` line 11 and the P0
+plan that generated it — but that is our vulnerability-disclosure
+acknowledgement SLA, an unrelated promise about answering researchers. Do not
+let a grep hit on our own courtesy get mistaken for a statutory deadline; that
+is precisely how a wrong number acquires a citation.
+
+Still genuinely missing, and tracked: no DPIA, no signed DPAs, and the counsel
+review of the legal pages (`CMP-06`, plus the `TODO(counsel-review)` markers in
+`apps/web/content/site.ts` and the `pendingNote` callouts those pages render).
+The missing DPAs are not paperwork here — a processor who notifies us late burns
+our own 72 hours.
+
+So the operating instruction, until counsel refines it:
+
+- Escalate within the hour and start the timeline. The clock starts at "became
+  aware", and the timeline is what proves when that was.
+- Get counsel the same day, and open the SDAIA notification draft in parallel
+  rather than waiting — the five mandatory fields are listed in `incident.md`,
+  and drafting one commits you to nothing.
+- Do not decide you are exempt on your own. The harm test is low, and late
+  notice is the sanctionable failure.
 
 ---
 

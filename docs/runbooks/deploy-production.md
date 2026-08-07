@@ -267,6 +267,47 @@ sudo docker exec $PGC psql -U postgres -tAc "DROP DATABASE towardpcc_restore_tes
 Note the glob must run **inside** `sudo` — the backup directory is not readable
 by `ubuntu`, so `sudo ls $DIR/*.dmp` expands to nothing before sudo is applied.
 
+## Break-glass: locked out of /admin
+
+**This is recoverable. It is not a lockout risk, whatever the go-live checklist
+used to say.** Verified against production on 2026-08-07: exactly one AdminUser
+(role `OWNER`), all ten recovery codes present and unconsumed, and a successful
+TOTP login that morning.
+
+**If the authenticator phone AND all ten recovery codes are lost**, mint a fresh
+recovery code with `psql` alone — no `TOTP_ENC_KEY`, no Node, no repo checkout.
+This works because `hashRecoveryCode()` is plain `sha256(code.trim().toLowerCase())`
+in hex, and Postgres 16's `encode(sha256(...),'hex')` produces byte-identical
+output; both sides were run on the live host and compared.
+
+```bash
+# 1. On your own machine. This is the ONLY copy — write it down before continuing.
+CODE=$(openssl rand -hex 10 | sed 's/.\{5\}/&-/g; s/-$//'); echo "$CODE"
+```
+
+```bash
+# 2. On the server. APPENDS to the array — it does not destroy existing codes.
+sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -d towardpcc -c   "UPDATE \"AdminUser\" SET \"totpRecoveryCodes\" = \"totpRecoveryCodes\" || encode(sha256('PASTE-CODE'::bytea),'hex'), \"failedLoginCount\"=0, \"lockedUntil\"=NULL WHERE role='OWNER';"
+```
+
+Then sign in at `/admin/login` with email + password + that code. The code is
+consumed on use. The statement above was dry-run on production inside
+`BEGIN … ROLLBACK` — `UPDATE 1`, count 1 in-transaction, 10 again after
+rollback. Production was not modified by that test.
+
+### The real single point of failure is the PASSWORD
+
+Not the TOTP codes. Argon2id cannot be recomputed on the box: neither
+`hash-wasm` nor `otpauth` exists as a directory in the production image (Next
+bundles them into the server chunks) and Node 24 ships no argon2.
+
+If the password is lost too, recovery means running `create-admin.mjs` from the
+repo against the database with a **new** email, over an SSH tunnel — Postgres
+publishes no host port (the container is `10.0.2.7` on the `coolify` network)
+and `DATABASE_URL_OWNER` lives in `/home/ubuntu/towardpcc-secrets.env`. Entirely
+doable, but an hour rather than a minute. So the one thing genuinely worth
+keeping in a password manager is the `/admin` password.
+
 ## Still outstanding
 
 - **SMTP relay not configured** — `SMTP_*` are empty, so form submissions are

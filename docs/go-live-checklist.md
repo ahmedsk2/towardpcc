@@ -162,11 +162,22 @@ docker-compose.prod.yml up -d` per `docs/runbooks/deploy.md` is **not**
   lands — a check whose expected value silently went stale passes without
   checking anything, which is worse than no check.
 
-- [ ] **TOTP URI + recovery codes recorded somewhere the founder can reach
-      them** — not verifiable from this repo, and it should not be: they are
-      credentials. Confirm out of band. This is the item whose failure is
-      unrecoverable — TOTP is mandatory and there is one admin, so a lost secret
-      with no recovery codes locks the platform's only operator out permanently.
+- [x] **TOTP URI + recovery codes** — closed 2026-08-07, and the alarm was
+      misplaced. This entry called the failure "unrecoverable"; it is not.
+      Verified against production: one `OWNER` admin, all ten recovery codes present
+      and unconsumed, and a successful TOTP login on the morning of 2026-08-07. If the
+      phone and every code were lost, a fresh recovery code can be minted with `psql`
+      alone — no encryption key, no Node, no checkout — because the code hash is plain
+      `sha256(lowercased)` and Postgres produces a byte-identical digest. The exact
+      two-command procedure is in `docs/runbooks/deploy-production.md` under
+      "Break-glass: locked out of /admin", and the statement was dry-run on production
+      inside a rolled-back transaction.
+
+The genuinely unrecoverable credential is the **`/admin` password**, because
+Argon2id cannot be recomputed on the host. Losing it costs about an hour of
+re-seeding over an SSH tunnel, not the account. That is the one worth confirming
+is in a password manager.
+
 - [x] **Backup running + a restore drill actually rehearsed** — nightly
       `0 3 * * *` in the shared-postgres job, offsite copy in OCI Object Storage
       bucket `coolify-backups` in `me-riyadh-1`, so the backup is in-region too
