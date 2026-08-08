@@ -315,7 +315,10 @@ no `rua=`.
       visitors inside and outside Saudi Arabia are treated identically, and it
       protects nothing until cutover since DNS still points at Cloudflare.
 
-- [ ] Rewrite the residency copy in the SAME deploy as the DNS cutover.
+- [x] **Rewrite the residency copy in the SAME deploy as the DNS cutover** —
+      done 2026-08-08. The claim did NOT become absolute: email still leaves in
+      both directions, so the caveat moved from the CDN to the mail path rather
+      than disappearing, and `privacy-claims.test.ts` still passes on all five.
 
 Settled 2026-07-28: scope is plaintext PII **and** metadata for everything the
 platform controls, with written carve-outs for recipient-chosen mail delivery
@@ -418,9 +421,12 @@ SDK would transmit from pages that promise they transmit nothing.
   GoDaddy, which needs registrar access I do not have. The exact DS is in
   `docs/runbooks/dns-hardening.md`. **This is the one DNS change that can
   take the domain offline**, so verify immediately after publishing it.
-- [ ] Back the single-region claim with an IAM policy or quota. The tenancy is
-      subscribed to one region today, but that is state, not a control: an
-      admin can add a region in one click and OCI never allows unsubscribing.
+- [x] **Back the single-region claim with a control** — done 2026-08-08. Quota
+      `ksa-data-residency` zeroes ten data-bearing families wherever
+      `request.region != me-riyadh-1`. A quota rather than an IAM policy because
+      quotas fail closed and a deny policy has to enumerate services. Verified
+      Riyadh itself was untouched (`standard-a1-core-count` still 41), since a
+      wrong `!=` would have zeroed production's own region.
 
 - [x] **HSTS preload SUBMITTED 2026-07-29** — hstspreload.org reports 0 errors
       and 0 warnings, status `pending`; it ships with the next browser release
@@ -928,8 +934,10 @@ attributes", false for the admin subtree. Note CSP3 `style-src` **does** govern
 
 - [x] **Done 2026-08-07 — acme.sh installed and renewal automated, root's
       crontab provably untouched.**
-- [ ] **Remaining: push the renewed cert to the load balancer.** Renewal is
-      automatic; the upload is not.
+- [x] **Push the renewed cert to the load balancer** — done 2026-08-08.
+      `lb-cert-push.sh` runs after every daily acme pass, authenticating by
+      instance principals so no API key exists on the host. Idempotent by
+      certificate fingerprint and therefore self-healing.
 
 Two corrections to the recorded state, both found 2026-08-07:
 
@@ -972,8 +980,11 @@ nobody renews just moves the outage.
 
 - [x] **Script rewritten onto `pg` and `--skip-audit` added**, 2026-08-07. No
       Prisma runtime is needed in the image at all.
-- [ ] **Copy the script into the image, then create the Coolify scheduled task.**
-      Not urgent — see the runway below.
+- [x] **Script in the image, scheduled task created** — done 2026-08-08. The
+      purge runtime ships with its own pinned `pg` tree, and the Coolify task
+      `retention-purge` runs `node /app/purge/purge-retention.mjs --skip-audit`
+      daily at 03:00. Verified against production with `--dry-run`: 0 submissions
+      and 0 expired sessions due, audit correctly skipped.
 
 **Nothing is due, and nothing can be until 2027-07-29.** `Submission` holds **0
 rows**; `AuditLog` holds 3, the oldest dated 2026-07-29. This is a
@@ -1024,7 +1035,10 @@ before switching it live.
 
 ### SPC-DB-005 — worse than "no scheduler"
 
-- [ ] The retention purge cannot run in production at all as things stand.
+- [x] **The retention purge now runs in production** — 2026-08-08. The blocker
+      was that the standalone image carried no `pg`; it now ships a separate
+      pinned runtime at `/app/purge`, proven by running the script in the live
+      container against the live database.
 
 `packages/db/scripts/purge-retention.mjs` is correct and parameterised, but
 `apps/web/Dockerfile` copies only `.next/standalone`, `.next/static` and
