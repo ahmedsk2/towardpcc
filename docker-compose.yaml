@@ -1,0 +1,68 @@
+# Coolify compose-mode deployment for the TowardPCC web app.
+#
+# WHY THIS FILE EXISTS. Coolify's SIMPLE (dockerfile) build pack passes
+# `custom_docker_run_options` through an allow-list before it reaches Docker.
+# `--cap-drop=ALL` survives that filter and is genuinely applied — verified on
+# the running container, which reports `CapDrop: [ALL]` and `User: app`. But
+# `--read-only` and `--tmpfs` are dropped silently: the setting is accepted, the
+# UI shows it, and the container runs without it. Compose mode is the only way
+# to get those two applied.
+#
+# NOT TO BE CONFUSED WITH `docker-compose.prod.yml`, which describes a stack
+# that was designed first and is not what runs. This file is the one Coolify
+# reads (`docker_compose_location: /docker-compose.yaml`).
+#
+# THE READ-ONLY ROOTFS IS PROVEN, NOT ASSUMED. Next.js writes at runtime — the
+# image optimiser caches under `.next/cache` — so `read_only: true` without the
+# right tmpfs is a boot loop. This exact combination was tested on the host
+# against the live image, in a throwaway container with no ports and no routing:
+# it reached "✓ Ready" and stayed running. Do not add `read_only` anywhere else
+# without repeating that test.
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    # Coolify injects the application's environment and its own Traefik labels;
+    # neither is repeated here, because a copy would drift from the source of
+    # truth the moment a variable changes in the UI.
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    expose:
+      - "3000"
+
+    # ── The hardening this file exists for ────────────────────────────────────
+    read_only: true
+    tmpfs:
+      # Node and Next both need a writable temp dir. noexec/nosuid because
+      # nothing here should ever be executed.
+      - /tmp:rw,noexec,nosuid,size=64m
+      # The image optimiser's on-disk cache. Sized generously rather than
+      # tightly: a full cache degrades to re-encoding on every request, which is
+      # slow rather than broken, but a cache that cannot be written at all
+      # crashes the optimiser.
+      - /app/apps/web/.next/cache:rw,nosuid,size=256m
+    cap_drop:
+      - ALL
+    security_opt:
+      # Blocks setuid escalation inside the container. Not reachable through
+      # Coolify's simple-mode allow-list either.
+      - no-new-privileges:true
+
+    healthcheck:
+      # The app's own readiness endpoint, which is parameterless and returns no
+      # version string (SPC-API-005). Coolify's rolling update keeps the OLD
+      # container serving until this passes.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/v1/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
