@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { FRAGMENT_LIFT_SHA256 } from "@/lib/fragment-lift";
+import { GLOBAL_ERROR_STYLE_SHA256 } from "@/lib/global-error-style";
 import { APEX_HOST, CANONICAL_HOST } from "@/lib/site-url";
 
 /**
@@ -107,8 +108,25 @@ function buildCsp(nonce?: string): string {
    * animation delays), it renders no user content, and the reasoning for its
    * script policy applies here too — see ADR-csp-public-tier.
    */
+  /**
+   * GLOBAL_ERROR_STYLE_SHA256 rides along with the nonce, and is not optional.
+   *
+   * `app/global-error.tsx` renders a bare `<html>` with no stylesheet — the
+   * root layout has already failed — and inlines the crimson focus ring so its
+   * retry button is focusable-looking at all. It cannot carry a nonce: reading
+   * `headers()` there would mean depending on the request pipeline at the one
+   * moment the application is already broken.
+   *
+   * A browser that supports this split ignores `style-src` below entirely, so
+   * without the hash that element is refused on `/admin` and the only control
+   * on the crash page loses its focus outline. Silent, and only observable
+   * after something else has already gone wrong.
+   */
   const styleDirectives = nonce
-    ? [`style-src-elem 'self' 'nonce-${nonce}'`, `style-src-attr 'unsafe-inline'`]
+    ? [
+        `style-src-elem 'self' 'nonce-${nonce}' ${GLOBAL_ERROR_STYLE_SHA256}`,
+        `style-src-attr 'unsafe-inline'`,
+      ]
     : [];
 
   return [
