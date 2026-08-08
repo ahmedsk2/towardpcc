@@ -1,6 +1,6 @@
 import { defineScore } from "../define-score";
 import { defineText } from "../i18n/text";
-import { fibrinogenMgdl, lactateMmol } from "../units/concentration";
+import { ddimerMgLFeu, fibrinogenMgdl, lactateMmol } from "../units/concentration";
 import { fractionWithPercent, percent } from "../units/fraction";
 import { NO_UNIT } from "../units/types";
 import { mmhgWithKpa } from "../units/pressure";
@@ -80,7 +80,7 @@ export const phoenix = defineScore({
   id: "phoenix",
   slug: "phoenix",
   name: "Phoenix Sepsis Score",
-  version: "2.2.0",
+  version: "2.3.0",
   status: "published",
   category: "sepsis",
   inputs: [
@@ -308,17 +308,25 @@ export const phoenix = defineScore({
       label: defineText("phoenix.ddimer", "D-dimer"),
       required: false,
       type: "numeric",
-      unit: { canonical: "mg/L FEU" },
+      unit: ddimerMgLFeu,
       // Input-validity bound, kept. Published reasonable-value range is
       // [0, 500] mg/L FEU — ten times this ceiling. Ours is unchanged: the
       // 1-point threshold is > 2, so nothing above 50 is distinguishable and a
       // three-figure D-dimer at a bedside form is far likelier to be a unit
       // error (ng/mL FEU entered as mg/L) than a real value.
+      //
+      // THAT UNIT ERROR IS NOW ANSWERED RATHER THAN ONLY REFUSED (v2.3.0). The
+      // ceiling still catches a ng/mL figure typed into a mg/L field, but it is
+      // a blunt instrument for a question the unit system can answer exactly,
+      // and it left the commonest FEU reporting unit unenterable: a laboratory
+      // issuing 1500 ng/mL FEU — a real 1.5 mg/L, below threshold — was refused
+      // with nothing to indicate the unit was the problem. Selecting the unit
+      // converts instead.
       min: 0.1,
       max: 50,
       helpText: defineText(
         "phoenix.ddimer.help",
-        "In mg/L fibrinogen-equivalent units (FEU). Contributes 1 coagulation point when > 2.",
+        "Contributes 1 coagulation point above 2 mg/L fibrinogen-equivalent units (FEU). Laboratories report FEU three ways: mg/L and µg/mL are the same number, while ng/mL is a thousand times larger (2 mg/L FEU = 2 µg/mL FEU = 2000 ng/mL FEU). Select the unit your report uses rather than converting by hand.",
       ),
     },
     {
@@ -451,6 +459,13 @@ export const phoenix = defineScore({
       summary:
         "NO NUMBER MOVED — no threshold, age band, point value, bound or total changed, and no input that computed before is rejected now. What changed is where three things are sourced from, and one new finding is added. (1) PLAUSIBILITY BOUNDS ARE NO LONGER ALL OURS. Every min/max on this score was labelled a guardrail of this platform's own invention; the Phoenix implementation notes publish a reasonable-value table, and five bounds declared here are identical to it — age [0, 216) months with an exclusive ceiling, FiO₂ 0.21–1.00, GCS 3–15, the vasoactive count as an integer 0–6, and SpO₂'s ceiling of 100 with the >97 unusable-for-S/F rule. The age match independently corroborates the exclusive-ceiling work of v2.1.0, which was argued from the criteria alone. Seven bounds are narrower here than published (PaO₂, MAP, lactate, D-dimer, platelets, INR, fibrinogen) and are DELIBERATELY KEPT rather than widened: a form field refusing a typo is not a pipeline's outlier filter. PICANet's Admission Dataset Definitions Manual v5.4 is recorded as a second, tighter published comparator, and the divergent out-of-range behaviour is now stated — the reference nulls an implausible analyte and a null scores zero, while this calculator rejects it outright, which is the stricter and the safer of the two. (2) VPS, PC4 AND PHIS PUBLISH NO PUBLIC PLAUSIBILITY BOUNDS AT ALL — a confirmed negative, not an unfinished search, and worth stating because it explains why independent implementations of one score disagree about what they will accept. (3) THE RESPIRATORY SUPPORT GATE IS NOW SOURCED FROM THE TASK FORCE'S PUBLISHED SQL rather than inferred from the printed table: the SQL derives one flag (FiO₂ above 0.21 or invasive ventilation) and multiplies by it, which is why no support scores 0 at any ratio, the 1-point tier needs only oxygen or non-invasive support, and 2 and 3 need invasive ventilation. The contrast with pSOFA — which caps an unsupported child at 2 instead of flooring them at 0 — was already stated as a structural inference and is now stated with the mechanism. Disclosed with it: that SQL infers support from an FiO₂ above room air because it extracts from records with no support field, so entering an FiO₂ above 0.21 alongside 'no respiratory support' is the one input combination where this calculator and the published extraction disagree, and this calculator takes the clinician's explicit answer. (4) NEW, AND USER-VISIBLE: high-flow nasal cannula counts as respiratory support here, because Phoenix includes it explicitly, while PICANet and ANZPIC both exclude high flow from the ventilation field they collect — so the same child reads as supported on this score and as not ventilated in either registry. The non-invasive option now names high flow, and the support field's help text says so. Recorded as unretrieved and not to be assumed: no cohort has quantified how much the CPAP-versus-high-flow choice shifts this score's distribution.",
       reason: "new-reference",
+    },
+    {
+      version: "2.3.0",
+      date: "2026-08-08",
+      summary:
+        "Accepts D-dimer in ng/mL FEU and µg/mL FEU as well as mg/L FEU. NO THRESHOLD, COEFFICIENT OR COMPUTED VALUE CHANGED — mg/L FEU remains canonical and the > 2 cut point is untouched; a value already entered in mg/L scores exactly what it did before. Laboratories issue FEU three ways for the same sample: mg/L and µg/mL are numerically identical, while ng/mL is a THOUSAND times larger, so 2.5 mg/L FEU is also 2500 ng/mL FEU. The 50 mg/L input ceiling was written as a guard against a ng/mL figure typed into a mg/L field and it does catch the large ones, but refusing is a blunt answer to a question the unit system can answer exactly, and it left the commonest FEU reporting unit simply unenterable: a laboratory issuing 1500 ng/mL FEU — a real 1.5 mg/L, below threshold — was rejected with nothing to indicate that the unit was the problem. From the external calculator audit of 2026-08-08, finding F10. The same finding also asked for a fibrinogen g/L toggle; fibrinogen has accepted g/L since its introduction, so that half of F10 is declined as already implemented rather than actioned.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

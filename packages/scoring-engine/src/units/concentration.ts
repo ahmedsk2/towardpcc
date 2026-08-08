@@ -126,6 +126,50 @@ export const fibrinogenMgdl: UnitSpec = {
 };
 
 /**
+ * D-dimer, in fibrinogen-equivalent units. Phoenix states its threshold as
+ * > 2 mg/L FEU, so mg/L FEU is canonical.
+ *
+ * WHY THE ALTERNATES EARN THEIR KEEP HERE MORE THAN ELSEWHERE. FEU reporting is
+ * not standardised across laboratories: the same sample is issued as 2.5 mg/L
+ * FEU, 2.5 µg/mL FEU or 2500 ng/mL FEU depending on the analyser. The first two
+ * are numerically identical; the third is a THOUSAND-fold apart. A clinician
+ * copying a ng/mL figure into a field expecting mg/L enters 2500 for a value of
+ * 2.5 — and 2.5 crosses the 1-point threshold while 2500 does not even look
+ * like a plausible D-dimer.
+ *
+ * The input's own 50 mg/L ceiling was already written as a guard against
+ * exactly that, and it works: 2500 is refused. But refusing is a blunt answer
+ * to a question the unit system can answer exactly, and it fails in the
+ * dangerous direction for values that land INSIDE the range — 40 000 ng/mL FEU
+ * would be rejected, while a genuine 40 mg/L would not, and a laboratory
+ * reporting 1500 ng/mL FEU (a real 1.5 mg/L, below threshold) is refused
+ * outright with no hint that the unit is the problem.
+ *
+ * µg/mL FEU is 1:1 with mg/L FEU. It is listed rather than left implicit
+ * because a clinician holding a report that says µg/mL should not have to
+ * satisfy themselves that the two are the same before typing a number into a
+ * field labelled with the other one.
+ */
+export const ngPerMlFeuForDdimer: UnitConversion = {
+  unit: "ng/mL FEU",
+  toCanonical: (ngml) => ngml / 1000,
+  fromCanonical: (mgl) => mgl * 1000,
+};
+
+/** µg/mL FEU and mg/L FEU are the same quantity; listed to spare the reader the conversion. */
+export const ugPerMlFeuForDdimer: UnitConversion = {
+  unit: "µg/mL FEU",
+  toCanonical: (ugml) => ugml,
+  fromCanonical: (mgl) => mgl,
+};
+
+/** D-dimer: canonical mg/L FEU, accepts ng/mL FEU (x1000) and µg/mL FEU (1:1). */
+export const ddimerMgLFeu: UnitSpec = {
+  canonical: "mg/L FEU",
+  alternates: [ngPerMlFeuForDdimer, ugPerMlFeuForDdimer],
+};
+
+/**
  * Creatinine — SI orientation. PELOD-2 states its renal cutoffs in µmol/L
  * (Leteurtre 2013, Table 6 / Table 2), so scores that follow the paper's SI
  * units need a µmol/L-canonical creatinine spec — the inverse orientation of

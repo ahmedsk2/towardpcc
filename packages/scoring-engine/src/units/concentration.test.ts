@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ddimerMgLFeu,
   BILIRUBIN_UMOL_PER_MGDL,
   bilirubinMgdl,
   creatinineUmolWithMgdl,
@@ -15,7 +16,7 @@ import {
   umolPerLForCreatinine,
   UMOL_PER_L_PER_MGDL_CREATININE,
 } from "./concentration";
-import { NO_UNIT, toCanonical } from "./types";
+import { fromCanonical, NO_UNIT, toCanonical } from "./types";
 
 describe("concentration units", () => {
   it("uses the standard clinical factors (psofa.md conversions)", () => {
@@ -131,5 +132,42 @@ describe("concentration units — creatinine SI orientation (pelod2)", () => {
     expect(toCanonical(creatinineUmolWithMgdl, 70, "µmol/L")).toBe(70);
     expect(toCanonical(creatinineUmolWithMgdl, 1, "mg/dL")).toBeCloseTo(88.4, 6);
     expect(toCanonical(creatinineUmolWithMgdl, 1, "g/L")).toBeNull();
+  });
+});
+
+/**
+ * Finding F10 (external calculator audit, 2026-08-08).
+ *
+ * FEU reporting is not standardised: the same sample is issued as 2.5 mg/L FEU,
+ * 2.5 µg/mL FEU or 2500 ng/mL FEU. The first two are identical; the third is a
+ * thousand-fold apart, and Phoenix's 1-point threshold sits at > 2 mg/L — right
+ * where a thousand-fold slip changes the answer.
+ */
+describe("D-dimer FEU units", () => {
+  it("treats µg/mL FEU as identical to mg/L FEU", () => {
+    expect(toCanonical(ddimerMgLFeu, 2.5, "µg/mL FEU")).toBe(2.5);
+    expect(fromCanonical(ddimerMgLFeu, 2.5, "µg/mL FEU")).toBe(2.5);
+  });
+
+  it("converts ng/mL FEU by a factor of 1000", () => {
+    expect(toCanonical(ddimerMgLFeu, 2500, "ng/mL FEU")).toBe(2.5);
+    expect(fromCanonical(ddimerMgLFeu, 2.5, "ng/mL FEU")).toBe(2500);
+  });
+
+  it("round-trips every alternate", () => {
+    for (const unit of ["ng/mL FEU", "µg/mL FEU", "mg/L FEU"]) {
+      for (const v of [0.1, 2, 2.5, 50]) {
+        expect(
+          toCanonical(ddimerMgLFeu, fromCanonical(ddimerMgLFeu, v, unit) ?? 0, unit),
+        ).toBeCloseTo(v, 9);
+      }
+    }
+  });
+
+  it("puts the Phoenix threshold on the right side in each unit", () => {
+    // > 2 mg/L FEU scores 1. The same sample either side of it, in each unit.
+    expect(toCanonical(ddimerMgLFeu, 2100, "ng/mL FEU")).toBeGreaterThan(2);
+    expect(toCanonical(ddimerMgLFeu, 1900, "ng/mL FEU")).toBeLessThan(2);
+    expect(toCanonical(ddimerMgLFeu, 2.1, "µg/mL FEU")).toBeGreaterThan(2);
   });
 });
