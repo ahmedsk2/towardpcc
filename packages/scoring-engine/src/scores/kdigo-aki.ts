@@ -66,7 +66,7 @@ export const kdigoAki = defineScore({
   id: "kdigo-aki",
   slug: "kdigo-aki",
   name: "KDIGO AKI staging (pediatric)",
-  version: "3.1.0",
+  version: "3.2.0",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -90,7 +90,31 @@ export const kdigoAki = defineScore({
     {
       id: "scr",
       label: defineText("kdigo.scr", "Current serum creatinine"),
-      required: true,
+      /**
+       * OPTIONAL SINCE v3.1.0, and the reason is in the guideline's own grammar.
+       *
+       * KDIGO 2012 Rec 2.1.1 defines AKI as "any of the following", and the
+       * third bullet is "Urine volume <0.5 ml/kg/h for 6 hours" — a criterion
+       * that names no creatinine. Chapter 2.4 then scopes the baseline
+       * requirement to the creatinine route explicitly: "staging requires
+       * reference to a baseline SCr WHEN SCr CRITERIA ARE USED." Requiring a
+       * creatinine before any staging could happen therefore refused a child
+       * with documented oliguria and no bloods drawn — a patient the guideline
+       * defines as having AKI.
+       *
+       * Read from the official PDF on 2026-08-08, not from a reproduction. The
+       * research note's provenance header recorded HTTP 403 on the KDIGO site;
+       * that was a user-agent artifact and is corrected there.
+       *
+       * WHAT THIS DOES NOT LICENSE. No sentence in the guideline authorises a
+       * urine-output-only stage in those words, and no worked example exists —
+       * Tables 7 and 10 are creatinine-only. So the support is structural
+       * (disjunctive definition + a self-contained urine-output column + a
+       * max-over-criteria staging rule) rather than quoted, and a stage reached
+       * that way is labelled as single-axis rather than presented as a plain
+       * KDIGO stage. See `scr_axis_not_assessed`.
+       */
+      required: false,
       type: "numeric",
       unit: creatinineMgdl,
       // input-validity bound, not a cited threshold (kdigo-aki.md lists ~0.1–15
@@ -324,6 +348,13 @@ export const kdigoAki = defineScore({
         "The surrogate-baseline guidance is now supported by PAEDIATRIC evidence instead of adult evidence, and NO COMPUTED STAGE CHANGES — the recommendation is the same one v3.0.0 made, and nothing in `calculate` is touched. What changes is what stands behind it. v3.0.0 named the lowest admission creatinine on the strength of Cooper 2021, a cohort of 247 adults with Plasmodium knowlesi malaria in Malaysian Borneo, and disclosed the extrapolation as an open gap. Lee 2022 (Kidney Res Clin Pract 2022;41(3):322-331) closes it: 710 critically ill children aged 1 month to 18 years, each with a measured baseline to compare against, in which the lowest creatinine within 7 days of PICU admission detected AKI with sensitivity 87.8% and specificity 71.0% (ICC 0.62, misclassification 19.2%, kappa 0.60, incidence 63.5% against a true 58.7%) while back-calculation from an assumed eGFR reached only 31.5% sensitivity and put incidence at 19.1% against that same true 58.7%. The [NEEDS SOURCE] for a paediatric surrogate-baseline validation is therefore withdrawn as answered. Three things are stated that were not stated before. (1) THE DIRECTION REVERSES: the paediatric study contrasts itself with adult reports of back-calculation OVER-estimating AKI, whereas in children it severely UNDER-estimates — and under-staging is the dangerous direction in a PICU, so a reader arriving from the adult literature would get this exactly backwards. (2) 'The adult literature' is not uniform, and the notes now say so rather than implying a clean adult-versus-child split: Cooper 2021 itself found assumed-GFR-75 methods missing more than half of all AKI, the same direction as the paediatric result. (3) The SCr-min window is NOT standardised — published definitions run from 3 days to 7 days to the whole hospitalisation, and the quoted operating characteristics are the 7-day ones the paediatric study used, so a different window is a different surrogate. Cooper 2021 is retained but demoted to a secondary citation, kept only for the comparisons Lee does not run (MDRD vs CKD-EPI, an assumed GFR of 100, age/sex-standardised reference tables). The separate marker for a KDIGO-ENDORSED paediatric baseline rule stays open and is now explicitly distinguished from it — no guideline endorses a method; the evidence for which method performs best is what became paediatric.",
       reason: "new-reference",
     },
+    {
+      version: "3.2.0",
+      date: "2026-08-08",
+      summary:
+        "Serum creatinine becomes OPTIONAL, so a child with documented oliguria and no bloods drawn can be staged on the urine-output axis alone. NO EXISTING RESULT CHANGES: every entry that staged before stages identically, the thresholds and the max-over-axes rule are untouched, and a creatinine supplied as before behaves exactly as it did. THE PRIMARY WAS OBTAINED, which is what unblocked this. The research note recorded HTTP 403 from kdigo.org and worked from three reproductions; that was a user-agent artifact, and the official PDF (Kidney International Supplements 2012;2:19-36) was read directly on 2026-08-08. Rec 2.1.1 defines AKI as “any of the following” and its third bullet is “Urine volume <0.5 ml/kg/h for 6 hours” — a criterion naming no creatinine — while Chapter 2.4 scopes the baseline requirement to the other route in terms: “staging requires reference to a baseline SCr WHEN SCr CRITERIA ARE USED.” Requiring a creatinine before any staging could occur therefore refused a patient the guideline defines as having AKI. WHAT THE GUIDELINE DOES NOT DO IS AUTHORISE IT IN WORDS. No sentence licenses a urine-output-only stage explicitly, and NO WORKED EXAMPLE EXISTS — Tables 7 and 10 are creatinine-only. The support is structural: a disjunctive definition, a self-contained urine-output column in Table 2, and a staging rule that takes the criteria giving the highest stage. That is recorded as the basis rather than dressed up as a quotation. A NEW OUTPUT, `scr_axis_not_assessed`, marks a stage reached this way. It is deliberately NOT folded into `stage_is_floor`: that flag means an entered value left a Table 2 row open, and v3.0.0 renamed its label away from “a lower bound” precisely because an un-baselined creatinine can unsettle a stage DOWNWARD. The new flag implies no direction and must never render with a “≥”. A creatinine can only raise a urine-output-only stage, since staging takes the maximum — but that is a fact about the axes, not a bound on the number, and the two are kept apart so neither borrows the other’s authority. STILL OPEN, AND UNCHANGED BY THIS: KDIGO states it is not known how the urine-volume criteria should be applied (average versus persistent reduction), and gives no weight basis for mL/kg/h. Both were already true of every urine-output stage this score produced; making creatinine optional exposes them in more cases rather than introducing them. From the external calculator audit of 2026-08-08, finding F4 — whose description was itself half wrong, since it reported baseline creatinine as required when it has always been optional.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -340,7 +371,8 @@ export const kdigoAki = defineScore({
   ),
   calculate: (values) => {
     const ageYears = values.age.value; // years (canonical), required
-    const scr = values.scr.value; // mg/dL (canonical), required
+    // Possibly absent since v3.1.0 — the urine-output axis stands on its own.
+    const scr = values.scr?.value; // mg/dL (canonical), optional
     const baseline = values.scr_baseline?.value; // mg/dL (canonical)
     const uo = values.urine_output?.value; // mL/kg/h
     const duration = values.uo_duration?.value; // Table 2 band, or absent
@@ -366,7 +398,7 @@ export const kdigoAki = defineScore({
      * read off `scrStage` rather than recomputed so the two cannot drift apart.
      */
     let akiDefinitionMet = false;
-    if (baseline !== undefined) {
+    if (scr !== undefined && baseline !== undefined) {
       const ratio = scr / baseline;
       if (ratio >= 3 - EPS)
         scrStage = 3; // ≥ 3.0× baseline → Stage 3
@@ -394,9 +426,9 @@ export const kdigoAki = defineScore({
     //   • no baseline at all → Stage 3, but only as a FLOOR. `stage_is_floor`
     //     is set, so the answer asserts no more than the entered value supports
     //     and a reader holding a prior creatinine knows to enter it.
-    if (scr >= 4 && akiDefinitionMet) scrStage = 3;
+    if (scr !== undefined && scr >= 4 && akiDefinitionMet) scrStage = 3;
     /** Stage 3 claimed on ≥ 4.0 mg/dL alone, with no baseline to assess it. */
-    const scrUnbaselined3 = scr >= 4 && baseline === undefined ? 3 : 0;
+    const scrUnbaselined3 = scr !== undefined && scr >= 4 && baseline === undefined ? 3 : 0;
 
     // eGFR < 35 → Stage 3, but ONLY for a patient under 18 years. KDIGO Table 2
     // writes this branch as "in patients <18 years"; without the age gate an
@@ -479,6 +511,35 @@ export const kdigoAki = defineScore({
           "Stage is not settled — read it as a bound, not a final stage (1 = yes)",
         ),
         value: unsettled ? 1 : 0,
+        unit: "",
+        precision: 0,
+      },
+      /**
+       * A SEPARATE SIGNAL FROM `stage_is_floor`, and deliberately not folded
+       * into it.
+       *
+       * `stage_is_floor` means a specific Table 2 row was left open by an
+       * entered value AND closing it would change the answer. It carries a
+       * DIRECTION in one case and not the other: v3.0.0 renamed its label from
+       * "a lower bound" to "not settled" precisely because an un-baselined
+       * creatinine ≥ 4.0 mg/dL can be unsettled DOWNWARD — the same patient with
+       * a baseline on file may be Stage 0, a chronic 4.6 rather than an acute
+       * 4.5. Reusing it here would resurrect the wording that release removed.
+       *
+       * This flag says only that the creatinine axis was never evaluated. It
+       * implies no direction, and it must not be rendered with a "≥". A
+       * creatinine can only ever RAISE a stage reached on urine output alone,
+       * since staging takes the maximum over criteria — but that is a fact about
+       * the axes, not a bound on this number, and the two are stated separately
+       * so neither borrows the other's authority.
+       */
+      {
+        id: "scr_axis_not_assessed",
+        label: defineText(
+          "kdigo.out.scrAbsent",
+          "Creatinine axis not assessed — staged on urine output alone (1 = yes)",
+        ),
+        value: scr === undefined ? 1 : 0,
         unit: "",
         precision: 0,
       },
