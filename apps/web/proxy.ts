@@ -62,10 +62,46 @@ function buildCsp(nonce?: string): string {
     .join(" ");
   const connectSrc = ["'self'", dev ? "ws:" : ""].filter(Boolean).join(" ");
 
+  /**
+   * SPC-WEB-002 — styles, tightened on the admin tier only, and only as far as
+   * the framework allows.
+   *
+   * `style-src` STAYS as it was, deliberately. It is the fallback any browser
+   * without `style-src-elem`/`-attr` support uses, so leaving it permissive
+   * keeps those browsers exactly where they were rather than breaking them.
+   * Browsers that DO support the split ignore `style-src` entirely and take the
+   * two below.
+   *
+   * The split matters because the two halves are not equally fixable. A
+   * `<style>` ELEMENT can carry a nonce; a `style="…"` ATTRIBUTE cannot — there
+   * is no way to nonce an attribute — so `'unsafe-inline'` is the only thing
+   * that permits one.
+   *
+   * Measured on the built admin pages rather than assumed: login, inbox,
+   * submission detail and settings emit ONE `<style>` element each and, between
+   * them, exactly ONE style attribute (`position: absolute;` on the inbox,
+   * injected by Next, not by this codebase — there is no `style={{ }}` anywhere
+   * under `app/admin`). The public home page, for contrast, carries 46 of them.
+   *
+   * So the admin tier gets a nonce on elements and keeps `'unsafe-inline'` on
+   * attributes. That closes the half that actually matters here: the admin is
+   * the only tier that renders submitted content, and an injected `<style>`
+   * block is the shape with real reach — attribute injection needs control of a
+   * tag this codebase never builds from user input.
+   *
+   * The public tier is left alone. Its 46 attributes are ours (staggered
+   * animation delays), it renders no user content, and the reasoning for its
+   * script policy applies here too — see ADR-csp-public-tier.
+   */
+  const styleDirectives = nonce
+    ? [`style-src-elem 'self' 'nonce-${nonce}'`, `style-src-attr 'unsafe-inline'`]
+    : [];
+
   return [
     `default-src 'self'`,
     `script-src ${scriptSrc}`,
     `style-src 'self' 'unsafe-inline'`,
+    ...styleDirectives,
     `img-src 'self' data:`,
     `font-src 'self'`,
     `connect-src ${connectSrc}`,
