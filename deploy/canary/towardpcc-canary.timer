@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the TowardPCC production canaries daily
+Documentation=https://github.com/ahmedsk2/towardpcc/blob/main/deploy/canary/README.md
+
+[Timer]
+# 05:30 Riyadh. Deliberately NOT on the hour and not near 03:00, where the
+# Coolify database backup and the retention purge already sit — a canary that
+# reads production mid-backup measures the backup, not the site.
+OnCalendar=*-*-* 05:30:00
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

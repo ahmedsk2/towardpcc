@@ -307,12 +307,22 @@ no `rua=`.
   cannot pass unnoticed; verified by lowering the threshold and watching it
   go red.
 
-      Deliberately NOT automated yet. Doing so means an OCI API key with
-      load-balancer write access sitting on a host that also runs an application
-      holding real patient data, to keep a certificate alive on a path serving
-      nobody. That trade is worth making at cutover and not before. When it is
-      made, use a dedicated OCI user with a narrow policy rather than the
-      tenancy admin key.
+      **AUTOMATED SINCE 2026-08-08, and the reason for not automating turned out
+      not to apply.** This paragraph read "Deliberately NOT automated yet. Doing
+      so means an OCI API key with load-balancer write access sitting on a host
+      that also runs an application holding real patient data" — and the premise
+      was wrong: no API key is needed. `/usr/local/sbin/lb-cert-push.sh` uses
+      **instance principals** (`--auth instance_principal`), so the host
+      authenticates as itself through a dynamic group and no long-lived
+      credential exists on disk to be stolen. The trade the paragraph declined
+      was never the trade on offer.
+
+      Verified on the host rather than inferred: the script is present
+      (root-owned, 0750), `acme-towardpcc.service` carries
+      `ExecStartPost=/usr/local/sbin/lb-cert-push.sh`, and the script's own
+      OCI calls read `--auth instance_principal`. It is idempotent by
+      certificate fingerprint, so a no-change renewal pushes nothing, and it
+      runs `--user 0:0` because the private key is 0600.
 
 - [x] **WAF attached and INSPECTING, 2026-07-29.** Applied through the OCI
       Console after `create-for-load-balancer` returned silently on this CLI
@@ -479,6 +489,43 @@ session by identifying the actual race — a fixed sleep against a smooth scroll
 and a layout measured before webfonts settled. Guessing at a third without
 evidence would more likely add a pointless wait than remove a race. Left open,
 with what is known, for whoever next sees it fail and can capture the output.
+
+### THE OUTPUT WAS CAPTURED, 2026-08-08 — and it is a different spec
+
+A full local suite against `18b4833` failed once in four runs, and this time the
+message is diagnostic rather than a bare test name:
+
+```
+/images/care-resting.jpg on / loses 64.9% — natural 640x1138 (AR 0.562)
+in a 1440x900 box (AR 1.600).   Expected: <= 0.12   Received: 0.6485
+```
+
+`image-crop.spec.ts:125`, not `evidence-rail`. The measured box is **1440x900,
+exactly the viewport the spec sets two lines earlier**. `next/image` with `fill`
+renders an absolutely-positioned `<img>`, so before its container's aspect CSS
+applies the image sizes to the initial containing block — the viewport — and a
+correctly framed portrait photograph reads as a 65% crop. Nothing was wrong with
+the image.
+
+The spec's existing 4-attempt retry could not catch it: that loop wraps a
+`try/catch` around service-worker context destruction, and a measurement that
+succeeds _too early_ throws nothing.
+
+**A hardening landed (#99), and it is NOT a demonstrated fix.** `measure()` now
+waits for `document.fonts.ready` and for image boxes to stop changing between
+polls, then measures; the wait throws on timeout, which finally routes this
+failure mode into the existing retry. Stability is asserted rather than "no box
+equals the viewport" — the latter encodes one signature and would hang forever
+on a legitimately full-bleed image.
+
+**What could not be done is reproduce it.** 120 isolated repeats, three full
+suites, and temporary instrumentation comparing the boxes before and after the
+new wait: all green, and the instrumentation observed **zero** movement in any
+run. So the mechanism is diagnosed from the failure message, not from a
+reproduction, and the paragraph above still applies to anything beyond it.
+Whether this closes the 1-in-5 flake or merely one of its faces is **unknown** —
+if a full suite fails again, capture the reporter output before assuming it was
+this.
 
 ## Content / legal
 
@@ -1350,3 +1397,71 @@ usage, config-parse and git errors too.
 
 `docs/prd/40-privacy-security.md:27` claims "gitleaks pre-commit and in CI" as
 the current posture. Only the CI half exists; `SECURITY.md:22` is the honest one.
+
+## Founder decisions taken 2026-08-08
+
+Recorded so they are not re-litigated, and so the reasoning survives the person
+who made it. Each was put as a question with the trade-off stated; the answer is
+the founder's, the analysis behind it is mine.
+
+### Hero mesh: stays inline, and the task is CLOSED
+
+Queued during the LCP work as "move the hero mesh geometry out of the document".
+**The premise does not hold and the task is closed rather than deferred.**
+
+Measured on the built page: the mesh SVG is 218,753 bytes raw / **47,800
+gzipped, 35.8% of the home document** — but it begins at byte 17,524 while the
+`<h1>` begins at byte **14,302**. The H1 is the LCP element (recorded in the
+optimisation design note), so the mesh is entirely _after_ the thing whose paint
+time was the point. Removing it buys transfer and parse, not LCP.
+
+Three further findings, so nobody re-opens this on the same reasoning:
+
+- **The cheap win is already taken.** Coordinates are emitted at 1 decimal
+  place; rounding harder saves 792 bytes gzipped and nothing else.
+- **`<img src="mesh.svg">` cannot work.** The mesh carries **122 `var(--…)`
+  references** and six class hooks resolved against the page stylesheet. An
+  `<img>`-embedded SVG is an isolated document and sees neither, so the figure
+  would lose its theming entirely — including light/dark.
+- **External `<use>` is possible but fragile.** Custom properties inherit
+  through the shadow boundary, but page class selectors do not, so the rules
+  would have to be duplicated into the external file — and external `<use>` is
+  same-origin-only with a history of Safari bugs. If it fails on iOS the hero
+  renders **empty**, on the landing page.
+
+If the document size ever needs to come down, reduce the geometry (fewer
+vertices) rather than externalising it: same saving, no platform exposure, all
+theming intact.
+
+### Subagents get NO production access
+
+A triage subagent read production on 2026-08-08 — all reads, no writes, no
+co-tenant table data, and the throwaway container it created was cleaned up. But
+two of its queries enumerated every database on the shared instance
+(`SELECT datname FROM pg_database`) and listed all Coolify applications, which
+is **co-tenant metadata**, and that crosses the line this file draws.
+
+The cause was a workflow prompt that forbade touching other applications without
+forbidding production access as such. **Subagent prompts must now forbid `ssh`,
+`docker exec` and `psql` outright.** Production verification stays with whoever
+can weigh each command before running it.
+
+### Daily checks: server timer now, Actions billing later
+
+Both canaries stopped when GitHub Actions billing was disabled, so nothing has
+been watching production. A systemd timer on the OCI host restores them
+in-Kingdom without a spend decision; Actions billing is still wanted afterwards
+for e2e, `pnpm audit`, gitleaks, Lighthouse and the container build.
+
+### Inbound mail: the caveat stays, for now
+
+MX remains at SiteGround (US). Moving it is the single change that would make
+the residency claim unqualified, and it is a purchase decision. Until then
+`apps/web/content/privacy-claims.test.ts` keeps failing the build on any
+absolute claim, which is what stops the site overstating itself.
+
+### Container hardening: convert to compose deployment
+
+Chosen over deferring, with the risk stated plainly: it changes how a live
+application on a shared patient-data host is built and served. See the
+conversion entry for what was actually done and how it was verified.

@@ -246,14 +246,29 @@ is in a password manager.
 - [ ] **`sec-web` A-grade recorded against the live URL** — not run since the
       deploy. The headers themselves are in place and the `/admin` nonce tier is
       verified live; what is missing is only the graded run and its record.
-- [ ] **Cloudflare → OCI load balancer edge migration (ADR-0004)** — **PLANNED,
-      NOT DONE.** Listed here so nobody reads the live site as evidence that it
-      happened: today's data path still runs through Cloudflare. The order in
-      ADR-0004 is not negotiable — `client-ip.ts` trust-boundary change first
-      (widening ingress before it is a rate-limit bypass, CWE-348), then the
-      co-tenant's agreement, then stand up the OCI LB + WAF **while Cloudflare
-      still proxies**, then move DNS, then narrow the old ingress last, and only
-      then rewrite the public residency copy. Never flip DNS first.
+- [x] **Cloudflare → OCI load balancer edge migration (ADR-0004) — DONE
+      2026-08-08.** See "The edge migration is done" below.
+
+### The edge migration is done, and this entry used to say the opposite
+
+This box read **"PLANNED, NOT DONE — today's data path still runs through
+Cloudflare"** until 2026-08-08. By then it was false, and following it was
+**dangerous**: putting the apex back behind Cloudflare reinstates TM-013 — the
+edge script that read `location.href` and POSTed it — and contradicts what
+`/trust` now tells the public. Corrected in place rather than deleted, so the
+old instruction cannot be acted on from a stale copy.
+
+Verified rather than assumed: `towardpcc.com` and `www.towardpcc.com` both
+resolve to **145.241.110.213**, the OCI load balancer in me-riyadh-1. Cloudflare
+is authoritative DNS only and sees no request content.
+`scripts/check-residency.mjs` was inverted in the same change and now alarms if
+a Cloudflare edge reappears in front of the apex.
+
+**Proxying stays ON for every other subdomain** — `next`, `db`, `deploy`,
+`endorse`, `mnm`, `mylibrary`, `stg-mylibrary`, `uptime`. Their OCI security
+list accepts 80/443 only from Cloudflare ranges, so grey-clouding any of them
+takes it offline and breaks certificate renewal. Several are co-tenant
+applications.
 
 ## Content & compliance — before public launch
 
