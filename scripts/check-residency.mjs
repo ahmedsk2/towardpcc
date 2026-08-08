@@ -47,13 +47,21 @@ function record(name, ok, detail, why) {
 }
 
 /**
- * The edge. Today Cloudflare terminates TLS; ADR-0004 decides it should move
- * in-region, and the public wording stays qualified until it does.
+ * The edge. CUT OVER 2026-08-08: an OCI load balancer in me-riyadh-1 now
+ * terminates TLS, and Cloudflare is out of the request path entirely — it
+ * remains authoritative DNS only.
  *
- * This check is therefore a TRIPWIRE IN BOTH DIRECTIONS. If Cloudflare stops
- * fronting the site, the residency copy is now understated and must be updated
- * in that same deploy. If it starts fronting something it did not before, that
- * is drift. Either way, someone should look.
+ * THE EXPECTED STATE IS NOW INVERTED, which is the whole point of revisiting
+ * this rather than deleting the check. Before the cutover this alarmed when
+ * Cloudflare stopped fronting the site; now it alarms when Cloudflare STARTS
+ * fronting it again, because re-proxying would silently put requests back
+ * through an edge outside the Kingdom while the public copy says they arrive
+ * directly.
+ *
+ * That is not a hypothetical: turning the orange cloud back on is one click, and
+ * nothing else in the system would notice. It also matters for TM-013 — the
+ * Cloudflare JS Detections script that leaked field state was removed by this
+ * cutover rather than by configuration, so its return would be silent too.
  */
 async function checkEdge() {
   const res = await fetch(`https://${HOST}/`, { redirect: "manual" });
@@ -63,13 +71,13 @@ async function checkEdge() {
 
   record(
     "edge terminator",
-    viaCloudflare,
+    !viaCloudflare,
     viaCloudflare
-      ? `Cloudflare (server: ${server || "n/a"}${colo ? `, colo ${colo}` : ""})`
-      : `NOT Cloudflare (server: ${server || "n/a"})`,
+      ? `Cloudflare is back in front (server: ${server || "n/a"}${colo ? `, colo ${colo}` : ""})`
+      : `in-region load balancer (server: ${server || "n/a"})`,
     viaCloudflare
-      ? "Matches the documented position. The public copy correctly says requests may be processed outside the Kingdom in transit."
-      : "The edge has CHANGED. If the OCI load balancer migration has landed, update the residency copy on /trust and /legal/data-protection in this same deploy — it is currently understated. If it has not landed, find out what is answering for this hostname.",
+      ? "REGRESSION. Requests are being terminated outside the Kingdom again, while /trust and /legal/data-protection say they reach the Riyadh servers directly. Either grey-cloud the apex and www again, or change the copy in the same deploy. This also reinstates the Cloudflare script that caused TM-013."
+      : "Matches the position since the 2026-08-08 cutover: TLS terminates on the OCI load balancer in me-riyadh-1 and Cloudflare is DNS only.",
   );
 }
 
@@ -209,7 +217,7 @@ async function checkStagedEdgeCertificate() {
     daysLeft > 21,
     `${daysLeft} days remaining`,
     daysLeft > 21
-      ? "Renewal is still manual, so this is the only thing that will tell you."
+      ? "Renewal AND delivery are automated since 2026-08-08 (acme.sh timer plus lb-cert-push.sh), so a falling number here means that chain has broken rather than that nobody has got round to it."
       : "RENEW NOW. Reissue with acme.sh (DNS-01, Cloudflare token on the host) and re-upload to the load balancer — `oci lb certificate create` then point the listener at the new name. Nothing does this automatically.",
   );
 }
