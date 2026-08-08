@@ -514,3 +514,76 @@ fault.
 passed) is hygiene rather than a control. It runs under the app credential —
 `DELETE` on `"AdminSession"` is granted, unlike `"AuditLog"` where it is revoked
 by design — so it is covered by the ordinary `--skip-audit` job.
+
+## Load-balancer certificate renewal — automated 2026-08-08
+
+The staged edge certificate now renews and **delivers** without anyone touching
+it. This was the blocker on the DNS cutover.
+
+### What was actually broken
+
+acme.sh had been renewing `towardpcc.com` on a daily systemd timer since
+2026-07-29 and was working correctly — next renewal 2026-09-27, comfortably
+before the certificate's 2026-10-27 expiry. **Nothing carried the result to the
+load balancer.** The LB kept serving the bundle uploaded by hand at creation
+while the file on disk stayed current. `Le_RenewHook` was empty.
+
+So renewal was automated and _delivery_ was not, and that gap is invisible right
+up until the certificate expires. Worth remembering as a shape: "the renewal job
+is green" and "the thing serving traffic has a current certificate" are two
+different claims.
+
+### How it works now
+
+`/usr/local/sbin/lb-cert-push.sh`, run by `ExecStartPost=` on the existing
+`acme-towardpcc.service`. Three properties, each deliberate:
+
+**No API key exists on this host.** Authentication is OCI **instance
+principals** — the machine authenticates as itself. The dynamic group
+`lb-cert-renewer` matches this instance id and nothing else, and the policy
+`lb-cert-renewal` grants `read load-balancers` plus `use load-balancers … where
+request.permission = 'LOAD_BALANCER_UPDATE'`. `use`, not `manage`: it can swap a
+certificate and **cannot delete the load balancer**. This is what the earlier
+note meant by not putting a tenancy credential on a host that also runs an
+application holding real patient data — the credential simply does not exist.
+
+**Idempotent by certificate fingerprint.** It compares the SHA-256 fingerprint
+of `fullchain.cer` against what the load balancer actually serves over TLS, and
+exits early when they match. Running daily therefore costs one handshake.
+
+**Self-healing.** Because it is idempotent it runs every day rather than only on
+renewal, so a failed push is retried the next day instead of leaving the LB
+behind until the next renewal sixty days later. An acme.sh `--renew-hook` was
+tried first and rejected: bare `--install-cert` no-ops without a file argument,
+and acme.sh 3.x base64-encodes hook values in its conf, so setting it by hand is
+fragile. Comparing live state needs no hook plumbing at all.
+
+### Two traps if you touch it
+
+OCI certificate bundles are **immutable** — you cannot overwrite one. Each push
+creates a new date-stamped bundle and repoints the listener. Old bundles are
+left in place deliberately: an unreferenced certificate serves nothing, and
+deleting the one currently in use would take the site down.
+
+The OCI CLI image runs as a non-root user, and acme.sh's private key is `0600`
+root-owned, so the container needs `--user 0:0` or the create fails with
+`Permission denied` on `--private-key-file`.
+
+### Verifying it
+
+```bash
+sudo systemctl start acme-towardpcc.service
+sudo journalctl -u acme-towardpcc.service -n 5 --no-pager
+```
+
+Expect either `nothing to do` or `OK: listener now serves towardpcc-le-<stamp>`.
+To confirm what is actually being served:
+
+```bash
+echo | openssl s_client -connect 145.241.110.213:443 -servername www.towardpcc.com 2>/dev/null \
+  | openssl x509 -noout -dates
+```
+
+Proven end to end on 2026-08-08: a forced push created
+`towardpcc-le-20260808062516`, repointed the `https` listener, and the LB
+continued serving HTTP 200 throughout.
