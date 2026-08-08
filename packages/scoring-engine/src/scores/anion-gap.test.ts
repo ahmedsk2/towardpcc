@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { anionGap } from "./anion-gap";
 
@@ -174,4 +175,59 @@ describeScore(anionGap, (ctx) => {
     { ...base, na: { value: 140, unit: "g/dL" } },
     { inputId: "na", code: "unknown-unit" },
   );
+});
+
+/**
+ * Finding F3 (external calculator audit, 2026-08-08).
+ *
+ * The four anion-gap rows are all displayed at 1 dp. They were mixed — 0 dp
+ * uncorrected, 1 dp corrected — which made the result panel stop reconciling
+ * with itself: a K-inclusive AG of 16.5 rendered as "17" beside
+ * "albumin-corrected 21.5", so the Figge correction appeared to be 4.5 when it
+ * is exactly 2.5 x (4.0 - albumin) = 5.0.
+ *
+ * Precision is display-only and no test in this package asserted it anywhere,
+ * which is precisely why the mismatch survived to an external audit. Asserting
+ * uniformity rather than the literal 1 keeps the guard meaningful if the shared
+ * display precision is ever revisited.
+ */
+describe("F3 — anion-gap display precision is uniform across all four rows", () => {
+  // K = 4.2 and albumin = 2.0 are both ordinary values, and both are needed to
+  // reach all four rows: AG = 140 - (104 + 20) = 16, AG(K) = 20.2,
+  // correction = 2.5 x (4.0 - 2.0) = 5.0, so corrected = 21 and 25.2.
+  const outcome = anionGap.compute({
+    na: { value: 140, unit: "mEq/L" },
+    cl: { value: 104, unit: "mEq/L" },
+    hco3: { value: 20, unit: "mEq/L" },
+    k: { value: 4.2, unit: "mEq/L" },
+    albumin: { value: 2.0, unit: "g/dL" },
+  });
+
+  it("emits all four rows when potassium and albumin are supplied", () => {
+    expect(outcome.ok, outcome.ok ? "" : JSON.stringify(outcome.errors)).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.result.values.map((v) => v.id).sort()).toEqual([
+      "ag",
+      "ag_corrected",
+      "ag_k",
+      "ag_k_corrected",
+    ]);
+  });
+
+  it("uses one precision for every row, so the correction reconciles on screen", () => {
+    if (!outcome.ok) throw new Error("compute rejected valid input");
+    const precisions = new Set(outcome.result.values.map((v) => v.precision));
+    expect(precisions.size, `mixed precisions: ${[...precisions].join(", ")}`).toBe(1);
+  });
+
+  it("keeps enough precision to show a half unit, which is the normal case here", () => {
+    if (!outcome.ok) throw new Error("compute rejected valid input");
+    const byId = new Map(outcome.result.values.map((v) => [v.id, v]));
+    // The Figge correction is a multiple of 2.5 and potassium is commonly
+    // reported to 1 dp, so .5 values are routine rather than exceptional.
+    expect(byId.get("ag_k")?.value).toBeCloseTo(20.2, 9);
+    expect(byId.get("ag_corrected")?.value).toBeCloseTo(21, 9);
+    expect(byId.get("ag_k_corrected")?.value).toBeCloseTo(25.2, 9);
+    for (const v of outcome.result.values) expect(v.precision).toBeGreaterThanOrEqual(1);
+  });
 });
