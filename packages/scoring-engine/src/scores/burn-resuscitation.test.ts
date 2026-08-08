@@ -541,7 +541,7 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
         100 * weight,
       );
       expect(out.get("resuscitation_plus_maint_24h_ml")).toBe(3 * weight * 20 + 100 * weight);
-      expect(out.size).toBe(4);
+      expect(out.size, "4 volumes + the always-available maintenance rate (v1.8.0)").toBe(5);
     }
   });
 
@@ -555,19 +555,66 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(prose).toContain("AWMF");
   });
 
-  // ── §5 — the clock, and the gap this calculator has ───────────────────────
-  it("says plainly that pre-arrival fluid is not subtracted and no rate is emitted", () => {
+  // ── §5 — the clock, and the gap this calculator USED to have ──────────────
+  //
+  // This test asserted the ABSENCE of a rate output until v1.8.0, and verified
+  // that absence against the emitted values. It is INVERTED rather than
+  // deleted: the prose that announced the gap is now a retraction, and the
+  // retraction has to be as load-bearing as the claim it replaces.
+  it("keeps the clock language and the ABRUPT figure that made the gap concrete", () => {
     expect(notes).toMatch(/TIME OF THE BURN/);
-    // ABRUPT's measured pre-arrival volume is the number that makes the gap
-    // concrete rather than theoretical.
+    // ABRUPT's measured pre-arrival volume is the number that made the gap
+    // concrete rather than theoretical, and it is why the feature exists.
     expect(prose, "the mean pre-arrival volume must be stated").toContain("1553");
-    expect(prose).toMatch(/no infusion rate|emits no infusion rate/i);
-    expect(notes).toMatch(/gross volume/i);
-    // And it must be true: no rate output exists, and no time or fluid input.
-    const emitted = [...outputsAt(25, 20).keys()];
-    expect(emitted.some((id) => /rate/i.test(id))).toBe(false);
+    expect(prose, "the 2.9 h burn-to-arrival mean must survive").toContain("2.9");
+  });
+
+  it("retracts the old 'no infusion rate' claim in place rather than deleting it", () => {
+    // The file's established style: a claim that reached a reader is withdrawn
+    // visibly, not quietly reworded. A reader who was told to do the arithmetic
+    // by hand is owed the correction.
+    expect(notes).toMatch(/UNTIL v1\.8\.0, AND NO LONGER DOES/i);
+    expect(notes).toMatch(/retraction/i);
+  });
+
+  it("now takes the two inputs, and both are OPTIONAL", () => {
     const inputIds = burnResuscitation.inputs.map((i) => i.id);
-    expect(inputIds).toEqual(["weight_kg", "tbsa_pct"]);
+    expect(inputIds).toEqual(["weight_kg", "tbsa_pct", "time_since_burn_h", "fluid_given_ml"]);
+    for (const id of ["time_since_burn_h", "fluid_given_ml"]) {
+      const input = burnResuscitation.inputs.find((i) => i.id === id);
+      expect(input?.required, `${id} must stay optional`).toBe(false);
+    }
+  });
+
+  it("emits NO resuscitation rate unless BOTH new inputs are supplied", () => {
+    // Defaulting either one would print a confident rate built on an assumption
+    // the clinician never made — and defaulting fluid-given to zero errs toward
+    // over-resuscitation, which this page documents as a named harm.
+    const partial = [
+      { weight_kg: { value: 25, unit: "kg" }, tbsa_pct: { value: 20, unit: "%" } },
+      {
+        weight_kg: { value: 25, unit: "kg" },
+        tbsa_pct: { value: 20, unit: "%" },
+        time_since_burn_h: { value: 3, unit: "h" },
+      },
+      {
+        weight_kg: { value: 25, unit: "kg" },
+        tbsa_pct: { value: 20, unit: "%" },
+        fluid_given_ml: { value: 0.5, unit: "L" },
+      },
+    ];
+    for (const values of partial) {
+      const outcome = burnResuscitation.compute(values as never);
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) continue;
+      const ids = outcome.result.values.map((v) => v.id);
+      expect(ids).not.toContain("resuscitation_first8h_rate_ml_h");
+      expect(ids).not.toContain("resuscitation_next16h_rate_ml_h");
+      // Maintenance rate needs only weight, so it is always available and is
+      // emitted unconditionally — dividing by 24 was hand-arithmetic for no
+      // reason.
+      expect(ids).toContain("maintenance_rate_ml_h");
+    }
   });
 
   // ── §6.1 — the urine-output targets disagree, in three separate ways ──────
@@ -864,7 +911,10 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(prose).toMatch(/no inhalation modifier|offers no inhalation/i);
     expect(prose).toContain("2019");
     // The output count is fixed at six; an inhalation branch would change it.
-    expect(outputsAt(25, 20).size).toBe(4);
+    expect(
+      outputsAt(25, 20).size,
+      "4 volumes + the maintenance rate; resuscitation rates need both new inputs",
+    ).toBe(5);
   });
 
   // ── §0 and §9 — what the window shows, and what is still unsourced ────────
@@ -1072,6 +1122,114 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     for (const c of burnResuscitation.cautions ?? []) {
       expect(c.key, "caution keys are namespaced under burn.caution").toMatch(/^burn\.caution\./);
       expect(c.en.length).toBeGreaterThan(120);
+    }
+  });
+});
+
+/**
+ * F8 — elapsed time and fluid already given, and the rates they produce.
+ *
+ * The arithmetic is checked against a single worked patient so the numbers can
+ * be followed by hand: 25 kg, 20% TBSA, which is Pisano's own published child
+ * and already a worked example above.
+ *
+ *   24-h resuscitation = 3 x 25 x 20      = 1500 mL
+ *   first-8-h half                        =  750 mL
+ *   8-24 h half                           =  750 mL
+ *   Holliday-Segar maintenance at 25 kg   = 1600 mL  -> 66.666 mL/h flat
+ */
+describe("F8 — elapsed-time and fluid-given rates", () => {
+  const rates = (elapsedH: number, givenL: number, unit = "h") => {
+    const outcome = burnResuscitation.compute({
+      weight_kg: { value: 25, unit: "kg" },
+      tbsa_pct: { value: 20, unit: "%" },
+      time_since_burn_h: { value: elapsedH, unit },
+      fluid_given_ml: { value: givenL, unit: "L" },
+    } as never);
+    expect(outcome.ok, outcome.ok ? "" : JSON.stringify(outcome.errors)).toBe(true);
+    if (!outcome.ok) return new Map<string, number>();
+    return new Map(outcome.result.values.map((v) => [v.id, v.value]));
+  };
+
+  it("spreads the untouched first-8-h volume over 8 h when nothing has been given", () => {
+    const out = rates(0, 0);
+    expect(out.get("resuscitation_first8h_remaining_ml")).toBe(750);
+    expect(out.get("resuscitation_first8h_rate_ml_h")).toBeCloseTo(750 / 8, 9); // 93.75
+    expect(out.get("resuscitation_next16h_rate_ml_h")).toBeCloseTo(750 / 16, 9); // 46.875
+  });
+
+  /**
+   * THE CASE THE FEATURE EXISTS FOR. ABRUPT measured a mean 2.9 h from burn to
+   * burn-centre arrival and a mean 1553 mL already given. A child arriving at
+   * 3 h with 500 mL in has 250 mL left to give over FIVE hours, not 750 over
+   * eight — the volume falls and the rate rises, and doing that in your head
+   * under pressure is what this replaces.
+   */
+  it("subtracts pre-arrival fluid and divides by the hours REMAINING", () => {
+    const out = rates(3, 0.5);
+    expect(out.get("resuscitation_first8h_remaining_ml")).toBe(250); // 750 - 500
+    expect(out.get("resuscitation_first8h_rate_ml_h")).toBeCloseTo(250 / 5, 9); // 50
+  });
+
+  it("leaves the 8-24 h phase whole, per the chosen reading", () => {
+    // Founder decision 2026-08-08: pre-arrival fluid comes off the first-8-h
+    // allocation ONLY. The alternative reading reduces both phases. If this
+    // ever flips, this assertion is the one that must change first.
+    const withFluid = rates(3, 0.5);
+    const without = rates(3, 0);
+    expect(withFluid.get("resuscitation_next16h_rate_ml_h")).toBe(
+      without.get("resuscitation_next16h_rate_ml_h"),
+    );
+  });
+
+  it("clamps a child who is already ahead to zero rather than a negative volume", () => {
+    const out = rates(3, 2); // 2000 mL given against a 750 mL allocation
+    expect(out.get("resuscitation_first8h_remaining_ml")).toBe(0);
+    expect(out.get("resuscitation_first8h_rate_ml_h")).toBe(0);
+  });
+
+  it("drops the first-phase rate once 8 h have passed, keeping the shortfall", () => {
+    const out = rates(12, 0.25);
+    // The window has closed; the row that remains is a SHORTFALL, and the
+    // ABSENCE of the rate row is the signal. 750 - 250 = 500 mL never given.
+    expect(out.has("resuscitation_first8h_rate_ml_h")).toBe(false);
+    expect(out.get("resuscitation_first8h_remaining_ml")).toBe(500);
+    // 8-24 h volume over the 12 h that remain of that phase.
+    expect(out.get("resuscitation_next16h_rate_ml_h")).toBeCloseTo(750 / 12, 9); // 62.5
+  });
+
+  it("emits no rate at all at exactly 24 h, when the period is over", () => {
+    const out = rates(24, 0);
+    expect(out.has("resuscitation_first8h_rate_ml_h")).toBe(false);
+    expect(out.has("resuscitation_next16h_rate_ml_h")).toBe(false);
+    // Maintenance is not part of the resuscitation period and still runs.
+    expect(out.get("maintenance_rate_ml_h")).toBeCloseTo(1600 / 24, 9);
+  });
+
+  it("never divides by zero at either boundary", () => {
+    for (const h of [7.999, 8, 8.001, 23.999, 24]) {
+      const out = rates(h, 0);
+      for (const [id, v] of out) {
+        expect(Number.isFinite(v), `${id} at ${h} h is ${v}`).toBe(true);
+      }
+    }
+  });
+
+  it("accepts the elapsed time in minutes, which is how a burn time is recorded", () => {
+    // 180 min = 3 h — must match the hours path exactly, since 8 - elapsed is
+    // what the rate divides by.
+    const byMinutes = rates(180, 0.5, "min");
+    const byHours = rates(3, 0.5);
+    expect(byMinutes.get("resuscitation_first8h_rate_ml_h")).toBeCloseTo(
+      byHours.get("resuscitation_first8h_rate_ml_h") ?? Number.NaN,
+      9,
+    );
+  });
+
+  it("runs maintenance flat across 24 h, not on the 8/16 split", () => {
+    // The one claim of four that survived adversarial verification unanimously.
+    for (const h of [0, 3, 8, 12, 24]) {
+      expect(rates(h, 0).get("maintenance_rate_ml_h")).toBeCloseTo(1600 / 24, 9);
     }
   });
 });

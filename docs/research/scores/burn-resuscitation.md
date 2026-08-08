@@ -720,13 +720,48 @@ Note also the internal spread within the paper: the p883 text (20 then
 hours, then 10 cc/kg/h) do not print the same rates, so the paper fixes a
 schedule shape and an order of magnitude, not one canonical rate.
 
-**What this score implements, stated so the gap is not mistaken for
-completeness.** It has no `time_since_burn_h` input, no fluid-already-given
-input and emits no infusion rates. Its first-8-hour figure is exactly half the
-24-hour volume — a **gross volume measured from the time of injury, not the
-volume still to be given**. A child who received 500 mL in the ambulance needs
-that subtracted by hand, and one arriving 3 hours after the burn has the
-remainder to run over 5 hours, not 8.
+**What this score implements. THIS PARAGRAPH DESCRIBED A GAP UNTIL v1.8.0
+(2026-08-08); the gap is now closed and the old text is retracted rather than
+edited away.** It read: "It has no `time_since_burn_h` input, no
+fluid-already-given input and emits no infusion rates. Its first-8-hour figure
+is exactly half the 24-hour volume — a gross volume measured from the time of
+injury, not the volume still to be given. A child who received 500 mL in the
+ambulance needs that subtracted by hand, and one arriving 3 hours after the burn
+has the remainder to run over 5 hours, not 8."
+
+The score now takes `time_since_burn_h` and `fluid_given_ml`, both **optional**,
+and emits three rates when both are supplied: the remainder of the
+first-eight-hour allocation over the hours left in that window, the 8–24 h phase
+over whatever remains of it, and a maintenance drip rate that is constant across
+the day. The worked case above is exactly the test fixture: 25 kg at 20% TBSA,
+arriving at 3 h with 500 mL already in, is owed **250 mL over 5 hours (50 mL/h)**
+rather than 750 mL over 8.
+
+The 24-hour volumes are unchanged and the new inputs are optional precisely so
+that they stay so — a clinician who wants only the day's volume enters nothing
+new and sees exactly what this page has always shown.
+
+**Three points are decisions rather than readings of the evidence**, taken by
+founder decision on 2026-08-08 and recorded here because the sources underdetermine
+them:
+
+1. **Pre-arrival fluid is deducted from the first-eight-hour allocation only**,
+   leaving the 8–24 h phase whole. §R.2 supports a second reading that deducts
+   from the 24-hour total and reduces both phases; nothing reconciles them. The
+   chosen reading over-delivers slightly when a large pre-arrival volume has been
+   given.
+2. **Past eight hours no first-phase rate is emitted** — there is no window left
+   to spread a volume over — but the remaining-volume row persists and becomes a
+   **shortfall**. Emitting nothing was rejected: the German Burn Registry found
+   86.5% of 407 children received less than Parkland plus maintenance, and six of
+   the seven who died were under-resuscitated relative to it, so concealing that
+   a child is behind is the more dangerous silence.
+3. **No rate is checked against the AWMF 006/128 10 mL/kg/h bound.** The figure
+   is displayed for the clinician to apply. §R.4 records both that no warning
+   threshold should be built on the German-registry findings and that no
+   guideline endorses a volume ceiling, so displaying a consensus-level bound and
+   silently clamping a computed number to it are different acts — and only the
+   first is supported here.
 
 ### R.3 Urine-output targets — the disagreement, quantified
 
@@ -1498,12 +1533,16 @@ fetched in the original — flagged in Limitations.
   none, and AWMF 006/128 applying maintenance to all children with no threshold.
   Display the range, never a single threshold as fact. This score adds
   maintenance with no threshold, matching the AWMF structure.
-- **Pre-arrival fluid is not subtracted and no rate is emitted** (R.2). The
-  clock runs from injury and pre-arrival volume should be deducted — ABRUPT
-  measured a mean 1553 ± 1782 mL already given before arrival in adults — but
-  this score takes neither an elapsed-time nor a fluid-given input, so its
-  first-8-hour figure is a gross volume, not a remaining one. State the gap
-  rather than implying completeness.
+- **Pre-arrival fluid IS now subtracted and rates ARE emitted** (R.2; changed at
+  v1.8.0, 2026-08-08 — this entry previously read "Pre-arrival fluid is not
+  subtracted and no rate is emitted" and told the reader to state the gap). The
+  clock runs from injury and pre-arrival volume is deducted — ABRUPT measured a
+  mean 1553 ± 1782 mL already given before arrival in adults. Both inputs are
+  optional; with neither, the first-8-hour figure is still a gross volume and
+  the old caveat applies unchanged. Pre-arrival fluid comes off the
+  first-eight-hour allocation only, past eight hours the remaining volume is
+  shown as a shortfall with no rate, and the AWMF 10 mL/kg/h bound is displayed
+  but not enforced. All three are decisions, not readings — see R.2.
 - **The 8 h / 16 h split is derived — in dogs, and at a ratio nobody uses**
   (R.2, corrected 2026-08-03). Baxter & Shires 1968 p883, read directly, gives it
   as the experimental optimum in a 50% TBSA flame-burn canine model: 16–20% of
