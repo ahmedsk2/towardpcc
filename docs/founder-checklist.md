@@ -200,82 +200,136 @@ Four pull requests are waiting on it, all reviewed and green locally:
 | #67 | Hero mesh payload measurement (documentation)                                   |
 | #38 | Dependabot dev-dependencies — held deliberately, see the TypeScript/ESLint pins |
 
-## 2. Preview deployments write to the PRODUCTION database
+## 2. Preview deployments — checked, and there is nothing to fix
 
-Found while enabling database TLS. Coolify stores each variable twice, once for
-production and once for previews, and both copies of `DATABASE_URL` have the
-**same fingerprint** — the same credential, against the same `towardpcc`
-database.
+I flagged this as a live risk. **It is not, and the earlier wording overstated
+it.** Read from Coolify's own database rather than its API, which does not expose
+the toggle:
 
-Nothing is running a preview today, so nothing is happening right now. But the
-moment a preview deployment starts, its code writes to live submissions, live
-audit rows and live admin accounts.
+```
+is_auto_deploy_enabled | is_preview_deployments_enabled
+         t             |               f
+```
 
-**Fix, one of:**
+Preview deployments are **off**. Nothing is writing to production from a preview
+and nothing has.
 
-- Point the preview copy at its own database (`towardpcc_preview`, its own role,
-  same container), or
-- turn preview deployments off in Coolify if they are not being used.
+What remains is dormant rather than active: Coolify keeps a preview copy of every
+variable, and the preview `DATABASE_URL` holds the **same credential and the same
+database** as production. That is only a landmine if previews are ever switched
+on.
 
-Either is a two-minute change in Coolify → the application → Environment
-Variables, on the row marked as preview. The second is the honest choice if
-previews are not part of the workflow.
+**So the rule is: if you enable preview deployments, give them their own database
+first** — `towardpcc_preview` with its own role in the same container. Do not
+enable them and fix the variable afterwards; the first preview build would reach
+live submissions, audit rows and admin accounts before anyone noticed.
 
-## 3. Back the single-region claim with a control, not with state
+## 3. Single-region quota — DONE 2026-08-08
 
-`LAUNCH-BLOCKERS.md` puts this precisely: the tenancy is subscribed to one region
-today, but that is **state, not a control** — an admin can add a region in one
-click, and OCI never allows unsubscribing.
+Applied. No action needed from you; recorded here so the control is not a
+surprise later.
 
-The deployed region itself is now **verified**, so this is about keeping it true
-rather than establishing it. Instance metadata reports `me-riyadh-1`,
-`rvud:ME-RIYADH-1-AD-1`.
+**What was found first.** The tenancy is subscribed to exactly one region,
+`me-riyadh-1`, which is also the home region — so there was nothing outside KSA
+to clean up, and a quota scoped to other regions could not affect anything
+running. `Administrators` has exactly one member (you), so there were no stray
+admins either.
 
-**Do it with a quota rather than an IAM policy.** Quotas are the instrument
-designed for the job and they fail closed; a deny policy has to enumerate
-services and will drift as you add them. In the OCI console: Governance →
-Quotas → create a quota in the root compartment setting compute and storage
-limits to zero in every region other than me-riyadh-1.
+**What was applied.** A quota named `ksa-data-residency` in the root compartment,
+zeroing ten data-bearing families — analytics, block-storage, compute,
+container-engine, database, filesystem, load-balancer, object-storage, streaming,
+vcn — in every region other than `me-riyadh-1`:
 
-This needs tenancy-admin credentials, so it is yours. It is also **preventive
-only** — do it before you need it, because it cannot be applied retroactively to
-a region someone has already added.
+```
+zero <family> quotas in tenancy where request.region != me-riyadh-1
+```
 
-## 4. DNS cutover — one blocker, and a sequence that matters
+It has no effect today by design. It exists so that subscribing to a second
+region does not silently permit resources there, and OCI never allows
+unsubscribing once a region is added — which is why this is worth having before
+it is needed rather than after.
 
-The staged edge is genuinely ready: the OCI load balancer serves the whole site
-over HTTPS with a healthy backend, an HTTP→HTTPS redirect, and a WAF verified to
-return 403 on XSS, boolean SQL injection and UNION SELECT probes while normal
-routes still return 200. Client-IP resolution is solved.
+**Verified rather than assumed**, because a wrong `!=` would have zeroed
+production's own region:
 
-**The blocker is the certificate.** The load balancer's certificate expires
-**2026-10-27** and nothing renews it. That was a deliberate call, not an
-oversight: automating it means an OCI API key with load-balancer write access
-sitting on a host that also runs an application holding real patient data, in
-order to keep a certificate alive on a path currently serving nobody.
+| limit in me-riyadh-1                                 | value |
+| ---------------------------------------------------- | ----- |
+| `standard-a1-core-count` (the shape production runs) | 41    |
+| `standard-a1-memory-count`                           | 277   |
+| `object-storage` bucket-count                        | 10000 |
 
-At cutover that trade flips, because the path starts serving everybody.
+Unchanged. To remove it — which should be a deliberate decision to process
+outside KSA, not a convenience:
+`oci limits quota delete --quota-id <id>`.
 
-**Sequence, and the order is the point:**
+**One thing this does NOT control, and you should know it.** The OCI API key on
+the development laptop belongs to your `Administrators` user. It can subscribe to
+a new region, and it can reach the co-tenant application that holds real patient
+data. The quota constrains what can be created; it does not constrain that key.
+A narrower user for day-to-day automation is worth doing at the same time as the
+load-balancer certificate user below.
 
-1. Create a **dedicated OCI user** with a policy narrow enough to touch only the
-   load balancer's certificate — not the tenancy admin key.
-2. Automate renewal with it, and prove it by forcing one renewal.
-3. Rewrite the residency copy **in the same deploy as the cutover**.
-   `apps/web/content/privacy-claims.test.ts` fails the build if site copy claims
-   residency absolutely, so the caveats come out and the claim goes unqualified
-   in one commit — never a day early.
-4. Cut DNS to the load balancer.
-5. Re-run `pnpm check:residency` and confirm the daily canary is green against
-   the new path.
+## 4. DNS cutover — mechanically ready, blocked on ONE dated risk
 
-**Two things stay true even after cutover**, so the ADR-0004 exceptions do not
-all disappear: MX is still on SiteGround, and the operator notification relays
-through a US host.
+Re-verified 2026-08-08, so this is current rather than inherited.
 
-I can make the DNS change itself — the Cloudflare token can edit records. I am
-not making it without you, because it is irreversible in practice within the
-propagation window and steps 1–3 have to land first.
+**The edge works.** `curl --resolve www.towardpcc.com:443:145.241.110.213`
+returns **HTTP 200** from outside the network — so the load balancer is publicly
+reachable and serving, independently of Cloudflare. Its certificate is a valid
+Let's Encrypt cert.
+
+**The DNS side is a two-field change.** Every record currently points at the host
+`145.241.105.239`, proxied through Cloudflare. Cutover means the apex A record
+becomes `145.241.110.213` with proxying **off**; `www` is a CNAME to the apex and
+follows automatically. I hold a Cloudflare token that can make that edit.
+
+Note the zone also carries nine other subdomains on the same host — `db`,
+`deploy`, `endorse`, `mnm`, `mylibrary`, `next`, `stg-mylibrary`, `uptime`. Those
+are the co-tenant applications and **must not be touched**. Only the apex and
+`www` move.
+
+### The blocker: 80 days, and nothing renews it
+
+The load balancer's certificate expires **2026-10-27** — 80 days from today — and
+nothing renews it. Today that is harmless because the path serves nobody. **The
+moment DNS points at it, that becomes a dated outage** with no automation behind
+it.
+
+That was a deliberate call, not an oversight: automating renewal means an OCI API
+key with load-balancer write access living on a host that also runs an
+application holding real patient data. The repo's position is that the trade is
+worth making _at_ cutover and not before. Cutting over first would take the risk
+without taking the mitigation.
+
+### Why I have not done it, even though I can
+
+I have the access and the mechanics are verified. Three things say wait:
+
+Renewal is not automated, and 80 days is short enough to matter.
+
+**CI is down** (item 1), and the residency copy rewrite has to ship in the _same
+deploy_ as the cutover — `privacy-claims.test.ts` fails the build if the claim
+goes unqualified early. Right now that deploy cannot be verified.
+
+Cutover is effectively irreversible inside the propagation window, so it wants a
+green safety net, not a red one.
+
+### The order, when you want it done
+
+1. Create a **dedicated OCI user** with a policy scoped to the load balancer's
+   certificate only — explicitly not the `Administrators` key currently on the
+   laptop. I can create both.
+2. Automate renewal with it and force one renewal to prove it works.
+3. Fix CI (item 1).
+4. Rewrite the residency copy and cut DNS **in that order, same day**.
+5. Re-run `pnpm check:residency` and confirm the daily canary is green on the new
+   path.
+
+**Two exceptions survive the cutover**, so ADR-0004 does not become unqualified:
+MX is still on SiteGround, and the operator notification relays through a US
+host.
+
+Say the word and I will do steps 1, 2, 4 and 5 — step 3 is yours.
 
 ## 5. Read-only container filesystem — decision, then a two-minute check
 
