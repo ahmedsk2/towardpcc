@@ -109,7 +109,7 @@ export const burnResuscitation = defineScore({
   id: "burn-resuscitation",
   slug: "burn-resuscitation",
   name: "Pediatric burn fluid resuscitation (Parkland / modified Brooke)",
-  version: "1.8.0",
+  version: "1.9.0",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -384,6 +384,13 @@ export const burnResuscitation = defineScore({
         "Adds two OPTIONAL inputs — time since the burn, and resuscitation fluid already given — and emits infusion rates from them. NO EXISTING OUTPUT CHANGED: every volume this score printed at 1.7.0 is printed unchanged, and a form filled in as before returns exactly what it did, plus a maintenance drip rate that needs only weight. RETRACTS A DELIBERATE ABSENCE THIS PAGE ANNOUNCED. Until now the notes and a caution both stated that the score takes neither input and emits no rate, and instructed the reader to subtract pre-arrival fluid and divide by the hours remaining BY HAND. A colocated test pinned that prose. Those statements are retracted in place rather than reworded away, because a reader who saw them was told to do arithmetic this page now does. WHY IT MATTERS AT ALL: ABRUPT measured a mean 2.9 h (SD 2.6) from burn to burn-centre arrival and a mean 1553 mL (SD 1782) already given by then, so the first-eight-hour figure was routinely neither the volume still owed nor spread over the hours actually left. A child arriving at 3 h with 500 mL in is owed 250 mL over five hours, not 750 over eight. THREE CHOICES ARE DECISIONS, NOT READINGS OF A SOURCE, and each was put to the founder on 2026-08-08 rather than settled here. (a) Pre-arrival fluid is deducted from the first-eight-hour allocation ONLY, leaving the 8–24 h phase whole; the evidence supports a second reading that reduces both phases, and this one over-delivers slightly when a large pre-arrival volume has been given. (b) Past eight hours no first-phase rate is emitted — there is no window left to spread a volume over — but the remaining-volume row persists and becomes a shortfall, because the German Burn Registry found 86.5% of 407 children received less than Parkland plus maintenance and six of the seven who died were under-resuscitated relative to it, so concealing that a child is behind is the more dangerous silence. (c) No rate is checked against AWMF 006/128’s 10 mL/kg/h consensus bound; the figure is displayed for the clinician to apply, because this page separately records that no warning threshold should be built on the German-registry findings and that no guideline endorses a volume ceiling. Rates appear only when BOTH new inputs are present, never from one with the other defaulted — defaulting fluid-given to zero would print a confident rate for a child who arrived with a litre already running, and that error runs toward fluid creep. A new hours-canonical time unit accepts minutes, which is the subtraction a clock time actually gives you. From the external calculator audit of 2026-08-08, finding F8, which it called the single highest-value enhancement on the site.",
       reason: "new-reference",
     },
+    {
+      version: "1.9.0",
+      date: "2026-08-09",
+      summary:
+        "SUPPRESSES A RATE THAT HAD NO UPPER BOUND, and withdraws a caution that v1.8.0 left contradicting its own new outputs. Both found by an external round-2 re-test on 2026-08-09, one day after v1.8.0 shipped; both are mine. THE RATE DEFECT IS THE SERIOUS ONE. `remaining volume / hours left` has an unbounded singularity: as elapsed time approaches the end of a phase the denominator approaches zero and the quotient diverges without limit. Measured on the shipped arithmetic for a 25 kg child at 20% TBSA with nothing yet given — 6.00 h printed 375 mL/h (15 mL/kg/h), 7.90 h printed 7,500 mL/h (300 mL/kg/h), and 7.99 h printed 75,000 mL/h (3,000 mL/kg/h). Every one is arithmetically correct and none is a rate; a five-figure mL/h on a resuscitation page is the kind of number that gets transcribed under pressure. The 8–24 h phase had the identical defect approaching 24 h. THE v1.8.0 TEST PASSED THROUGH ALL OF IT because it asserted `Number.isFinite` at the boundaries, and 75,000 is finite — testing that a number exists is not testing that it means anything. A rate is now emitted ONLY while it stays at or under AWMF 006/128 Empfehlung 10’s 10 mL/kg/h, the single paediatric rate bound in this score’s evidence base and one already stated in these notes. Above it the row is withheld rather than clamped: the page never prints a different number from the one the formula produced. The volume still owed and, new in this release, the HOURS STILL LEFT are always emitted, so the clinician holds both halves of the division the formula can no longer perform responsibly. This narrows the founder decision recorded at 1.8.0(c) — no warning threshold is built on the German-registry findings, and no computed rate is altered; a divergent artefact is simply not shown. THE CAUTION. v1.8.0 replaced the sentence that followed it and left the opening one intact, so the burn page went on asserting “Fluid already given is NOT subtracted here, and no infusion rate is emitted” directly above rows doing exactly that. It is now conditional in wording, describing what happens when the two optional fields are left blank. From the round-2 re-test, findings R1 and R3.",
+      reason: "formula-correction",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -397,7 +404,7 @@ export const burnResuscitation = defineScore({
   cautions: [
     defineText(
       "burn.caution.prearrival",
-      "Fluid already given is NOT subtracted here, and no infusion rate is emitted. The resuscitation clock runs from the TIME OF INJURY, and published protocols deduct pre-arrival volume before dividing what is left over the hours that remain — ABRUPT measured a mean of 1553 mL (SD 1782) already given before burn-centre arrival in adults, at a mean 2.9 hours from injury. AS OF v1.8.0 THIS CALCULATOR DOES BOTH, when you give it the two inputs to do them with. Enter time since the burn and fluid already received and it subtracts the pre-arrival volume and divides what is left by the hours remaining in the eight-hour window. Without them it still shows only gross volumes, and the first-8-hour figure remains HALF THE 24-HOUR VOLUME COUNTED FROM THE BURN rather than the volume still to be infused — so the subtraction and the division are yours to do by hand exactly as before. Pre-arrival fluid is deducted from the first-eight-hour allocation ONLY; the 8–24 h phase is left whole.",
+      "WHEN THE TWO OPTIONAL FIELDS ARE LEFT BLANK, fluid already given is not subtracted and no infusion rate is emitted — fill them in and both happen. The resuscitation clock runs from the TIME OF INJURY, and published protocols deduct pre-arrival volume before dividing what is left over the hours that remain — ABRUPT measured a mean of 1553 mL (SD 1782) already given before burn-centre arrival in adults, at a mean 2.9 hours from injury. AS OF v1.8.0 THIS CALCULATOR DOES BOTH, when you give it the two inputs to do them with. Enter time since the burn and fluid already received and it subtracts the pre-arrival volume and divides what is left by the hours remaining in the eight-hour window. Without them it still shows only gross volumes, and the first-8-hour figure remains HALF THE 24-HOUR VOLUME COUNTED FROM THE BURN rather than the volume still to be infused — so the subtraction and the division are yours to do by hand exactly as before. Pre-arrival fluid is deducted from the first-eight-hour allocation ONLY; the 8–24 h phase is left whole.",
     ),
     defineText(
       "burn.caution.coefficient",
@@ -511,7 +518,7 @@ export const burnResuscitation = defineScore({
         unit: "mL/h",
         precision: 1,
       },
-      ...resuscitationRates(resuscitation24h, values),
+      ...resuscitationRates(resuscitation24h, weight, values),
     ];
   },
 });
@@ -544,6 +551,7 @@ export const burnResuscitation = defineScore({
  */
 function resuscitationRates(
   resuscitation24h: number,
+  weightKg: number,
   values: { time_since_burn_h?: { value: number }; fluid_given_ml?: { value: number } },
 ): ScoreValue[] {
   const elapsedH = values.time_since_burn_h?.value;
@@ -582,16 +590,21 @@ function resuscitationRates(
   // At exactly 8 h the divisor would be zero, which is why the boundary belongs
   // to the closed branch rather than this one.
   if (elapsedH < 8) {
+    const hoursLeft = 8 - elapsedH;
     out.push({
-      id: "resuscitation_first8h_rate_ml_h",
-      label: defineText(
-        "burn.first8hRate",
-        "Rate for the remainder of the first 8 h (from time of burn)",
-      ),
-      value: first8hRemaining / (8 - elapsedH),
-      unit: "mL/h",
-      precision: 1,
+      id: "resuscitation_first8h_hours_left",
+      label: defineText("burn.first8hHoursLeft", "Hours left in the first-8-h window"),
+      value: hoursLeft,
+      unit: "h",
+      precision: 2,
     });
+    pushRateIfMeaningful(
+      out,
+      "resuscitation_first8h_rate_ml_h",
+      defineText("burn.first8hRate", "Rate for the remainder of the first 8 h (from time of burn)"),
+      first8hRemaining / hoursLeft,
+      weightKg,
+    );
   }
   // PAST eight hours this row is simply absent, and its absence is the signal
   // that the window has closed. `resuscitation_first8h_remaining_ml` is then a
@@ -608,13 +621,73 @@ function resuscitationRates(
   const hoursLeftOverall = 24 - Math.max(elapsedH, 8);
   if (hoursLeftOverall > 0) {
     out.push({
-      id: "resuscitation_next16h_rate_ml_h",
-      label: defineText("burn.next16hRate", "Rate for the 8–24 h phase (from time of burn)"),
-      value: next16hVolume / hoursLeftOverall,
-      unit: "mL/h",
-      precision: 1,
+      id: "resuscitation_next16h_hours_left",
+      label: defineText("burn.next16hHoursLeft", "Hours left in the 8–24 h phase"),
+      value: hoursLeftOverall,
+      unit: "h",
+      precision: 2,
     });
+    pushRateIfMeaningful(
+      out,
+      "resuscitation_next16h_rate_ml_h",
+      defineText("burn.next16hRate", "Rate for the 8–24 h phase (from time of burn)"),
+      next16hVolume / hoursLeftOverall,
+      weightKg,
+    );
   }
 
   return out;
+}
+
+/**
+ * The AWMF 006/128 Empfehlung 10 ceiling: in children with 10% TBSA or more, do
+ * not INITIALLY exceed 10 mL/kg body weight per hour. 12/12 consensus, evidence
+ * level IV.
+ */
+const AWMF_MAX_ML_PER_KG_PER_H = 10;
+
+/**
+ * Emit a rate ONLY while it is still a rate.
+ *
+ * THE DEFECT THIS CLOSES, found by the round-2 re-test on 2026-08-09 and
+ * shipped by me the previous day. `remaining volume / hours left` has an
+ * unbounded singularity: as elapsed time approaches the end of a phase the
+ * denominator approaches zero and the quotient diverges. Measured on the live
+ * arithmetic for a 25 kg child at 20% TBSA with nothing yet given:
+ *
+ *     6.00 h ->    375 mL/h  (15 mL/kg/h)
+ *     7.90 h ->  7,500 mL/h  (300 mL/kg/h)
+ *     7.99 h -> 75,000 mL/h  (3,000 mL/kg/h)
+ *
+ * Every one of those is arithmetically correct and none of them is a rate. A
+ * five-figure mL/h on a resuscitation page is the kind of number that gets
+ * transcribed under pressure.
+ *
+ * MY OWN TEST PASSED THROUGH ALL OF IT, which is the part worth remembering: it
+ * asserted `Number.isFinite` at the boundaries, and 75,000 is perfectly finite.
+ * Testing that a number exists is not testing that it means anything.
+ *
+ * WHY 10 mL/kg/h AND NOT A NUMBER I CHOSE. It is the only paediatric rate bound
+ * in this score's evidence base, cited above and already stated in the notes.
+ * Suppressing above it therefore withholds a figure no guideline supports,
+ * rather than substituting one this project invented — and it deliberately does
+ * NOT clamp: the page never prints a different number from the one the formula
+ * produced. The volume still owed and the hours still left are always emitted,
+ * so the clinician has both halves of the division and can make the call the
+ * formula no longer can.
+ */
+function pushRateIfMeaningful(
+  out: ScoreValue[],
+  id: string,
+  label: ReturnType<typeof defineText>,
+  rateMlPerH: number,
+  weightKg: number,
+): void {
+  // Written as `!(x <= ceiling)` rather than `x > ceiling` deliberately: the
+  // negated form is also true for NaN and for Infinity, so one condition covers
+  // the divergence, a zero divisor and a malformed input without a second
+  // guard that no caller can currently reach. Asserting the property the rate
+  // must HAVE beats enumerating the ways it can fail to have it.
+  if (!(rateMlPerH / weightKg <= AWMF_MAX_ML_PER_KG_PER_H)) return;
+  out.push({ id, label, value: rateMlPerH, unit: "mL/h", precision: 1 });
 }

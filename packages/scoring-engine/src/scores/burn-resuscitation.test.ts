@@ -1233,3 +1233,85 @@ describe("F8 — elapsed-time and fluid-given rates", () => {
     }
   });
 });
+
+/**
+ * R3 (round-2 re-test, 2026-08-09) — the rate had no upper bound.
+ *
+ * v1.8.0 divided the remaining volume by the hours left, which diverges as the
+ * window closes: 7,500 mL/h at 7.9 h, 75,000 mL/h at 7.99 h, for a 25 kg child.
+ *
+ * THE v1.8.0 TEST ASSERTED `Number.isFinite` AT THESE EXACT BOUNDARIES AND
+ * PASSED, because 75,000 is finite. That is the lesson worth keeping: it tested
+ * that a number existed, not that it meant anything. These tests assert
+ * PLAUSIBILITY instead, as a property swept across the domain rather than at a
+ * handful of chosen points.
+ */
+describe("R3 — no emitted rate exceeds the only cited paediatric ceiling", () => {
+  const AWMF = 10; // mL/kg/h, AWMF 006/128 Empfehlung 10
+
+  const ratesFor = (weightKg: number, tbsa: number, elapsedH: number, givenL: number) => {
+    const outcome = burnResuscitation.compute({
+      weight_kg: { value: weightKg, unit: "kg" },
+      tbsa_pct: { value: tbsa, unit: "%" },
+      time_since_burn_h: { value: elapsedH, unit: "h" },
+      fluid_given_ml: { value: givenL, unit: "L" },
+    } as never);
+    expect(outcome.ok, outcome.ok ? "" : JSON.stringify(outcome.errors)).toBe(true);
+    if (!outcome.ok) return [];
+    return outcome.result.values.filter((v) => v.unit === "mL/h");
+  };
+
+  it("never prints a rate above 10 mL/kg/h, anywhere in the domain", () => {
+    for (const weight of [0.5, 5, 12, 25, 40, 70, 150]) {
+      for (const tbsa of [1, 20, 55, 100]) {
+        for (const elapsed of [0, 1, 3, 6, 7, 7.5, 7.9, 7.99, 8, 8.01, 12, 20, 23.9, 23.99, 24]) {
+          for (const given of [0, 0.25, 2]) {
+            for (const v of ratesFor(weight, tbsa, elapsed, given)) {
+              // Maintenance is a flat 24 h drip and is not a resuscitation rate;
+              // it is bounded by Holliday-Segar and exempt from this ceiling.
+              if (v.id === "maintenance_rate_ml_h") continue;
+              const perKg = v.value / weight;
+              expect(
+                perKg,
+                `${v.id} = ${v.value} mL/h = ${perKg.toFixed(1)} mL/kg/h at ${weight} kg, ${tbsa}%, ${elapsed} h, ${given} L given`,
+              ).toBeLessThanOrEqual(AWMF);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("withholds the rate rather than clamping it, and still shows both halves", () => {
+    // 25 kg / 20% at 7.9 h: 750 mL owed over 0.1 h = 7,500 mL/h = 300 mL/kg/h.
+    const outcome = burnResuscitation.compute({
+      weight_kg: { value: 25, unit: "kg" },
+      tbsa_pct: { value: 20, unit: "%" },
+      time_since_burn_h: { value: 7.9, unit: "h" },
+      fluid_given_ml: { value: 0, unit: "L" },
+    } as never);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const byId = new Map(outcome.result.values.map((v) => [v.id, v.value]));
+    // No rate — and crucially no CLAMPED rate either. A 250 mL/h here would be
+    // the page substituting its own number for the formula's.
+    expect(byId.has("resuscitation_first8h_rate_ml_h")).toBe(false);
+    // Both halves of the division the clinician now has to make themselves.
+    expect(byId.get("resuscitation_first8h_remaining_ml")).toBe(750);
+    expect(byId.get("resuscitation_first8h_hours_left")).toBeCloseTo(0.1, 9);
+  });
+
+  it("still emits an ordinary rate when one is meaningful", () => {
+    // Same child at 3 h with 500 mL in: 250 mL over 5 h = 50 mL/h = 2 mL/kg/h.
+    const out = ratesFor(25, 20, 3, 0.5);
+    const first = out.find((v) => v.id === "resuscitation_first8h_rate_ml_h");
+    expect(first?.value).toBeCloseTo(50, 9);
+  });
+
+  it("emits nothing rather than NaN when weight and volume conspire", () => {
+    // Covers the non-finite guard: at exactly 24 h no phase remains at all.
+    const out = ratesFor(25, 20, 24, 0);
+    expect(out.filter((v) => v.id !== "maintenance_rate_ml_h")).toHaveLength(0);
+    for (const v of out) expect(Number.isFinite(v.value)).toBe(true);
+  });
+});
