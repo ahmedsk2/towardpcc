@@ -1212,13 +1212,13 @@ over-estimate for a refusal to help.
 **The resolution: disclose, component by component.** Shipped in v1.5.0 as a
 ninth caution plus a notes section, with the same statement in both.
 
-| Below ~4 kg                          | Status                                                                                                                |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `parkland_peds_24h_ml`               | **Unaffected** — 3 mL/kg/%TBSA carries no age assumption                                                              |
-| `parkland_peds_first8h_ml`           | **Unaffected** — same arithmetic, halved                                                                              |
-| `mod_brooke_peds_24h_ml` / first-8-h | **Unaffected**                                                                                                        |
-| `maintenance_24h_ml`                 | **Outside the range its own calculator will compute.** Replace with a neonatal regimen or the NICE day-of-life ladder |
-| `parkland_peds_plus_maint_24h_ml`    | **Contains the above** — read it the same way                                                                         |
+| Below ~4 kg                        | Status                                                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `resuscitation_24h_ml`             | **Unaffected** — 3 mL/kg/%TBSA carries no age assumption                                                              |
+| `resuscitation_first8h_ml`         | **Unaffected** — same arithmetic, halved                                                                              |
+| `resuscitation_24h_ml` / first-8-h | **Unaffected**                                                                                                        |
+| `maintenance_24h_ml`               | **Outside the range its own calculator will compute.** Replace with a neonatal regimen or the NICE day-of-life ladder |
+| `resuscitation_plus_maint_24h_ml`  | **Contains the above** — read it the same way                                                                         |
 
 **Direction of the error, which is the part that decides how loudly to say it.**
 The over-estimate runs **upward** in the first days of life, so it **compounds**

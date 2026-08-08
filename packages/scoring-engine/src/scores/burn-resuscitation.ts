@@ -106,7 +106,7 @@ export const burnResuscitation = defineScore({
   id: "burn-resuscitation",
   slug: "burn-resuscitation",
   name: "Pediatric burn fluid resuscitation (Parkland / modified Brooke)",
-  version: "1.6.0",
+  version: "1.7.0",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -324,6 +324,13 @@ export const burnResuscitation = defineScore({
         "WITHDRAWS A WARNING THIS SCORE SHIPPED ONE RELEASE AGO. No coefficient, input bound, output or computed volume changed — every number printed at 1.5.0 is printed unchanged at 1.6.0. THE RETRACTED CLAIM. Versions 1.4.0 and 1.5.0 told readers that children may require approximately 6 mL/kg/%TBSA against the 3 mL/kg/%TBSA this calculator emits, presented it as controversy 9 of nine with its own caution, and named the failure direction as UNDER-resuscitation of small children. A reader who saw it was told this calculator might be under-dosing their patient. THAT WAS A CATEGORY ERROR, and it is retracted in place rather than quietly reworded. The two figures never measured the same quantity: approximately 6 is a TOTAL 24-hour volume that INCLUDES maintenance, and 3 is the RESUSCITATION coefficient alone, to which this score already adds Holliday-Segar maintenance separately at every weight. WHAT THE PRIMARY ACTUALLY SAYS. Graves TA, Cioffi WG, McManus WF, Mason AD Jr, Pruitt BA Jr (J Trauma 1988;28(12):1656-9, PMID 3199467, DOI 10.1097/00005373-198812000-00007; abstract and publisher abstract page read, full body not opened) is the primary behind the 6 and reports both numbers from the same 43 children — aged 1.5-108 months, 25-89% TBSB, all 25 kg or under: average TOTAL 24-hour volume 6.3 +/- 2.2 cc/kg/%TBSB, and NET resuscitation fluid, the total minus calculated maintenance, 3.91 +/- 2.2. Its recommendation, quoted: 'We recommend supplying maintenance volume and initiating burn resuscitation at 3 cc/kg/% TBSB.' That is this score's structure, coefficient for coefficient — so the finding VINDICATES the implementation rather than merely permitting it. Merrell SW et al. (Am J Surg 1986;152:664-9, PMID 3789292, abstract read; 177 children, mean burn 27% TBSA, mean total fluid 5.8 +/- 0.25 mL/kg/%TBSA) is added as corroboration that the larger circulating figure is a total. Both references are new. WHY IT IS A RECONCILIATION AND NOT A COINCIDENCE, WHICH IS THE PART v1.4.0 COULD NOT ANSWER. Maintenance expressed per kilogram per %TBSA FALLS as weight rises, because the Holliday-Segar tiers step down from 100 to 50 to 20 mL/kg/day while the resuscitation term stays linear in weight. So 3 plus maintenance lands near 6 in a small infant and deliberately below it in a larger child: at 40% TBSA a 10 kg infant gets 3 + 2.5 = 5.5 mL/kg/%TBSA and a 25 kg child 3 + 1.6 = 4.6, and at 20% TBSA the same sum gives 8.0 at 8 kg, 6.2 at 25 kg and 4.9 at 60 kg. A flat single figure of 6 applied at every weight is what would overhydrate the large child — the direction Palmieri et al. themselves predict for any single-figure formula — and the two-part shape used here is what avoids it. The Palmieri reference is kept and recited for that clause instead of for a contradiction it does not create. WHAT REMAINS A GENUINE CONTROVERSY, RESTATED AS PRACTICE VARIATION. Controversy 9 is rewritten rather than deleted: across five ABA-verified paediatric burn centres the STARTING coefficient runs 2 to 4 with no modal value, while delivered volumes cluster near 6.35 mL/kg/%TBSA, and three of the five centres' own guideline estimates came out significantly below what those centres actually delivered (4.53 vs 6.35, p<0.001; 4.90 vs 6.35, p=0.002; 3.38 vs 6.35, p<0.0001). That is a protocol-to-bedside gap closed by titration, not evidence that the printed coefficient is too low, and the count of nine live controversies is unchanged. The reason label is `new-reference` because obtaining the Graves primary is what forced the retraction, exactly as reading Baxter & Shires 1968 forced v1.3.0's; no closer label exists for a withdrawn claim that changes no output.",
       reason: "new-reference",
     },
+    {
+      version: "1.7.0",
+      date: "2026-08-08",
+      summary:
+        "Collapses the Parkland and modified Brooke rows into ONE resuscitation volume. NO COEFFICIENT, INPUT BOUND OR COMPUTED NUMBER CHANGED — the emitted volume is the same 3 mL/kg/%TBSA figure both rows already carried, and maintenance and the combined total are untouched. Four rows carried two numbers, because in the source the two expressions were identical: `parkland24h` and `modBrooke24h` were literally the same multiplication. A clinician reading 'Parkland 1800 mL' beside 'modified Brooke 1800 mL' was being shown two named formulas agreeing, which is corroboration that does not exist — in PAEDIATRICS the two conventions coincide at 3 mL/kg/%TBSA, and it is only the ADULT forms that diverge (Parkland 4, modified Brooke 2). The remaining row is named for what it computes rather than for one of two interchangeable eponyms, and the notes continue to carry both adult coefficients by name so nobody concludes an adult figure was used. Output ids `parkland_peds_24h_ml`, `parkland_peds_first8h_ml`, `mod_brooke_peds_24h_ml` and `mod_brooke_peds_first8h_ml` are withdrawn and replaced by `resuscitation_24h_ml` and `resuscitation_first8h_ml`; `parkland_peds_plus_maint_24h_ml` becomes `resuscitation_plus_maint_24h_ml`. From the external calculator audit of 2026-08-08, finding F7.",
+      reason: "output-withdrawn",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -381,48 +388,40 @@ export const burnResuscitation = defineScore({
     const tbsa = values.tbsa_pct.value; // canonical %
 
     // Return RAW values; `precision` rounds for display only (no bands here).
-    const parkland24h = PEDIATRIC_COEFF_ML * weight * tbsa;
-    const modBrooke24h = PEDIATRIC_COEFF_ML * weight * tbsa;
+    // ONE resuscitation volume, not two.
+    //
+    // Until v1.1.0 this emitted a Parkland pair and a modified Brooke pair, and
+    // `parkland24h` and `modBrooke24h` were the same expression — so four rows
+    // carried two numbers, and the panel implied two formulas had independently
+    // agreed. They had not; in PAEDIATRICS the two conventions coincide at
+    // 3 mL/kg/%TBSA, and it is only the ADULT forms that diverge (Parkland 4,
+    // modified Brooke 2). A clinician reading two named rows showing the same
+    // figure is being shown corroboration that does not exist.
+    //
+    // The row is now named for what it is. Which historical convention a reader
+    // wants to call it is in the notes, along with both adult coefficients, so
+    // nobody concludes an adult number was used here.
+    const resuscitation24h = PEDIATRIC_COEFF_ML * weight * tbsa;
     const maintenance24h = hollidaySegarMaintenanceMl(weight);
 
     return [
       {
-        id: "parkland_peds_24h_ml",
+        id: "resuscitation_24h_ml",
         label: defineText(
-          "burn.parkland24h",
-          "Parkland (pediatric 3 mL/kg/%TBSA) — 24-h LR volume",
+          "burn.resus24h",
+          "Crystalloid resuscitation (pediatric 3 mL/kg/%TBSA) — 24-h LR volume",
         ),
-        value: parkland24h,
+        value: resuscitation24h,
         unit: "mL",
         precision: 0,
       },
       {
-        id: "parkland_peds_first8h_ml",
+        id: "resuscitation_first8h_ml",
         label: defineText(
-          "burn.parkland8h",
-          "Parkland (pediatric 3 mL/kg/%TBSA) — first-8-h LR volume (half, from time of burn)",
+          "burn.resus8h",
+          "Crystalloid resuscitation — first-8-h LR volume (half, from time of burn)",
         ),
-        value: parkland24h / 2,
-        unit: "mL",
-        precision: 0,
-      },
-      {
-        id: "mod_brooke_peds_24h_ml",
-        label: defineText(
-          "burn.brooke24h",
-          "Modified Brooke (pediatric 3 mL/kg/%TBSA) — 24-h LR volume",
-        ),
-        value: modBrooke24h,
-        unit: "mL",
-        precision: 0,
-      },
-      {
-        id: "mod_brooke_peds_first8h_ml",
-        label: defineText(
-          "burn.brooke8h",
-          "Modified Brooke (pediatric 3 mL/kg/%TBSA) — first-8-h LR volume (half, from time of burn)",
-        ),
-        value: modBrooke24h / 2,
+        value: resuscitation24h / 2,
         unit: "mL",
         precision: 0,
       },
@@ -437,12 +436,12 @@ export const burnResuscitation = defineScore({
         precision: 0,
       },
       {
-        id: "parkland_peds_plus_maint_24h_ml",
+        id: "resuscitation_plus_maint_24h_ml",
         label: defineText(
           "burn.combined24h",
           "Pediatric Parkland + maintenance — 24-h total (children)",
         ),
-        value: parkland24h + maintenance24h,
+        value: resuscitation24h + maintenance24h,
         unit: "mL",
         precision: 0,
       },

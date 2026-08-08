@@ -45,11 +45,10 @@ describeScore(burnResuscitation, (ctx) => {
     },
     { weight_kg: { value: 15, unit: "kg" }, tbsa_pct: { value: 25, unit: "%" } },
     [
-      { id: "parkland_peds_24h_ml", value: 1125 },
-      { id: "parkland_peds_first8h_ml", value: 562.5 },
-      { id: "mod_brooke_peds_24h_ml", value: 1125 },
+      { id: "resuscitation_24h_ml", value: 1125 },
+      { id: "resuscitation_first8h_ml", value: 562.5 },
       { id: "maintenance_24h_ml", value: 1250 },
-      { id: "parkland_peds_plus_maint_24h_ml", value: 2375 },
+      { id: "resuscitation_plus_maint_24h_ml", value: 2375 },
     ],
   );
 
@@ -64,9 +63,7 @@ describeScore(burnResuscitation, (ctx) => {
     },
     { weight_kg: { value: 20, unit: "kg" }, tbsa_pct: { value: 30, unit: "%" } },
     [
-      { id: "mod_brooke_peds_24h_ml", value: 1800 },
-      { id: "mod_brooke_peds_first8h_ml", value: 900 },
-      { id: "parkland_peds_24h_ml", value: 1800 },
+      { id: "resuscitation_24h_ml", value: 1800 },
       { id: "maintenance_24h_ml", value: 1500 },
     ],
   );
@@ -107,11 +104,10 @@ describeScore(burnResuscitation, (ctx) => {
     },
     { weight_kg: { value: 25, unit: "kg" }, tbsa_pct: { value: 20, unit: "%" } },
     [
-      { id: "parkland_peds_24h_ml", value: 1500 },
-      { id: "parkland_peds_first8h_ml", value: 750 },
-      { id: "mod_brooke_peds_24h_ml", value: 1500 },
+      { id: "resuscitation_24h_ml", value: 1500 },
+      { id: "resuscitation_first8h_ml", value: 750 },
       { id: "maintenance_24h_ml", value: 1600 },
-      { id: "parkland_peds_plus_maint_24h_ml", value: 3100 },
+      { id: "resuscitation_plus_maint_24h_ml", value: 3100 },
     ],
   );
 
@@ -406,21 +402,21 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
       for (const tbsa of [1, 15, 20, 55, 100]) {
         const out = outputsAt(weight, tbsa);
         const denominator = weight * tbsa;
-        const parkland = out.get("parkland_peds_24h_ml") ?? Number.NaN;
-        const brooke = out.get("mod_brooke_peds_24h_ml") ?? Number.NaN;
-        expect(
-          parkland / denominator,
-          `${weight} kg / ${tbsa}% is not on 3 mL/kg/%TBSA`,
-        ).toBeCloseTo(3, 10);
-        // Both named methods must converge, or the UI is showing two numbers
-        // that differ for no reason a clinician could name.
-        expect(brooke).toBe(parkland);
+        const resus = out.get("resuscitation_24h_ml") ?? Number.NaN;
+        expect(resus / denominator, `${weight} kg / ${tbsa}% is not on 3 mL/kg/%TBSA`).toBeCloseTo(
+          3,
+          10,
+        );
         // The two adult figures, rejected by name.
-        expect(parkland).not.toBeCloseTo(2 * denominator, 6);
-        expect(parkland).not.toBeCloseTo(4 * denominator, 6);
+        expect(resus).not.toBeCloseTo(2 * denominator, 6);
+        expect(resus).not.toBeCloseTo(4 * denominator, 6);
         // The 8-h figure is exactly half — a gross volume, not a remainder.
-        expect(out.get("parkland_peds_first8h_ml")).toBe(parkland / 2);
-        expect(out.get("mod_brooke_peds_first8h_ml")).toBe(parkland / 2);
+        expect(out.get("resuscitation_first8h_ml")).toBe(resus / 2);
+        // ONE resuscitation volume is emitted, not a Parkland row and a
+        // modified Brooke row carrying the same number. v1.1.0 collapsed them;
+        // this stops the duplicate pair coming back.
+        expect(out.has("mod_brooke_peds_24h_ml")).toBe(false);
+        expect(out.has("parkland_peds_24h_ml")).toBe(false);
       }
     }
   });
@@ -433,12 +429,12 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     for (const weight of [0.5, 19, 20, 21, 29, 30, 31, 39, 40, 41, 150]) {
       const out = outputsAt(weight, 20);
       const maintenance = out.get("maintenance_24h_ml") ?? Number.NaN;
-      const parkland = out.get("parkland_peds_24h_ml") ?? Number.NaN;
+      const parkland = out.get("resuscitation_24h_ml") ?? Number.NaN;
       expect(
         maintenance,
         `maintenance vanished at ${weight} kg — a threshold has been added`,
       ).toBeGreaterThan(0);
-      expect(out.get("parkland_peds_plus_maint_24h_ml")).toBe(parkland + maintenance);
+      expect(out.get("resuscitation_plus_maint_24h_ml")).toBe(parkland + maintenance);
     }
   });
 
@@ -536,7 +532,7 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     for (const weight of [0.5, 1, 2.5, 3, 3.9, 4]) {
       const out = outputsAt(weight, 20);
       // Resuscitation is untouched by the scope limit: still exactly 3 mL/kg/%TBSA.
-      expect(out.get("parkland_peds_24h_ml"), `${weight} kg left the 3 mL coefficient`).toBe(
+      expect(out.get("resuscitation_24h_ml"), `${weight} kg left the 3 mL coefficient`).toBe(
         3 * weight * 20,
       );
       // Maintenance is still emitted — first tier, 100 mL/kg/day — rather than
@@ -544,8 +540,8 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
       expect(out.get("maintenance_24h_ml"), `maintenance vanished at ${weight} kg`).toBe(
         100 * weight,
       );
-      expect(out.get("parkland_peds_plus_maint_24h_ml")).toBe(3 * weight * 20 + 100 * weight);
-      expect(out.size).toBe(6);
+      expect(out.get("resuscitation_plus_maint_24h_ml")).toBe(3 * weight * 20 + 100 * weight);
+      expect(out.size).toBe(4);
     }
   });
 
@@ -634,12 +630,12 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
 
     // The claim, verified rather than asserted: 25 kg / 20% TBSA is the low end.
     const out = outputsAt(25, 20);
-    expect(out.get("parkland_peds_24h_ml")).toBe(1500);
-    expect(out.get("parkland_peds_plus_maint_24h_ml")).toBe(3100);
+    expect(out.get("resuscitation_24h_ml")).toBe(1500);
+    expect(out.get("resuscitation_plus_maint_24h_ml")).toBe(3100);
     // Bottom of the span, and the combined figure still inside it.
-    expect(out.get("parkland_peds_24h_ml")).toBeLessThan(3560);
-    expect(out.get("parkland_peds_plus_maint_24h_ml")).toBeLessThan(3560);
-    expect(out.get("parkland_peds_plus_maint_24h_ml")).toBeGreaterThan(1500);
+    expect(out.get("resuscitation_24h_ml")).toBeLessThan(3560);
+    expect(out.get("resuscitation_plus_maint_24h_ml")).toBeLessThan(3560);
+    expect(out.get("resuscitation_plus_maint_24h_ml")).toBeGreaterThan(1500);
   });
 
   // ── §7.4 — over-resuscitation is not the only failure direction ───────────
@@ -779,7 +775,7 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     const perUnit = (id: string, kg: number, tbsa: number): number =>
       (outputsAt(kg, tbsa).get(id) ?? Number.NaN) / (kg * tbsa);
     const combined = (kg: number, tbsa: number): number =>
-      perUnit("parkland_peds_plus_maint_24h_ml", kg, tbsa);
+      perUnit("resuscitation_plus_maint_24h_ml", kg, tbsa);
 
     // The 40% TBSA pair printed in the caution and the notes.
     expect(combined(10, 40)).toBeCloseTo(5.5, 10);
@@ -798,7 +794,7 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     for (const tbsa of [20, 40]) {
       let previous = Number.POSITIVE_INFINITY;
       for (const kg of [10, 25, 60]) {
-        expect(perUnit("parkland_peds_24h_ml", kg, tbsa)).toBeCloseTo(3, 10);
+        expect(perUnit("resuscitation_24h_ml", kg, tbsa)).toBeCloseTo(3, 10);
         const maintenancePerUnit = perUnit("maintenance_24h_ml", kg, tbsa);
         expect(
           maintenancePerUnit,
@@ -822,8 +818,8 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     // The behaviour is unchanged: the emitted coefficient is still 3, and 6 is
     // discussed, never computed.
     const out = outputsAt(25, 20);
-    expect(out.get("parkland_peds_24h_ml")).toBe(1500);
-    expect(out.get("parkland_peds_24h_ml")).not.toBe(6 * 25 * 20);
+    expect(out.get("resuscitation_24h_ml")).toBe(1500);
+    expect(out.get("resuscitation_24h_ml")).not.toBe(6 * 25 * 20);
   });
 
   /**
@@ -854,8 +850,8 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
 
     // And the schedule it is set against is still what is emitted: half.
     const out = outputsAt(25, 20);
-    const parkland = out.get("parkland_peds_24h_ml") ?? Number.NaN;
-    expect(out.get("parkland_peds_first8h_ml")).toBe(parkland / 2);
+    const parkland = out.get("resuscitation_24h_ml") ?? Number.NaN;
+    expect(out.get("resuscitation_first8h_ml")).toBe(parkland / 2);
 
     // The reference must be traceable, not prose-only.
     expect(
@@ -868,7 +864,7 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(prose).toMatch(/no inhalation modifier|offers no inhalation/i);
     expect(prose).toContain("2019");
     // The output count is fixed at six; an inhalation branch would change it.
-    expect(outputsAt(25, 20).size).toBe(6);
+    expect(outputsAt(25, 20).size).toBe(4);
   });
 
   // ── §0 and §9 — what the window shows, and what is still unsourced ────────
@@ -1022,8 +1018,8 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     // And the halving it is set against must still actually be what is emitted,
     // or the caution describes a mismatch that no longer exists.
     const out = outputsAt(25, 20);
-    const parkland = out.get("parkland_peds_24h_ml") ?? Number.NaN;
-    expect(out.get("parkland_peds_first8h_ml")).toBe(parkland / 2);
+    const parkland = out.get("resuscitation_24h_ml") ?? Number.NaN;
+    expect(out.get("resuscitation_first8h_ml")).toBe(parkland / 2);
   });
 
   // ── The five new references must actually be there and be traceable ───────
