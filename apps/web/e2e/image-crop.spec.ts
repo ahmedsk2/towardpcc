@@ -58,6 +58,59 @@ type Measured = {
   intentional: boolean;
 };
 
+/**
+ * Wait until the boxes this spec measures have stopped moving.
+ *
+ * THE RACE THIS CLOSES. `measure` reads `getBoundingClientRect()`, and
+ * `next/image` with `fill` renders an absolutely-positioned `<img>` inside a
+ * container that gets its size from an aspect-ratio class. Until that CSS
+ * applies, the image's containing block is the initial one — the viewport — so
+ * the box reads exactly the viewport size and a correctly framed portrait photo
+ * looks like a 65% crop. Observed once in four full runs on 2026-08-08:
+ * `/images/care-resting.jpg`, natural 640x1138, measured in "a 1440x900 box",
+ * which is precisely the viewport set on the line below.
+ *
+ * WHY THE EXISTING RETRY DID NOT CATCH IT. That loop wraps a `try/catch` around
+ * a service-worker context destruction. A measurement that succeeds too early
+ * throws nothing, so the loop never engaged. This function throws on timeout,
+ * which connects the two: a page that will not settle now fails the same way a
+ * destroyed context does, and gets the same retry.
+ *
+ * WHY STABILITY RATHER THAN "NOT THE VIEWPORT SIZE". Asserting that no box
+ * equals 1440x900 would encode this one signature and hold against nothing
+ * else — and a legitimately full-bleed image would hang it forever. "The boxes
+ * are the same as they were a moment ago" is a property of the page rather than
+ * an absence of one known bad value, so it also covers a sizing bug nobody has
+ * thought of yet. That shape is the root CLAUDE.md's own rule: assert a
+ * property, not an absence.
+ */
+async function settleLayout(page: Page): Promise<void> {
+  // Fonts first: a container sized in em/ch resizes when the webfont swaps in,
+  // so measuring before that is measuring a different box.
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+
+  await page.waitForFunction(
+    () => {
+      const w = window as unknown as { __tpccBoxes?: string };
+      const now = [...document.querySelectorAll("img")]
+        .map((i) => {
+          const r = i.getBoundingClientRect();
+          return `${Math.round(r.width)}x${Math.round(r.height)}`;
+        })
+        .join("|");
+      const unchanged = w.__tpccBoxes === now;
+      w.__tpccBoxes = now;
+      // An imageless page settles immediately — "" equals "" on the second
+      // poll — which is correct: /data is expected to render nothing.
+      return unchanged;
+    },
+    undefined,
+    { timeout: 15_000, polling: 250 },
+  );
+}
+
 async function measure(page: Page): Promise<Measured[]> {
   // next/image lazy-loads below the fold, so nothing off-screen has decoded
   // yet. Walk the page to trigger them, then return to the top.
@@ -69,6 +122,11 @@ async function measure(page: Page): Promise<Measured[]> {
     }
     window.scrollTo(0, 0);
   });
+
+  // AFTER the scroll walk, not before it: walking the page is what triggers the
+  // lazy loads, and every one of them changes layout. Settling first would
+  // settle the wrong page.
+  await settleLayout(page);
 
   return page.evaluate(async () => {
     // next/image rewrites src to /_next/image?url=%2Fimages%2F… , so the asset
