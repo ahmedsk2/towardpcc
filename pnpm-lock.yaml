@@ -68,10 +68,10 @@ importers:
         version: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       next-auth:
         specifier: 5.0.0-beta.32
-        version: 5.0.0-beta.32(next@16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(nodemailer@9.0.3)(react@19.2.8)
+        version: 5.0.0-beta.32(next@16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(nodemailer@9.0.4)(react@19.2.8)
       nodemailer:
-        specifier: ^9.0.3
-        version: 9.0.3
+        specifier: ^9.0.4
+        version: 9.0.4
       otpauth:
         specifier: ^9.5.1
         version: 9.5.1
@@ -665,6 +665,13 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@napi-rs/wasm-runtime@1.2.2':
+    resolution: {integrity: sha512-JfB4kuJQjaoHuCTseIINHtHWeJnvgEcxjwA5t/Y00ZgaOO1Crz3fjT/p8kT28zA/Caz7oiUMn3d6H2yOVCVwuw==}
+    engines: {node: ^20.19.0 || ^22.13.0 || >=23.5.0}
+    peerDependencies:
+      '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.3
+      '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.3
 
   '@next/env@16.2.12':
     resolution: {integrity: sha512-d0Z5Bc13Fa4nR8pFAKx2jay2yhJM16vlfHbTzYnUQAxlNb6B6lmn4hjt69lYNt4kRtyYP6gEM49lPRHNbIyneg==}
@@ -3383,8 +3390,8 @@ packages:
     resolution: {integrity: sha512-wRNIrw4DmVLKQlbgOMdkMx27Wrpzes2hh5Jtbi2bjPd+4wJstWIqP5A+lscnqbm0xxmT5Bpg8Lec5ItEBwx6BQ==}
     engines: {node: '>=18'}
 
-  nodemailer@9.0.3:
-    resolution: {integrity: sha512-n+YP+NKwR5zRWa60k3GiQ6Q3B4KXCoAw40dAKeCtYn020iNN74aWK2liXIC3ZEATeGql7we3tE3t8QwhY0eskw==}
+  nodemailer@9.0.4:
+    resolution: {integrity: sha512-LmJNRVRtfSCULxcZpy0Cpg4WWenlUZ9+zbmTO+S7v9wD6XreYLjXRFtDjtV/4F0HT5p1GyZfA0Ux/myxHb18CQ==}
     engines: {node: '>=6.0.0'}
 
   oauth4webapi@3.8.6:
@@ -4562,7 +4569,7 @@ snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@auth/core@0.41.3(nodemailer@9.0.3)':
+  '@auth/core@0.41.3(nodemailer@9.0.4)':
     dependencies:
       '@panva/hkdf': 1.2.1
       jose: 6.2.4
@@ -4570,7 +4577,7 @@ snapshots:
       preact: 10.24.3
       preact-render-to-string: 6.5.11(preact@10.24.3)
     optionalDependencies:
-      nodemailer: 9.0.3
+      nodemailer: 9.0.4
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -5098,7 +5105,7 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
+  '@napi-rs/wasm-runtime@1.2.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
       '@emnapi/core': 1.11.1
       '@emnapi/runtime': 1.11.1
@@ -5383,7 +5390,7 @@ snapshots:
     dependencies:
       '@emnapi/core': 1.11.1
       '@emnapi/runtime': 1.11.1
-      '@napi-rs/wasm-runtime': 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@napi-rs/wasm-runtime': 1.2.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
     optional: true
 
   '@rolldown/binding-win32-arm64-msvc@1.1.5':
@@ -7887,13 +7894,13 @@ snapshots:
 
   netmask@2.1.1: {}
 
-  next-auth@5.0.0-beta.32(next@16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(nodemailer@9.0.3)(react@19.2.8):
+  next-auth@5.0.0-beta.32(next@16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(nodemailer@9.0.4)(react@19.2.8):
     dependencies:
-      '@auth/core': 0.41.3(nodemailer@9.0.3)
+      '@auth/core': 0.41.3(nodemailer@9.0.4)
       next: 16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react: 19.2.8
     optionalDependencies:
-      nodemailer: 9.0.3
+      nodemailer: 9.0.4
 
   next@16.2.12(@babel/core@7.29.7)(@playwright/test@1.62.0)(@types/node@26.1.2)(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:
@@ -7934,7 +7941,7 @@ snapshots:
 
   node-releases@2.0.51: {}
 
-  nodemailer@9.0.3: {}
+  nodemailer@9.0.4: {}
 
   oauth4webapi@3.8.6: {}
 
