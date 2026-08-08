@@ -103,11 +103,28 @@ then — no figure is invented.
       before launch — a dead contact address is a trust failure.
 - [x] `[ADMIN_EMAIL]` = ahmedsk2@gmail.com ("for now") — used as the form
       notification recipient env value in P5; never hardcoded in public code.
-- [x] `[HOSTING_TARGET]` = founder's Oracle OCI tenancy; default region
-      confirmed `me-riyadh-1` (Riyadh, Saudi Arabia) from local OCI config.
-      **Remaining (P8):** verify the actual deployment resources are created
-      in me-riyadh-1/me-jeddah-1 before DNS — the residency claim depends on
-      the deployed region, not the config default.
+- [x] `[HOSTING_TARGET]` = founder's Oracle OCI tenancy. **Deployed region
+      VERIFIED 2026-08-08**, closing the P8 gap below.
+
+#### Deployed region: verified from instance metadata, not from config
+
+The open question here was specifically that a config default proves nothing —
+the residency claim depends on where the resources actually live. Asked the
+running instance itself, which is the authority:
+
+```bash
+curl -s -H "Authorization: Bearer Oracle" http://169.254.169.254/opc/v2/instance/
+```
+
+Returns `region: me-riyadh-1`, `canonicalRegionName: me-riyadh-1`,
+`availabilityDomain: rvud:ME-RIYADH-1-AD-1`. So compute is in Riyadh as claimed,
+and the daily `check-residency.mjs` canary already asserts the serving path.
+
+Backups were separately confirmed in-region (OCI Object Storage
+`coolify-backups`, me-riyadh-1). **Still unverified by this check:** the OCI load
+balancer staged for the edge migration, which is not yet serving traffic — worth
+confirming at cutover, when it starts to matter.
+
 - [x] `[ORG_LEGAL_NAME]` = Toward Pediatric Critical Care (footer updated).
       Legal pages (P6) still get `TODO:counsel-review`.
 - [x] PedsCC Library repo — founder provided github.com/ahmedsk2/pedscc-library
