@@ -1040,7 +1040,8 @@ than the retention gap it closes.
 
 ### SPC-TM-002 — sessions renew forever
 
-- [ ] Idle timeout and revocation. Higher severity than filed.
+- [x] **Revocation and a real absolute expiry**, 2026-08-08, via a JWT
+      allow-list. Detail below, including why the obvious fix was wrong.
 
 `auth.ts:49` is `{ strategy: "jwt", maxAge: 8h }` with no adapter and no session
 model in the Prisma schema, so nothing server-side can invalidate a token. The
@@ -1056,35 +1057,69 @@ normal path**: `app/admin/login/page.tsx:10` redirects an authenticated session
 to `/admin`, while the guard redirected back to `/admin/login` without clearing
 the cookie.
 
-#### The obvious second fix is also wrong — attempted and withdrawn 2026-08-08
+#### Closed 2026-08-08 by a JWT allow-list — and the obvious fix was wrong first
 
-A `Session` model shaped for `@auth/prisma-adapter` was written, reviewed, and
-removed before it shipped. It would have been **inert**: the table would have
-stayed empty forever while the item looked closed, which is worse than leaving it
-open. Three independent reasons, each verified rather than reasoned about.
-
-`@auth/prisma-adapter` appears in no `package.json` in the repo. The adapter
-calls `prisma.user`, `prisma.account` and `prisma.verificationToken`; this schema
-has `AdminUser`, so `prisma.user` is `undefined` and `@@map` cannot help, because
-the client property comes from the model name. And Auth.js does not support
+**An adapter-shaped `Session` model was written, reviewed and removed before it
+shipped.** It would have been **inert**: the table would have stayed empty
+forever while the item looked closed, which is worse than leaving it open.
+`@auth/prisma-adapter` appears in no `package.json`; the adapter calls
+`prisma.user` where this schema has `AdminUser`, so `@@map` cannot help because
+the client property comes from the model name; and Auth.js does not support
 database sessions on the Credentials provider at all — `ADR-admin-auth.md:38`
-already says exactly that, so the change contradicted an accepted decision that
-had not been amended.
+already said exactly that.
 
-**What would actually work is a JWT allow-list**, not an adapter. Keep
-`strategy: "jwt"`, mint a random session id in `authorize()`, write the row
-directly, put the id in the token, and check it in the `jwt` callback — which
-does run on every `auth()` read. Revocation becomes "delete the row", and it
-fixes the renews-forever half too, which a bare adapter would not.
+**What shipped instead keeps `strategy: "jwt"` and adds an allow-list.**
+`authorize()` mints a 256-bit random id, writes an `AdminSession` row holding
+only `sha256(id)`, and returns the id in the user object. The `jwt` callback
+looks the row up and returns `null` when it is missing or past `expiresAt`.
+Revoking is deleting the row; it takes effect on that session's next request,
+with no cache to wait for.
 
-Three constraints for whoever picks this up. Store `sha256(token)`, never the raw
-token: nightly `pg_dump` and routine operator `psql` reads would otherwise both
-yield live admin sessions that bypass password AND TOTP. Mint with
-`randomBytes(32)`, not `cuid()`, which is not a CSPRNG. And the new table needs
-an explicit table-scoped `GRANT` in its migration or admin login breaks on first
-request — the `AppSetting` precedent, since migrations run as `towardpcc_owner`
-and the app role inherits nothing. Never `GRANT … ON ALL TABLES`: that restores
-UPDATE and DELETE on `AuditLog` and silently kills SPC-DB-003.
+Both halves of the item close. Revocation works, and `expiresAt` is written once
+at sign-in and never rewritten, so the renew-forever path leads to a dead session
+after eight hours regardless of what the token's own `exp` claims.
+
+##### Verified against the installed Auth.js, not against its documentation
+
+Three links in the chain, each read in `node_modules` rather than assumed:
+
+`auth()` does reach the callback — `next-auth/lib/index.js` builds a Request to
+the session action and calls `Auth()` with the same callbacks, so the check runs
+on every admin request rather than only at sign-in.
+
+Returning `null` does invalidate — `@auth/core/lib/actions/session.js` guards the
+session response with `if (token !== null)`, and its `else` branch calls
+`sessionStore.clean()`, so a rejected token has its cookie cleared as well as
+being refused.
+
+The renew-forever claim is real — the same file re-signs the token with a fresh
+expiry (`jwt.encode`, `newExpires`) on every session read, which is precisely why
+an absolute column that nothing rewrites was needed.
+
+##### Three things deliberately decided
+
+The raw id is never stored, only `sha256` of it. It is a bearer credential that
+bypasses both the Argon2id password and mandatory TOTP, and nightly `pg_dump`
+plus routine operator `psql` access would otherwise each hand over live admin
+sessions. A fast hash is correct here and a KDF is not: the input is 256 bits of
+CSPRNG output, so there is no guessable space to make expensive, and Argon2 would
+add cost to every admin request for nothing.
+
+The id is minted with `randomBytes(32)`, not `cuid()` like every other id in the
+schema. cuid is built for collision resistance and sortability, not
+unpredictability, and guessing this value is a full admin session.
+
+Tokens issued before this shipped carry no session id and are refused. That signs
+current operators out once on deploy. Accepting them would have left a permanent
+bypass — every pre-existing cookie unrevocable for its whole life, which is the
+bug being closed.
+
+##### Operating it
+
+`packages/db/scripts/revoke-admin-sessions.mjs --email <address>` or `--all`,
+with `--dry-run` to look first. It does not touch the password or TOTP secret, so
+it is a "sign out everywhere" lever and not an account lock. The psql equivalent
+is in the script header and the deploy runbook.
 
 ### SPC-TM-001 — logins reach the audit trail, successes and failures
 

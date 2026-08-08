@@ -14,6 +14,7 @@ import {
 } from "@/lib/auth/totp";
 import { lockoutArm } from "@/lib/auth/lockout";
 import { recordAudit } from "@/lib/admin/audit";
+import { createSession, isSessionValid, revokeSession } from "@/lib/auth/session-store";
 import { logger } from "@/lib/logger";
 import { saltedHash } from "@/lib/salted-hash";
 
@@ -159,7 +160,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Rejects exactly as a wrong password does: same `null`, no distinct
         // message, nothing the caller can use to tell "throttled" from
         // "incorrect" and therefore nothing that reveals which addresses exist.
-        if (!allowLoginAttempt(resolveClientIp(await headers()))) {
+        // Read once: the throttle needs the IP, and a successful login records a
+        // hash of it plus the user agent on the session row.
+        const requestHeaders = await headers();
+        if (!allowLoginAttempt(resolveClientIp(requestHeaders))) {
           logger.warn({ throttled: true }, "admin login throttled");
           return null;
         }
@@ -259,7 +263,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // silently stops recording is worse than one that was never there.
             logger.error({ err: error, userId: u.id }, "AUDIT WRITE FAILED for admin login");
           }
-          return { id: u.id, email: u.email, role: u.role };
+
+          /**
+           * The session row is what makes this login revocable (SPC-TM-002).
+           *
+           * NOT wrapped in try/catch, unlike the audit write above, and the
+           * difference is deliberate. A missing audit row loses evidence; a
+           * missing session row would mean the token that follows has nothing
+           * to check against — and `isSessionValid` denies what it cannot find,
+           * so the operator would get a login that appears to succeed and then
+           * bounces straight back to the login page with nothing explaining
+           * why. Failing here surfaces as a failed login instead, which is the
+           * honest outcome.
+           */
+          const sessionId = await createSession({
+            userId: u.id,
+            ipHash: saltedHash(resolveClientIp(requestHeaders)),
+            userAgent: requestHeaders.get("user-agent")?.slice(0, 300) ?? undefined,
+          });
+          return { id: u.id, email: u.email, role: u.role, sid: sessionId };
         };
         const resetData = { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() };
 
@@ -297,11 +319,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    /**
+     * The allow-list check, and the reason this callback is now async.
+     *
+     * It runs on sign-in AND on every `auth()` read, which is exactly the hook a
+     * revocable JWT needs: the token stays self-contained and signed, but it is
+     * only honoured while its row exists and has not passed its absolute expiry.
+     * Deleting the row logs that session out on its very next request.
+     *
+     * Returning `null` invalidates the session. Verified against the installed
+     * `@auth/core` 0.41.3 rather than assumed: `lib/actions/session.js` guards
+     * its response with `if (token !== null)` and, in the `else` branch, calls
+     * `sessionStore.clean()` — so a refused token is also stripped of its
+     * cookie. `e2e/admin-session-revocation.spec.ts` then proves it end to end
+     * by replaying a captured cookie after sign-out.
+     *
+     * A TOKEN WITH NO `sid` IS REFUSED. That is not a hypothetical: every
+     * session issued before this shipped is exactly that shape, so the deploy
+     * signs current operators out once. Accepting them instead would leave a
+     * permanent bypass — any pre-existing cookie would stay unrevocable for its
+     * whole life, which is the bug this closes.
+     *
+     * The cost is one indexed lookup per admin request, and it is bounded to the
+     * admin surface: `auth()` is reached only from `requireAdmin()` and the login
+     * page. `proxy.ts` never calls it, so no public page and no calculator pays
+     * anything.
+     */
+    async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
         token.uid = user.id;
+        token.sid = user.sid;
       }
+      if (typeof token.sid !== "string" || !(await isSessionValid(token.sid))) return null;
       return token;
     },
     session({ session, token }) {
@@ -310,6 +360,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.uid as string;
       }
       return session;
+    },
+  },
+
+  events: {
+    /**
+     * Sign-out must delete the row, not just drop the cookie.
+     *
+     * Clearing the cookie alone leaves the session valid for anyone who captured
+     * it — which is the whole failure mode here, since a JWT the server has
+     * never heard of is indistinguishable from a live one. With the row gone,
+     * replaying the cookie is refused by the `jwt` callback above.
+     *
+     * `signOut` receives `{ token }` under the JWT strategy and `{ session }`
+     * under the database strategy, so the shape is narrowed rather than assumed.
+     */
+    async signOut(message) {
+      const sid = "token" in message ? message.token?.sid : undefined;
+      if (typeof sid === "string") await revokeSession(sid);
     },
   },
 });

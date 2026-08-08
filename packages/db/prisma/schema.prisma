@@ -64,6 +64,69 @@ model AdminUser {
   auditLogs         AuditLog[]
   calcMetaEdits     CalculatorMeta[]
   settingEdits      AppSetting[]
+  sessions          AdminSession[]
+}
+
+/// Server-side allow-list for admin sessions, so one can actually be REVOKED.
+///
+/// NOT `Session`, and not the shape `@auth/prisma-adapter` expects — that was
+/// tried on 2026-08-07 and withdrawn as INERT. The adapter is not a dependency,
+/// it resolves `prisma.user` where this schema has `AdminUser`, and Auth.js does
+/// not support database sessions on the Credentials provider at all
+/// (ADR-admin-auth). A table shaped for it would have stayed permanently empty
+/// while the launch blocker looked closed. The name is different on purpose, so
+/// nobody reaches for the adapter again on the strength of a familiar model.
+///
+/// This is an ALLOW-LIST over the JWT instead. `authorize()` mints a random id,
+/// writes a row, and puts the id in the token; the `jwt` callback — which runs
+/// on every `auth()` read — rejects a token whose row is gone or expired.
+/// Revoking is deleting the row.
+///
+/// The cost is one indexed lookup per admin request. That is affordable
+/// precisely because `auth()` is reached only from `/admin` (via
+/// `requireAdmin`) and the login page — `proxy.ts` never calls it — so public
+/// traffic and every calculator are untouched.
+model AdminSession {
+  id String @id @default(cuid())
+
+  /// sha256 of the id carried in the JWT — NEVER the id itself.
+  ///
+  /// The raw value is a bearer credential that bypasses both the Argon2id
+  /// password and mandatory TOTP. Backups go nightly to disk and offsite to
+  /// object storage, and operators run `psql` against production by hand, so a
+  /// plaintext column would turn any of those into live admin access. A fast
+  /// hash is the right choice here, unlike the password: the input is 256 bits
+  /// of CSPRNG output, so there is nothing to brute-force and Argon2 would only
+  /// add per-request cost.
+  tokenHash String @unique
+
+  user   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  /// ABSOLUTE expiry, written once at sign-in and never extended.
+  ///
+  /// This is the half of SPC-TM-002 that revocation alone would not fix.
+  /// `@auth/core` re-signs the JWT with a fresh `exp` on every session read, so
+  /// the token's own expiry renews indefinitely for anyone holding the cookie.
+  /// Nothing re-writes this column, so eight hours after sign-in the session is
+  /// dead regardless of what the token claims.
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  /// Advanced at most once a minute, not on every request — see the throttle in
+  /// `lib/auth/session-store.ts`. It exists so an operator reviewing sessions
+  /// can tell a live one from an abandoned tab, not for accounting.
+  lastSeenAt DateTime @default(now())
+
+  /// Salted hash, never an address; same construction as `Submission.ipHash`.
+  /// Present so a revocation decision can be made on evidence rather than on a
+  /// list of indistinguishable rows.
+  ipHash    String?
+  userAgent String?
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 /// Everything the public sends us. Free-form fields live in `payload` (JSONB),
