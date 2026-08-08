@@ -331,30 +331,48 @@ host.
 
 Say the word and I will do steps 1, 2, 4 and 5 — step 3 is yours.
 
-## 5. Read-only container filesystem — decision, then a two-minute check
+## 5. Read-only container filesystem — CLOSED, Coolify cannot do it
 
-Measured and ready, not applied. Coolify already carries
-`--cap-drop=ALL` in the application's custom Docker run options, so this is
-appending to a field that already exists:
+No action for you. Verified end to end, then found to be unreachable on this
+platform, and both halves are worth recording.
+
+**The app is fine with it.** Built the production image, ran it with
+`--read-only` plus the two tmpfs mounts, pointed it at a real Postgres and drove
+the full authenticated admin surface — login, triage, status change, save notes.
+All three mutations persisted and wrote their audit rows
+(`SUBMISSION_TRIAGED`, `SUBMISSION_STATUS_CHANGED`, `SUBMISSION_NOTES_EDITED`),
+which is what proves the Server Actions genuinely ran rather than silently
+failing. Zero `EROFS`, `ENOENT` or unhandled rejections. That closes the
+`revalidatePath` gap that was previously untested.
+
+**Coolify silently discards the flags.** Setting
+`custom_docker_run_options` to include `--read-only` and `--tmpfs` stores
+cleanly, the deployment reports **finished**, and the container comes up with
+`ReadonlyRootfs=false` and `Tmpfs=map[]`. Only `--cap-drop=ALL` survives.
+
+The cause is a fixed allow-list in `convertDockerRunToCompose`
+(`/var/www/html/bootstrap/helpers/docker.php` in the `coolify` container):
 
 ```
---read-only --tmpfs /tmp:size=64m --tmpfs /app/apps/web/.next/cache:uid=100,gid=101,mode=0700,size=64m
+--cap-add  --cap-drop  --security-opt  --sysctl  --ulimit  --device  --shm-size  --dns
 ```
 
-`uid=100,gid=101` are the `app` user's ids in the image and are **not optional** —
-a root-owned tmpfs is as unwritable as the read-only layer under it.
+`--read-only` and `--tmpfs` are not in it, and there is no warning anywhere in
+the flow. **This is the third silent-drop in Coolify found in two days** — after
+the multi-line environment variable that broke every deploy, and the `restart`
+endpoint that does not regenerate the environment. The pattern is worth
+carrying: Coolify accepts configuration it will not apply, and the deployment
+still says "finished".
 
-**Why I did not just apply it.** The second mount exists because without it every
-optimised image request throws `ENOENT` on `.next/cache` while `/api/v1/health`
-still returns 200 and the container still reports healthy. That silent shape is
-exactly what fooled me once already this session. I verified the public paths
-recover with the mount, but I could not verify the **authenticated** admin
-surface — the admin server actions call `revalidatePath`, which targets the same
-cache directory, and I have no admin credentials.
+The setting has been reverted to `--cap-drop=ALL` alone, deliberately. Leaving
+the dead flags stored would tell the next reader the container is read-only when
+it is not, which is worse than not having tried.
 
-**So:** apply it, then log in once and change a submission's status. If that
-works, it is done. If anything errors, remove the two `--tmpfs` flags and the
-`--read-only` flag and redeploy — it reverts cleanly.
+**If this is ever wanted**, it needs the application converted to a
+compose-based deployment, where `read_only:` and `tmpfs:` are expressed directly.
+That is a change to how the app is deployed, not a setting — weigh it against
+what it buys, which is one layer of defence on a container that already drops
+all capabilities and runs as a non-root user.
 
 ## Still open from the earlier revision
 
