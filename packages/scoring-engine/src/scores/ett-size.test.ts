@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { ettSize } from "./ett-size";
 
@@ -139,19 +140,17 @@ describeScore(ettSize, (ctx) => {
     ],
   );
 
-  // Finding F9: the 3 x ID cross-check, computed from the DEVICE size because
-  // it checks the tube actually inserted. At 4 y the uncuffed device is 5.0 mm,
-  // so 3 x 5.0 = 15.0 cm against age/2 + 12 = 14 cm — agreement within the ~1 cm
-  // the formula text claims. The cuffed tube is one step smaller and therefore
-  // 1.5 cm shallower, which is why the two are emitted separately.
+  // F9 IS WITHDRAWN (v1.2.0). The cross-check rows this block used to assert
+  // are gone, and this test is what let them ship: it pinned age 4 — one of the
+  // few ages where 3 x ID and age/2 + 12 land 1.0 cm apart — and would have
+  // passed at every future age while the two diverged to 3.4 cm.
+  //
+  // What replaces it asserts the WITHDRAWAL, and asserts the divergence that
+  // caused it, so neither can quietly return.
   ctx.workedExample(
-    { ...statpearls, locator: "F9: depth cross-check = tube ID x 3 (a 4.0 mm tube at ~12 cm)" },
-    { age: { value: 4, unit: "years" } },
-    [
-      { id: "depth_at_lips", value: 14 },
-      { id: "depth_check_cuffed", value: 13.5 },
-      { id: "depth_check_uncuffed", value: 15.0 },
-    ],
+    { ...statpearls, locator: "v1.2.0: no second depth number is emitted" },
+    { age: { value: 12, unit: "years" } },
+    [{ id: "depth_at_lips", value: 18 }],
   );
 
   ctx.boundaryTest("age", "min", { age: { value: 4, unit: "years" } });
@@ -180,4 +179,58 @@ describeScore(ettSize, (ctx) => {
     { age: { value: 6, unit: "months" } },
     { inputId: "age", code: "out-of-range" },
   );
+});
+
+/**
+ * The withdrawal of the 3 x ID cross-check rows (v1.2.0), asserted as a
+ * property rather than at one age — which is exactly what the deleted test got
+ * wrong. It pinned age 4, where the two rules coincidentally land 1.0 cm apart,
+ * so it could never fail while they diverged everywhere else.
+ */
+describe("v1.2.0 — exactly one oral depth is emitted, at every age", () => {
+  const depthsAt = (ageYears: number) => {
+    const outcome = ettSize.compute({ age: { value: ageYears, unit: "years" } } as never);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return [];
+    return outcome.result.values.filter((v) => v.unit === "cm");
+  };
+
+  it("emits one and only one cm value across the whole accepted domain", () => {
+    for (let age = 1; age <= 12.0001; age += 0.25) {
+      const cm = depthsAt(age);
+      expect(
+        cm.map((v) => v.id),
+        `age ${age} emitted more than one depth`,
+      ).toEqual(["depth_at_lips"]);
+    }
+  });
+
+  it("emits no output whose id mentions a depth cross-check", () => {
+    const outcome = ettSize.compute({ age: { value: 4, unit: "years" } } as never);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    for (const v of outcome.result.values) {
+      expect(v.id, `${v.id} looks like a reinstated cross-check`).not.toMatch(/depth_check/);
+    }
+  });
+
+  /**
+   * The reason the rows are gone, pinned so nobody reinstates them believing
+   * the two rules corroborate one another. If this ever fails, the divergence
+   * has changed and the withdrawal can be revisited — not before.
+   */
+  it("records that 3 x ID and age/2 + 12 diverge, and by how much", () => {
+    const depthOf = (age: number) => depthsAt(age)[0]?.value ?? Number.NaN;
+    const deviceUncuffed = (age: number) => {
+      const outcome = ettSize.compute({ age: { value: age, unit: "years" } } as never);
+      if (!outcome.ok) return Number.NaN;
+      return outcome.result.values.find((v) => v.id === "uncuffed_device_id")?.value ?? Number.NaN;
+    };
+    // At 12 y: depth 18.0 vs 3 x 7.0 = 21.0 — a 3 cm spread, and 21 cm at the
+    // lips in a 12-year-old is toward endobronchial.
+    expect(depthOf(12)).toBe(18);
+    expect(deviceUncuffed(12) * 3).toBe(21);
+    // At 1 y the cuffed rule runs the other way: 3 x 3.5 = 10.5 against 12.5.
+    expect(depthOf(1)).toBe(12.5);
+  });
 });

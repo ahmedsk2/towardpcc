@@ -66,7 +66,7 @@ export const kdigoAki = defineScore({
   id: "kdigo-aki",
   slug: "kdigo-aki",
   name: "KDIGO AKI staging (pediatric)",
-  version: "3.2.0",
+  version: "3.2.1",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -355,6 +355,13 @@ export const kdigoAki = defineScore({
         "Serum creatinine becomes OPTIONAL, so a child with documented oliguria and no bloods drawn can be staged on the urine-output axis alone. NO EXISTING RESULT CHANGES: every entry that staged before stages identically, the thresholds and the max-over-axes rule are untouched, and a creatinine supplied as before behaves exactly as it did. THE PRIMARY WAS OBTAINED, which is what unblocked this. The research note recorded HTTP 403 from kdigo.org and worked from three reproductions; that was a user-agent artifact, and the official PDF (Kidney International Supplements 2012;2:19-36) was read directly on 2026-08-08. Rec 2.1.1 defines AKI as “any of the following” and its third bullet is “Urine volume <0.5 ml/kg/h for 6 hours” — a criterion naming no creatinine — while Chapter 2.4 scopes the baseline requirement to the other route in terms: “staging requires reference to a baseline SCr WHEN SCr CRITERIA ARE USED.” Requiring a creatinine before any staging could occur therefore refused a patient the guideline defines as having AKI. WHAT THE GUIDELINE DOES NOT DO IS AUTHORISE IT IN WORDS. No sentence licenses a urine-output-only stage explicitly, and NO WORKED EXAMPLE EXISTS — Tables 7 and 10 are creatinine-only. The support is structural: a disjunctive definition, a self-contained urine-output column in Table 2, and a staging rule that takes the criteria giving the highest stage. That is recorded as the basis rather than dressed up as a quotation. A NEW OUTPUT, `scr_axis_not_assessed`, marks a stage reached this way. It is deliberately NOT folded into `stage_is_floor`: that flag means an entered value left a Table 2 row open, and v3.0.0 renamed its label away from “a lower bound” precisely because an un-baselined creatinine can unsettle a stage DOWNWARD. The new flag implies no direction and must never render with a “≥”. A creatinine can only raise a urine-output-only stage, since staging takes the maximum — but that is a fact about the axes, not a bound on the number, and the two are kept apart so neither borrows the other’s authority. STILL OPEN, AND UNCHANGED BY THIS: KDIGO states it is not known how the urine-volume criteria should be applied (average versus persistent reduction), and gives no weight basis for mL/kg/h. Both were already true of every urine-output stage this score produced; making creatinine optional exposes them in more cases rather than introducing them. From the external calculator audit of 2026-08-08, finding F4 — whose description was itself half wrong, since it reported baseline creatinine as required when it has always been optional.",
       reason: "clarification",
     },
+    {
+      version: "3.2.1",
+      date: "2026-08-08",
+      summary:
+        "Corrects the `scr_axis_not_assessed` output added hours earlier in v3.2.0. NO STAGE CHANGES — the flag has never fed a stage and does not now. Its label read “Creatinine axis not assessed — staged on urine output alone” and its value was set purely from the absence of a creatinine, so it made a FALSE statement in three reachable cases, each confirmed by execution: RRT alone (Stage 3, no urine output entered), eGFR < 35 in a child (Stage 3, no urine output entered), and an empty form (nothing staged at all). The eGFR case was self-contradictory — a bedside-Schwartz eGFR is derived FROM a creatinine, so the page denied an axis the reader’s own entry presupposes. Two fixes. The LABEL now claims only “Creatinine axis not assessed”, which is true whenever it fires. The VALUE is suppressed when the stage is already settled at 3 by a creatinine-independent route (RRT) or when an eGFR that fired the paediatric branch is present. An adult eGFR still leaves the flag set, because the < 18 y gate means that value settled nothing. Found by an adversarial review of the same day’s work; the v3.2.0 test suite had PINNED the wrong value for the RRT case, so the defect was locked in rather than caught.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -483,6 +490,13 @@ export const kdigoAki = defineScore({
     // highest stage still reachable once the unsettled urine-output rows are
     // allowed to fire; `stage` is what is reported, which is `settled` raised by
     // an un-baselined ≥ 4.0 mg/dL creatinine so that case is never under-staged.
+    /**
+     * Routes that settle the stage at 3 with no creatinine involved, or that
+     * presuppose one. Used only to suppress `scr_axis_not_assessed`, never to
+     * change a stage.
+     */
+    const scrAxisMoot = onRrt || (egfr !== undefined && egfr < 35 && ageYears < 18);
+
     const settled = Math.max(scrStage, uoCertain);
     const stage = Math.max(settled, scrUnbaselined3);
     const ceiling = Math.max(scrStage, uoPossible, scrUnbaselined3);
@@ -535,11 +549,20 @@ export const kdigoAki = defineScore({
        */
       {
         id: "scr_axis_not_assessed",
-        label: defineText(
-          "kdigo.out.scrAbsent",
-          "Creatinine axis not assessed — staged on urine output alone (1 = yes)",
-        ),
-        value: scr === undefined ? 1 : 0,
+        label: defineText("kdigo.out.scrAbsent", "Creatinine axis not assessed (1 = yes)"),
+        // The label said "staged on urine output alone" for a few hours after
+        // v3.2.0 and that was FALSE in three reachable cases, all verified by
+        // execution: RRT alone, eGFR < 35 alone, and an empty form. None of the
+        // three involves any urine output, and the first two are already Stage
+        // 3 by a route that needs no creatinine. The label now claims only what
+        // the value can support.
+        //
+        // The VALUE is narrowed to match. The creatinine axis is not "not
+        // assessed" when the stage is already settled at 3 without it (RRT), and
+        // saying so of an entered eGFR is self-contradictory — a bedside-Schwartz
+        // eGFR is DERIVED from a creatinine, so the page would deny an axis the
+        // reader's own input presupposes.
+        value: scr === undefined && !scrAxisMoot ? 1 : 0,
         unit: "",
         precision: 0,
       },

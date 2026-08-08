@@ -923,7 +923,7 @@ describe("kdigo-aki records its settled absences as settled", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("3.2.0");
+    expect(kdigoAki.version).toBe("3.2.1");
   });
 });
 
@@ -1127,6 +1127,43 @@ describe("F4 — urine-output-only staging (no creatinine entered)", () => {
   it("still reaches Stage 3 on RRT with no creatinine", () => {
     const out = stageOf({ ...age, rrt: { value: true } });
     expect(out.get("kdigo_stage")).toBe(3);
+    // NOT 1. This assertion said 1 for a few hours after v3.2.0 and was wrong:
+    // RRT settles the stage at 3 without the creatinine axis mattering, and no
+    // urine output was entered at all. The test as written pinned the defect
+    // rather than catching it.
+    expect(out.get("scr_axis_not_assessed")).toBe(0);
+  });
+
+  /**
+   * The three cases where the flag made a FALSE statement (v3.2.0, fixed
+   * v3.2.1). Each is asserted rather than described, because the original label
+   * — "staged on urine output alone" — was false in all three and the suite
+   * agreed with it.
+   */
+  it("does not claim the creatinine axis is unassessed when an eGFR was entered", () => {
+    // Self-contradictory in the original: a bedside-Schwartz eGFR is DERIVED
+    // from a creatinine, so denying the axis denies the reader's own input.
+    const out = stageOf({ ...age, egfr: { value: 30, unit: "mL/min/1.73m2" } });
+    expect(out.get("kdigo_stage")).toBe(3);
+    expect(out.get("scr_axis_not_assessed")).toBe(0);
+  });
+
+  it("keeps the flag on an adult eGFR, where the paediatric branch does not fire", () => {
+    // Age gate: the eGFR < 35 route is "in patients < 18 years". For an adult
+    // the eGFR settles nothing, so the creatinine axis genuinely is unassessed.
+    const out = stageOf({
+      age: { value: 40, unit: "years" },
+      egfr: { value: 30, unit: "mL/min/1.73m2" },
+    });
+    expect(out.get("kdigo_stage")).toBe(0);
+    expect(out.get("scr_axis_not_assessed")).toBe(1);
+  });
+
+  it("is honest on an empty form — nothing staged, and nothing claimed about urine", () => {
+    // The flag is still 1 (the axis really was not assessed), but the LABEL no
+    // longer asserts a urine-output basis that does not exist.
+    const out = stageOf({ ...age });
+    expect(out.get("kdigo_stage")).toBe(0);
     expect(out.get("scr_axis_not_assessed")).toBe(1);
   });
 

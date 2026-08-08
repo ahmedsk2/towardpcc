@@ -21,7 +21,7 @@ export const ettSize = defineScore({
   id: "ett-size",
   slug: "ett-size",
   name: "ETT size and depth (pediatric)",
-  version: "1.1.0",
+  version: "1.2.0",
   status: "published",
   category: "airway-equipment",
   inputs: [
@@ -107,6 +107,13 @@ export const ettSize = defineScore({
         "Emit the nearest manufactured 0.5 mm tube size for both cuffed and uncuffed, and the 3 × ID depth cross-check, instead of describing both only in prose; raise the minimum age from 0 to 1 year so sub-1-year entries are refused rather than silently over-sized. From the external calculator audit of 2026-08-08 (findings F1, F2, F9). F1: raw formula values are not device sizes — 7.5 y displayed 'cuffed 5.4 mm', and every odd whole year lands exactly between two sizes, so ties decide half of all whole-year entries (resolved DOWN, which is what reproduces the taught 1 y / 3 y / 5 y sizes). F2: age 0 returned uncuffed 4.0 mm for a newborn who takes 3.0–3.5, contradicting this score's own notes, which already said sub-1-year sizing is NOT computed here. F9: the 3 × ID cross-check was cited in the formula text but never emitted. All three were already sourced in this file's references (StatPearls NBK539747; Weber 2023, PMID 37336629) — none introduces new clinical content.",
       reason: "formula-correction",
     },
+    {
+      version: "1.2.0",
+      date: "2026-08-08",
+      summary:
+        "WITHDRAWS THE TWO 3 × ID DEPTH CROSS-CHECK ROWS ADDED HOURS EARLIER IN v1.1.0, and retracts the sentence that justified them. Tube sizes, the sub-1-year refusal and every other output are unchanged. THE CLAIM THAT WAS WRONG: v1.1.0’s formula text said the cross-check “should agree with age ÷ 2 + 12 within about 1 cm; if the two disagree by more, re-check the age and the tube.” It does not. The two rules diverge by construction — 3 × ID grows 0.75 cm per year of age while age ÷ 2 + 12 grows 0.5 — so the gap widens with age and never closes. Swept across the accepted 1–12 y domain the uncuffed cross-check exceeded 1 cm at two thirds of sampled ages, worst 3.38 cm at 11.25 y; at 12 y it printed 21.0 cm beside a stated depth of 18.0 cm, and 21 cm at the lips in a 12-year-old is toward endobronchial. At 1 y the cuffed check printed 10.5 cm against a depth of 12.5 cm. So a correctly entered child was told, by the calculator’s own instruction, to distrust the age and the tube. WORSE, THE REPO ALREADY KNEW: docs/research/scores/ett-size.md states “Depth methods can disagree. age/2 + 12 and ID × 3 can differ by > 1 cm, especially at the young end”, and its Example 3 records a 2.5 cm gap. The v1.1.0 text contradicted the score’s own research note. AND THE GUARD COULD NOT CATCH IT: the only test of those rows pinned age 4, one of the few ages where the two happen to land 1.0 cm apart, so it would have passed at every future age too. That is the failure mode this project documents as ‘a guard that has never failed deserves suspicion’, committed while quoting the rule. WHY WITHDRAWAL RATHER THAN A CORRECTED TOLERANCE: two oral depths for one child, up to 3 cm apart, is the same ambiguity removed from the burn page on the same day, and no wording makes a second depth number safe to have on screen beside the first. The 3 × ID rule of thumb is real and stays described in the formula text, with its divergence stated. This reverses audit finding F9, whose recommendation to emit it ‘with an agreement note (within ~1 cm)’ rested on a premise this repo’s own research contradicts.",
+      reason: "output-withdrawn",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -115,7 +122,7 @@ export const ettSize = defineScore({
   },
   formula: defineText(
     "ett.formula",
-    "Uncuffed internal diameter (mm) = age in years ÷ 4 + 4 (Cole). Cuffed internal diameter (mm) = age in years ÷ 4 + 3.5 (APLS/Motoyama/Duracher). Oral insertion depth at the lips (cm) = age in years ÷ 2 + 12. Because tubes are manufactured only in 0.5 mm steps, each raw diameter is also shown snapped to the nearest real size, with exact half-steps taken DOWN to the smaller tube — which is what reproduces the conventional sizes these formulas are taught alongside (1 y cuffed 3.5, 3 y cuffed 4.0, 5 y cuffed 4.5). The depth cross-check tube ID (mm) × 3 is shown for each tube and should agree with age ÷ 2 + 12 within about 1 cm; if the two disagree by more, re-check the age and the tube. These remain estimates: keep tubes 0.5 mm larger and smaller on hand, and confirm placement by air-leak test, auscultation, capnography, chest rise, and imaging.",
+    "Uncuffed internal diameter (mm) = age in years ÷ 4 + 4 (Cole). Cuffed internal diameter (mm) = age in years ÷ 4 + 3.5 (APLS/Motoyama/Duracher). Oral insertion depth at the lips (cm) = age in years ÷ 2 + 12. Because tubes are manufactured only in 0.5 mm steps, each raw diameter is also shown snapped to the nearest real size, with exact half-steps taken DOWN to the smaller tube — which is what reproduces the conventional sizes these formulas are taught alongside (1 y cuffed 3.5, 3 y cuffed 4.0, 5 y cuffed 4.5). A second depth rule of thumb, tube ID (mm) × 3, is widely taught and is NOT emitted here: it and age ÷ 2 + 12 diverge with age rather than corroborating one another — about 2 cm apart at 1 year and 3 cm at 12 — so printing both would put two oral depths for the same child on one screen. Use age ÷ 2 + 12, and confirm the tip by auscultation, capnography and imaging rather than by a second formula. These remain estimates: keep tubes 0.5 mm larger and smaller on hand, and confirm placement by air-leak test, auscultation, capnography, chest rise, and imaging.",
   ),
   notes: defineText(
     "ett.notes",
@@ -165,29 +172,6 @@ export const ettSize = defineScore({
         id: "depth_at_lips",
         label: defineText("ett.out.depth", "Oral insertion depth at lips (age/2 + 12)"),
         value: depthAtLips,
-        unit: "cm",
-        precision: 1,
-      },
-      // The 3 × ID cross-check (Weber 2023; StatPearls NBK539747). Computed from
-      // the DEVICE size rather than the raw formula value, because it checks the
-      // tube actually being inserted — "a 4.0 mm tube at ~12 cm" is the form the
-      // source states it in. Cuffed and uncuffed differ by 0.5 mm and therefore
-      // by 1.5 cm, so one combined row would be ambiguous about which tube it
-      // referred to; both are emitted and each sits beside its own size.
-      {
-        id: "depth_check_cuffed",
-        label: defineText("ett.out.depthCheckCuffed", "Depth cross-check, cuffed (3 × tube ID)"),
-        value: cuffedDevice * 3,
-        unit: "cm",
-        precision: 1,
-      },
-      {
-        id: "depth_check_uncuffed",
-        label: defineText(
-          "ett.out.depthCheckUncuffed",
-          "Depth cross-check, uncuffed (3 × tube ID)",
-        ),
-        value: uncuffedDevice * 3,
         unit: "cm",
         precision: 1,
       },
