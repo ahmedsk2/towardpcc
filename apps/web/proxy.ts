@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { FRAGMENT_LIFT_SHA256 } from "@/lib/fragment-lift";
 import { APEX_HOST, CANONICAL_HOST } from "@/lib/site-url";
 
 /**
@@ -55,7 +56,20 @@ function buildCsp(nonce?: string): string {
   const dev = process.env.NODE_ENV !== "production";
   const scriptSrc = (
     nonce
-      ? ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", dev ? "'unsafe-eval'" : ""]
+      ? [
+          "'self'",
+          `'nonce-${nonce}'`,
+          // The root layout's fragment-lift script is inline and carries no
+          // nonce — it cannot, because reading headers() there would force the
+          // twelve prerendered public routes to render dynamically. Without its
+          // hash the admin tier refuses it and logs a CSP violation on every
+          // page load; nothing breaks, since the script only acts on fragments
+          // containing "=" and admin URLs have none, but a violation that is
+          // always present teaches people to ignore the next one.
+          FRAGMENT_LIFT_SHA256.replace(/^/, "'").concat("'"),
+          "'strict-dynamic'",
+          dev ? "'unsafe-eval'" : "",
+        ]
       : ["'self'", "'unsafe-inline'", dev ? "'unsafe-eval'" : ""]
   )
     .filter(Boolean)

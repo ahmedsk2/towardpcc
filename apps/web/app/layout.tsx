@@ -1,3 +1,4 @@
+import { FRAGMENT_LIFT_SCRIPT } from "@/lib/fragment-lift";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -167,7 +168,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             actually bound to, has no such window at all. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){function l(){try{var h=location.hash;if(h&&h.length>1&&h.indexOf("=")>-1){window.__TPCC_FRAGMENT__=h;history.replaceState(null,"",location.pathname+location.search);window.dispatchEvent(new Event("tpcc:fragment"));}}catch(e){}}l();addEventListener("hashchange",l);})();`,
+            // Sourced from lib/fragment-lift.ts so proxy.ts can name its CSP
+            // hash against the SAME string — see that file for why the pair
+            // must not drift.
+            __html: FRAGMENT_LIFT_SCRIPT,
           }}
         />
         {/* Site-wide identity for search engines. Inline JSON-LD has no `src`,
