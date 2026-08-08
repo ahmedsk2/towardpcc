@@ -1465,3 +1465,62 @@ absolute claim, which is what stops the site overstating itself.
 Chosen over deferring, with the risk stated plainly: it changes how a live
 application on a shared patient-data host is built and served. See the
 conversion entry for what was actually done and how it was verified.
+
+### Production outage, 2026-08-08 — the compose cutover, and how it was undone
+
+**Roughly forty minutes of 503 on every route.** Caused by me, on a deliberate
+change the founder approved twice after the risk was stated. Recorded in full
+because the recovery took four wrong attempts before the actual fault was found,
+and the fault is not the one that looked obvious.
+
+**What was attempted.** Switching `build_pack` from `dockerfile` to
+`dockercompose` so that `read_only` and `tmpfs` — which Coolify's simple-mode
+allow-list silently discards — would finally be applied.
+
+**The hardening worked.** The build succeeded, the container started, and it came
+up with `ReadonlyRootfs true`, both tmpfs mounts, `cap_drop ALL` and
+`no-new-privileges`. That part had been de-risked beforehand by booting the live
+image read-only in a throwaway container, and that test was accurate.
+
+**Everything around it failed.** Three faults, none of them the read-only rootfs:
+
+1. **No Coolify network** on the service, so the app could not reach the shared
+   Postgres — `prisma:error Connection terminated due to connection timeout`, on
+   a loop.
+2. **No Traefik labels.** Coolify attaches routing labels to containers it
+   generates in dockerfile mode; it did not for this compose service.
+   `traefik.enable` was empty, so the proxy had nothing to route to. That is why
+   the symptom was 503 rather than an application error.
+3. **Flipping the build pack wipes `dockerfile_location`, and flipping back does
+   not restore it.** This is what turned a bad deploy into a long outage. Every
+   rollback attempt failed with `failed to read dockerfile: open Dockerfile: no
+such file or directory` and produced NO container at all, so the site went
+   from broken to absent.
+
+**What did not work, in order:** PATCHing `build_pack` back (config changed,
+nothing redeployed); the `/restart` endpoint (queued, container untouched);
+removing the container and redeploying (build failed, no container); `/start`
+(same). Four attempts, each plausible, none addressing the real fault.
+
+**What found it:** reading the deployment's own log through the API instead of
+inferring from container state. The error was one line and unambiguous. That
+should have been the FIRST step after the first failed rollback, not the fifth.
+
+**Two things this cost, worth stating.** Coolify's `status` field read
+`running:healthy` while the site was serving 503 from an unhealthy container,
+and later `exited:unhealthy` while no container existed — it was useless in both
+directions, exactly as this file already warned. And the rollback snapshot I
+captured beforehand (93 keys) contained `dockerfile_location`, so the fix was
+sitting in a file the whole time; I did not consult it until attempt five.
+
+**Standing conclusions.**
+
+- The compose file is kept, with a blunt warning header and this postmortem
+  inline. Do not switch the build pack again without first adding the network
+  and the Traefik labels.
+- **The gap is narrower than it looked.** Simple mode already applies `CapDrop
+[ALL]` and a non-root user — the two controls that matter most. Only
+  `read_only` and tmpfs are missing. That is not worth a second outage.
+- **When a deploy misbehaves, read the deployment log before touching anything
+  else.** Container state tells you that something is wrong; only the build log
+  tells you what.
