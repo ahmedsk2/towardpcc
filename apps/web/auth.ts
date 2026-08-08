@@ -211,9 +211,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
         const secondFactorOk = totpStep !== null || recoveryHash !== null;
 
-        // Computed on every path, not just the failing one, so the hashing cost
-        // is identical for a real and an unknown address.
-        const attemptedHash = saltedHash(email);
+        /**
+         * Computed on every path, not just the failing one, so the hashing cost
+         * is identical for a real and an unknown address.
+         *
+         * WRAPPED, AND THE HISTORY IS WHY. `saltedHash` throws in production
+         * when `SUBMISSION_IP_SALT` is missing or under 16 characters. Before
+         * the failed-login audit existed that only affected public form
+         * submissions; calling it here put it on the AUTHENTICATION path, so a
+         * mis-provisioned salt became 100% admin login failure — total lockout
+         * from a variable that has nothing to do with authentication.
+         *
+         * `LAUNCH-BLOCKERS.md` records an earlier proposed fix being REFUSED for
+         * exactly this, and this code reintroduced it. Caught 2026-08-08 by a
+         * probe that happened to pass a 14-character salt. Production carries 32
+         * and was never affected.
+         *
+         * So it degrades to a placeholder: the audit row loses the hash that
+         * correlates repeated attempts against one unknown address — a real but
+         * small loss — and the operator can still get in. Losing forensic detail
+         * is recoverable; being locked out of the platform is not.
+         */
+        let attemptedHash = "unavailable";
+        try {
+          attemptedHash = saltedHash(email);
+        } catch (error) {
+          logger.error(
+            { err: error },
+            "SUBMISSION_IP_SALT unusable — failed-login audit loses its correlation hash, login continues",
+          );
+        }
 
         if (!user || locked || !passwordOk || !secondFactorOk) {
           if (user && !locked) await bumpFailure(user.id);
@@ -276,9 +303,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
            * why. Failing here surfaces as a failed login instead, which is the
            * honest outcome.
            */
+          /**
+           * The same salt guard, and this one sits on the SUCCESS path — an
+           * unguarded throw here fails a login that has already passed both the
+           * password and the second factor. Found only because the first guard
+           * fixed the failure path and the login still would not complete.
+           *
+           * `ipHash` is optional on the session row precisely so it can be
+           * dropped: it is forensic detail for a revocation decision, not
+           * something authentication depends on.
+           */
+          let sessionIpHash: string | undefined;
+          try {
+            sessionIpHash = saltedHash(resolveClientIp(requestHeaders));
+          } catch {
+            // Already reported once per attempt by the guard above.
+          }
           const sessionId = await createSession({
             userId: u.id,
-            ipHash: saltedHash(resolveClientIp(requestHeaders)),
+            ipHash: sessionIpHash,
             userAgent: requestHeaders.get("user-agent")?.slice(0, 300) ?? undefined,
           });
           return { id: u.id, email: u.email, role: u.role, sid: sessionId };
