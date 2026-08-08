@@ -1,3 +1,5 @@
+import { buildFingerprint } from "@/lib/build-fingerprint";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -18,5 +20,18 @@ export const dynamic = "force-dynamic";
  * wedged process without a database outage causing a restart loop.
  */
 export function GET(): Response {
-  return Response.json({ status: "ok" });
+  /**
+   * The BODY is unchanged, deliberately — SPC-API-005 above still holds and the
+   * container healthcheck still reads `{"status":"ok"}`.
+   *
+   * The build fingerprint goes in a HEADER instead, and it is a digest rather
+   * than the commit itself, so this route still tells a stranger nothing about
+   * which version is running. See `lib/build-fingerprint.ts` for why a stale
+   * deploy is invisible to a content canary and why the comparison is done on
+   * digests.
+   */
+  return Response.json(
+    { status: "ok" },
+    { headers: { "x-build-fingerprint": buildFingerprint() } },
+  );
 }
