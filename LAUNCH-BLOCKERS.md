@@ -140,10 +140,12 @@ confirming at cutover, when it starts to matter.
       The `web` service image build (multi-stage Dockerfile) was not built in
       this pass — do that before staging deploy (P8). Note: dev machine is
       ARM64, so prod image builds must target the KSA host's architecture.
-- [ ] Pre-commit secret scanning deferred: `gitleaks protect --staged` needs a
-      local gitleaks binary this machine doesn't have. Secrets are caught in CI
-      (pinned, checksum-verified CLI). Install gitleaks locally by P5 (forms =
-      first real secrets risk) and add it to `.husky/pre-commit`.
+- [x] **Pre-commit secret scanning — DONE.** gitleaks 8.24.3 was installed
+      2026-08-07 (winget, hash-verified) and `.husky/pre-commit` runs
+      `gitleaks protect --staged --redact --no-banner`, blocking the commit on a
+      hit. Observed working on every commit through 2026-08-08. The hook still
+      warns rather than fails when the binary is absent, deliberately, so a fresh
+      clone is not bricked — CI remains the authority.
 - [x] **Database backup + tested restore drill (P8, prod-readiness HIGH)** —
       **DONE 2026-07-26.** `towardpcc` added to the Coolify nightly shared-postgres
       job (`0 3 * * *`), offsite copy verified in OCI Object Storage bucket
@@ -604,8 +606,14 @@ the restore drill re-run afterwards.
       it must search and display, on a database whose disk is already encrypted
       and whose app role is least-privilege. The honest mitigation is the
       24-month retention purge, which needs the scheduler below.
-- [ ] **SPC-DB-005** — the retention purge still has no scheduler, and must run
-      as `towardpcc_owner` because AuditLog is append-only to the app role.
+- [x] **SPC-DB-005 — scheduler created 2026-08-08.** Coolify task
+      `retention-purge` runs `node /app/purge/purge-retention.mjs --skip-audit`
+      daily at 03:00 in the app container. Verified against production with
+      `--dry-run`: 0 submissions and 0 expired sessions due, audit correctly
+      skipped. The `--skip-audit` half is the design, not a gap — AuditLog stays
+      append-only to the app role (SPC-DB-003), so purging it remains a
+      deliberate privileged action run as `towardpcc_owner`, never a nightly job
+      that would need DELETE granted to the application.
 - [ ] SPC-WEB-002 (`style-src 'unsafe-inline'` on the admin tier),
       SPC-API-002, SPC-TM-001/002/003, SPC-CON-009 (unpinned `dumb-init`),
       SPC-SUP-002 — see the report's remediation tiers.
