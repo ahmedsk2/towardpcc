@@ -85,6 +85,42 @@ scheduled purge skips.
 revocable: the adapter is not a dependency, it resolves `prisma.user` where this
 schema has `AdminUser`, and Auth.js does not support database sessions on the
 Credentials provider — which is what the JWT decision above already says. The
-table would have stayed permanently empty. The workable design is a JWT
-allow-list checked in the `jwt` callback; it is specced under SPC-TM-002 in
-`LAUNCH-BLOCKERS.md` and remains open.
+table would have stayed permanently empty.
+
+## Addendum, 2026-08-08 — the JWT is now allow-listed, so a session can be revoked
+
+The "JWT sessions" decision above stands, with one addition: the token is no
+longer sufficient on its own.
+
+`authorize()` mints a 256-bit random id, writes an `AdminSession` row holding
+only `sha256(id)`, and returns the id in the user object. The `jwt` callback —
+which runs on every `auth()` read, not only at sign-in — looks that row up and
+returns `null` when it is missing or past `expiresAt`. Sign-out deletes the row.
+Revoking a session is therefore deleting a row, effective on that session's next
+request.
+
+**This closes both halves of SPC-TM-002, and the second half is the less obvious
+one.** `@auth/core` re-signs the token with a fresh expiry on every session read,
+so a stateless JWT renews indefinitely for whoever holds the cookie; the 8-hour
+`maxAge` above never actually bit. `AdminSession.expiresAt` is written once at
+sign-in and nothing rewrites it, so the absolute limit is now real.
+
+**Why not the adapter, again, in one line:** it cannot work here, for the three
+reasons stated above — this is a hand-rolled allow-list precisely because the
+supported path does not exist for Credentials.
+
+**Verified against the installed packages rather than the documentation.**
+`next-auth/lib/index.js` builds a Request to the session action and calls `Auth()`
+with the same callbacks, so the check really does run per request.
+`@auth/core/lib/actions/session.js` guards its response with
+`if (token !== null)` and, in the `else` branch, calls `sessionStore.clean()` —
+so a refused token also has its cookie cleared.
+
+**Consequences.** One indexed lookup is added to every admin request; nothing
+public pays it, because `auth()` is reached only from `requireAdmin()` and the
+login page and `proxy.ts` never calls it. Tokens issued before this shipped carry
+no session id and are refused, so operators sign in once more after the deploy —
+accepting them would have left every pre-existing cookie permanently
+unrevocable. Revocation is operable from
+`packages/db/scripts/revoke-admin-sessions.mjs`, and rotating `AUTH_SECRET`
+remains the blunt instrument for signing everyone out at once.

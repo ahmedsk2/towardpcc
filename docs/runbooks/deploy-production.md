@@ -467,3 +467,50 @@ Run `migrate status` first — it reports pending migrations **and** validates t
 checksums of the applied ones, so it catches drift before you write anything.
 Swap `status` for `deploy` to apply. `node` is not installed on the host itself,
 only in containers; `python3` is.
+
+## Revoking an admin session
+
+Sessions are allow-listed server-side (SPC-TM-002): the JWT is only honoured
+while its `AdminSession` row exists and has not passed `expiresAt`. Revoking is
+deleting the row, and it takes effect on that session's next request — there is
+no cache and no propagation delay.
+
+```bash
+node --env-file=.env.local packages/db/scripts/revoke-admin-sessions.mjs --email you@example.com --dry-run
+node --env-file=.env.local packages/db/scripts/revoke-admin-sessions.mjs --email you@example.com
+node --env-file=.env.local packages/db/scripts/revoke-admin-sessions.mjs --all
+```
+
+Against production, run it the same way migrations run — a throwaway Node
+container on the `coolify` network, per the migration section above. Or straight
+from psql when that is faster:
+
+```bash
+sudo docker exec tjuvmq29ogsdoocz59qigcoc psql -U postgres -d towardpcc -c \
+  'DELETE FROM "AdminSession" WHERE "userId" = (SELECT id FROM "AdminUser" WHERE email = $$you@example.com$$);'
+```
+
+**This is not an account lock.** The password and TOTP secret are untouched, so
+the same person signs straight back in. Use it for a stolen laptop, a suspected
+token leak, or a departure where the account is being removed anyway. To lock an
+account rather than its sessions, that is a separate change to `AdminUser`.
+
+`AUTH_SECRET` rotation remains the blunt instrument — it invalidates every token
+at once without needing the database, which matters if the database is the thing
+you have lost confidence in.
+
+### Everyone signs in once more after the allow-list deploy
+
+Tokens minted before this shipped carry no session id, and the `jwt` callback
+refuses them rather than treating absence as permission. That is deliberate:
+accepting them would leave every pre-existing cookie unrevocable for its whole
+life, which is the bug being closed. Expect one extra login, once. It is not a
+fault.
+
+### Expired rows
+
+`isSessionValid` already refuses an expired row, so the scheduled purge
+(`purge-retention.mjs`, which now sweeps `AdminSession` where `expiresAt` has
+passed) is hygiene rather than a control. It runs under the app credential —
+`DELETE` on `"AdminSession"` is granted, unlike `"AuditLog"` where it is revoked
+by design — so it is covered by the ordinary `--skip-audit` job.

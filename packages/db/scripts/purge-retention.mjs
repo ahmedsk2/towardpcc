@@ -102,6 +102,26 @@ const TARGETS = [
     count: 'SELECT count(*)::int AS n FROM "AuditLog" WHERE "ts" < $1',
     remove: 'DELETE FROM "AuditLog" WHERE "ts" < $1',
   },
+  /**
+   * Expired admin sessions. `months: 0` means "cutoff is now", because this row
+   * carries its OWN absolute deadline rather than aging out of a retention
+   * window like the two above.
+   *
+   * Hygiene, not a control: `isSessionValid` already refuses an expired row, so
+   * nothing here decides whether anyone is logged in. Without it the table just
+   * grows by one row per login forever.
+   *
+   * Not `privileged` — the app role holds DELETE on "AdminSession" (granted
+   * explicitly in 20260808180000_admin_session_allowlist), unlike "AuditLog"
+   * where DELETE is revoked on purpose. So this runs in the scheduled
+   * `--skip-audit` job.
+   */
+  {
+    label: "expired admin sessions",
+    months: 0,
+    count: 'SELECT count(*)::int AS n FROM "AdminSession" WHERE "expiresAt" <= $1',
+    remove: 'DELETE FROM "AdminSession" WHERE "expiresAt" <= $1',
+  },
 ];
 
 const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
