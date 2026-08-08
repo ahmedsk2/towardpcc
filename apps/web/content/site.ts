@@ -686,7 +686,7 @@ export const site = {
       },
       {
         heading: "Our servers are in Saudi Arabia",
-        body: "The site is hosted on infrastructure located in Saudi Arabia, and anything the platform stores (for example a pilot request you choose to send us) stays within that hosting.\n\nRequests to the site travel through a global content-delivery and security network before they reach those servers. That network protects the site and keeps it fast, and it means that while your data is stored in Saudi Arabia, the request carrying it may be processed outside the Kingdom while in transit. We would rather say so than imply otherwise.\n\nThe calculators are unaffected: what you type into them never leaves your browser at all, so there is nothing to route anywhere.",
+        body: "The site is hosted on infrastructure located in Saudi Arabia, and anything the platform stores (for example a pilot request you choose to send us) is held within that hosting.\n\nRequests now reach those servers directly, through a load balancer in the same Saudi region. They used to pass through a global content-delivery network first, and that step is gone.\n\nEmail is the part that still travels. A message you send to the address on this page, and the short internal notification telling us it arrived, are both carried by a mail provider whose servers are outside the Kingdom. That notification names the kind of enquiry and a link for us to open — not your name, your address, or anything you wrote. We would rather say plainly that this one path leaves than round it off.\n\nThe calculators are unaffected by any of it: what you type into them never leaves your browser at all, so there is nothing to route anywhere.",
       },
       {
         heading: "We collect the minimum to run the service",
@@ -768,7 +768,7 @@ export const site = {
     // this very page, which is a live processor of every message a clinician
     // writes to us, and the one this page names for deletion requests.
     subProcessorsBody:
-      "We keep third parties to the minimum. Today they are three: Oracle Cloud Infrastructure, our hosting provider, in Saudi Arabia; Cloudflare, which routes and protects traffic to the site and therefore handles requests in transit; and a mail provider outside the Kingdom, which carries email sent to the address on this page and the internal notification telling us that something arrived. That notification names the kind of enquiry and nothing about the person who sent it. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
+      "We keep third parties to the minimum. Today they are three: Oracle Cloud Infrastructure, our hosting provider, in Saudi Arabia; Cloudflare, which answers the DNS lookups that point this domain at those servers, and which no longer carries or inspects the requests themselves; and a mail provider whose servers are outside the Kingdom, which carries both the email you send to the address on this page and the internal notification telling us that something arrived. That notification names the kind of enquiry and nothing about the person who sent it. We list the real ones here and update this page if that changes; we do not use advertising or profiling third parties.",
     deletionHeading: "Access, correction, and deletion",
     deletionBody:
       "You can ask us what we hold about you, correct it, or have it deleted, at any time. Email us and we will act on it. Calculator use leaves nothing to delete.",

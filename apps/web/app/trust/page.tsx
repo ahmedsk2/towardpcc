@@ -174,7 +174,7 @@ export default function TrustPage() {
 
           <Claim
             heading="Where your data is, stated precisely"
-            how="The database runs in Oracle Cloud's Riyadh region. Requests reach it through a content-delivery network, which is disclosed rather than glossed."
+            how="The database runs in Oracle Cloud's Riyadh region, and requests now reach it directly through a load balancer in that same region. The content-delivery network that used to sit in front is out of the path. Email still leaves, and that is disclosed rather than glossed."
           >
             <p>
               Anything the platform stores (a pilot request, a message you send us) is stored in
