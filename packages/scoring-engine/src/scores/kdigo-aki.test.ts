@@ -923,7 +923,7 @@ describe("kdigo-aki records its settled absences as settled", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("3.1.0");
+    expect(kdigoAki.version).toBe("3.2.0");
   });
 });
 
@@ -1055,5 +1055,87 @@ describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
   it("no longer describes the ≥ 4.0 mg/dL route as an unresolved deviation", () => {
     expect(notes).not.toMatch(/KNOWN DEVIATION/);
     expect(notes).not.toMatch(/a clinical decision this release does not take/i);
+  });
+});
+
+/**
+ * F4 — staging on the urine-output axis alone.
+ *
+ * KDIGO 2012 Rec 2.1.1 (official PDF, Kidney International Supplements
+ * 2012;2:19-36, read directly 2026-08-08) defines AKI as "any of the following"
+ * and its third bullet is "Urine volume <0.5 ml/kg/h for 6 hours" — naming no
+ * creatinine. Chapter 2.4 scopes the other requirement in terms: "staging
+ * requires reference to a baseline SCr when SCr criteria are used."
+ *
+ * These tests pin the behaviour AND the labelling. The labelling matters as
+ * much as the number: v3.0.0 removed "lower bound" wording from
+ * `stage_is_floor` because that flag can point downward, so the new signal must
+ * stay separate from it and must not imply a direction.
+ */
+describe("F4 — urine-output-only staging (no creatinine entered)", () => {
+  const stageOf = (values: Record<string, unknown>) => {
+    const outcome = kdigoAki.compute(values as never);
+    expect(outcome.ok, outcome.ok ? "" : JSON.stringify(outcome.errors)).toBe(true);
+    if (!outcome.ok) return new Map<string, number>();
+    return new Map(outcome.result.values.map((v) => [v.id, v.value]));
+  };
+  const age = { age: { value: 5, unit: "years" } };
+
+  it("stages oliguria with no creatinine at all — the patient F4 exists for", () => {
+    // <0.5 mL/kg/h for 12 h or more → Stage 2 on the urine-output row.
+    const out = stageOf({
+      ...age,
+      urine_output: { value: 0.2, unit: "mL/kg/h" },
+      uo_duration: { value: "12h-or-more" },
+    });
+    expect(out.get("kdigo_stage")).toBe(2);
+    expect(out.get("scr_axis_not_assessed"), "must be flagged as single-axis").toBe(1);
+  });
+
+  it("marks the creatinine axis assessed as soon as a creatinine is entered", () => {
+    const out = stageOf({
+      ...age,
+      scr: { value: 0.4, unit: "mg/dL" },
+      urine_output: { value: 0.2, unit: "mL/kg/h" },
+      uo_duration: { value: "12h-or-more" },
+    });
+    expect(out.get("kdigo_stage")).toBe(2);
+    expect(out.get("scr_axis_not_assessed")).toBe(0);
+  });
+
+  it("keeps the two flags independent — they answer different questions", () => {
+    // Rate below 0.5 with NO duration band: the urine-output axis is open, so
+    // stage_is_floor fires. The creatinine axis is separately unassessed.
+    const out = stageOf({ ...age, urine_output: { value: 0.2, unit: "mL/kg/h" } });
+    expect(out.get("stage_is_floor"), "an open Table 2 row").toBe(1);
+    expect(out.get("scr_axis_not_assessed"), "and no creatinine either").toBe(1);
+  });
+
+  it("does not invent an AKI stage from a normal urine output", () => {
+    // 1.0 mL/kg/h satisfies no Table 2 row at any window. Stage 0 here means
+    // "not met on the criteria entered" — and the new flag is what stops that
+    // reading as a negative creatinine axis nobody measured.
+    const out = stageOf({
+      ...age,
+      urine_output: { value: 1.0, unit: "mL/kg/h" },
+      uo_duration: { value: "24h-or-more" },
+    });
+    expect(out.get("kdigo_stage")).toBe(0);
+    expect(out.get("scr_axis_not_assessed")).toBe(1);
+  });
+
+  it("still reaches Stage 3 on RRT with no creatinine", () => {
+    const out = stageOf({ ...age, rrt: { value: true } });
+    expect(out.get("kdigo_stage")).toBe(3);
+    expect(out.get("scr_axis_not_assessed")).toBe(1);
+  });
+
+  it("does not fire the un-baselined >=4.0 route when there is no creatinine", () => {
+    // The guard that would throw on `scr >= 4` with scr undefined. Anuria for
+    // 12 h or more is Stage 3 on its own row, so the stage is reached without
+    // the creatinine route being consulted at all.
+    const out = stageOf({ ...age, anuria: { value: true }, uo_duration: { value: "12h-or-more" } });
+    expect(out.get("kdigo_stage")).toBe(3);
+    expect(out.get("scr_axis_not_assessed")).toBe(1);
   });
 });
