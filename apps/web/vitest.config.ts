@@ -40,6 +40,15 @@ export default defineConfig({
         "lib/auth/lockout.ts",
         "lib/auth/totp.ts",
         "lib/auth/password.ts",
+        // The session allow-list is what makes an admin session revocable
+        // (SPC-TM-002), so it belongs on the same floor as the auth crypto
+        // beside it. `session-store.ts` earns its place specifically for the
+        // `catch` that denies on a database failure — that one branch IS the
+        // fail-closed guarantee, and an untested version of it would let an
+        // unreachable database disable revocation with every page still
+        // rendering.
+        "lib/auth/session-rules.ts",
+        "lib/auth/session-store.ts",
         "lib/rate-limit.ts",
         "lib/submission-guards.ts",
       ],

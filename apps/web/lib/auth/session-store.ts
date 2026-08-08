@@ -1,12 +1,16 @@
 import "server-only";
 import { db } from "@towardpcc/db";
+// Relative, not the `@/` alias: vitest resolves only the `server-only` alias, so
+// every module under the coverage gate stays importable from a unit test. The
+// other gated modules avoid the alias for the same reason.
+import { logger } from "../logger";
 import {
   hashSessionId,
   isExpired,
   mintSessionId,
   SESSION_MAX_AGE_MS,
   shouldTouch,
-} from "@/lib/auth/session-rules";
+} from "./session-rules";
 
 /**
  * The server-side allow-list that makes an admin session revocable (SPC-TM-002).
@@ -94,26 +98,24 @@ export async function isSessionValid(sessionId: string, now: Date = new Date()):
   }
 }
 
-/** Sign-out. Idempotent: an already-deleted row is a success, not an error. */
-export async function revokeSession(sessionId: string): Promise<void> {
-  await db.adminSession
-    .deleteMany({ where: { tokenHash: hashSessionId(sessionId) } })
-    .catch(() => undefined);
-}
-
-/** Revoke every session for one operator — the "log them out everywhere" lever. */
-export async function revokeAllSessionsFor(userId: string): Promise<number> {
-  const { count } = await db.adminSession.deleteMany({ where: { userId } });
-  return count;
-}
-
 /**
- * Drop rows whose absolute expiry has passed.
+ * Sign-out. Idempotent: an already-deleted row is a success, not an error.
  *
- * Expired rows are already refused by `isSessionValid`, so this is hygiene
- * rather than a control — without it the table grows one row per login forever.
+ * THE FAILURE IS SWALLOWED BUT NOT SILENT, and the distinction is the point.
+ * Sign-out must complete either way — leaving an operator staring at an error
+ * page mid-logout is worse than the alternative. But if the DELETE fails, the
+ * row survives and a captured cookie stays valid for up to eight hours while the
+ * UI reports a clean sign-out. That is a control failing quietly, which is the
+ * exact shape this project keeps finding in its own guards, so it is logged at
+ * error like the audit-write failure in `auth.ts`.
  */
-export async function purgeExpiredSessions(now: Date = new Date()): Promise<number> {
-  const { count } = await db.adminSession.deleteMany({ where: { expiresAt: { lte: now } } });
-  return count;
+export async function revokeSession(sessionId: string): Promise<void> {
+  try {
+    await db.adminSession.deleteMany({ where: { tokenHash: hashSessionId(sessionId) } });
+  } catch (error) {
+    logger.error(
+      { err: error },
+      "SESSION REVOKE FAILED — sign-out reported success but the session row survives",
+    );
+  }
 }

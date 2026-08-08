@@ -327,10 +327,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * only honoured while its row exists and has not passed its absolute expiry.
      * Deleting the row logs that session out on its very next request.
      *
-     * Returning `null` invalidates the session — verified against this Auth.js
-     * version rather than assumed, by replaying a captured cookie after its row
-     * was deleted and watching the request land on the login page
-     * (`e2e/admin-session-revocation.spec.ts`).
+     * Returning `null` invalidates the session. Verified against the installed
+     * `@auth/core` 0.41.3 rather than assumed: `lib/actions/session.js` guards
+     * its response with `if (token !== null)` and, in the `else` branch, calls
+     * `sessionStore.clean()` — so a refused token is also stripped of its
+     * cookie. `e2e/admin-session-revocation.spec.ts` then proves it end to end
+     * by replaying a captured cookie after sign-out.
      *
      * A TOKEN WITH NO `sid` IS REFUSED. That is not a hypothetical: every
      * session issued before this shipped is exactly that shape, so the deploy

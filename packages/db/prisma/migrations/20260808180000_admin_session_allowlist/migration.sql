@@ -27,9 +27,17 @@ CREATE INDEX "AdminSession_userId_idx" ON "AdminSession"("userId");
 -- the expired-row sweep
 CREATE INDEX "AdminSession_expiresAt_idx" ON "AdminSession"("expiresAt");
 
--- CASCADE is correct here and differs from the AuditLog relation on purpose:
--- a deleted operator should lose their sessions, whereas their audit history
--- must survive them (that FK is pinned RESTRICT for exactly that reason).
+-- CASCADE differs from the AuditLog relation on purpose: a deleted operator
+-- should lose their sessions, whereas their audit history must survive them
+-- (that FK is pinned RESTRICT for exactly that reason).
+--
+-- In practice this cascade is close to unreachable, and that is worth knowing
+-- rather than discovering. AuditLog's RESTRICT refuses the DELETE first, and
+-- every login writes an audit row, so any operator who has ever signed in cannot
+-- be deleted at all. The action is declared for correctness, not because it
+-- fires — do not read it as the mechanism that cleans up after a removed
+-- account. Reaching it means clearing the audit trail first, which is itself
+-- blocked for the app role.
 ALTER TABLE "AdminSession" ADD CONSTRAINT "AdminSession_userId_fkey"
     FOREIGN KEY ("userId") REFERENCES "AdminUser"("id")
     ON DELETE CASCADE ON UPDATE CASCADE;
