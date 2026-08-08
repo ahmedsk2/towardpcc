@@ -105,6 +105,18 @@ fetch the live site. They assert production against published claims and run on
 a daily cron, never on a PR. CI additionally runs e2e, `pnpm audit`, gitleaks,
 Lighthouse (warn-only) and the container build.
 
+**To run e2e yourself — and while GitHub Actions billing is off, someone has
+to — the command is `pnpm --filter @towardpcc/web test:e2e`.** `npx playwright
+test` from the repo root does NOT work: the binary is a dependency of
+`apps/web`, not the root, and the invocation fails with `'playwright' is not
+recognized`. That failure is worth knowing about because of HOW it fails. Run as
+`npx playwright test > log 2>&1; echo $?; tail log` and the trailing `tail`
+supplies the exit status, so the run reports **0 having executed nothing at
+all** — the same shape as the `pnpm gate | tail` trap above, and it was fallen
+into on 2026-08-08. Read the line count or the `N passed` line, never the exit
+code alone. A real run prints `Running 126 tests using 1 worker`; five specs
+skip unless `E2E_DATABASE_URL` points at a throwaway Postgres.
+
 ## Production
 
 - **The host is shared with other live applications, one of which holds real
@@ -126,6 +138,18 @@ Lighthouse (warn-only) and the container build.
   thirty seconds after a merge shows the previous commit and means nothing.
   **Wait ~5 minutes, then check.** Every "dropped deploy" recorded here was that
   mistake, followed by a manual deploy of the same commit that then took credit.
+- **Merging N PRs back to back queues N builds, and every one of them checks out
+  the CURRENT HEAD, not the commit that triggered it.** So a batch of merges is
+  SAFE — production never serves an older commit partway through — but only the
+  last build does any new work, and `~5 minutes` becomes `~5 minutes per queued
+build`. Measured twice on 2026-08-08: six merges queued four deployments, and
+  the queue was observed rewriting a pending entry from `f63ce16` to the newer
+  `da8cbbc` before building it; two merges later queued two, both already
+  showing HEAD. **The wrong inference to draw is that a batch rolls production
+  backward** — this file nearly recorded that, on the strength of the queue
+  listing alone, before the poll trace showed the rewrite. It does not.
+  `check:integrity` will read STALE for the whole drain, which is correct rather
+  than a failure; wait for the queue to empty before believing it.
 - **Prefer `pnpm check:integrity` over the tag check.** Since 2026-08-08 the
   canary asserts the DEPLOYED COMMIT, not only page content: `/api/v1/health`
   publishes a truncated `sha256(SOURCE_COMMIT)` and the script compares it with
