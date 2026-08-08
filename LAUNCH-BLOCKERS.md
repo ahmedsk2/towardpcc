@@ -209,8 +209,13 @@ Deploy by hand only when a deployment genuinely reports `failed`. Coolify's
 `running:healthy` over a stale container and `running:unhealthy` over one Docker
 and both probes called healthy.
 
-- [ ] **Still worth doing:** teach `scripts/check-integrity.mjs` to assert the
-      deployed commit, not only page content.
+- [x] **The canary asserts the deployed commit**, 2026-08-08. `/api/v1/health`
+      publishes `x-build-fingerprint` — a truncated `sha256(commit)`, NOT the
+      commit, because that route deliberately says almost nothing (SPC-API-005)
+      and a SHA is exactly the precise version string it had one removed from.
+      The canary recomputes the digest from the SHA it checked out and compares.
+      Skips rather than fails when no expected SHA is available, so a manual run
+      raises no false alarm.
 
 A stale-but-healthy deploy is exactly the failure a content canary cannot see,
 and the one genuine 2026-08-03 failure went unnoticed until someone compared

@@ -1,4 +1,5 @@
 /* global process, console, fetch */
+import { createHash } from "node:crypto";
 /**
  * Integrity canary (TM-012).
  *
@@ -300,6 +301,55 @@ async function checkSecurityHeaders() {
   );
 }
 
+/**
+ * The DEPLOYED COMMIT, which is the one failure every other check here is blind
+ * to.
+ *
+ * A stale-but-healthy deploy serves the old pages perfectly. Every assertion
+ * above passes, because the content it asserts on is still there — it is simply
+ * the PREVIOUS content, and nothing in a content canary can tell the difference.
+ * That is not hypothetical: on 2026-08-03 a deploy genuinely failed and went
+ * unnoticed until someone compared image tags by hand.
+ *
+ * The site publishes `sha256(commit)` truncated rather than the commit, because
+ * `/api/v1/health` deliberately says almost nothing (SPC-API-005) and a commit
+ * SHA is exactly the precise version string that route had one removed from it.
+ * So this recomputes the expected digest from the SHA this workflow checked out
+ * and compares digests. A stranger holding the published value learns nothing.
+ *
+ * SKIPS RATHER THAN FAILS when it has no expected SHA to compare against —
+ * running the script by hand from a laptop is a legitimate use and should not
+ * report a false alarm. In CI, `GITHUB_SHA` is always set.
+ */
+async function checkDeployedCommit() {
+  const expectedSha = process.env.GITHUB_SHA ?? process.env.EXPECTED_COMMIT;
+  const res = await fetch(`${HOST}/api/v1/health`, { redirect: "manual" });
+  const published = res.headers.get("x-build-fingerprint") ?? "";
+
+  if (!expectedSha) {
+    record(
+      "deployed commit",
+      true,
+      `origin reports ${published || "no fingerprint"}; no expected SHA to compare`,
+      "Set GITHUB_SHA (CI does) or EXPECTED_COMMIT to turn this into a real check. Skipped rather than failed so a manual run does not raise a false alarm.",
+    );
+    return;
+  }
+
+  const expected = createHash("sha256").update(expectedSha.trim()).digest("hex").slice(0, 16);
+  const ok = published === expected;
+  record(
+    "deployed commit",
+    ok,
+    ok
+      ? `matches the checked-out commit (${expected})`
+      : `origin serves ${published || "no fingerprint"}, expected ${expected}`,
+    ok
+      ? "Production is running the commit this workflow checked out."
+      : "PRODUCTION IS STALE, or a deploy failed silently. The rolling update keeps the OLD container serving until the new one is healthy, so the site looks fine and every content check above passes. Compare `docker ps` image tag against origin/main, and redeploy only if a deployment genuinely FAILED.",
+  );
+}
+
 const CHECKS = [
   checkCalculatorPages,
   checkPrivacyClaims,
@@ -307,6 +357,7 @@ const CHECKS = [
   checkEdgeInjectedScripts,
   checkApiSurface,
   checkSecurityHeaders,
+  checkDeployedCommit,
 ];
 
 /**
