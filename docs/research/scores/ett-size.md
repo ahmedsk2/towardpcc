@@ -162,6 +162,25 @@ roughly **1–2 years up to ~10–12 years**. Below ~1 year, switch to the neona
 weight/GA table (branch C). Above ~12 years, use adult sizing (≈ 7.0–7.5 mm
 female, 7.5–8.0 mm male) rather than extrapolating the formula.
 
+**The lower guard is enforced, not advisory (implementation v1.1.0,
+2026-08-08).** The calculator accepted age 0 until then and returned uncuffed
+4.0 mm — for a newborn whose true size is 3.0–3.5 mm. The formulas do not merely
+lose accuracy below 1 year, they run in the **over-sizing** direction, which is
+the direction that injures a subglottis. Ages below 1 year are now refused so
+the reader is sent to branch C rather than handed a plausible wrong number.
+
+**Rounding to a manufactured size, and why ties go down.** Tubes exist only in
+0.5 mm steps, so a raw formula value names a real device only by accident:
+`age/4 + 3.5` lands exactly between two sizes at **every odd whole year** (1 y →
+3.75, 3 y → 4.25, 5 y → 4.75), and a fractional age misses more often still
+(7.5 y → 5.375). The implementation rounds **half down**, to the smaller tube.
+That is not an arbitrary tie-break — it is the rule that reproduces the sizes
+these formulas are taught alongside (1 y cuffed 3.5 / uncuffed 4.0; 3 y cuffed
+4.0 / uncuffed 4.5; 5 y cuffed 4.5), all of which rounding half up would
+contradict. It also matches the asymmetry of the two errors: a tube 0.5 mm small
+is exchanged or tolerated with a larger leak; one 0.5 mm large is the mechanism
+of subglottic injury.
+
 ---
 
 ## Worked examples (each derived from the cited formula)
@@ -301,7 +320,10 @@ risk stratum.
   neonatal weight/GA table (branch C); above ~12 y use adult sizing. Cole's
   `age/4 + 4` tends to **over-size** in the youngest children in its range.
 - **Neonatal / prematurity regime is different.** The /4 formulas ignore weight
-  and gestation and collapse at age 0. Newborn sizing is weight/GA-based, and
+  and gestation and collapse at age 0, which is why the calculator refuses ages
+  below 1 year outright rather than returning the collapsed value (v1.1.0; it
+  previously returned uncuffed 4.0 mm against a true 3.0–3.5). Newborn sizing is
+  weight/GA-based, and
   neonatal depth rules (`weight + 6`, the GA table, nasal–tragus + 1 cm) are all
   **inaccurate at the extremes**, over-inserting in ELBW (< 750 g) infants —
   confirm with radiograph.

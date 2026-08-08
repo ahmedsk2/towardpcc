@@ -11,6 +11,10 @@ const duracher = {
     "Duracher C, et al. Evaluation of cuffed tracheal tube size predicted using the Khine formula. Paediatr Anaesth. 2008.",
   pmid: "18184241",
 };
+// Device-size rounding and the 3 x ID depth cross-check both come from here.
+const statpearls = {
+  citation: "Endotracheal Tube. StatPearls [Internet]. NCBI Bookshelf NBK539747.",
+};
 
 describeScore(ettSize, (ctx) => {
   // Research Worked example 1 — 4-year-old.
@@ -70,20 +74,83 @@ describeScore(ettSize, (ctx) => {
     ],
   );
 
-  // Newborn edge (age 0): the formulas collapse to fixed values (cuffed 3.5,
-  // uncuffed 4.0, depth 12) — the documented reason a neonatal weight/GA table
-  // is used instead below ~1 y. Verifies the min-bound value still computes.
+  // TIE CASE, and the one that validates the whole rounding rule. Every ODD
+  // whole year lands exactly between two manufactured sizes, so the tie
+  // direction decides half of all whole-year entries. At 1 y the formulas give
+  // cuffed 3.75 and uncuffed 4.25; the conventionally taught tubes for a
+  // 1-year-old are 3.5 cuffed and 4.0 uncuffed. Only rounding half DOWN
+  // reproduces them — half up would return 4.0 and 4.5 and contradict both.
+  // This is also the min bound, so it pins the youngest accepted age.
   ctx.workedExample(
     {
-      ...cole,
+      ...statpearls,
       locator:
-        "domain guard: age 0 collapses to cuffed 3.5 / uncuffed 4.0 / depth 12 (research §C, Domain guards)",
+        "round to nearest available 0.5 mm; ties down reproduce the taught 1 y sizes (cuffed 3.5, uncuffed 4.0)",
     },
-    { age: { value: 0, unit: "years" } },
+    { age: { value: 1, unit: "years" } },
     [
-      { id: "cuffed_id", value: 3.5 },
-      { id: "uncuffed_id", value: 4.0 },
-      { id: "depth_at_lips", value: 12 },
+      { id: "cuffed_id", value: 3.75 },
+      { id: "cuffed_device_id", value: 3.5 },
+      { id: "uncuffed_id", value: 4.25 },
+      { id: "uncuffed_device_id", value: 4.0 },
+      { id: "depth_at_lips", value: 12.5 },
+    ],
+  );
+
+  // Second tie, at 3 y: cuffed 4.25 -> 4.0 and uncuffed 4.75 -> 4.5, again the
+  // conventionally taught pair. Confirms the rule is not a coincidence at 1 y.
+  ctx.workedExample(
+    { ...statpearls, locator: "3 y ties resolve down to the taught cuffed 4.0 / uncuffed 4.5" },
+    { age: { value: 3, unit: "years" } },
+    [
+      { id: "cuffed_device_id", value: 4.0 },
+      { id: "uncuffed_device_id", value: 4.5 },
+    ],
+  );
+
+  // Finding F1 verbatim: the audit's two examples of sizes that do not exist as
+  // devices. 7.5 y produced "cuffed 5.4 mm" and 18 months produced "3.9 mm".
+  // The raw formula values are unchanged and still shown; the device rows are
+  // what a clinician reaches for.
+  ctx.workedExample(
+    {
+      ...statpearls,
+      locator: "F1: 7.5 y raw cuffed 5.375 ('5.4 mm') is not a device; nearest real size is 5.5",
+    },
+    { age: { value: 7.5, unit: "years" } },
+    [
+      { id: "cuffed_id", value: 5.375 },
+      { id: "cuffed_device_id", value: 5.5 },
+      { id: "uncuffed_id", value: 5.875 },
+      { id: "uncuffed_device_id", value: 6.0 },
+    ],
+  );
+
+  ctx.workedExample(
+    {
+      ...statpearls,
+      locator:
+        "F1: 18 months raw cuffed 3.875 ('3.9 mm') is not a device; nearest real size is 4.0",
+    },
+    { age: { value: 18, unit: "months" } },
+    [
+      { id: "cuffed_device_id", value: 4.0, tolerance: 1e-9 },
+      { id: "uncuffed_device_id", value: 4.5, tolerance: 1e-9 },
+    ],
+  );
+
+  // Finding F9: the 3 x ID cross-check, computed from the DEVICE size because
+  // it checks the tube actually inserted. At 4 y the uncuffed device is 5.0 mm,
+  // so 3 x 5.0 = 15.0 cm against age/2 + 12 = 14 cm — agreement within the ~1 cm
+  // the formula text claims. The cuffed tube is one step smaller and therefore
+  // 1.5 cm shallower, which is why the two are emitted separately.
+  ctx.workedExample(
+    { ...statpearls, locator: "F9: depth cross-check = tube ID x 3 (a 4.0 mm tube at ~12 cm)" },
+    { age: { value: 4, unit: "years" } },
+    [
+      { id: "depth_at_lips", value: 14 },
+      { id: "depth_check_cuffed", value: 13.5 },
+      { id: "depth_check_uncuffed", value: 15.0 },
     ],
   );
 
@@ -93,6 +160,24 @@ describeScore(ettSize, (ctx) => {
   ctx.rejectsImplausible(
     "an age beyond the pediatric formula domain (use adult sizing)",
     { age: { value: 20, unit: "years" } },
+    { inputId: "age", code: "out-of-range" },
+  );
+
+  // Finding F2. Age 0 used to COMPUTE, returning uncuffed 4.0 mm for a newborn
+  // who takes 3.0-3.5 — the score over-sizing exactly where over-sizing does
+  // the damage, and contradicting its own notes, which have always said
+  // sub-1-year sizing is weight/gestational-age based and not computed here.
+  ctx.rejectsImplausible(
+    "a newborn, where these formulas over-size and neonatal weight/GA sizing applies instead",
+    { age: { value: 0, unit: "years" } },
+    { inputId: "age", code: "out-of-range" },
+  );
+
+  // The same refusal reached through the months path, since that is how an
+  // infant's age is actually entered. 6 months is the audit's F2 example.
+  ctx.rejectsImplausible(
+    "a 6-month-old entered in months (the F2 case: previously returned 3.6/4.1 mm)",
+    { age: { value: 6, unit: "months" } },
     { inputId: "age", code: "out-of-range" },
   );
 });
