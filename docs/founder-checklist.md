@@ -165,3 +165,198 @@ Losing it costs about an hour of re-seeding a new admin over an SSH tunnel — n
 the account, and not the platform. So this is housekeeping, not an emergency. The
 earlier entry calling admin lockout "unrecoverable" was wrong and has been
 corrected.
+
+---
+
+# Revision 2026-08-08 — what needs you now
+
+In priority order. The first one blocks everything else.
+
+## 1. GitHub Actions billing — BLOCKING, and it is silent
+
+CI stopped mid-session. Every job on every pull request now fails instantly with:
+
+> The job was not started because recent account payments have failed or your
+> spending limit needs to be increased.
+
+Last green run 22:51 on 2026-08-07; the next two runs, 04:36 and 04:42 on
+2026-08-08, failed before executing a line. Nothing in the code changed between
+them.
+
+**Fix:** GitHub → Settings → Billing & plans → check the payment method and the
+Actions spending limit.
+
+**Why it matters more than it looks.** Push-to-deploy runs through a Coolify
+webhook, which is entirely independent of GitHub Actions — so `main` still
+deploys to production even with CI dead. The safety net is gone while the
+delivery pipe stays open. Do not merge anything until this is fixed.
+
+Four pull requests are waiting on it, all reviewed and green locally:
+
+| PR  | What                                                                            |
+| --- | ------------------------------------------------------------------------------- |
+| #65 | Session revocation (SPC-TM-002) — closes the last security launch blocker       |
+| #66 | Deployed OCI region verified from instance metadata                             |
+| #67 | Hero mesh payload measurement (documentation)                                   |
+| #38 | Dependabot dev-dependencies — held deliberately, see the TypeScript/ESLint pins |
+
+## 2. Preview deployments — checked, and there is nothing to fix
+
+I flagged this as a live risk. **It is not, and the earlier wording overstated
+it.** Read from Coolify's own database rather than its API, which does not expose
+the toggle:
+
+```
+is_auto_deploy_enabled | is_preview_deployments_enabled
+         t             |               f
+```
+
+Preview deployments are **off**. Nothing is writing to production from a preview
+and nothing has.
+
+What remains is dormant rather than active: Coolify keeps a preview copy of every
+variable, and the preview `DATABASE_URL` holds the **same credential and the same
+database** as production. That is only a landmine if previews are ever switched
+on.
+
+**So the rule is: if you enable preview deployments, give them their own database
+first** — `towardpcc_preview` with its own role in the same container. Do not
+enable them and fix the variable afterwards; the first preview build would reach
+live submissions, audit rows and admin accounts before anyone noticed.
+
+## 3. Single-region quota — DONE 2026-08-08
+
+Applied. No action needed from you; recorded here so the control is not a
+surprise later.
+
+**What was found first.** The tenancy is subscribed to exactly one region,
+`me-riyadh-1`, which is also the home region — so there was nothing outside KSA
+to clean up, and a quota scoped to other regions could not affect anything
+running. `Administrators` has exactly one member (you), so there were no stray
+admins either.
+
+**What was applied.** A quota named `ksa-data-residency` in the root compartment,
+zeroing ten data-bearing families — analytics, block-storage, compute,
+container-engine, database, filesystem, load-balancer, object-storage, streaming,
+vcn — in every region other than `me-riyadh-1`:
+
+```
+zero <family> quotas in tenancy where request.region != me-riyadh-1
+```
+
+It has no effect today by design. It exists so that subscribing to a second
+region does not silently permit resources there, and OCI never allows
+unsubscribing once a region is added — which is why this is worth having before
+it is needed rather than after.
+
+**Verified rather than assumed**, because a wrong `!=` would have zeroed
+production's own region:
+
+| limit in me-riyadh-1                                 | value |
+| ---------------------------------------------------- | ----- |
+| `standard-a1-core-count` (the shape production runs) | 41    |
+| `standard-a1-memory-count`                           | 277   |
+| `object-storage` bucket-count                        | 10000 |
+
+Unchanged. To remove it — which should be a deliberate decision to process
+outside KSA, not a convenience:
+`oci limits quota delete --quota-id <id>`.
+
+**One thing this does NOT control, and you should know it.** The OCI API key on
+the development laptop belongs to your `Administrators` user. It can subscribe to
+a new region, and it can reach the co-tenant application that holds real patient
+data. The quota constrains what can be created; it does not constrain that key.
+A narrower user for day-to-day automation is worth doing at the same time as the
+load-balancer certificate user below.
+
+## 4. DNS cutover — mechanically ready, blocked on ONE dated risk
+
+Re-verified 2026-08-08, so this is current rather than inherited.
+
+**The edge works.** `curl --resolve www.towardpcc.com:443:145.241.110.213`
+returns **HTTP 200** from outside the network — so the load balancer is publicly
+reachable and serving, independently of Cloudflare. Its certificate is a valid
+Let's Encrypt cert.
+
+**The DNS side is a two-field change.** Every record currently points at the host
+`145.241.105.239`, proxied through Cloudflare. Cutover means the apex A record
+becomes `145.241.110.213` with proxying **off**; `www` is a CNAME to the apex and
+follows automatically. I hold a Cloudflare token that can make that edit.
+
+Note the zone also carries nine other subdomains on the same host — `db`,
+`deploy`, `endorse`, `mnm`, `mylibrary`, `next`, `stg-mylibrary`, `uptime`. Those
+are the co-tenant applications and **must not be touched**. Only the apex and
+`www` move.
+
+### The blocker: 80 days, and nothing renews it
+
+The load balancer's certificate expires **2026-10-27** — 80 days from today — and
+nothing renews it. Today that is harmless because the path serves nobody. **The
+moment DNS points at it, that becomes a dated outage** with no automation behind
+it.
+
+That was a deliberate call, not an oversight: automating renewal means an OCI API
+key with load-balancer write access living on a host that also runs an
+application holding real patient data. The repo's position is that the trade is
+worth making _at_ cutover and not before. Cutting over first would take the risk
+without taking the mitigation.
+
+### Why I have not done it, even though I can
+
+I have the access and the mechanics are verified. Three things say wait:
+
+Renewal is not automated, and 80 days is short enough to matter.
+
+**CI is down** (item 1), and the residency copy rewrite has to ship in the _same
+deploy_ as the cutover — `privacy-claims.test.ts` fails the build if the claim
+goes unqualified early. Right now that deploy cannot be verified.
+
+Cutover is effectively irreversible inside the propagation window, so it wants a
+green safety net, not a red one.
+
+### The order, when you want it done
+
+1. Create a **dedicated OCI user** with a policy scoped to the load balancer's
+   certificate only — explicitly not the `Administrators` key currently on the
+   laptop. I can create both.
+2. Automate renewal with it and force one renewal to prove it works.
+3. Fix CI (item 1).
+4. Rewrite the residency copy and cut DNS **in that order, same day**.
+5. Re-run `pnpm check:residency` and confirm the daily canary is green on the new
+   path.
+
+**Two exceptions survive the cutover**, so ADR-0004 does not become unqualified:
+MX is still on SiteGround, and the operator notification relays through a US
+host.
+
+Say the word and I will do steps 1, 2, 4 and 5 — step 3 is yours.
+
+## 5. Read-only container filesystem — decision, then a two-minute check
+
+Measured and ready, not applied. Coolify already carries
+`--cap-drop=ALL` in the application's custom Docker run options, so this is
+appending to a field that already exists:
+
+```
+--read-only --tmpfs /tmp:size=64m --tmpfs /app/apps/web/.next/cache:uid=100,gid=101,mode=0700,size=64m
+```
+
+`uid=100,gid=101` are the `app` user's ids in the image and are **not optional** —
+a root-owned tmpfs is as unwritable as the read-only layer under it.
+
+**Why I did not just apply it.** The second mount exists because without it every
+optimised image request throws `ENOENT` on `.next/cache` while `/api/v1/health`
+still returns 200 and the container still reports healthy. That silent shape is
+exactly what fooled me once already this session. I verified the public paths
+recover with the mount, but I could not verify the **authenticated** admin
+surface — the admin server actions call `revalidatePath`, which targets the same
+cache directory, and I have no admin credentials.
+
+**So:** apply it, then log in once and change a submission's status. If that
+works, it is done. If anything errors, remove the two `--tmpfs` flags and the
+`--read-only` flag and redeploy — it reverts cleanly.
+
+## Still open from the earlier revision
+
+Counsel review of the legal pages, the 72-hour PDPL breach clock and its hour-60
+default, two independent validators, and NDGP registration. Unchanged.
