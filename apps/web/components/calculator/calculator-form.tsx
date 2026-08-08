@@ -10,6 +10,7 @@ import type {
 import { fromCanonical, getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { roundInward } from "@/lib/round-inward";
 import { CompositionPanel, splitComposition } from "./composition-panel";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
@@ -777,17 +778,33 @@ function InputField({
    * Converted, then rounded to the precision the bound actually carries —
    * `fromCanonical` on 0.01 units gives 10.000000000000002 milliunits, and a
    * plausibility bound printed to sixteen digits reads like a bug.
+   *
+   * ROUNDING GOES INWARD, AND THAT DIRECTION IS THE WHOLE POINT. Corrected
+   * calcium declares 2.0–10.0 mg/dL, which converts to 0.998004–4.99002 mmol/L
+   * and used to print at exactly that width. The obvious tidy-up is "1.0–5.0",
+   * and it is wrong: 5.0 mmol/L is ABOVE the real ceiling, so the hint would
+   * promise a value validation then rejects — the field would be telling the
+   * clinician to enter something it refuses. So the lower bound rounds UP and
+   * the upper bound rounds DOWN. The printed range is always a subset of the
+   * accepted one, never a superset, and a hint can only ever understate what
+   * the field takes.
+   *
+   * Precision is whichever of 3 decimal places or 3 significant figures keeps
+   * MORE of the value, because neither alone survives the full spread of bounds
+   * in the registry: 3 dp alone flattens a 0.0001 ceiling to 0, and 3 sig figs
+   * alone drags a 1234 ceiling down to 1230. Taking the tighter-to-true of the
+   * two handles both, and still collapses 10.000000000000002 to 10.
    */
   const selectedUnit = input.type === "numeric" ? (field.unit ?? input.unit.canonical) : "";
-  const bound = (v: number) => {
+  const bound = (v: number, direction: "up" | "down") => {
     if (input.type !== "numeric") return v;
     const converted = fromCanonical(input.unit, v, selectedUnit);
     if (converted === null) return v;
-    return Number(converted.toPrecision(6));
+    return roundInward(converted, direction);
   };
   const range =
     input.type === "numeric"
-      ? `${bound(input.min)}–${bound(input.max)}${selectedUnit ? ` ${selectedUnit}` : ""}`
+      ? `${bound(input.min, "up")}–${bound(input.max, "down")}${selectedUnit ? ` ${selectedUnit}` : ""}`
       : null;
 
   const hint = error ? (
