@@ -218,7 +218,7 @@ async function checkStagedEdgeCertificate() {
     `${daysLeft} days remaining`,
     daysLeft > 21
       ? "Renewal AND delivery are automated since 2026-08-08 (acme.sh timer plus lb-cert-push.sh), so a falling number here means that chain has broken rather than that nobody has got round to it."
-      : "RENEW NOW. Reissue with acme.sh (DNS-01, Cloudflare token on the host) and re-upload to the load balancer — `oci lb certificate create` then point the listener at the new name. Nothing does this automatically.",
+      : "RENEW NOW — AND FIND OUT WHY THE AUTOMATION DID NOT. Renewal and delivery have been automated since 2026-08-08 (the acme.sh systemd timer, plus lb-cert-push.sh as ExecStartPost), so this going red means that chain is broken, not that nobody got round to it. Check `systemctl status acme-towardpcc.timer` and the last `lb-cert-push.sh` run FIRST: reissuing by hand fixes today and leaves the same failure to recur in 90 days. If you do need the manual path, it is acme.sh (DNS-01, Cloudflare token on the host) then `oci lb certificate create` and point the listener at the new name.",
   );
 }
 

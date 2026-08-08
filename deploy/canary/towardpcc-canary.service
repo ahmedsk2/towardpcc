@@ -1,0 +1,14 @@
+[Unit]
+Description=TowardPCC production canaries (residency + integrity)
+Documentation=https://github.com/ahmedsk2/towardpcc/blob/main/deploy/canary/README.md
+# Requires the Docker socket; without it the run would "succeed" having done
+# nothing, which is the failure mode these checks exist to prevent elsewhere.
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/towardpcc-canary/run-canaries.sh
+# The scripts reach the public internet, not localhost, so no secrets are
+# needed and none are provided.
+TimeoutStartSec=300
