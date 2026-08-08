@@ -288,18 +288,27 @@ Note the zone also carries nine other subdomains on the same host — `db`,
 are the co-tenant applications and **must not be touched**. Only the apex and
 `www` move.
 
-### The blocker: 80 days, and nothing renews it
+### The certificate blocker is GONE — automated 2026-08-08
 
-The load balancer's certificate expires **2026-10-27** — 80 days from today — and
-nothing renews it. Today that is harmless because the path serves nobody. **The
-moment DNS points at it, that becomes a dated outage** with no automation behind
-it.
+This said the load-balancer certificate expires 2026-10-27 with nothing renewing
+it. That is fixed, and what was actually wrong is worth knowing.
 
-That was a deliberate call, not an oversight: automating renewal means an OCI API
-key with load-balancer write access living on a host that also runs an
-application holding real patient data. The repo's position is that the trade is
-worth making _at_ cutover and not before. Cutting over first would take the risk
-without taking the mitigation.
+acme.sh **had** been renewing `towardpcc.com` daily since 2026-07-29, correctly,
+with the next renewal due 2026-09-27 — a month before expiry. Nothing carried
+the result to the load balancer. Renewal was automated; **delivery** was not,
+and that gap stays invisible until the certificate expires.
+
+`/usr/local/sbin/lb-cert-push.sh` now runs after every daily acme pass. It
+authenticates by **instance principals**, so no API key exists on the host at
+all — which was the whole objection to automating this before cutover. The
+policy grants `read` plus `use` narrowed to `LOAD_BALANCER_UPDATE`: enough to
+swap a certificate, not enough to delete the load balancer. It is idempotent by
+certificate fingerprint, so it costs one TLS handshake when nothing changed, and
+self-heals because a failed push is retried the next day.
+
+Proven end to end: a forced push created `towardpcc-le-20260808062516`,
+repointed the `https` listener, and the LB served HTTP 200 throughout. Full
+detail in `docs/runbooks/deploy-production.md`.
 
 ### Why I have not done it, even though I can
 
