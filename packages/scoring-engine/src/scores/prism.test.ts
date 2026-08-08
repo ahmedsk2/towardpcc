@@ -924,6 +924,51 @@ describe("prism states its regional calibration at the right strength", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.2.1");
+    expect(prism.version).toBe("2.2.2");
+  });
+
+  /**
+   * Finding F5 (external calculator audit, 2026-08-08).
+   *
+   * Creatinine is compared in mg/dL because that is the unit the source table
+   * prints, and a value arriving in µmol/L is rounded to 2 decimal places by
+   * `canonicalDecimals` on the way in. The two facts combine into a knife-edge
+   * nobody had written down: 115 µmol/L becomes exactly 1.30 mg/dL, which does
+   * not clear the strict `> 1.3` adolescent cutoff, while 1.301 mg/dL entered
+   * directly does.
+   *
+   * v2.2.2 documented that in the help text. These tests pin the BEHAVIOUR, so
+   * a future change to the conversion factor or to `canonicalDecimals` cannot
+   * move the boundary while the help text goes on describing the old one.
+   */
+  const creatinineScore = (value: number, unit: string): number => {
+    // `normal` scores 0 on every item, so the total IS the creatinine points.
+    // Age is raised to the adolescent band to reproduce the audit's own example
+    // (cutoff 1.3 mg/dL, quoted as 115 µmol/L).
+    const outcome = prism.compute({
+      ...normal,
+      age: { value: 15, unit: "years" },
+      creatinine_max: { value, unit },
+    });
+    expect(outcome.ok, outcome.ok ? "" : JSON.stringify(outcome.errors)).toBe(true);
+    if (!outcome.ok) return Number.NaN;
+    return outcome.result.values.find((v) => v.id === "prism_total")?.value ?? Number.NaN;
+  };
+
+  it("scores zero on the baseline case, so the total isolates creatinine", () => {
+    expect(creatinineScore(0.5, "mg/dL")).toBe(0);
+  });
+
+  it("does not score a creatinine sitting exactly on the cutoff in either unit", () => {
+    // 115 µmol/L -> 1.3009... -> rounded to 1.30, which is not > 1.3.
+    expect(creatinineScore(115, "µmol/L")).toBe(0);
+    expect(creatinineScore(1.3, "mg/dL")).toBe(0);
+  });
+
+  it("scores 2 just above the cutoff, and the mg/dL path is the finer of the two", () => {
+    // The documented asymmetry: mg/dL is not rounded, so it resolves at 0.001;
+    // the µmol path has to clear half a rounding step to register at all.
+    expect(creatinineScore(1.301, "mg/dL")).toBe(2);
+    expect(creatinineScore(116, "µmol/L")).toBe(2);
   });
 });

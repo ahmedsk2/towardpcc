@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.2.1",
+  version: "2.2.2",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -426,7 +426,7 @@ export const prism = defineScore({
       max: 1500,
       helpText: defineText(
         "prism.glucose.help",
-        "Above 200 mg/dL scores 2. A whole-blood value should be increased by 10% before scoring.",
+        "Above 200 mg/dL scores 2 — in SI units, above 11.11 mmol/L (the cutoff is 200 ÷ 18, so 11.1 does not score and 11.2 does). The comparison is made in mg/dL after conversion, because that is the unit the source table is printed in. A whole-blood value should be increased by 10% before scoring.",
       ),
     },
     {
@@ -452,7 +452,10 @@ export const prism = defineScore({
       unit: creatinineMgdl,
       min: 0,
       max: 25,
-      helpText: defineText("prism.creat.help", "Age-banded; infant and child share one cutoff."),
+      helpText: defineText(
+        "prism.creat.help",
+        "Age-banded; infant and child share one cutoff. Scores 2 above 0.85 mg/dL (neonate), 0.9 (infant and child) or 1.3 (adolescent) — approximately 75, 80 and 115 µmol/L. The comparison is made in mg/dL after conversion, and a value entered in µmol/L is rounded to 2 decimal places on the way, so a µmol reading sitting exactly on a cutoff (115 µmol/L becomes 1.30 mg/dL) does not score, while 1.301 mg/dL entered directly does. The published SI columns are themselves rounded, so treat either unit as a knife-edge at the boundary rather than as an exact equivalence.",
+      ),
     },
     {
       id: "bun_max",
@@ -923,6 +926,13 @@ export const prism = defineScore({
       date: "2026-08-04",
       summary:
         "Corrects the conclusion v2.2.0 drew from the Dubai PIM3 series, which that paper's own other stratification contradicts. NOTHING ABOUT THE SCORE OR THE MODEL CHANGED — no threshold, age band, point value, subscore, coefficient or output, and a 4-hour entry returns the same probability. v2.2.0 concluded that the under-prediction sits in the low-probability band and in sepsis, resting the first half of that on SMR 2.67 in the 1-5% predicted-probability band. Malhotra 2019 also reports SMR 0.33 below a predicted probability of 14.3% against 0.72 above it — over-prediction, not under-prediction, across that same low range. Both figures are from one cohort of 583 and point in opposite directions depending on where the bands are cut, so the notes now carry BOTH, record the predicted-probability strata as unstable, and make no claim about the low end of the scale. The sepsis finding is untouched and stays prominent: it is the half nothing in the paper contradicts. The Riyadh figures, the PIM3-not-PRISM attribution and the statement that neither series evaluated PRISM IV are unchanged.",
+      reason: "clarification",
+    },
+    {
+      version: "2.2.2",
+      date: "2026-08-08",
+      summary:
+        "States the SI cutoffs in the glucose and creatinine help text. NOTHING ABOUT THE SCORE CHANGED — no threshold, band, point value or coefficient, and every input returns exactly what it did before. Both comparisons are made in mg/dL after conversion, because that is the unit the source table prints, and a creatinine entered in µmol/L is additionally rounded to 2 decimal places on the way in. The consequence was undocumented and reachable: 115 µmol/L becomes 1.30 mg/dL and does NOT clear the adolescent cutoff of 1.3, while 1.301 mg/dL entered directly does. The published SI columns are themselves rounded, so the help text now names the mg/dL cutoffs, gives their approximate SI equivalents (75, 80, 115 µmol/L; 11.11 mmol/L for glucose) and says plainly that the boundary is a knife-edge rather than an exact equivalence. From the external calculator audit of 2026-08-08, finding F5.",
       reason: "clarification",
     },
   ],
