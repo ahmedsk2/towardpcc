@@ -1,23 +1,44 @@
-# Coolify compose-mode deployment for the TowardPCC web app.
+# ⚠️ DO NOT SWITCH THE BUILD PACK TO THIS FILE. IT CAUSED A PRODUCTION OUTAGE.
 #
-# WHY THIS FILE EXISTS. Coolify's SIMPLE (dockerfile) build pack passes
-# `custom_docker_run_options` through an allow-list before it reaches Docker.
-# `--cap-drop=ALL` survives that filter and is genuinely applied — verified on
-# the running container, which reports `CapDrop: [ALL]` and `User: app`. But
-# `--read-only` and `--tmpfs` are dropped silently: the setting is accepted, the
-# UI shows it, and the container runs without it. Compose mode is the only way
-# to get those two applied.
+# Kept, rather than deleted, because the hardening it encodes is correct and the
+# three things that broke are now known and written down. Deleting it would lose
+# both the working parts and the lesson.
 #
-# NOT TO BE CONFUSED WITH `docker-compose.prod.yml`, which describes a stack
-# that was designed first and is not what runs. This file is the one Coolify
-# reads (`docker_compose_location: /docker-compose.yaml`).
+# WHAT HAPPENED, 2026-08-08. `build_pack` was switched from `dockerfile` to
+# `dockercompose` and this file was deployed. The build succeeded, the container
+# started, the hardening applied exactly as intended — ReadonlyRootfs true, both
+# tmpfs mounts, cap_drop ALL, no-new-privileges — and the SITE WENT DOWN, 503 on
+# every route, for roughly forty minutes.
 #
-# THE READ-ONLY ROOTFS IS PROVEN, NOT ASSUMED. Next.js writes at runtime — the
-# image optimiser caches under `.next/cache` — so `read_only: true` without the
-# right tmpfs is a boot loop. This exact combination was tested on the host
-# against the live image, in a throwaway container with no ports and no routing:
-# it reached "✓ Ready" and stayed running. Do not add `read_only` anywhere else
-# without repeating that test.
+# THREE SEPARATE FAULTS, all of them in this file or in the flip:
+#
+#   1. NO COOLIFY NETWORK. The service declares none, so it never joined the
+#      network the shared Postgres is on. The app came up and then logged
+#      `prisma:error Connection terminated due to connection timeout` in a loop.
+#   2. NO TRAEFIK LABELS. In dockerfile mode Coolify attaches its own routing
+#      labels; in compose mode it does not do so for a service it did not
+#      generate. The container had 21 labels and `traefik.enable` was EMPTY, so
+#      the proxy had nothing to route to — hence 503 rather than an error page.
+#   3. FLIPPING THE BUILD PACK WIPES `dockerfile_location`. This is the one that
+#      turned a bad deploy into a long outage. Switching back to `dockerfile`
+#      does NOT restore it: the field was left `None`, so every subsequent
+#      rebuild failed with `failed to read dockerfile: open Dockerfile: no such
+#      file or directory` and produced no container at all. It must be PATCHed
+#      back to `/apps/web/Dockerfile` explicitly.
+#
+# WHAT IS ACTUALLY TRUE ABOUT THE HARDENING, measured on the running container
+# rather than assumed. Simple mode already applies the two controls that matter
+# most: `CapDrop [ALL]` and `User app`. Only `read_only` and the tmpfs mounts are
+# dropped by its allow-list. So the gap this file closes is real but narrow, and
+# it is NOT worth another outage without first solving 1 and 2 above.
+#
+# BEFORE ANY FUTURE ATTEMPT: add the Coolify network and the Traefik labels,
+# confirm `dockerfile_location` is restorable, and do it with a rollback window
+# agreed in advance. The read-only rootfs itself is proven to boot — that part
+# was tested against the live image and was never the problem.
+#
+# Not to be confused with `docker-compose.prod.yml`, which describes a stack
+# that was designed first and is not what runs.
 services:
   web:
     build:
