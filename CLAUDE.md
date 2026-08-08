@@ -46,14 +46,17 @@ a score, `apps/web/CLAUDE.md` for UI, UX and the privacy invariants.
    form. Persisting the remaining fields would fix that and is the obvious ask —
    it is exactly the amendment this invariant governs, so it is a decision to
    put to the founder, never a convenience to slip in alongside other work.
-3. **Processing is KSA-first but NOT yet wholly in-Kingdom — and the site says
-   so on purpose.** Two things leave today, both disclosed: requests transit the
-   Cloudflare edge (migration staged 2026-07-29, DNS not cut over), and the
-   operator notification relays through a US host. ADR-0004 carries **four**
-   written exceptions, not two. `apps/web/content/privacy-claims.test.ts` fails
-   the build if site copy claims residency absolutely — those caveats are
-   load-bearing, not clutter. The wording goes unqualified only in the same
-   deploy as the cutover, never a day before.
+3. **Processing is KSA-first but NOT wholly in-Kingdom — and the site says so on
+   purpose.** The request path came home on 2026-08-08: the apex and `www` now
+   resolve to an OCI load balancer in me-riyadh-1 and Cloudflare is out of the
+   request path entirely. **MAIL IS WHAT STILL LEAVES**, in both directions —
+   inbound to the published address and the outbound operator notification, both
+   through a provider whose servers geolocate to the US. The caveat MOVED, it did
+   not disappear, and `apps/web/content/privacy-claims.test.ts` still fails the
+   build on an absolute residency claim. Do not let the cutover tempt anyone into
+   removing it. ADR-0004 carries **four** written exceptions, not two. Moving MX
+   to a KSA-hosted provider is the single change that would make the claim
+   unqualified.
 4. **No clinical number ships without a citation and a cited worked example.**
 5. **Crimson never means error**; no blue, teal or gold anywhere in the UI. This
    one is an internal design rule (ADR-design-direction), not a public promise.
@@ -123,7 +126,16 @@ Lighthouse (warn-only) and the container build.
   thirty seconds after a merge shows the previous commit and means nothing.
   **Wait ~5 minutes, then check.** Every "dropped deploy" recorded here was that
   mistake, followed by a manual deploy of the same commit that then took credit.
-- **The tag check is still the right check — just not immediately.**
+- **Prefer `pnpm check:integrity` over the tag check.** Since 2026-08-08 the
+  canary asserts the DEPLOYED COMMIT, not only page content: `/api/v1/health`
+  publishes a truncated `sha256(SOURCE_COMMIT)` and the script compares it with
+  the SHA it checked out. It is strictly better evidence than the image tag, and
+  measurably so — on its first real run it reported production still serving the
+  previous commit at a moment when `docker ps` already showed the new tag. **The
+  tag flips before the serving container does**, which is the gap that produced
+  every "dropped deploy" in this file. Run
+  `EXPECTED_COMMIT=$(git rev-parse HEAD) node scripts/check-integrity.mjs`.
+- **The tag check still works as a fallback — just not immediately.**
   `sudo docker ps --filter name=gpsokvxzncr7ks1vzqz7wkr4 --format '{{.Image}}'`
   against `origin/main`, once, after the build has had time. Coolify's `status`
   field remains useless in both directions: it read `running:healthy` over a
@@ -131,9 +143,21 @@ Lighthouse (warn-only) and the container build.
   healthy. Deploy by hand only when a deployment genuinely **failed** — one has,
   on 2026-08-03, when a helper container vanished mid-build under two merges
   three minutes apart. The API call is in `docs/runbooks/deploy-production.md`.
-- **Cloudflare proxying stays ON.** The OCI security list accepts 80/443 only
-  from Cloudflare's edge ranges, so grey-clouding takes the site offline and
-  breaks certificate renewal. That lock is also what makes trusting
+- **THE APEX AND `www` ARE NO LONGER PROXIED — cut over 2026-08-08.** They
+  resolve to the OCI load balancer at `145.241.110.213`, which terminates TLS in
+  me-riyadh-1 and is publicly reachable on its own NSGs. Cloudflare is
+  authoritative DNS only and sees no request content. Re-proxying them would put
+  requests back through an edge outside the Kingdom while `/trust` says they
+  arrive directly, and would reinstate the injected script that caused TM-013 —
+  `check-residency.mjs` now alarms on exactly that, having been inverted in the
+  same change.
+- **Proxying stays ON for every OTHER subdomain**, and the old warning still
+  applies to them verbatim. `next`, `db`, `deploy`, `endorse`, `mnm`,
+  `mylibrary`, `stg-mylibrary` and `uptime` all point at the host
+  `145.241.105.239`, whose OCI security list accepts 80/443 only from
+  Cloudflare's edge ranges — so grey-clouding any of them takes it offline and
+  breaks certificate renewal. Several are co-tenant applications. That lock is
+  also what makes trusting
   `CF-Connecting-IP` safe — opening those ports means revisiting
   `apps/web/lib/client-ip.ts` in the same change.
 
