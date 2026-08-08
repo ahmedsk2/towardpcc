@@ -1074,6 +1074,26 @@ migrations as owner. GitHub Actions must be rejected: it would put
 `towardpcc_owner` credentials into a cloud CI secret store, a larger exposure
 than the retention gap it closes.
 
+### Round-4 registry findings applied to PIM3 — 2026-08-08
+
+- [x] **Liver-transplant divergence, plausibility bounds and the sentinel trap**
+      all recorded in `pim3.ts` v1.2.3. Nothing computed changed.
+
+The open liver-transplant decision is resolved by showing it **cannot** be
+resolved from the paper: ANZPICR (Jan 2019) excludes post-transplant recovery
+admissions and flags the difference from PIM2, PICANet (v5.4) includes them, and
+both jointly supplied the derivation data. The score follows ANZPICR and shows
+both.
+
+PICANet's published per-field ranges give the input bounds a citable source for
+the first time, in an expected/validation two-tier shape. Recorded with its own
+structural negative: neither registry publishes ranges for platelets, bilirubin,
+creatinine or MAP, because neither collects them.
+
+And the 999-sentinel trap is written down before it can bite — this platform
+parses no registry export today, so it is a note rather than a guard, to be
+guarded in the same change as any import path.
+
 ### SPC-TM-002 — sessions renew forever
 
 - [x] **Revocation and a real absolute expiry**, 2026-08-08, via a JWT
