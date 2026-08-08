@@ -33,7 +33,7 @@ export const anionGap = defineScore({
   id: "anion-gap",
   slug: "anion-gap",
   name: "Anion gap (with albumin correction)",
-  version: "1.0.0",
+  version: "1.0.1",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -148,6 +148,13 @@ export const anionGap = defineScore({
         "Initial release: anion gap (K-exclusive and K-inclusive) with the Figge 1998 albumin correction.",
       reason: "initial-release",
     },
+    {
+      version: "1.0.1",
+      date: "2026-08-08",
+      summary:
+        "Display all four anion-gap rows at 1 decimal place. The uncorrected pair rendered at 0 dp beside the albumin-corrected pair at 1 dp, so the panel did not reconcile with itself: a K-inclusive AG of 16.5 showed as '17' next to 'albumin-corrected 21.5', making the Figge correction read as 4.5 when it is exactly 2.5 x (4.0 - albumin) = 5.0. No computed value changed and this score has no interpretation bands, so no classification can move. From the external calculator audit of 2026-08-08, finding F3.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -164,7 +171,17 @@ export const anionGap = defineScore({
   ),
   calculate: (values) => {
     // Return RAW computed values; `precision` rounds for display only. There
-    // are no interpretation bands, so precision is purely cosmetic.
+    // are no interpretation bands, so no rounding here can move a value across
+    // a classification boundary.
+    //
+    // ALL FOUR ROWS USE 1 dp, and that uniformity is the point. They were 0 dp
+    // for the uncorrected pair and 1 dp for the corrected pair until v1.0.1,
+    // which made the panel stop reconciling with itself: a K-inclusive AG of
+    // 16.5 rendered as "17" beside "albumin-corrected 21.5", so the correction
+    // read as 4.5 when it is exactly 2.5 x (4.0 - albumin) = 5.0. A clinician
+    // checking the arithmetic on screen found it did not close. Potassium is
+    // commonly reported to 1 dp and the Figge correction is a multiple of 2.5,
+    // so a half-unit is the normal case here, not an edge case.
     const na = values.na.value;
     const cl = values.cl.value;
     const hco3 = values.hco3.value;
@@ -178,7 +195,7 @@ export const anionGap = defineScore({
       label: defineText("ag.out.ag", "Anion gap (K-exclusive)"),
       value: ag,
       unit: "mEq/L",
-      precision: 0,
+      precision: 1,
     });
 
     // Potassium-inclusive form — only when potassium is supplied. Its reference
@@ -192,7 +209,7 @@ export const anionGap = defineScore({
         label: defineText("ag.out.agk", "Anion gap (K-inclusive)"),
         value: agK,
         unit: "mEq/L",
-        precision: 0,
+        precision: 1,
       });
     }
 
