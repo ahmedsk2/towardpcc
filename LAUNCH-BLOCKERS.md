@@ -550,8 +550,17 @@ second. Both touch Coolify-managed infrastructure and can be reverted by a
 Coolify redeploy, so neither is a drive-by change; do them deliberately, with
 the restore drill re-run afterwards.
 
-- [ ] **SPC-WEB-001** — remove public-tier CSP `script-src 'unsafe-inline'` (hash
-      the Next bootstrap or render dynamically) + a CI sink guard. Documented SSG
+- [x] **SPC-WEB-001 — investigated 2026-08-08, deliberately NOT changed.** See
+      `docs/decisions/ADR-csp-public-tier.md`. Hashing is buildable but costs a
+      per-route manifest of 63 digests regenerated every deploy, and a single
+      stale hash blocks hydration — a blank calculator, not an error. A partial
+      migration is worse than none: per CSP3 any hash-source makes
+      `'unsafe-inline'` ignored, so hashing our two scripts would break Next's
+      seventeen `__next_f` blocks. The public tier has no injection point, and
+      since the DNS cutover no third-party script executes at all — the strongest
+      argument for hardening it was Cloudflare's unremovable injection, which is
+      now gone. Revisit if a public route renders user content, or if a
+      governance review requires it.
       tradeoff; fix needs hydration testing.
 - [~] **SPC-CON-001..008** — container hardening. See the subsection below;
   most of what this item claimed as done has never taken effect in production.
