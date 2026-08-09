@@ -973,6 +973,9 @@ export const site = {
     // actively scored. Saying just "optional" there would understate it: the
     // score comes out lower, not incomplete.
     optionalScoredAsNormal: "Optional · blank scored as normal",
+    // For inputs the score's missingAsNormal claim does NOT cover. Uses the
+    // score's own phrasing: PRISM's notes say "a blank is not an answer of no".
+    optionalBlankNotAnAnswer: "Optional · blank is not an answer",
     clearSelection: "Clear",
     clearSelectionLabel: "Clear the selection for",
     // Privacy line — must be architecturally true (PRD §6.4)

@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.4.0",
+  version: "2.4.1",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -547,6 +547,10 @@ export const prism = defineScore({
       group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.source", "Admission source"),
       required: false,
+      // Blank does NOT score as normal here: it withholds the probability.
+      // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
+      // ABSENCE" note at the top of this file.
+      missingIsNotNormal: true,
       type: "categorical",
       options: [
         {
@@ -570,6 +574,10 @@ export const prism = defineScore({
       group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.cpr", "CPR within 24 hours before admission"),
       required: false,
+      // Blank does NOT score as normal here: it withholds the probability.
+      // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
+      // ABSENCE" note at the top of this file.
+      missingIsNotNormal: true,
       type: "boolean",
       helpText: defineText(
         "prism.cpr.help",
@@ -581,6 +589,10 @@ export const prism = defineScore({
       group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.cancer", "Cancer, acute or chronic"),
       required: false,
+      // Blank does NOT score as normal here: it withholds the probability.
+      // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
+      // ABSENCE" note at the top of this file.
+      missingIsNotNormal: true,
       type: "boolean",
       helpText: defineText(
         "prism.cancer.help",
@@ -592,6 +604,10 @@ export const prism = defineScore({
       group: defineText("prism.group.admission-context", "Admission context"),
       label: defineText("prism.lowrisk", "Low-risk system of primary dysfunction"),
       required: false,
+      // Blank does NOT score as normal here: it withholds the probability.
+      // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
+      // ABSENCE" note at the top of this file.
+      missingIsNotNormal: true,
       type: "boolean",
       helpText: defineText(
         "prism.lowrisk.help",
@@ -968,6 +984,13 @@ export const prism = defineScore({
       summary:
         "Adds the first caution this score has carried, and the Saudi validation behind it. NO THRESHOLD, COEFFICIENT OR COMPUTED VALUE CHANGED. Every published Gulf and Middle Eastern cohort found PRISM UNDER-predicting death, and this site is used in one. Alkhalifah 2022 (PMID 35874581, read IN FULL from PMC9300935 rather than from a summary) covers 4,019 admissions at King Fahad Medical City, Riyadh, drawn from the same Virtual Pediatric Systems database that supplies much of the world's PRISM data: observed mortality 6.54% against 2.50% predicted, SMR 2.61 (2.44-2.79), and 3.96 (3.16-4.76) in infants of 12 months and under. The authors' own conclusion is quoted rather than paraphrased - 'adequate discrimination ability, but poor calibration' - because the distinction is the whole point: AUC was 0.81, so the score ranks patients correctly; it is calibration that fails, and calibration is the half a probability depends on. THE DNR FINDING IS THE PART WORTH READING TWICE. About half the deaths were patients with a DNR order, and excluding them the SMR falls to 1.52. So most of the gap is local end-of-life practice rather than the model being broken - which is itself the reason a North American calibration does not transfer, and a stronger argument than a bare SMR would have been. Corroborating cohorts, taken at the read-level the source review reported rather than verified here: Iran 1.34 and 1.73, Egypt 2.11, and Karachi where PRISM III-24 was out-performed by pSOFA. The caution says to use the SCORE for severity and case-mix description, and to treat any PRISM mortality probability as un-calibrated for this population - EXPLICITLY INCLUDING the PRISM IV probability this calculator itself shows, which is not exempt merely because its equation is citable. That is the one clinically actionable consequence and it applies to output this site emits.",
       reason: "new-reference",
+    },
+    {
+      version: "2.4.1",
+      date: "2026-08-09",
+      summary:
+        "Corrects a badge that told the reader the opposite of what this score does, on the four fields it is most careful about. NO COMPUTED VALUE CHANGED. `missingAsNormal` is declared once per score and is TRUE here, correctly: PRISM’s physiologic variables score as normal when unmeasured, which is the published convention. But the four PRISM IV admission-context covariates are optional with the OPPOSITE blank semantics — leaving any one blank withholds the mortality probability entirely, deliberately, because each is zero at its reference level and reading a blank as ‘contributes nothing’ would hand every clinician who skipped a question the OR/PACU, no-CPR, no-cancer curve. That is the reference-patient defect the 2026-08-03 removal fixed, and this file states it in capitals as NEVER SUBSTITUTE THE REFERENCE LEVEL FOR AN UNANSWERED QUESTION. All four nevertheless rendered ‘Optional · blank scored as normal’ — verified on the live site before the fix. A per-input `missingIsNotNormal` now exempts them and they read ‘Optional · blank is not an answer’, which is this score’s own wording. Found while measuring the three-window selector, not by any guard.",
+      reason: "clarification",
     },
   ],
 });
