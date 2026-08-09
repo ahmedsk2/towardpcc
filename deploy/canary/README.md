@@ -1,6 +1,6 @@
 # The daily production canaries, as a host timer
 
-`check:residency` and `check:integrity` assert the LIVE site against what the
+`check:residency`, `check:integrity` and `check:ct` assert the LIVE site against what the
 site publicly claims. They were GitHub Actions cron jobs; when Actions billing
 was disabled they stopped, and **nothing was watching production** until
 2026-08-08.
