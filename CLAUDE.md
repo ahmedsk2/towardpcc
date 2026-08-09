@@ -106,16 +106,25 @@ a daily cron, never on a PR. CI additionally runs e2e, `pnpm audit`, gitleaks,
 Lighthouse (warn-only) and the container build.
 
 **To run e2e yourself — and while GitHub Actions billing is off, someone has
-to — the command is `pnpm --filter @towardpcc/web test:e2e`.** `npx playwright
-test` from the repo root does NOT work: the binary is a dependency of
-`apps/web`, not the root, and the invocation fails with `'playwright' is not
-recognized`. That failure is worth knowing about because of HOW it fails. Run as
-`npx playwright test > log 2>&1; echo $?; tail log` and the trailing `tail`
-supplies the exit status, so the run reports **0 having executed nothing at
-all** — the same shape as the `pnpm gate | tail` trap above, and it was fallen
-into on 2026-08-08. Read the line count or the `N passed` line, never the exit
-code alone. A real run prints `Running 126 tests using 1 worker`; five specs
-skip unless `E2E_DATABASE_URL` points at a throwaway Postgres.
+to — the command is `pnpm --filter @towardpcc/web test:e2e`.** A real run
+prints `Running 134 tests using 1 worker`; five specs skip unless
+`E2E_DATABASE_URL` points at a throwaway Postgres.
+
+**`npx <anything>` from the repo root runs NOTHING, and can report success for
+it.** Every test binary here belongs to a package rather than the root, so the
+invocation dies with `'playwright' is not recognized` — or `'vitest'`, or any
+other. That is not the interesting part. Run it as `npx playwright test > log
+2>&1; echo $?; tail log` and the trailing `tail` supplies the exit status, so a
+run that executed **nothing at all** reports **0**. Same shape as the
+`pnpm gate | tail` trap above. Read the line count or the `N passed` line, never
+the exit code alone.
+
+This was written on 2026-08-08 as a fact about Playwright, and on 2026-08-09
+the identical failure arrived from `npx vitest` while probing a score — so the
+narrow version cost the second discovery. **It is a fact about the repo layout,
+not about any one tool.** Reach for `pnpm --filter @towardpcc/<pkg> exec <bin>`
+when you want a package's binary; `pnpm --filter` with a name that matches
+nothing still exits 0, so use the exact package name.
 
 ## Production
 

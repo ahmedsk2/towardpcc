@@ -52,6 +52,21 @@ interpretation, references, validators, changelog, ipStatus, notes** and
   `canonical` and `canonical` is the entire object `calculate` receives. Keep
   any window gate already inside `calculate` as well — two guards, because a
   filter with a hole should not be the only thing between a value and a logit.
+- **A score can declare `derived`: a value computed FROM its components rather
+  than summed into its total.** Requires a `composition`, because `from` names
+  component ids. `from` is a clinical claim and not a layout hint — PRISM IV
+  weights the two subscores at 0.197 and 0.163 and never forms their sum, so
+  declaring the total there would render a falsehood in words on a page whose
+  arithmetic is already tested against exactly that error. The gate on emission
+  is ONE-DIRECTIONAL — if the value is emitted, its sources must be — because a
+  derived output is conditionally emitted and a copy of the composition
+  identity would pass on the base vector and fail across the sweep. A separate
+  assertion requires the id to be emitted at least once, so a typo cannot
+  declare a block that never renders while everything else passes vacuously.
+  Its optional `caution` renders WITH the number rather than with the score,
+  which is the point: PRISM's Gulf finding is about the probability —
+  discrimination held at AUC 0.81 and calibration failed — so attaching it to
+  the whole score cautioned something that did not deserve it.
 
 ## Units
 
