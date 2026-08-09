@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.2.2",
+  version: "2.3.0",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -240,7 +240,7 @@ export const prism = defineScore({
       ],
       helpText: defineText(
         "prism.window.help",
-        'The window sets which model your data belong to, so it is asked rather than assumed. It changes nothing about the score, which is computed identically for all three. It decides only whether a mortality estimate can be shown: the first 4 hours is PRISM IV, whose equation is published in full and shown here (laboratory values from 2 hours before admission through hour 4), and it shows a probability only once all four admission-context questions have been answered — leave any of them blank and the score still appears while the probability is withheld, because a blank is not an answer of "no". The 12- and 24-hour windows are PRISM III, whose mortality equations are not published in the source article and are separately licensed, so those windows give the score and its two subscores and no probability. The four admission-context questions belong to PRISM IV alone and are ignored on those windows.',
+        'WHAT TO COLLECT, AND OVER WHAT PERIOD — this is the part that changes your answer, so it comes first. Enter the single most abnormal value reached inside the window for each variable: the lowest, the highest, or both where a row asks for both. FIRST 4 HOURS (PRISM IV): physiologic variables from the first 4 hours of PICU care ONLY, and laboratory variables from 2 hours BEFORE PICU admission through the first 4 hours. The two halves have different windows and the laboratory one starts before the child arrives — a gas or a chemistry drawn in the referring unit two hours out counts, while a blood pressure from the same moment does not. That split is the authors\' own (Pollack 2013, the ideal-time-interval study) and is exactly how their CPCCRN calculator states it. FIRST 12 OR 24 HOURS (PRISM III-12 / III-24): the most abnormal value for each variable within the first 12 or 24 hours of PICU care. THE WINDOW DOES NOT CHANGE THE SCORE. All three are computed identically, from the same variables and the same cut-points — a longer window usually produces a HIGHER score only because it catches more extreme values, never because the arithmetic differs. What the window decides is whether a mortality estimate can be shown. The 4-hour window is PRISM IV, whose equation is published in full and shown here, and it shows a probability only once all four admission-context questions have been answered — leave any of them blank and the score still appears while the probability is withheld, because a blank is not an answer of "no". The 12- and 24-hour windows are PRISM III, whose mortality equations are not published in the source article and are separately licensed, so those windows give the score and its two subscores and no probability. The four admission-context questions belong to PRISM IV alone and are ignored on those windows.',
       ),
     },
     {
@@ -872,6 +872,12 @@ export const prism = defineScore({
       doi: "10.1159/000505205",
       note: "A PIM3 evaluation, not a PRISM one, and cited here for that reason explicitly. Latifa Hospital, Dubai; n = 583, 46 deaths (7.9%). Stable findings: AUC 0.78 (95% CI 0.69-0.87), overall SMR 0.53, and SMR 2.1 in sepsis. Its predicted-probability strata contradict each other and are carried as unstable: SMR 2.67 in the 1-5% band against SMR 0.33 below a predicted probability of 14.3% and 0.72 above it, so the same paper shows under-prediction and over-prediction in the same low range depending on where the bands are cut. It is the second Gulf data point for the pattern that does hold — discrimination survives the move between populations, calibration does not — which is why this page carries it alongside the Riyadh series rather than only naming its own model.",
     },
+    {
+      citation:
+        "Pollack MM, Dean JM, Butler J, et al. The ideal time interval for critical care severity-of-illness assessment. Pediatr Crit Care Med. 2013;14(5):448-453.",
+      pmid: "23628831",
+      note: "Source of the PRISM IV collection window this calculator states on the window field: physiologic variables from the first 4 hours of PICU care only, laboratory variables from 2 hours BEFORE admission through the first 4 hours. Added 2026-08-09, when that text was rewritten - the split was already being described on screen without naming where it came from. It is also the citation the authors' own CPCCRN calculators print beneath the same sentence.",
+    },
   ],
   validators: [{ status: "pending" }, { status: "pending" }],
   changelog: [
@@ -933,6 +939,13 @@ export const prism = defineScore({
       date: "2026-08-08",
       summary:
         "States the SI cutoffs in the glucose and creatinine help text. NOTHING ABOUT THE SCORE CHANGED — no threshold, band, point value or coefficient, and every input returns exactly what it did before. Both comparisons are made in mg/dL after conversion, because that is the unit the source table prints, and a creatinine entered in µmol/L is additionally rounded to 2 decimal places on the way in. The consequence was undocumented and reachable: 115 µmol/L becomes 1.30 mg/dL and does NOT clear the adolescent cutoff of 1.3, while 1.301 mg/dL entered directly does. The published SI columns are themselves rounded, so the help text now names the mg/dL cutoffs, gives their approximate SI equivalents (75, 80, 115 µmol/L; 11.11 mmol/L for glucose) and says plainly that the boundary is a knife-edge rather than an exact equivalence. From the external calculator audit of 2026-08-08, finding F5.",
+      reason: "clarification",
+    },
+    {
+      version: "2.3.0",
+      date: "2026-08-09",
+      summary:
+        "Rewrites the collection-window help text to lead with WHAT TO COLLECT AND OVER WHAT PERIOD, and adds the citation that instruction rests on. NO THRESHOLD, COEFFICIENT OR COMPUTED VALUE CHANGED. The old text opened with which model the data belong to and buried the actual collection rule in a parenthetical - “laboratory values from 2 hours before admission through hour 4” - which is the one instruction on that field capable of changing the reader’s answer. It now states first: enter the most abnormal value reached inside the window; for the 4-hour window physiologic variables come from the first 4 hours of PICU care ONLY while laboratory variables run from 2 hours BEFORE admission through hour 4; and for the 12- and 24-hour windows, the most abnormal value within the first 12 or 24 hours. The asymmetry is spelled out with an example because it is genuinely counter-intuitive - a gas drawn in the referring unit two hours out counts, a blood pressure from the same moment does not. Modelled on how the authors’ own CPCCRN calculators word it, read from an archived capture on 2026-08-09 after the live site refused access from this region. Pollack 2013 (PMID 23628831), the ideal-time-interval study, is added to the references: the window was already being described on screen without naming its source, which this project does not permit. The statement that the score is identical across all three windows is kept and strengthened - a longer window yields a higher score only because it catches more extreme values, never because the arithmetic differs.",
       reason: "clarification",
     },
   ],
