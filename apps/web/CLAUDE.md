@@ -35,6 +35,20 @@ Calculator inputs never leave the browser. Concretely:
 - **sessionStorage carry-over is allow-listed to `age`, `age_months`, `weight`,
   `weight_kg`** — enforced on write as well as read. Persisting any other
   clinical value contradicts the published "Nothing collected" claim.
+- **A value in a field that is not on screen was typed in this session, by the
+  person looking at the screen. It never arrives from outside and it never
+  leaves.** `calculator-form.tsx` derives `inputs = visibleInputs(declared,
+submitted)` and SHADOWS the declared list on purpose — `declared` is in scope
+  in four places only. `encodeFragment` takes the visible list so a copied link
+  carries only what the sender could see, and `decodeFragment` prunes hidden
+  ids in a SECOND pass after the whole fragment is applied, because visibility
+  depends on the final state rather than on key order. Pruning cannot be hung
+  off the controller's `onChange`: fragment hydration replaces state wholesale
+  and the `tpcc:fragment` listener re-applies it with no per-field handler
+  running at all. Hidden state is retained rather than cleared, so switching
+  PRISM's window and back restores four answers instead of destroying them on a
+  mis-tap. The full payload still goes to `compute` — `runValidation` strips it,
+  which is what makes the property hold for callers that are not this form.
 - **If analytics is ever added:** page views only. Never an event payload keyed
   to a field, never a value, never a range bucket, and above all never the
   interpretation band — a band _is_ the clinical finding. Strip the fragment

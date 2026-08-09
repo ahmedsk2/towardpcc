@@ -53,6 +53,41 @@ interface InputBase {
    * claim does not cover.
    */
   readonly missingIsNotNormal?: boolean;
+
+  /**
+   * When this input is asked at all.
+   *
+   * OPTIONAL and ADDITIVE, exactly like `group` above: an input with no
+   * `showWhen` is always visible, so annotating one score can never affect
+   * another.
+   *
+   * MAY NOT BE COMBINED WITH `required: true` — gated structurally in
+   * registry-gate.test.ts. A hidden required input is an uncomputable score:
+   * `runValidation` rejects the absent value with no notion of visibility, so
+   * the whole score returns `{ok:false}` forever, while the blocking rail names
+   * a field that is not in the DOM and whose jump button silently no-ops.
+   */
+  readonly showWhen?: ShowWhen;
+}
+
+/**
+ * The condition under which an input is asked.
+ *
+ * DECLARATIVE DATA, NOT A PREDICATE FUNCTION. A closure cannot be enumerated by
+ * the registry gate, cannot be checked for a dangling id, and cannot be swept
+ * over every legal controller value — which is the whole of how this codebase
+ * gates `composition`. A shape the gate can read is the only version that can
+ * be guarded.
+ *
+ * ONE LEVEL ONLY. The controller must itself carry no `showWhen`, so visibility
+ * is a single pass over the submitted values with no fixpoint to iterate and no
+ * cycle to detect. Structurally gated in registry-gate.test.ts.
+ */
+export interface ShowWhen {
+  /** Id of a CATEGORICAL input declared by the same score, itself unconditional. */
+  readonly input: string;
+  /** Option values of that input for which this input is asked. */
+  readonly equals: readonly string[];
 }
 
 export interface NumericInput extends InputBase {
