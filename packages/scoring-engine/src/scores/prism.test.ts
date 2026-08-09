@@ -13,6 +13,31 @@ import { prism } from "./prism";
  * 2026-08-03, but NO CASE HAS BEEN ROUND-TRIPPED through either one, so every
  * case below is unreconciled against the authors' own implementation.
  *
+ * THE ORACLE IS TWO-STAGE, AND THAT IS WHY NOBODY HAS ROUND-TRIPPED IT.
+ * Established 2026-08-09 by reading both CPCCRN pages from an archived capture,
+ * the live site having refused access from this region:
+ *
+ *   1. The "PRISM III Calculator" takes RAW PHYSIOLOGY and returns SCORE,
+ *      NEUROLOGIC SCORE and NON-NEUROLOGIC SCORE. It emits no probability.
+ *   2. The "PRISM IV Calculator" does NOT take raw physiology. Its inputs are
+ *      the neurologic and non-neurologic SUBSCORES, plus age, admission source,
+ *      CPR within 24 h, cancer, and low-risk system of primary dysfunction. It
+ *      returns the estimated probability of mortality.
+ *
+ * So a round-trip means chaining them in that order, feeding stage 1's
+ * subscores into stage 2. Anyone who tried to paste raw physiology into the
+ * PRISM IV calculator would conclude it was broken.
+ *
+ * A SECOND FINDING FROM THE SAME READ, worth more than the first: BOTH pages
+ * state the SAME collection window - "Physiologic variables are measured only
+ * in the first 4 hours of PICU care, and laboratory variables are measured in
+ * the time period from 2 hours before PICU admission through the first 4 hours"
+ * - citing Pollack 2013. NEITHER page mentions a 12- or 24-hour window at all.
+ * The authors' own network therefore uses "PRISM III" to name the SCORE SHEET,
+ * decoupled from the collection windows entirely. That is independent support
+ * for what this file already computes: one score function, three windows, and
+ * the window carrying no arithmetic.
+ *
  * So these cases are CONSTRUCTED from the patent's threshold table: each
  * scoring decision below is annotated with the row that produced it, so the
  * arithmetic is auditable line by line even though the case itself is not
@@ -924,7 +949,7 @@ describe("prism states its regional calibration at the right strength", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.2.2");
+    expect(prism.version).toBe("2.3.0");
   });
 
   /**
