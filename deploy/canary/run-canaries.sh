@@ -33,6 +33,7 @@ run_one() {
 
 run_one check-residency.mjs
 run_one check-integrity.mjs
+run_one check-ct-log.mjs
 
 if [ "${status}" -ne 0 ]; then
   echo "CANARY FAILED — production may not match what the site claims."
