@@ -234,6 +234,18 @@ Table 3, p. 7. The authors' stated inclusion criterion was Hosmer-Lemeshow p > .
 | III-24 + squared term  | 1814.818 | .947 | 19.966        | .0677 | **fails**                 |
 | III-24 + all variables | 1723.773 | .958 | 17.335        | .1374 | passes                    |
 
+**This table is also why the calculator offers ONE PRISM III option, not two**
+(collapsed 2026-08-09). Everything that distinguishes III-12 from III-24 lives
+in the mortality models above — different coefficients, different calibration,
+different recommended use. The SCORE is one instrument: the same seventeen
+variables against the same age-banded cut-points, and `first_12h` and
+`first_24h` returned byte-identical output on identical input, verified by
+execution. Since this platform ships neither mortality model, presenting two
+options named after them offered a choice whose only consequence had already
+been removed. The collection period still matters to how the number reads — a
+longer one catches more extreme values and so runs higher — and that is now
+stated in the field's help text instead of encoded in an inert option.
+
 Two problems follow. The 12-hour model that shipped was the **weakest passing model in the table**, with the lowest AUC of the three III-12 variants. And the 24-hour model that shipped — III-24 with the squared term, at p = .0677 — **does not meet the authors' own criterion at all**.
 
 The Discussion makes two recommendations the removed implementation contradicted on both counts: use the models **with** the additional variables, for wider applicability across case mixes; and treat III-12 as a quality-assessment instrument while III-24 is the more accurate one for **individual patient** risk. The abstract quantifies the split — the additional risk variables contributed 5% of explained variance and PRISM III itself 95% — and that 5% is precisely what distinguishes a post-operative child from one admitted after CPR.
@@ -357,7 +369,7 @@ The window changes **nothing about the score**, which is computed identically fo
 
 | id                  | label                                  | type        | units      | conversions                      | plausible min/max                                                   |
 | ------------------- | -------------------------------------- | ----------- | ---------- | -------------------------------- | ------------------------------------------------------------------- |
-| `collection_window` | Data collection window                 | categorical | —          | —                                | `first_4h` \| `first_12h` \| `first_24h` (required)                 |
+| `collection_window` | Data collection window                 | categorical | —          | —                                | `first_4h` \| `first_12_24h` (required)                             |
 | `age`               | Age                                    | numeric     | years      | 1 year = 12 months = 365.25 days | 0–18 [UI bound — NEEDS SOURCE]                                      |
 | `sbp_min`           | Systolic blood pressure (lowest)       | numeric     | mmHg (kPa) | 1 kPa = 7.50062 mmHg             | 0–300 [UI bound — NEEDS SOURCE]                                     |
 | `temp_min`          | Temperature (lowest)                   | numeric     | °C         | °F → °C: (°F−32)×5/9             | 20–45 [UI bound — NEEDS SOURCE]                                     |

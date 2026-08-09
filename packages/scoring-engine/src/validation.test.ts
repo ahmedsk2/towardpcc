@@ -140,7 +140,7 @@ describe("runValidation maxExclusive", () => {
 describe("a hidden input never reaches calculate", () => {
   it("omits a hidden input's id from canonical", () => {
     const { errors, canonical } = runValidation(prism.inputs, {
-      collection_window: { value: "first_12h" },
+      collection_window: { value: "first_12_24h" },
       age: { value: 3, unit: "years" },
       pupils: { value: "both_reactive" },
       cancer: { value: true },
