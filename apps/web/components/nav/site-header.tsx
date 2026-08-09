@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getScore, listScores } from "@towardpcc/scoring-engine";
 import type { ScoreCategory } from "@towardpcc/scoring-engine";
+import { inputCountLabel } from "@/lib/input-count";
 import { site } from "@/content/site";
 import { MainNav, type MegaGroup } from "./main-nav";
 import { StickyShell } from "./sticky-shell";
@@ -33,11 +34,11 @@ function buildGroups(): MegaGroup[] {
       .filter((s) => s.category === category)
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((s) => {
-        const count = getScore(s.slug)?.inputs.length ?? 0;
+        const def = getScore(s.slug);
         return {
           slug: s.slug,
           name: s.name,
-          meta: `${count} input${count === 1 ? "" : "s"}`,
+          meta: def ? inputCountLabel(def) : "",
         };
       }),
   })).filter((g) => g.items.length > 0);

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { registry } from "./registry";
 import { boundaryValues } from "../testing/harness";
+import { isVisible } from "../visibility";
 import type { ScoreDefinition } from "../types";
 
 /**
@@ -230,6 +231,107 @@ describe("registry §6.3 gate", () => {
       for (const c of s.composition.components) {
         const min = c.min ?? 0;
         expect(c.max, `${s.slug}/${c.id}: max must exceed min`).toBeGreaterThan(min);
+      }
+    }
+  });
+});
+
+/**
+ * Structural gates on `showWhen`.
+ *
+ * `ScoreInput` is a non-generic union, so `showWhen.input` is a plain `string`
+ * and the compiler cannot catch a typo in it. These four assertions are what
+ * replaces that check — and the reason the condition is declarative data rather
+ * than a predicate function, which none of them could read.
+ *
+ * One `it` per property so a failure names itself.
+ */
+describe("showWhen is structurally sound wherever it is declared", () => {
+  const conditional = registry.flatMap((s) =>
+    s.inputs.filter((i) => i.showWhen).map((i) => ({ s, i, cond: i.showWhen! })),
+  );
+
+  it("every showWhen names an input the same score declares", () => {
+    for (const { s, i, cond } of conditional) {
+      const ids = s.inputs.map((x) => x.id);
+      expect(ids, `${s.slug}/${i.id}: showWhen names "${cond.input}"`).toContain(cond.input);
+    }
+  });
+
+  it("every showWhen controller is categorical and itself unconditional", () => {
+    // One level only. A chain would need a fixpoint to evaluate and a cycle
+    // check to be safe; a single pass over the submitted values needs neither,
+    // and this is what keeps that true.
+    for (const { s, i, cond } of conditional) {
+      const controller = s.inputs.find((x) => x.id === cond.input);
+      expect(controller?.type, `${s.slug}/${i.id}: controller ${cond.input}`).toBe("categorical");
+      expect(
+        controller?.showWhen,
+        `${s.slug}/${i.id}: controller ${cond.input} is itself conditional — chains are not evaluated`,
+      ).toBeUndefined();
+    }
+  });
+
+  it("every showWhen value is a declared option of its controller", () => {
+    // A value matching no option hides the input forever, and silently: the
+    // form simply never renders it and nothing else notices.
+    for (const { s, i, cond } of conditional) {
+      const controller = s.inputs.find((x) => x.id === cond.input);
+      if (controller?.type !== "categorical") continue;
+      const values = controller.options.map((o) => o.value);
+      expect(cond.equals.length, `${s.slug}/${i.id}: equals is empty`).toBeGreaterThan(0);
+      for (const v of cond.equals) {
+        expect(values, `${s.slug}/${i.id}: equals "${v}"`).toContain(v);
+      }
+    }
+  });
+
+  it("no conditional input is required", () => {
+    // A hidden required input is an uncomputable score. `runValidation` skips
+    // it before the required check, so it would be silently exempt — and if
+    // that skip were ever removed, `missing-required` would fire forever on a
+    // field that is not in the DOM, killing the total and both subscores.
+    for (const { s, i } of conditional) {
+      expect(i.required, `${s.slug}/${i.id}: showWhen may not be combined with required`).toBe(
+        false,
+      );
+    }
+  });
+});
+
+/**
+ * The general detector: a hidden input's value cannot move a number.
+ *
+ * `sweepInputs` supplies EVERY declared input unconditionally, so it already
+ * constructs the illegal state this change forbids — no hand-maintained list,
+ * for the reason given above: a gate that has to be edited by the person it is
+ * guarding against is not a gate.
+ *
+ * BE HONEST ABOUT ITS REACH ON PRISM. It passes today even without the skip in
+ * `runValidation`, because PRISM's `calculate` returns before every read of the
+ * four covariates. It binds for the next score that gates an input its
+ * `calculate` actually reads. The assertion that binds NOW is the key-absence
+ * test in validation.test.ts, stated against the object `calculate` receives.
+ */
+describe("hidden inputs cannot change what a score emits", () => {
+  const otherLegalValue = (i: ScoreDefinition["inputs"][number]): unknown => {
+    if (i.type === "numeric") return { value: i.max, unit: i.unit.canonical };
+    if (i.type === "boolean") return { value: true };
+    return { value: i.options[i.options.length - 1]!.value };
+  };
+
+  it("perturbing a hidden input leaves the whole result identical", () => {
+    for (const s of registry) {
+      const gated = s.inputs.filter((i) => i.showWhen);
+      if (gated.length === 0) continue;
+      for (const vector of sweepInputs(s)) {
+        for (const i of gated) {
+          if (isVisible(i, vector)) continue;
+          const perturbed = { ...vector, [i.id]: otherLegalValue(i) };
+          expect(s.compute(perturbed as never), `${s.slug}/${i.id}`).toEqual(
+            s.compute(vector as never),
+          );
+        }
       }
     }
   });

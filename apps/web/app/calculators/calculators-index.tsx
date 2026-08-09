@@ -28,7 +28,9 @@ export function CalculatorsIndex({
 }: {
   scores: readonly ScoreSummary[];
   /** slug → number of inputs, read from each definition on the server. */
-  inputCounts?: Record<string, number>;
+  /** Rendered label per slug, e.g. `17 inputs` or `22–26 inputs`. A score
+   * that asks conditionally has no single honest number — see lib/input-count. */
+  inputCounts?: Record<string, string>;
 }) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<ScoreCategory | null>(null);
@@ -225,12 +227,7 @@ export function CalculatorsIndex({
                       {/* Data pairs: what the score needs, before you open it. */}
                       <span className="flex flex-wrap items-center gap-x-4 gap-y-1 font-numeric text-[11px] text-ink-muted">
                         <span>v{s.version}</span>
-                        {inputCounts[s.slug] ? (
-                          <span>
-                            {inputCounts[s.slug]} input
-                            {inputCounts[s.slug] === 1 ? "" : "s"}
-                          </span>
-                        ) : null}
+                        {inputCounts[s.slug] ? <span>{inputCounts[s.slug]}</span> : null}
                         <span className="text-accent opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                           Open →
                         </span>

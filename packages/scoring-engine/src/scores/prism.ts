@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.4.1",
+  version: "2.5.0",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -240,7 +240,7 @@ export const prism = defineScore({
       ],
       helpText: defineText(
         "prism.window.help",
-        'WHAT TO COLLECT, AND OVER WHAT PERIOD — this is the part that changes your answer, so it comes first. Enter the single most abnormal value reached inside the window for each variable: the lowest, the highest, or both where a row asks for both. FIRST 4 HOURS (PRISM IV): physiologic variables from the first 4 hours of PICU care ONLY, and laboratory variables from 2 hours BEFORE PICU admission through the first 4 hours. The two halves have different windows and the laboratory one starts before the child arrives — a gas or a chemistry drawn in the referring unit two hours out counts, while a blood pressure from the same moment does not. That split is the authors\' own (Pollack 2013, the ideal-time-interval study) and is exactly how their CPCCRN calculator states it. FIRST 12 OR 24 HOURS (PRISM III-12 / III-24): the most abnormal value for each variable within the first 12 or 24 hours of PICU care. THE WINDOW DOES NOT CHANGE THE SCORE. All three are computed identically, from the same variables and the same cut-points — a longer window usually produces a HIGHER score only because it catches more extreme values, never because the arithmetic differs. What the window decides is whether a mortality estimate can be shown. The 4-hour window is PRISM IV, whose equation is published in full and shown here, and it shows a probability only once all four admission-context questions have been answered — leave any of them blank and the score still appears while the probability is withheld, because a blank is not an answer of "no". The 12- and 24-hour windows are PRISM III, whose mortality equations are not published in the source article and are separately licensed, so those windows give the score and its two subscores and no probability. The four admission-context questions belong to PRISM IV alone and are ignored on those windows.',
+        'WHAT TO COLLECT, AND OVER WHAT PERIOD — this is the part that changes your answer, so it comes first. Enter the single most abnormal value reached inside the window for each variable: the lowest, the highest, or both where a row asks for both. FIRST 4 HOURS (PRISM IV): physiologic variables from the first 4 hours of PICU care ONLY, and laboratory variables from 2 hours BEFORE PICU admission through the first 4 hours. The two halves have different windows and the laboratory one starts before the child arrives — a gas or a chemistry drawn in the referring unit two hours out counts, while a blood pressure from the same moment does not. That split is the authors\' own (Pollack 2013, the ideal-time-interval study) and is exactly how their CPCCRN calculator states it. FIRST 12 OR 24 HOURS (PRISM III-12 / III-24): the most abnormal value for each variable within the first 12 or 24 hours of PICU care. THE WINDOW DOES NOT CHANGE THE SCORE. All three are computed identically, from the same variables and the same cut-points — a longer window usually produces a HIGHER score only because it catches more extreme values, never because the arithmetic differs. What the window decides is whether a mortality estimate can be shown. The 4-hour window is PRISM IV, whose equation is published in full and shown here, and it shows a probability only once all four admission-context questions have been answered — leave any of them blank and the score still appears while the probability is withheld, because a blank is not an answer of "no". The 12- and 24-hour windows are PRISM III, whose mortality equations are not published in the source article and are separately licensed, so those windows give the score and its two subscores and no probability. The four admission-context questions belong to PRISM IV alone, so they are asked ONLY on the 4-hour window and are not shown at all on the other two — they are not hidden answers being ignored, they are questions with no destination there.',
       ),
     },
     {
@@ -528,19 +528,30 @@ export const prism = defineScore({
       ),
     },
     /**
-     * THE FOUR ADMISSION-CONTEXT COVARIATES, and why none of them is `required`.
+     * THE FOUR ADMISSION-CONTEXT COVARIATES: asked only where they mean
+     * something, and `required: false` even there.
      *
-     * They are PRISM IV's, and PRISM IV is one window of three. Declaring them
-     * required would reject a perfectly legitimate score-only entry on the 12-
-     * and 24-hour windows, where they mean nothing and are not collected.
+     * They are PRISM IV's, and PRISM IV is one window of three. Since v2.5.0
+     * they carry `showWhen` and are simply not asked on the 12- and 24-hour
+     * windows, where they mean nothing and are not collected. `runValidation`
+     * drops a hidden input before the required check, so nothing that is not on
+     * screen can reach `calculate`.
      *
-     * `required: false` here therefore does NOT mean "safe to leave blank".
-     * Every one of them is zero at its reference level, so a blank that fell
-     * through to the equation would read as "from the operating room, no CPR,
-     * no cancer, no low-risk system" — a claim about the patient that nobody
-     * made. `calculate` conditions the requirement on the window instead: on
-     * the 4-hour window a single blank withholds the probability outright. See
-     * the guard in `calculate` and the test that omits each one in turn.
+     * They still may not be `required: true`, and `showWhen` does not change
+     * that — it is the reason. `showWhen` and `required` may not be combined
+     * (gated in registry-gate.test.ts): a hidden required input is rejected
+     * with `missing-required` and makes the entire score permanently
+     * uncomputable, no total and no subscores, while the blocking rail names a
+     * field that is not in the DOM.
+     *
+     * `required: false` therefore does NOT mean "safe to leave blank" on the
+     * window where they ARE asked. Every one is zero at its reference level, so
+     * a blank that fell through to the equation would read as "from the
+     * operating room, no CPR, no cancer, no low-risk system" — a claim about
+     * the patient that nobody made. `calculate` conditions the requirement on
+     * the window instead: on the 4-hour window a single blank withholds the
+     * probability outright. See the guard in `calculate` and the test that
+     * omits each one in turn.
      */
     {
       id: "admission_source",
@@ -551,6 +562,10 @@ export const prism = defineScore({
       // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
       // ABSENCE" note at the top of this file.
       missingIsNotNormal: true,
+      // ASKED ON THE 4-HOUR WINDOW ONLY. PRISM IV is the only model that reads
+      // it, and `calculate` returns before every read of it on the other two
+      // windows — so on those it is a question with no destination.
+      showWhen: { input: "collection_window", equals: ["first_4h"] },
       type: "categorical",
       options: [
         {
@@ -578,6 +593,10 @@ export const prism = defineScore({
       // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
       // ABSENCE" note at the top of this file.
       missingIsNotNormal: true,
+      // ASKED ON THE 4-HOUR WINDOW ONLY. PRISM IV is the only model that reads
+      // it, and `calculate` returns before every read of it on the other two
+      // windows — so on those it is a question with no destination.
+      showWhen: { input: "collection_window", equals: ["first_4h"] },
       type: "boolean",
       helpText: defineText(
         "prism.cpr.help",
@@ -593,6 +612,10 @@ export const prism = defineScore({
       // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
       // ABSENCE" note at the top of this file.
       missingIsNotNormal: true,
+      // ASKED ON THE 4-HOUR WINDOW ONLY. PRISM IV is the only model that reads
+      // it, and `calculate` returns before every read of it on the other two
+      // windows — so on those it is a question with no destination.
+      showWhen: { input: "collection_window", equals: ["first_4h"] },
       type: "boolean",
       helpText: defineText(
         "prism.cancer.help",
@@ -608,6 +631,10 @@ export const prism = defineScore({
       // See the InputBase doc on this flag and the "TWO KINDS OF HONEST
       // ABSENCE" note at the top of this file.
       missingIsNotNormal: true,
+      // ASKED ON THE 4-HOUR WINDOW ONLY. PRISM IV is the only model that reads
+      // it, and `calculate` returns before every read of it on the other two
+      // windows — so on those it is a question with no destination.
+      showWhen: { input: "collection_window", equals: ["first_4h"] },
       type: "boolean",
       helpText: defineText(
         "prism.lowrisk.help",
@@ -847,7 +874,7 @@ export const prism = defineScore({
   ),
   notes: defineText(
     "prism.notes",
-    "PRISM estimates mortality risk for a POPULATION and is a case-mix and benchmarking instrument, not a bedside prognosis for the child in front of you. Summed across a cohort it gives an expected death count for a standardised mortality ratio; applied to one patient it says nothing actionable. NO MORTALITY FIGURE IS SHOWN FOR THE 12- AND 24-HOUR WINDOWS, and that is a deliberate absence rather than a missing feature or a zero. PRISM III's mortality equations are not published in the source article: Pollack 1996 prints the score sheet in full — every variable, every range, every point value — but contains no regression coefficients, in any of its tables and with no supplement, and the paper's author note reserves the equations for research use while stating that non-research uses may attract compensation. They are therefore separately licensed, and this platform presents the physiologic score only for those windows: the total, the neurologic subscore and the non-neurologic subscore. The authors' own network does the same, publishing a PRISM III calculator that returns the score and its subscores and no probability. The score itself is unaffected and is identical for all three windows. PRISM IV, the 4-hour window, does show a probability: its coefficients are printed in full in Pollack 2016, a paper whose stated objective included placing the algorithms in the public domain. IT SHOWS ONE ONLY WHEN ALL FOUR ADMISSION-CONTEXT QUESTIONS HAVE BEEN ANSWERED — admission source, CPR in the 24 hours before admission, cancer, and a low-risk system of primary dysfunction. Leave any one of them blank and the score and its two subscores still appear while no probability does. This is deliberate and is the same rule as above: each of those four contributes nothing at its reference level, so treating a blank as an absent term would not compute a probability without it, it would compute the reference patient — admitted from the operating room, no CPR, no cancer, no low-risk system — and hand that curve to everyone who skipped a question. An unanswered question is never answered with a default. Those four questions belong to PRISM IV alone and are ignored on the 12- and 24-hour windows. Read what that number is precisely — the estimated probability of HOSPITAL mortality, for a FIRST PICU admission, from data collected in the first 4 hours of PICU care — where PRISM III's outcome was PICU mortality on 1990s practice. The windows are not interchangeable: PRISM IV takes the first 4 hours with laboratory values from 2 hours before admission, PRISM III the first 12 or 24 hours, so this calculator asks which you collected. Blank components score zero, so a partially entered score reads lower than the patient is. Mental status should be entered only for known or suspected acute CNS disease, and not within 2 hours of sedation, paralysis or anaesthesia. Whole-blood chemistry needs correcting before entry: glucose up by 10%, sodium by 3 mmol/L, potassium by 0.4 mmol/L. [NEEDS SOURCE]: no published worked example exists for either model, so the test cases were constructed from the threshold table and verified by arithmetic rather than against a published case; the authors' own CPCCRN calculators are the natural oracle, and both calculators' input and output sets were read on 2026-08-03, but no case has yet been round-tripped through either one, so the constructed cases remain unreconciled against the authors' own implementation. The patent's printed neonate heart-rate band appears to contain an OCR error (215-255 against a >225 cutoff on the next line) and 215-225 is used here, following an independent reproduction. The glucose row prints 200 mg/dL and 11.0 mmol/L as if equivalent when 200 mg/dL is 11.1 mmol/L; the mg/dL limb is authoritative here. " +
+    "PRISM estimates mortality risk for a POPULATION and is a case-mix and benchmarking instrument, not a bedside prognosis for the child in front of you. Summed across a cohort it gives an expected death count for a standardised mortality ratio; applied to one patient it says nothing actionable. NO MORTALITY FIGURE IS SHOWN FOR THE 12- AND 24-HOUR WINDOWS, and that is a deliberate absence rather than a missing feature or a zero. PRISM III's mortality equations are not published in the source article: Pollack 1996 prints the score sheet in full — every variable, every range, every point value — but contains no regression coefficients, in any of its tables and with no supplement, and the paper's author note reserves the equations for research use while stating that non-research uses may attract compensation. They are therefore separately licensed, and this platform presents the physiologic score only for those windows: the total, the neurologic subscore and the non-neurologic subscore. The authors' own network does the same, publishing a PRISM III calculator that returns the score and its subscores and no probability. The score itself is unaffected and is identical for all three windows. PRISM IV, the 4-hour window, does show a probability: its coefficients are printed in full in Pollack 2016, a paper whose stated objective included placing the algorithms in the public domain. IT SHOWS ONE ONLY WHEN ALL FOUR ADMISSION-CONTEXT QUESTIONS HAVE BEEN ANSWERED — admission source, CPR in the 24 hours before admission, cancer, and a low-risk system of primary dysfunction. Leave any one of them blank and the score and its two subscores still appear while no probability does. This is deliberate and is the same rule as above: each of those four contributes nothing at its reference level, so treating a blank as an absent term would not compute a probability without it, it would compute the reference patient — admitted from the operating room, no CPR, no cancer, no low-risk system — and hand that curve to everyone who skipped a question. An unanswered question is never answered with a default. Those four questions belong to PRISM IV alone. Since v2.5.0 they are asked ONLY on the 4-hour window: on the 12- and 24-hour windows they are not rendered, not carried into a copied link or a copied record, and not counted in the completion tally. If you answered them and then changed the window, they are held in the form so that changing back restores them, but nothing outside the screen you are looking at can see them. Read what that number is precisely — the estimated probability of HOSPITAL mortality, for a FIRST PICU admission, from data collected in the first 4 hours of PICU care — where PRISM III's outcome was PICU mortality on 1990s practice. The windows are not interchangeable: PRISM IV takes the first 4 hours with laboratory values from 2 hours before admission, PRISM III the first 12 or 24 hours, so this calculator asks which you collected. Blank components score zero, so a partially entered score reads lower than the patient is. Mental status should be entered only for known or suspected acute CNS disease, and not within 2 hours of sedation, paralysis or anaesthesia. Whole-blood chemistry needs correcting before entry: glucose up by 10%, sodium by 3 mmol/L, potassium by 0.4 mmol/L. [NEEDS SOURCE]: no published worked example exists for either model, so the test cases were constructed from the threshold table and verified by arithmetic rather than against a published case; the authors' own CPCCRN calculators are the natural oracle, and both calculators' input and output sets were read on 2026-08-03, but no case has yet been round-tripped through either one, so the constructed cases remain unreconciled against the authors' own implementation. The patent's printed neonate heart-rate band appears to contain an OCR error (215-255 against a >225 cutoff on the next line) and 215-225 is used here, following an independent reproduction. The glucose row prints 200 mg/dL and 11.0 mmol/L as if equivalent when 200 mg/dL is 11.1 mmol/L; the mg/dL limb is authoritative here. " +
       "REGIONAL CALIBRATION, WHERE THIS PLATFORM ACTUALLY DEPLOYS. A Riyadh PICU series (Alkhalifah 2022, n = 3396, children under 14) evaluated paediatric mortality models and found them to have sufficient discrimination and poor calibration; PRISM III discriminated best in the 60-120-month age band (AUC 0.87), and the WORST calibration and the worst discrimination were both in infants under 12 months — the youngest patients, scored by a model that separates them least well. Part of the same shape is on record from Dubai for the neighbouring model: PIM3 in a single Dubai PICU (Malhotra 2019, n = 583, 46 deaths, 7.9%) reached AUC 0.78 with an overall SMR of 0.53, over-predicting deaths for the unit as a whole, while UNDER-predicting by 2.1 in the sepsis subgroup. That second study is a PIM3 finding and not a PRISM one; it is carried here because what generalises is the pattern — acceptable discrimination alongside calibration that does not travel — which is what both series show. WHAT NEITHER SERIES SUPPORTS IS A CLAIM ABOUT THE LOW END OF THE PROBABILITY SCALE, and the Dubai paper is itself the reason: cut finely it reports SMR 2.67 among children whose predicted probability was 1-5%, severe under-prediction, while cut coarsely at a predicted probability of 14.3% it reports SMR 0.33 below the cut against 0.72 above it, over-prediction across that same low range. Both cuts come from that one cohort of 583 and they point in opposite directions, so both are recorded here rather than whichever one is convenient. THE CONCLUSION A READER NEEDS: discrimination travels between populations, calibration frequently does not, and the under-prediction that survives its own paper is the one in sepsis rather than one attached to any band of the probability scale. Three limits on what those studies say about the figure on this page. They evaluated PRISM III, not PRISM IV, so nothing here asserts a regional evaluation of the model that produces this calculator's probability. Every Dubai figure above is PIM3's. And neither model has been recalibrated for this region, so a PRISM IV probability shown here is an uncalibrated population estimate, least trustworthy in the youngest infants.",
   ),
   references: [
@@ -990,6 +1017,13 @@ export const prism = defineScore({
       date: "2026-08-09",
       summary:
         "Corrects a badge that told the reader the opposite of what this score does, on the four fields it is most careful about. NO COMPUTED VALUE CHANGED. `missingAsNormal` is declared once per score and is TRUE here, correctly: PRISM’s physiologic variables score as normal when unmeasured, which is the published convention. But the four PRISM IV admission-context covariates are optional with the OPPOSITE blank semantics — leaving any one blank withholds the mortality probability entirely, deliberately, because each is zero at its reference level and reading a blank as ‘contributes nothing’ would hand every clinician who skipped a question the OR/PACU, no-CPR, no-cancer curve. That is the reference-patient defect the 2026-08-03 removal fixed, and this file states it in capitals as NEVER SUBSTITUTE THE REFERENCE LEVEL FOR AN UNANSWERED QUESTION. All four nevertheless rendered ‘Optional · blank scored as normal’ — verified on the live site before the fix. A per-input `missingIsNotNormal` now exempts them and they read ‘Optional · blank is not an answer’, which is this score’s own wording. Found while measuring the three-window selector, not by any guard.",
+      reason: "clarification",
+    },
+    {
+      version: "2.5.0",
+      date: "2026-08-09",
+      summary:
+        "Stops asking the four PRISM IV admission-context questions on the 12- and 24-hour windows. NO THRESHOLD, COEFFICIENT OR COMPUTED VALUE CHANGED, and no output stops being shown: the same inputs yield the same numbers, and the probability's absence on those two windows has been the behaviour since v2.1.0. What changes is that admission source, CPR within 24 hours, cancer and low-risk system are now asked ONLY where a probability is reachable. `calculate` already returned before every read of them on the other two windows, so on those windows they were questions with no destination - four fields a clinician could answer, on a form that counted them toward completion, that could travel in a copied link and print in a copied handover record, and that could change nothing. A reader who filled them in last week and cannot find them now is looking at the 12- or 24-hour window; switch to the 4-hour window and the answers are still there. Enforced in the ENGINE, not the form: `runValidation` drops an input whose `showWhen` is unsatisfied before the required check, so a hidden id never reaches `calculate` regardless of which UI, link or future runtime submitted it. The engine-side window gate in `calculate` is deliberately kept as well - two guards, because a filter with a hole should not be the only thing standing between a covariate and the logit.",
       reason: "clarification",
     },
   ],

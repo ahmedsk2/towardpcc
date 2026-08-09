@@ -1,5 +1,6 @@
 import type { InputRejection, NumericValue, ScoreInput } from "./types";
 import { toCanonical } from "./units/types";
+import { isVisible } from "./visibility";
 
 /**
  * Validates raw values against input declarations and normalizes numeric
@@ -14,6 +15,17 @@ export function runValidation(
   const canonical: Record<string, unknown> = {};
 
   for (const input of inputs) {
+    /**
+     * A HIDDEN INPUT IS ABSENT, NOT DEFAULTED — and it is skipped HERE, before
+     * the required check below, so that `required` means "required when asked".
+     * Skipping the loop body is what keeps the id out of `canonical`, and
+     * `canonical` is the entire object `calculate` receives (define-score.ts).
+     * The browser is therefore not the enforcement point: a UI filter that is
+     * forgotten, a shared link, a direct compute() call from a test or a future
+     * runtime cannot feed a hidden value in.
+     */
+    if (!isVisible(input, values)) continue;
+
     const raw = values[input.id];
 
     // Treat null like undefined so an explicit null never reaches property

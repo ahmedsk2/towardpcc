@@ -1,5 +1,6 @@
 import { getScore, listScores } from "@towardpcc/scoring-engine";
 import { PageHero } from "@/components/page-hero";
+import { inputCountLabel } from "@/lib/input-count";
 import { site } from "@/content/site";
 import { CalculatorsIndex } from "./calculators-index";
 
@@ -11,9 +12,15 @@ export const metadata = {
 export default function CalculatorsPage() {
   const scores = listScores({ status: "published" });
   // Input counts come from each definition, so the index can never claim a
-  // shape the calculator does not actually have.
+  // shape the calculator does not actually have. Where a score asks
+  // conditionally the claim is a RANGE, because it has no single true count:
+  // PRISM puts 26 fields on screen for the 4-hour window and 22 for the other
+  // two, and either number alone is false in one direction.
   const inputCounts = Object.fromEntries(
-    scores.map((s) => [s.slug, getScore(s.slug)?.inputs.length ?? 0]),
+    scores.flatMap((s) => {
+      const def = getScore(s.slug);
+      return def ? [[s.slug, inputCountLabel(def)] as const] : [];
+    }),
   );
 
   return (

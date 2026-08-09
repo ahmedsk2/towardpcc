@@ -36,6 +36,22 @@ interpretation, references, validators, changelog, ipStatus, notes** and
 - **Changing user-visible text requires a `version` bump plus a matching
   changelog entry.** The gate asserts changelog dates read oldest-first and that
   `version` equals the newest entry's version.
+- **An input can be asked conditionally: `showWhen: { input, equals }`.** The
+  controller must be a categorical input of the same score that itself carries
+  no `showWhen` — one level only, so visibility is a single pass with no
+  fixpoint and no cycle to detect. It is declarative DATA rather than a
+  predicate, because the registry gate has to read it: four structural
+  assertions check that the id resolves, the controller is categorical and
+  unconditional, every `equals` value is a declared option, and that
+  `showWhen` is never combined with `required: true`. That last one is not
+  style — a hidden required input is rejected with `missing-required` forever,
+  so the whole score returns `{ok:false}` with no total and no subscores, while
+  the form's blocking rail names a field that is not in the DOM. The safety
+  property is enforced in `runValidation`, not the UI: an input whose condition
+  is unsatisfied is skipped before the required check, so its id never enters
+  `canonical` and `canonical` is the entire object `calculate` receives. Keep
+  any window gate already inside `calculate` as well — two guards, because a
+  filter with a hole should not be the only thing between a value and a logit.
 
 ## Units
 

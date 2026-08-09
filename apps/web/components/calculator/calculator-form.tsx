@@ -7,7 +7,12 @@ import type {
   ScoreDefinition,
   ScoreInput,
 } from "@towardpcc/scoring-engine";
-import { fromCanonical, getScore, matchInterpretationBand } from "@towardpcc/scoring-engine";
+import {
+  fromCanonical,
+  getScore,
+  matchInterpretationBand,
+  visibleInputs,
+} from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import { roundInward } from "@/lib/round-inward";
@@ -36,10 +41,20 @@ function initialState(inputs: readonly ScoreInput[]): FieldState {
   return s;
 }
 
-/** Compact URL-fragment encoding: id=value~unit joined by ';'. Never the query string (PRD §6.4). */
-function encodeFragment(state: FieldState): string {
+/**
+ * Compact URL-fragment encoding: id=value~unit joined by ';'. Never the query
+ * string (PRD §6.4).
+ *
+ * `inputs` is the VISIBLE list, not the declared one. A field that is not on
+ * screen must not travel in a link the sender composed from a screen that did
+ * not show it — the property this delivers is that a value held in a hidden
+ * field was typed in this session by the person looking at the screen, and it
+ * never leaves.
+ */
+function encodeFragment(state: FieldState, inputs: readonly ScoreInput[]): string {
+  const visible = new Set(inputs.map((i) => i.id));
   const parts = Object.entries(state)
-    .filter(([, v]) => v.raw !== "")
+    .filter(([id, v]) => v.raw !== "" && visible.has(id))
     .map(([id, v]) => {
       const val = encodeURIComponent(v.raw);
       return v.unit ? `${id}=${val}~${encodeURIComponent(v.unit)}` : `${id}=${val}`;
@@ -72,7 +87,41 @@ function decodeFragment(hash: string, inputs: readonly ScoreInput[]): FieldState
   } catch {
     return initialState(inputs);
   }
-  return state;
+  return pruneHidden(inputs, state);
+}
+
+/**
+ * Blank every field the FINAL state does not make visible.
+ *
+ * A SECOND PASS, and it has to be. Visibility depends on the whole decoded
+ * state, not on arrival order: the fragment is applied wholesale by one
+ * `setState`, and pruning as each pair is parsed would behave differently
+ * depending on the order of keys in the string.
+ *
+ * NOT hung off the controller's `onChange` either. Fragment hydration replaces
+ * state wholesale with no per-field handler running, and the `tpcc:fragment`
+ * listener re-applies it on a same-document paste — neither code path calls any
+ * change handler, so clearing there is simply not reached.
+ *
+ * This is not hypothetical. Links already in circulation legitimately carry
+ * `collection_window=first_12h` together with all four PRISM covariates,
+ * because until v2.5.0 every window rendered all 26 fields. Those links are the
+ * hazard case on first load: without this, a link injects state into fields
+ * that are not on screen, with no keystroke.
+ */
+function pruneHidden(inputs: readonly ScoreInput[], state: FieldState): FieldState {
+  const visible = new Set(visibleInputs(inputs, toComputeInput(inputs, state)).map((i) => i.id));
+  const out: FieldState = {};
+  let pruned = false;
+  for (const [id, field] of Object.entries(state)) {
+    if (field.raw === "" || visible.has(id)) {
+      out[id] = field;
+      continue;
+    }
+    pruned = true;
+    out[id] = { ...field, raw: "" };
+  }
+  return pruned ? out : state;
 }
 
 /** Build the typed values object the engine expects from raw field state. */
@@ -164,8 +213,22 @@ function CalculatorFormInner({
   definition: ScoreDefinition;
   children?: React.ReactNode;
 }) {
-  const { inputs } = definition;
-  const [state, setState] = useState<FieldState>(() => initialState(inputs));
+  /**
+   * THE SINGLE DERIVATION POINT.
+   *
+   * `declared` is used in exactly four places — state initialisation, fragment
+   * decoding, the submitted payload, and the line below. Everything else in
+   * this component reads `inputs`, which SHADOWS the declared list on purpose:
+   * a future author must not have the full list in scope, because passing it
+   * where the visible one belongs is exactly the mistake.
+   *
+   * The FULL `submitted` object is what goes to `compute`. Do not pre-filter it
+   * here — `runValidation` drops a hidden input before the required check, and
+   * that is the enforcement point precisely because it holds for callers that
+   * are not this form.
+   */
+  const declared = definition.inputs;
+  const [state, setState] = useState<FieldState>(() => initialState(declared));
   const [copied, setCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -187,12 +250,12 @@ function CalculatorFormInner({
   useEffect(() => {
     const hydrate = () => {
       const stashed = window.__TPCC_FRAGMENT__;
-      if (stashed) setState(decodeFragment(stashed, inputs));
+      if (stashed) setState(decodeFragment(stashed, declared));
     };
     hydrate();
     window.addEventListener("tpcc:fragment", hydrate);
     return () => window.removeEventListener("tpcc:fragment", hydrate);
-  }, [inputs]);
+  }, [declared]);
 
   // THE FRAGMENT IS NO LONGER MIRRORED AS THE USER TYPES, and that is the fix.
   //
@@ -217,10 +280,15 @@ function CalculatorFormInner({
     setCopied(false);
   }, []);
 
+  const submitted = useMemo(() => toComputeInput(declared, state), [declared, state]);
+  /** What the form is allowed to see. */
+  const inputs = useMemo(() => visibleInputs(declared, submitted), [declared, submitted]);
+  const visibleCount = inputs.length;
+
   const outcome: ComputeResult | null = useMemo(() => {
     if (!anyEntered(inputs, state)) return null;
-    return definition.compute(toComputeInput(inputs, state) as never);
-  }, [definition, inputs, state]);
+    return definition.compute(submitted as never);
+  }, [definition, inputs, state, submitted]);
 
   /**
    * Fields the user has actually left. Validation MESSAGES wait for this;
@@ -438,7 +506,7 @@ function CalculatorFormInner({
   );
 
   const clearAll = useCallback(() => {
-    setState(initialState(inputs));
+    setState(initialState(declared));
     setBlurred(new Set());
     setCopied(false);
     setLinkCopied(false);
@@ -453,7 +521,7 @@ function CalculatorFormInner({
     // The stash goes too, so a later remount cannot resurrect the values the
     // clinician just cleared.
     delete window.__TPCC_FRAGMENT__;
-  }, [inputs, dismissCarried]);
+  }, [declared, dismissCarried]);
 
   /**
    * Copying the link is DELIBERATE, and is now the ONLY way values reach a URL.
@@ -468,7 +536,7 @@ function CalculatorFormInner({
    * a campaign or referral parameter keeps it.
    */
   const copyLink = useCallback(() => {
-    const frag = encodeFragment(state);
+    const frag = encodeFragment(state, inputs);
     const url = `${window.location.origin}${window.location.pathname}${window.location.search}${
       frag ? `#${frag}` : ""
     }`;
@@ -479,7 +547,7 @@ function CalculatorFormInner({
         setTimeout(() => setLinkCopied(false), 2000);
       })
       .catch(() => {});
-  }, [state]);
+  }, [state, inputs]);
 
   return (
     /**
@@ -605,6 +673,7 @@ function CalculatorFormInner({
         outcome={outcome}
         blocking={blocking}
         enteredCount={enteredCount}
+        visibleCount={visibleCount}
         copied={copied}
         linkCopied={linkCopied}
         onCopy={copySummary}
@@ -1016,6 +1085,7 @@ function ResultPanel({
   outcome,
   blocking,
   enteredCount,
+  visibleCount,
   copied,
   linkCopied,
   onCopy,
@@ -1027,6 +1097,14 @@ function ResultPanel({
   outcome: ComputeResult | null;
   blocking: readonly BlockingField[];
   enteredCount: number;
+  /**
+   * The DENOMINATOR, and it moves under the user's hand where a score asks
+   * conditionally — 26 on PRISM's 4-hour window, 22 on the other two. That is
+   * the point rather than a wart: filtering the numerator alone reads `26 of
+   * 22`, and filtering neither pins a fully entered 12-hour PRISM at `22 of 26`
+   * forever, which is the same falsehood this counter exists to prevent.
+   */
+  visibleCount: number;
   copied: boolean;
   linkCopied: boolean;
   onCopy: () => void;
@@ -1110,7 +1188,7 @@ function ResultPanel({
           count read aloud that often is noise rather than information. */}
       {definition.composition ? (
         <p className="mt-1 font-numeric text-[13px] text-ink-muted">
-          {enteredCount} of {definition.inputs.length} entered
+          {enteredCount} of {visibleCount} entered
         </p>
       ) : null}
 

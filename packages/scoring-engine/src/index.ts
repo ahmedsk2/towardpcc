@@ -29,11 +29,13 @@ export type {
   ScoreStatus,
   ScoreSummary,
   ScoreValue,
+  ShowWhen,
   ValidatorSlot,
   ValidatorSlots,
 } from "./types";
 
 export { defineScore, type ScoreSpec } from "./define-score";
+export { isVisible, visibleInputs } from "./visibility";
 export { matchInterpretationBand } from "./interpretation";
 export { defineText, type LocalizedText } from "./i18n/text";
 export {
