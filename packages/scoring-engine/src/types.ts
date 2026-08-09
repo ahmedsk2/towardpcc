@@ -309,6 +309,55 @@ export interface Composition {
   readonly components: readonly CompositionComponent[];
 }
 
+/**
+ * An output the score DERIVES from its components rather than sums into a total.
+ *
+ * A composition states an identity: the components add up to the total, and
+ * `registry-gate.test.ts` asserts that sum across a per-input sweep. A
+ * probability is not a summand of a score, so it cannot be declared as a
+ * component — but it is not a peer of the total either. It is downstream of the
+ * parts, and rendering it beside the total at equal weight says the two numbers
+ * are equally direct measurements of the same thing, which they are not.
+ *
+ * `from` NAMES THE PARTS THE MODEL ACTUALLY READS, and getting it wrong renders
+ * a clinical falsehood rather than a layout bug. PRISM IV weights the
+ * neurologic and non-neurologic subscores separately, at 0.197 and 0.163; it
+ * never touches their sum. Declaring `from: ["prism_total"]` would tell a
+ * clinician the estimate came from the total, and `prism.test.ts` already
+ * carries a test guarding against an implementation that summed first.
+ *
+ * CONDITIONALLY EMITTED IS EXPECTED. PRISM shows a probability only on the
+ * 4-hour window, and only once all four covariates are answered. The gate is
+ * therefore one-directional — if the value is emitted, its sources must be too
+ * — rather than a copy of the composition identity, which would fail on every
+ * sweep vector where the value legitimately does not appear.
+ */
+export interface DerivedOutput {
+  /** Must match the `ScoreValue.id` carrying the derived value. */
+  readonly id: string;
+  /**
+   * Component ids it is computed from. Every one must be a declared component
+   * of the same score's composition, so the claim on screen is checkable
+   * against the identity the panel above it already renders.
+   */
+  readonly from: readonly string[];
+  /** Heading for the block this renders in. */
+  readonly label: LocalizedText;
+  /** One line saying what it is derived from and how to read it. */
+  readonly description: LocalizedText;
+  /**
+   * A caution about THIS OUTPUT, rendered with it.
+   *
+   * Separate from the score-level `cautions` because the two are not the same
+   * claim. PRISM's Gulf calibration finding is about the PROBABILITY —
+   * discrimination was fine at AUC 0.81; it is calibration that fails — so
+   * rendering it once for the whole score attaches a probability caveat to a
+   * score that does not deserve it, and detaches it from the number it is
+   * about.
+   */
+  readonly caution?: LocalizedText;
+}
+
 export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonly ScoreInput[]> {
   readonly id: string;
   readonly slug: string;
@@ -390,6 +439,13 @@ export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonl
    * "not a composite" — the result panel then renders exactly as it does today.
    */
   readonly composition?: Composition;
+  /**
+   * Present only on scores that emit a value computed FROM their components
+   * rather than summed into their total. Requires `composition`, since `from`
+   * names component ids. Absent means every emitted value is a peer, which is
+   * how all but one score renders.
+   */
+  readonly derived?: DerivedOutput;
 }
 
 export interface ScoreSummary {

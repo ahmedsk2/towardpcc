@@ -946,10 +946,39 @@ describe("prism states its regional calibration at the right strength", () => {
     expect(riyadh?.note).toMatch(/It evaluated PRISM III, not PRISM IV/);
   });
 
+  /**
+   * THE DERIVED DECLARATION IS A CLINICAL CLAIM, not a layout hint.
+   *
+   * PRISM IV weights the two subscores separately — 0.197 per neurologic point
+   * and 0.163 per non-neurologic — and never forms their sum. A block on screen
+   * headed "derived from the total" would state, in words, exactly the error
+   * that `applies the two subscore weights separately, never to the total`
+   * elsewhere in this file exists to prevent in the arithmetic.
+   */
+  it("derives the probability from the two subscores and never from the total", () => {
+    expect(prism.derived?.id).toBe("mortality_probability");
+    expect(prism.derived?.from).toEqual(["neurologic_subscore", "non_neurologic_subscore"]);
+    expect(prism.derived?.from).not.toContain("prism_total");
+    expect(prism.derived?.from).not.toContain(prism.composition?.total);
+  });
+
+  it("carries the calibration caution on the probability, not only on the score", () => {
+    // The finding is about the PROBABILITY: discrimination held at AUC 0.81 and
+    // it is calibration that failed. Rendered once for the whole score it
+    // attaches a probability caveat to a score that does not deserve one, and
+    // detaches it from the number it is about.
+    expect(prism.derived?.caution?.en).toMatch(/UN-CALIBRATED FOR THIS POPULATION/);
+    expect(prism.derived?.caution?.en).toMatch(/2\.61/);
+    expect(prism.derived?.caution?.en).toMatch(/AUC 0\.81/);
+    // The score-level caution survives and still points at the number.
+    expect(prism.cautions?.length).toBeGreaterThan(0);
+    expect(prism.cautions?.[0]?.en).toMatch(/beneath the PRISM IV estimate/);
+  });
+
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.5.0");
+    expect(prism.version).toBe("2.6.0");
   });
 
   /**

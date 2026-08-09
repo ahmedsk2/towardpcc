@@ -943,6 +943,12 @@ export const site = {
     // total alone cannot say which. Labelled so it reads as a breakdown rather
     // than as more result lines.
     copyComponentsLabel: "Components",
+    /**
+     * Prefixes the derived value in the copied handover record, so a reader who
+     * meets the number away from the page can see it was computed FROM the
+     * subscores rather than measured alongside them.
+     */
+    copyDerivedLabel: "Derived",
     // Beside the number. "Full citation in Evidence, below" and NOT a link:
     // the fragment belongs to field state, so an href="#evidence" would wipe
     // everything the clinician had entered.

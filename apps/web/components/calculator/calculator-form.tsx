@@ -16,7 +16,7 @@ import {
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import { roundInward } from "@/lib/round-inward";
-import { CompositionPanel, splitComposition } from "./composition-panel";
+import { CompositionPanel, DerivedPanel, splitComposition } from "./composition-panel";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
@@ -417,7 +417,11 @@ function CalculatorFormInner({
         return [`${i.label.en} ${raw === "true" ? c.booleanYes : c.booleanNo}`];
       })
       .join(" · ");
-    const { flat, components } = splitComposition(outcome.result.values, definition.composition);
+    const {
+      flat,
+      components,
+      derived: derivedValue,
+    } = splitComposition(outcome.result.values, definition.composition, definition.derived);
     const lines = [
       `${definition.name} — ${new Date().toISOString().slice(0, 16)}Z`,
       ...(entered ? [`${c.copyInputsLabel}: ${entered}`] : []),
@@ -431,6 +435,18 @@ function CalculatorFormInner({
             `${c.copyComponentsLabel}: ${components
               .map((r) => `${r.label} ${r.value} of ${r.max}`)
               .join(" · ")}`,
+          ]
+        : []),
+      // THE DERIVED VALUE STAYS IN THE RECORD. Pulling it out of `flat` for
+      // layout must not drop it from the clipboard: it is the number a reader
+      // is most likely to act on, and a handover note that silently omits it is
+      // worse than one that never had it. Prefixed so its provenance survives
+      // the trip off the page.
+      ...(derivedValue
+        ? [
+            `${c.copyDerivedLabel}: ${derivedValue.label.en} ${derivedValue.value.toFixed(
+              derivedValue.precision,
+            )}${derivedValue.unit ? ` ${derivedValue.unit}` : ""}`,
           ]
         : []),
       `${definition.name} v${definition.version} · towardpcc.com`,
@@ -1127,16 +1143,22 @@ function ResultPanel({
    * Splitting per consumer is how the live region came to announce all seven
    * pSOFA values while the list rendered one.
    */
-  const { flat: flatValues, components: componentRows } = useMemo(
-    () => splitComposition(ok?.result.values ?? [], definition.composition),
-    [ok, definition.composition],
+  const {
+    flat: flatValues,
+    components: componentRows,
+    derived: derivedValue,
+  } = useMemo(
+    () => splitComposition(ok?.result.values ?? [], definition.composition, definition.derived),
+    [ok, definition.composition, definition.derived],
   );
 
   /* Derived from what actually RENDERS, not from what the engine emitted.
      `multi` exists to tell several numbers apart — it labels each one and
      shrinks the non-primary ones. With the components pulled out, pSOFA shows a
-     single number and needs neither. PRISM still keeps its mortality
-     probability beside the total, so it stays multi and is unaffected. */
+     single number and needs neither. Since v2.6.0 PRISM's mortality probability
+     is pulled out too, into its own block, so PRISM is no longer multi either —
+     the total is the one number in this list, at full size, which is the point
+     of the change. Phoenix and PELOD-2 declare no `derived` and still are. */
   const multi = flatValues.length > 1;
 
   /**
@@ -1213,8 +1235,13 @@ function ResultPanel({
           few nodes away: available on demand, which is the right register for
           working. The answer is what is worth interrupting for. */}
       <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {/* THE DERIVED VALUE IS ANNOUNCED, and it is announced LAST.
+            Pulling it out of `flatValues` for layout must not remove it from
+            what a listener hears — it is the number most likely to be acted
+            on. Last, and named as derived, because that is the order it is
+            reached on screen: the score, then what follows from it. */}
         {ok
-          ? flatValues
+          ? [...flatValues, ...(derivedValue ? [derivedValue] : [])]
               .map((v) => {
                 const band = matchInterpretationBand(definition, v.id, v.value);
                 const num = `${v.label.en} ${v.value.toFixed(v.precision)}${v.unit ? ` ${v.unit}` : ""}`;
@@ -1401,6 +1428,17 @@ function ResultPanel({
               composition, so `componentRows` is empty for the rest and the
               panel renders nothing. */}
           <CompositionPanel rows={componentRows} />
+
+          {/* THE SECOND STEP. Below the score and its working, because that is
+              the order the reasoning runs: measure, then conclude. */}
+          {derivedValue && definition.derived ? (
+            <DerivedPanel
+              value={derivedValue}
+              label={definition.derived.label.en}
+              description={definition.derived.description.en}
+              caution={definition.derived.caution?.en}
+            />
+          ) : null}
 
           {/* BESIDE THE NUMBER. A result-invalidating caveat that only appears
               in a Limitations tab is a caveat most readers will never meet.

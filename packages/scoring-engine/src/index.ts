@@ -15,6 +15,7 @@ export type {
   Composition,
   CompositionComponent,
   ComputeResult,
+  DerivedOutput,
   InputRejection,
   InputValues,
   InterpretationBand,
