@@ -39,8 +39,9 @@ Everything the public sends us. Fields: `id`, `type`
 (`SERVICE|KNOWLEDGE_PILOT|DATA_INTEREST|CONTACT`, enum), `payload` (JSONB,
 per-type Zod-validated), `status` (`NEW|TRIAGED|IN_PROGRESS|CLOSED|SPAM`),
 `internalNotes` (text, admin-only, never shown to the submitter), `ipHash`
-(salted + truncated SHA-256 of the source IP — **for rate-limit forensics
-only**, not identity; the salt is a server secret, truncation defeats reversal),
+(truncated **HMAC-SHA-256** of the source IP under a server-secret key — **for
+rate-limit forensics only**, not identity; see "The IP hash, corrected" below,
+because this line said something false until 2026-08-09),
 `createdAt`, `updatedAt`, `triagedById` (FK → AdminUser, nullable).
 **Retention: 24 months from `createdAt`, then purged** (§8.4). A submitter can
 request earlier deletion via `[CONTACT_EMAIL]`.
@@ -93,3 +94,84 @@ registry is additive. **Retention:** n/a in v1 (empty).
 - **IP handling**: only the salted+truncated hash is stored, and only on
   `Submission`, only for abuse forensics. Raw IPs are never persisted.
 - **Timestamps** are `timestamptz`; retention math is done in UTC.
+
+## The IP hash, corrected — 2026-08-09
+
+The `Submission.ipHash` description above was wrong in two ways, and one of them
+was a security claim. Corrected in place rather than quietly reworded, because
+anyone who read it may have relied on it.
+
+### It is HMAC, not a salted SHA-256
+
+`apps/web/lib/salted-hash.ts` computes
+`createHmac("sha256", siteSalt()).update(value).digest("hex").slice(0, 24)`.
+
+That is **HMAC-SHA-256 truncated to 24 hex characters (96 bits)**, not the
+"salted SHA-256" this ADR described. The distinction is not pedantry in the
+direction you might expect: HMAC is the **stronger** construction. A literal
+salted hash — `sha256(salt + value)` — is vulnerable to length-extension, and
+naming it here invited someone to "simplify" the code toward the weaker thing
+while believing they were matching the documentation.
+
+### Truncation does NOT defeat reversal — the secret key does
+
+The old text read "the salt is a server secret, truncation defeats reversal".
+The second half is false and the first half is doing all the work.
+
+There are about 4.3 billion IPv4 addresses. Anyone holding the key can hash the
+entire space and match every digest in the table, in minutes, at any digest
+length. Truncating to 96 bits removes nothing from that attack; it only makes
+collisions marginally more likely.
+
+**So the confidentiality of this column rests entirely on the key staying
+secret.** Nothing else contributes. That is worth stating plainly, because the
+old wording offered a second, imaginary line of defence, and a reader who
+believed in it might reasonably be more relaxed about key handling than the
+design can afford.
+
+### Custody
+
+- **`SUBMISSION_IP_SALT`**, an environment variable. `siteSalt()` requires at
+  least 16 characters and **throws in production** if it is missing or shorter —
+  it does not fall back. The dev-only literal in that file is unreachable in
+  production for that reason.
+- Stored in `/home/ubuntu/towardpcc-secrets.env` (mode 600) on the OCI host, and
+  seeded into Coolify's environment from there. Retiring that file is an open
+  item elsewhere in `LAUNCH-BLOCKERS.md`; it holds this key among others.
+- Rotated once already, together with `AUTH_SECRET`.
+
+### It protects more than this ADR knew — three consumers, two value classes
+
+This document described one use. There are three, and only the first is a
+submitter IP:
+
+| Site                    | Value hashed            | Purpose                                       |
+| ----------------------- | ----------------------- | --------------------------------------------- |
+| `lib/submissions.ts:87` | public submitter IP     | rate-limit forensics on `Submission.ipHash`   |
+| `auth.ts:237`           | **admin email address** | correlating failed admin logins in `AuditLog` |
+| `auth.ts:318`           | admin session client IP | `AdminSession` provenance                     |
+
+So the key protects **email addresses as well as IP addresses**, and an email
+address is directly identifying in a way an IP is not. That belongs in any
+assessment of what this key's disclosure would cost.
+
+### What rotation costs, which is why it is not on a schedule
+
+Rotating the key does not invalidate anything — it silently makes every existing
+digest uncorrelatable with every new one. Rate-limit forensics lose history, and
+failed-login correlation in `AuditLog` breaks across the boundary **without any
+error being raised**. There is no re-keying path, because the plaintext IPs and
+emails were never stored — that is the point of the column.
+
+Rotate on suspected key disclosure. Do not rotate on a calendar, and if you do
+rotate, record the date here so a later reader can explain the discontinuity.
+
+### The `--skip-audit` carve-out
+
+`packages/db/scripts/purge-retention.mjs` runs with `--skip-audit` in
+production, so the 12-month `AuditLog` purge never executes. That is deliberate
+and belongs on the record next to the hash it applies to: `AuditLog` is
+append-only and the database **REVOKEs DELETE** on it, so a purge that tried
+would fail loudly rather than quietly succeed. The retention promise published
+on the site covers submissions, which are purged at 24 months; audit rows are
+not submitter data.
