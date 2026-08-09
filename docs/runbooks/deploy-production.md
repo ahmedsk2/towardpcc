@@ -132,6 +132,33 @@ to `main` builds and deploys automatically. The rolling update gates on the
 container healthcheck, so a failed build leaves the running site untouched.
 Use the API call above when you need to force a redeploy without a push.
 
+### After merging a schema change, CHECK FOR MIGRATION DRIFT
+
+**Push-to-deploy does NOT run migrations.** The image runs `prisma generate` at
+build time and nothing else; `prisma migrate deploy` is a separate manual step
+under the owner role (next section). So merging a schema change ships code that
+expects a column the database may not have, and the deploy will still go green —
+the healthcheck does not touch the new column, and Coolify has no idea a
+migration exists.
+
+Nothing catches this automatically. The daily canaries assert the live site over
+HTTP and have no database access; the deploy healthcheck only proves the process
+started. **The only thing standing between a forgotten migration and a runtime
+error in front of a user is somebody running this:**
+
+```bash
+ssh -i ~/.ssh/oci_server ubuntu@145.241.105.239   "sudo docker exec tjuvmq29ogsdoocz59qigcoc      psql -U postgres -d towardpcc -tAc      'SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY started_at'"
+```
+
+Compare that list against `ls packages/db/prisma/migrations/`. They must match,
+in order. Note the `-d towardpcc` flag: this Postgres instance is **shared with
+a co-tenant application holding real patient data**, and that flag is the only
+thing keeping the query on our database. Do not drop it, and do not widen the
+query to the instance.
+
+Checked 2026-08-09: five migrations in the repo, the same five applied in
+production, in order. No drift.
+
 ## Database migrations
 
 Migrations run separately, as the **owner** role, from the build image:
