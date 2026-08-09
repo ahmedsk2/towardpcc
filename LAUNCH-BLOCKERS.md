@@ -1524,3 +1524,48 @@ sitting in a file the whole time; I did not consult it until attempt five.
 - **When a deploy misbehaves, read the deployment log before touching anything
   else.** Container state tells you that something is wrong; only the build log
   tells you what.
+
+### Retention purge: it DOES fire, and the "never fired" claim was wrong
+
+Checked end to end on 2026-08-09, because a triage pass had reported
+`scheduled_task_executions` empty and concluded the task had never run. That
+conclusion was wrong, and the way it was wrong is worth keeping: an empty table
+was read as an absence of events rather than as a table that is not where
+Coolify records them.
+
+**What the evidence actually shows.** `docker logs coolify` carries
+`App\Jobs\ScheduledTaskJob` firing at **03:00:03 on 2026-08-09, completing in
+798 ms**, and again at **12:54:01** when the schedule was temporarily moved
+forward four minutes to watch one land. Two real fires in twenty-four hours. The
+task is enabled, targets the right container, and completes.
+
+**The script works too, verified separately** rather than inferred from the job
+completing. `node /app/purge/purge-retention.mjs --skip-audit --dry-run` inside
+the running container returns:
+
+```
+[dry-run] submissions older than 2024-08-09T12:50:27.426Z: 0
+audit logs: skipped (--skip-audit).
+[dry-run] expired admin sessions older than 2026-08-09T12:50:27.431Z: 0
+```
+
+Zero rows is the correct answer, not a failure: the retention window is 24
+months and the site went live on 2026-07-26, so nothing is due for deletion for
+another two years.
+
+**What WAS real: the 03:00 collision.** The Coolify Postgres dumps are written
+at exactly 03:00 — `2026-08-09_03:00 pg-dump-towardpcc-*.dmp` — so the purge and
+the backup shared a slot. `pg_dump` takes a consistent snapshot, so nothing was
+at risk of corruption, and with zero rows to delete the overlap has had no
+effect at all. But in twenty-four months the purge starts deleting for real, and
+a dump whose contents depend on which of two jobs won a race is not a backup
+anyone should have to reason about. **Moved to 04:45.**
+
+**The thing to be uneasy about is none of the above.** This is a guard whose
+real work begins in 2028 and which, until then, cannot be distinguished from a
+broken one by its output — both print zero. The proof that it works is the
+manual fire and the dry run recorded here, not the daily green. Re-run the
+dry-run command above before trusting it at the point it starts mattering.
+
+`--skip-audit` is deliberate: `AuditLog` is append-only and the database REVOKEs
+DELETE on it, so a purge that tried would fail rather than silently succeed.
