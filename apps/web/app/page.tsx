@@ -26,7 +26,7 @@ const pillars = [
       // route JS. figures.test.ts pins BOTH of these against the registry — it
       // did not until 2026-07-31, and these three figures sat at 22/22/87
       // against a real 23/23/91 for exactly as long as that gap existed.
-      { label: "Citations", value: "150" },
+      { label: "Citations", value: "151" },
       { label: "Coverage", value: "100%" },
     ],
     cta: "Open the calculators",

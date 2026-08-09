@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.3.0",
+  version: "2.4.0",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -818,6 +818,13 @@ export const prism = defineScore({
       },
     ];
   },
+  cautions: [
+    defineText(
+      "prism.caution.gulf",
+      "CALIBRATION IN THIS REGION: every published Gulf and Middle Eastern cohort found PRISM UNDER-predicting death, and this site is used in one. At King Fahad Medical City in Riyadh — 4,019 admissions drawn from the same VPS database that supplies much of the world's PRISM data — observed mortality was 6.54% against 2.50% predicted, an SMR of 2.61, and 3.96 in infants of 12 months and under. Discrimination was fine (AUC 0.81); it is calibration that failed, which is the half a probability depends on. Roughly half of those deaths were patients with a DNR order, and excluding them the SMR falls to 1.52 — so much of the gap is local end-of-life practice rather than model failure, and that is itself a reason a North American calibration does not transfer. Iran reported 1.34 and 1.73, Egypt 2.11, and in Karachi PRISM III-24 was out-performed by pSOFA. Treat the SCORE as a severity and case-mix description, which is what it is good for here. Treat any PRISM mortality probability — INCLUDING the PRISM IV one this calculator shows, which is not exempt merely because its equation is citable — as un-calibrated for this population until someone has recalibrated it locally.",
+    ),
+  ],
+
   formula: defineText(
     "prism.formula",
     "One physiologic score; one published mortality model. Seventeen variables are scored against age-banded thresholds and summed: 0 to 74, decomposing into a neurologic subscore (pupillary reflexes 0-11 plus mental status 0-5, maximum 16) and a non-neurologic subscore (the remaining fifteen variables, maximum 58). Several rows have shapes that are easy to get wrong. Acidosis is one row satisfied by either the lowest pH or the lowest total CO₂, awarded once at the worse tier. The highest pH is a separate row, so a patient whose pH swung from 6.9 to 7.6 scores on both. Total CO₂ likewise scores once at the low end and again at the high end. Prothrombin and partial thromboplastin time share a single row. That score is computed the same way whichever window you collected. Only PRISM IV turns it into a probability, and it does not use the total: it weights the neurologic subscore at 0.197 per point and the non-neurologic at 0.163, adds age, admission source, pre-admission CPR, cancer and low-risk system of primary dysfunction, and finishes with P = 1 / (1 + e^-R). PRISM III's own mortality equations are not published in the source article — Pollack 1996 prints the score sheet in full but contains no regression coefficients, in any table and with no supplement — and they are separately licensed, so this platform presents the physiologic score only for the 12- and 24-hour windows.",
@@ -877,6 +884,13 @@ export const prism = defineScore({
         "Pollack MM, Dean JM, Butler J, et al. The ideal time interval for critical care severity-of-illness assessment. Pediatr Crit Care Med. 2013;14(5):448-453.",
       pmid: "23628831",
       note: "Source of the PRISM IV collection window this calculator states on the window field: physiologic variables from the first 4 hours of PICU care only, laboratory variables from 2 hours BEFORE admission through the first 4 hours. Added 2026-08-09, when that text was rewritten - the split was already being described on screen without naming where it came from. It is also the citation the authors' own CPCCRN calculators print beneath the same sentence.",
+    },
+    {
+      citation:
+        "Alkhalifah AS, AlSoqati A, Zahraa J. Performance of Pediatric Risk of Mortality III and Pediatric Index of Mortality III Scores in Tertiary Pediatric Intensive Unit in Saudi Arabia. Front Pediatr. 2022;10:926686.",
+      pmid: "35874581",
+      doi: "10.3389/fped.2022.926686",
+      note: "Read IN FULL from PMC9300935 on 2026-08-09; every figure below was taken from the paper, not from a summary of it. 4,019 admissions across 2,620 patients at King Fahad Medical City, Riyadh, 2015-2019, drawn from the Virtual Pediatric Systems database. PRISM III SMR 2.61 (2.44-2.79) against PIM III 2.75; observed mortality 6.54% against 2.50% predicted; AUC-ROC 0.81 (0.79-0.84), rising to 0.87 (0.84-0.90) once DNR patients are excluded; SMR 3.96 (3.16-4.76) in infants 12 months and under; SMR 1.52 (1.24-1.80) excluding DNR. Authors' conclusion, quoted: 'Both models showed adequate discrimination ability, but poor calibration.'",
     },
   ],
   validators: [{ status: "pending" }, { status: "pending" }],
@@ -947,6 +961,13 @@ export const prism = defineScore({
       summary:
         "Rewrites the collection-window help text to lead with WHAT TO COLLECT AND OVER WHAT PERIOD, and adds the citation that instruction rests on. NO THRESHOLD, COEFFICIENT OR COMPUTED VALUE CHANGED. The old text opened with which model the data belong to and buried the actual collection rule in a parenthetical - “laboratory values from 2 hours before admission through hour 4” - which is the one instruction on that field capable of changing the reader’s answer. It now states first: enter the most abnormal value reached inside the window; for the 4-hour window physiologic variables come from the first 4 hours of PICU care ONLY while laboratory variables run from 2 hours BEFORE admission through hour 4; and for the 12- and 24-hour windows, the most abnormal value within the first 12 or 24 hours. The asymmetry is spelled out with an example because it is genuinely counter-intuitive - a gas drawn in the referring unit two hours out counts, a blood pressure from the same moment does not. Modelled on how the authors’ own CPCCRN calculators word it, read from an archived capture on 2026-08-09 after the live site refused access from this region. Pollack 2013 (PMID 23628831), the ideal-time-interval study, is added to the references: the window was already being described on screen without naming its source, which this project does not permit. The statement that the score is identical across all three windows is kept and strengthened - a longer window yields a higher score only because it catches more extreme values, never because the arithmetic differs.",
       reason: "clarification",
+    },
+    {
+      version: "2.4.0",
+      date: "2026-08-09",
+      summary:
+        "Adds the first caution this score has carried, and the Saudi validation behind it. NO THRESHOLD, COEFFICIENT OR COMPUTED VALUE CHANGED. Every published Gulf and Middle Eastern cohort found PRISM UNDER-predicting death, and this site is used in one. Alkhalifah 2022 (PMID 35874581, read IN FULL from PMC9300935 rather than from a summary) covers 4,019 admissions at King Fahad Medical City, Riyadh, drawn from the same Virtual Pediatric Systems database that supplies much of the world's PRISM data: observed mortality 6.54% against 2.50% predicted, SMR 2.61 (2.44-2.79), and 3.96 (3.16-4.76) in infants of 12 months and under. The authors' own conclusion is quoted rather than paraphrased - 'adequate discrimination ability, but poor calibration' - because the distinction is the whole point: AUC was 0.81, so the score ranks patients correctly; it is calibration that fails, and calibration is the half a probability depends on. THE DNR FINDING IS THE PART WORTH READING TWICE. About half the deaths were patients with a DNR order, and excluding them the SMR falls to 1.52. So most of the gap is local end-of-life practice rather than the model being broken - which is itself the reason a North American calibration does not transfer, and a stronger argument than a bare SMR would have been. Corroborating cohorts, taken at the read-level the source review reported rather than verified here: Iran 1.34 and 1.73, Egypt 2.11, and Karachi where PRISM III-24 was out-performed by pSOFA. The caution says to use the SCORE for severity and case-mix description, and to treat any PRISM mortality probability as un-calibrated for this population - EXPLICITLY INCLUDING the PRISM IV probability this calculator itself shows, which is not exempt merely because its equation is citable. That is the one clinically actionable consequence and it applies to output this site emits.",
+      reason: "new-reference",
     },
   ],
 });

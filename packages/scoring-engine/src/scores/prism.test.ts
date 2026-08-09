@@ -949,7 +949,7 @@ describe("prism states its regional calibration at the right strength", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.3.0");
+    expect(prism.version).toBe("2.4.0");
   });
 
   /**
