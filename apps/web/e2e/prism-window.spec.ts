@@ -22,8 +22,10 @@ const PRISM = "/calculators/prism";
 
 const WINDOW = {
   h4: /First 4 hours of PICU care/,
-  h12: /First 12 hours of PICU care/,
-  h24: /First 24 hours of PICU care/,
+  // ONE PRISM III option since v2.7.0: the 12- and 24-hour windows returned
+  // byte-identical output, and the models that distinguish them are models
+  // this platform does not ship.
+  iii: /First 12–24 hours of PICU care/,
 };
 
 /** The four PRISM IV admission-context covariates, by field id. */
@@ -71,10 +73,7 @@ test.describe("PRISM collection window", () => {
     await chooseWindow(page, WINDOW.h4);
     for (const id of COVARIATES) await expect(page.locator(`#field-${id}`)).toHaveCount(1);
 
-    await chooseWindow(page, WINDOW.h12);
-    for (const id of COVARIATES) await expect(page.locator(`#field-${id}`)).toHaveCount(0);
-
-    await chooseWindow(page, WINDOW.h24);
+    await chooseWindow(page, WINDOW.iii);
     for (const id of COVARIATES) await expect(page.locator(`#field-${id}`)).toHaveCount(0);
 
     // And back, because the answers are held in state rather than destroyed —
@@ -91,7 +90,7 @@ test.describe("PRISM collection window", () => {
     await page.goto(PRISM, { waitUntil: "networkidle" });
     await chooseWindow(page, WINDOW.h4);
     await expect(page.getByText("Admission context", { exact: true })).toHaveCount(1);
-    await chooseWindow(page, WINDOW.h12);
+    await chooseWindow(page, WINDOW.iii);
     await expect(page.getByText("Admission context", { exact: true })).toHaveCount(0);
   });
 
@@ -103,7 +102,7 @@ test.describe("PRISM collection window", () => {
     await page.goto(PRISM, { waitUntil: "networkidle" });
     await chooseWindow(page, WINDOW.h4);
     await expect(page.getByText(/\d+ of \d+ entered/)).toHaveText("1 of 26 entered");
-    await chooseWindow(page, WINDOW.h12);
+    await chooseWindow(page, WINDOW.iii);
     await expect(page.getByText(/\d+ of \d+ entered/)).toHaveText("1 of 22 entered");
   });
 
@@ -119,17 +118,17 @@ test.describe("PRISM collection window", () => {
     // Enough for the score to compute, so both copy buttons are live.
     await enterRequired(page);
 
-    await chooseWindow(page, WINDOW.h12);
+    await chooseWindow(page, WINDOW.iii);
     await expect(page.locator("#field-cancer")).toHaveCount(0);
 
     await page.getByRole("button", { name: /copy link with these values/i }).click();
     const link = await page.evaluate(() => navigator.clipboard.readText());
-    expect(link).toContain("collection_window=first_12h");
+    expect(link).toContain("collection_window=first_12_24h");
     expect(link).not.toContain("cancer");
 
     await page.getByRole("button", { name: /copy result summary/i }).click();
     const summary = await page.evaluate(() => navigator.clipboard.readText());
-    expect(summary).toContain("First 12 hours");
+    expect(summary).toContain("First 12–24 hours");
     expect(summary).not.toContain("Cancer, acute or chronic");
   });
 
@@ -141,7 +140,7 @@ test.describe("PRISM collection window", () => {
     // that a value in a field that is not on screen was typed in this session
     // by the person looking at the screen.
     await page.goto(
-      `${PRISM}#collection_window=first_12h;age=3~years;pupils=both_reactive;cancer=true;cpr_24h=true`,
+      `${PRISM}#collection_window=first_12_24h;age=3~years;pupils=both_reactive;cancer=true;cpr_24h=true`,
       { waitUntil: "networkidle" },
     );
     await expect(page.locator("#field-cancer")).toHaveCount(0);
@@ -162,7 +161,7 @@ test.describe("PRISM collection window", () => {
     page,
   }) => {
     await page.goto(PRISM, { waitUntil: "networkidle" });
-    await chooseWindow(page, WINDOW.h12);
+    await chooseWindow(page, WINDOW.iii);
     await enterRequired(page);
     // The total; the two subscores are claimed by the declared composition and
     // render in the panel rather than in the flat list.
@@ -221,4 +220,31 @@ test.describe("PRISM collection window", () => {
     expect(summary).toContain("PRISM score:");
     expect(summary).toContain("Components:");
   });
+
+  /**
+   * LINKS ALREADY IN CIRCULATION, and this is the test that matters most for
+   * the v2.7.0 collapse.
+   *
+   * `collection_window` is `required: true`, so a link carrying a value the
+   * score no longer declares does NOT merely lose the window — the engine
+   * returns `invalid-category` and the WHOLE score blocks. A colleague's link
+   * that used to show a number would show nothing at all. Reproduced against
+   * `compute` before the migration was written, which is why the migration
+   * exists.
+   */
+  for (const legacy of ["first_12h", "first_24h"]) {
+    test(`a link minted with the retired ${legacy} still computes`, async ({ page }) => {
+      await page.goto(`${PRISM}#collection_window=${legacy};age=3~years;pupils=both_reactive`, {
+        waitUntil: "networkidle",
+      });
+      // Migrated to the surviving option, not merely tolerated.
+      await expect(
+        page.locator("#field-collection_window").getByRole("radio", { checked: true }),
+      ).toHaveCount(1);
+      await expect(page.locator("#field-collection_window")).toContainText("First 12–24 hours");
+      // And the score actually renders, which is the thing that was at risk.
+      await expect(page.locator("[data-result-values]")).toHaveAttribute("data-result-values", "1");
+      await expect(page.locator("[data-derived-output]")).toHaveCount(0);
+    });
+  }
 });

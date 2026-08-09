@@ -62,7 +62,34 @@ function encodeFragment(state: FieldState, inputs: readonly ScoreInput[]): strin
   return parts.join(";");
 }
 
-function decodeFragment(hash: string, inputs: readonly ScoreInput[]): FieldState {
+/**
+ * Option values this application has already minted into links, and which the
+ * score no longer declares.
+ *
+ * PRISM's 12- and 24-hour windows collapsed into one on 2026-08-09 because they
+ * computed identically. Links carrying the retired values are in circulation
+ * right now, and without this map such a link does NOT merely lose the window:
+ * `collection_window` is `required: true`, so the engine returns
+ * `invalid-category` and the ENTIRE score blocks. A shared link that used to
+ * show a number would show nothing. Measured, not assumed — an unknown option
+ * value was fed through `compute` and returned exactly that.
+ *
+ * Scoped to the fragment decoder deliberately. A direct `compute()` call
+ * passing a value the score does not declare SHOULD be rejected; this is about
+ * URLs this application itself minted, so it belongs with the sharing format
+ * rather than in the engine.
+ *
+ * Keyed by slug so it cannot reach across scores: another score with a
+ * `collection_window` input would be untouched.
+ */
+const RETIRED_FRAGMENT_VALUES: Record<string, Record<string, Record<string, string>>> = {
+  prism: {
+    collection_window: { first_12h: "first_12_24h", first_24h: "first_12_24h" },
+  },
+};
+
+function decodeFragment(hash: string, inputs: readonly ScoreInput[], slug: string): FieldState {
+  const retired = RETIRED_FRAGMENT_VALUES[slug];
   const state = initialState(inputs);
   const clean = hash.replace(/^#/, "");
   if (!clean) return state;
@@ -75,8 +102,9 @@ function decodeFragment(hash: string, inputs: readonly ScoreInput[]): FieldState
       const [value, unit] = rest.split("~");
       const existing = state[id];
       if (!existing) continue;
+      const decoded = decodeURIComponent(value ?? "");
       state[id] = {
-        raw: decodeURIComponent(value ?? ""),
+        raw: retired?.[id]?.[decoded] ?? decoded,
         ...(unit
           ? { unit: decodeURIComponent(unit) }
           : existing.unit
@@ -250,12 +278,12 @@ function CalculatorFormInner({
   useEffect(() => {
     const hydrate = () => {
       const stashed = window.__TPCC_FRAGMENT__;
-      if (stashed) setState(decodeFragment(stashed, declared));
+      if (stashed) setState(decodeFragment(stashed, declared, definition.slug));
     };
     hydrate();
     window.addEventListener("tpcc:fragment", hydrate);
     return () => window.removeEventListener("tpcc:fragment", hydrate);
-  }, [declared]);
+  }, [declared, definition.slug]);
 
   // THE FRAGMENT IS NO LONGER MIRRORED AS THE USER TYPES, and that is the fix.
   //

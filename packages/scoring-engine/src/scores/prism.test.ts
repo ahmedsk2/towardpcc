@@ -94,7 +94,7 @@ type PrismInputs = (typeof prism)["inputs"];
  * outputs and no probability, for a patient whose data are perfectly complete.
  */
 const normal = {
-  collection_window: { value: "first_12h" },
+  collection_window: { value: "first_12_24h" },
   age: { value: 3, unit: "years" },
   sbp_min: { value: 95, unit: "mmHg" },
   temp_min: { value: 36.5, unit: "°C" },
@@ -560,8 +560,8 @@ describe("PRISM threshold rows", () => {
    * The absence is what the rail renders as nothing at all. A zero here would
    * be a clinical claim, and a false one.
    */
-  it("emits no probability for the 12- or 24-hour window, from any vector", () => {
-    for (const window of ["first_12h", "first_24h"]) {
+  it("emits no probability for the 12–24 hour window, from any vector", () => {
+    for (const window of ["first_12_24h"]) {
       for (const patch of windowVectors) {
         const r = at({ ...patch, collection_window: { value: window } });
         expect(r.ids, `${window} must emit the score and nothing else`).toEqual([
@@ -664,7 +664,7 @@ describe("PRISM threshold rows", () => {
   it("computes an identical score in all three windows", () => {
     for (const patch of windowVectors) {
       const four = at({ ...patch, collection_window: { value: "first_4h" } });
-      for (const window of ["first_12h", "first_24h"]) {
+      for (const window of ["first_12_24h"]) {
         const three = at({ ...patch, collection_window: { value: window } });
         expect(
           [three.total, three.neuro, three.nonNeuro],
@@ -780,7 +780,7 @@ describe("PRISM threshold rows", () => {
 
   it("treats every optional physiologic input as absent without throwing", () => {
     const r = prism.compute({
-      collection_window: { value: "first_12h" },
+      collection_window: { value: "first_12_24h" },
       age: yrs(3),
       pupils: { value: "both_reactive" },
     } as never);
@@ -975,10 +975,47 @@ describe("prism states its regional calibration at the right strength", () => {
     expect(prism.cautions?.[0]?.en).toMatch(/beneath the PRISM IV estimate/);
   });
 
+  /**
+   * ONE PRISM III OPTION, and the reason has to live in a test rather than only
+   * in prose: the two it replaced were byte-identical, so a future pass that
+   * "restores the missing 24-hour window" would be putting a choice with no
+   * consequence back onto a clinical form.
+   */
+  it("offers exactly two windows, and the retired PRISM III values are gone", () => {
+    const w = prism.inputs.find((i) => i.id === "collection_window");
+    const values = w?.type === "categorical" ? w.options.map((o) => o.value) : [];
+    expect(values).toEqual(["first_4h", "first_12_24h"]);
+  });
+
+  it("scores identically on both windows, which is why there is only one PRISM III", () => {
+    // The claim the collapse rests on, asserted rather than recalled. Note the
+    // guard: without it, two vectors that both FAILED to compute would compare
+    // equal and this would pass while proving nothing — which is exactly what
+    // a first draft of this check did, on a vector carrying a bad unit.
+    const vector = {
+      age: { value: 3, unit: "years" },
+      pupils: { value: "one_fixed" },
+      sbp_min: { value: 45, unit: "mmHg" },
+      hr_max: { value: 200, unit: "bpm" },
+      glucose_max: { value: 250, unit: "mg/dL" },
+    };
+    const run = (win: string) => {
+      const r = prism.compute({ ...vector, collection_window: { value: win } } as never);
+      expect(r.ok, `${win} did not compute — the comparison below would prove nothing`).toBe(true);
+      return r.ok ? r.result.values : [];
+    };
+    expect(run("first_12_24h")).toEqual(run("first_4h"));
+    expect(run("first_12_24h").map((v) => v.id)).toEqual([
+      "prism_total",
+      "neurologic_subscore",
+      "non_neurologic_subscore",
+    ]);
+  });
+
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.6.0");
+    expect(prism.version).toBe("2.7.0");
   });
 
   /**
