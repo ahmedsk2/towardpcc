@@ -1315,3 +1315,57 @@ describe("R3 — no emitted rate exceeds the only cited paediatric ceiling", () 
     for (const v of out) expect(Number.isFinite(v.value)).toBe(true);
   });
 });
+
+/**
+ * S1 (round-3 review, 2026-08-09) — the withheld-rate cue.
+ *
+ * The flag must fire for the RIGHT reason. A row missing because the phase has
+ * closed is an ordinary state; a row missing because the rate diverged past the
+ * ceiling is a finding about the patient, and only the second warrants saying
+ * so on screen.
+ */
+describe("S1 — the page says when a catch-up rate was withheld", () => {
+  const flagFor = (elapsedH: number, givenL: number) => {
+    const outcome = burnResuscitation.compute({
+      weight_kg: { value: 25, unit: "kg" },
+      tbsa_pct: { value: 20, unit: "%" },
+      time_since_burn_h: { value: elapsedH, unit: "h" },
+      fluid_given_ml: { value: givenL, unit: "L" },
+    } as never);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return undefined;
+    return outcome.result.values.find((v) => v.id === "rate_withheld_above_ceiling")?.value;
+  };
+
+  it("fires when the rate diverged past the ceiling", () => {
+    // 7.9 h, nothing given: 750 mL over 0.1 h = 300 mL/kg/h.
+    expect(flagFor(7.9, 0)).toBe(1);
+  });
+
+  it("stays silent when the rate is ordinary", () => {
+    expect(flagFor(3, 0.5)).toBeUndefined();
+    expect(flagFor(0, 0)).toBeUndefined();
+  });
+
+  it("stays silent when a phase has merely CLOSED, which is not the same thing", () => {
+    // Past 8 h the first-phase row is absent because there is no window left,
+    // not because a computed rate was refused. Flagging that would cry wolf.
+    expect(flagFor(12, 0.25)).toBeUndefined();
+    // At exactly 24 h no phase remains at all.
+    expect(flagFor(24, 0)).toBeUndefined();
+  });
+
+  it("is a flag, not a rate — no unit, integer precision", () => {
+    const outcome = burnResuscitation.compute({
+      weight_kg: { value: 25, unit: "kg" },
+      tbsa_pct: { value: 20, unit: "%" },
+      time_since_burn_h: { value: 7.9, unit: "h" },
+      fluid_given_ml: { value: 0, unit: "L" },
+    } as never);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const f = outcome.result.values.find((v) => v.id === "rate_withheld_above_ceiling");
+    expect(f?.unit).toBe("");
+    expect(f?.precision).toBe(0);
+  });
+});

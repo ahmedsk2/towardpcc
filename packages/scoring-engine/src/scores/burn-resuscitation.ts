@@ -109,7 +109,7 @@ export const burnResuscitation = defineScore({
   id: "burn-resuscitation",
   slug: "burn-resuscitation",
   name: "Pediatric burn fluid resuscitation (Parkland / modified Brooke)",
-  version: "1.9.0",
+  version: "1.9.1",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -391,6 +391,13 @@ export const burnResuscitation = defineScore({
         "SUPPRESSES A RATE THAT HAD NO UPPER BOUND, and withdraws a caution that v1.8.0 left contradicting its own new outputs. Both found by an external round-2 re-test on 2026-08-09, one day after v1.8.0 shipped; both are mine. THE RATE DEFECT IS THE SERIOUS ONE. `remaining volume / hours left` has an unbounded singularity: as elapsed time approaches the end of a phase the denominator approaches zero and the quotient diverges without limit. Measured on the shipped arithmetic for a 25 kg child at 20% TBSA with nothing yet given — 6.00 h printed 375 mL/h (15 mL/kg/h), 7.90 h printed 7,500 mL/h (300 mL/kg/h), and 7.99 h printed 75,000 mL/h (3,000 mL/kg/h). Every one is arithmetically correct and none is a rate; a five-figure mL/h on a resuscitation page is the kind of number that gets transcribed under pressure. The 8–24 h phase had the identical defect approaching 24 h. THE v1.8.0 TEST PASSED THROUGH ALL OF IT because it asserted `Number.isFinite` at the boundaries, and 75,000 is finite — testing that a number exists is not testing that it means anything. A rate is now emitted ONLY while it stays at or under AWMF 006/128 Empfehlung 10’s 10 mL/kg/h, the single paediatric rate bound in this score’s evidence base and one already stated in these notes. Above it the row is withheld rather than clamped: the page never prints a different number from the one the formula produced. The volume still owed and, new in this release, the HOURS STILL LEFT are always emitted, so the clinician holds both halves of the division the formula can no longer perform responsibly. This narrows the founder decision recorded at 1.8.0(c) — no warning threshold is built on the German-registry findings, and no computed rate is altered; a divergent artefact is simply not shown. THE CAUTION. v1.8.0 replaced the sentence that followed it and left the opening one intact, so the burn page went on asserting “Fluid already given is NOT subtracted here, and no infusion rate is emitted” directly above rows doing exactly that. It is now conditional in wording, describing what happens when the two optional fields are left blank. From the round-2 re-test, findings R1 and R3.",
       reason: "formula-correction",
     },
+    {
+      version: "1.9.1",
+      date: "2026-08-09",
+      summary:
+        "Says when a catch-up rate has been withheld, instead of leaving the reader to notice a row that is not there. No computed value changed and no rate moved: v1.9.0 already suppressed any rate above the AWMF 10 mL/kg/h initial ceiling, and this only adds a flag saying so, emitted solely when a rate was computed and then withheld — never when a phase has simply closed. An absence is a weak signal on a page read under pressure, and this one carries real information: the child is far enough behind that the arithmetic no longer yields a rate any guideline supports. From the external round-3 review of 2026-08-09, item S1, which the reviewer raised as cosmetic.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -573,6 +580,7 @@ function resuscitationRates(
   // with it. The notes say plainly that a zero here means "already met".
   const first8hRemaining = Math.max(0, first8hVolume - givenMl);
 
+  let withheld = false;
   const out: ScoreValue[] = [
     {
       id: "resuscitation_first8h_remaining_ml",
@@ -598,13 +606,17 @@ function resuscitationRates(
       unit: "h",
       precision: 2,
     });
-    pushRateIfMeaningful(
-      out,
-      "resuscitation_first8h_rate_ml_h",
-      defineText("burn.first8hRate", "Rate for the remainder of the first 8 h (from time of burn)"),
-      first8hRemaining / hoursLeft,
-      weightKg,
-    );
+    withheld =
+      pushRateIfMeaningful(
+        out,
+        "resuscitation_first8h_rate_ml_h",
+        defineText(
+          "burn.first8hRate",
+          "Rate for the remainder of the first 8 h (from time of burn)",
+        ),
+        first8hRemaining / hoursLeft,
+        weightKg,
+      ) || withheld;
   }
   // PAST eight hours this row is simply absent, and its absence is the signal
   // that the window has closed. `resuscitation_first8h_remaining_ml` is then a
@@ -627,13 +639,33 @@ function resuscitationRates(
       unit: "h",
       precision: 2,
     });
-    pushRateIfMeaningful(
-      out,
-      "resuscitation_next16h_rate_ml_h",
-      defineText("burn.next16hRate", "Rate for the 8–24 h phase (from time of burn)"),
-      next16hVolume / hoursLeftOverall,
-      weightKg,
-    );
+    withheld =
+      pushRateIfMeaningful(
+        out,
+        "resuscitation_next16h_rate_ml_h",
+        defineText("burn.next16hRate", "Rate for the 8–24 h phase (from time of burn)"),
+        next16hVolume / hoursLeftOverall,
+        weightKg,
+      ) || withheld;
+  }
+
+  // S1 (round-3 review): say so, rather than leaving the reader to notice a row
+  // that is not there. An absence is a weak signal on a page read under
+  // pressure, and this one carries real information — the child is far enough
+  // behind that the arithmetic no longer yields a rate any guideline supports.
+  // Emitted only when a rate was actually computed and then withheld, never
+  // when a phase has simply closed.
+  if (withheld) {
+    out.push({
+      id: "rate_withheld_above_ceiling",
+      label: defineText(
+        "burn.rateWithheld",
+        "Catch-up rate withheld — it exceeds the 10 mL/kg/h initial ceiling (1 = yes)",
+      ),
+      value: 1,
+      unit: "",
+      precision: 0,
+    });
   }
 
   return out;
@@ -682,12 +714,13 @@ function pushRateIfMeaningful(
   label: ReturnType<typeof defineText>,
   rateMlPerH: number,
   weightKg: number,
-): void {
+): boolean {
   // Written as `!(x <= ceiling)` rather than `x > ceiling` deliberately: the
   // negated form is also true for NaN and for Infinity, so one condition covers
   // the divergence, a zero divisor and a malformed input without a second
   // guard that no caller can currently reach. Asserting the property the rate
   // must HAVE beats enumerating the ways it can fail to have it.
-  if (!(rateMlPerH / weightKg <= AWMF_MAX_ML_PER_KG_PER_H)) return;
+  if (!(rateMlPerH / weightKg <= AWMF_MAX_ML_PER_KG_PER_H)) return true;
   out.push({ id, label, value: rateMlPerH, unit: "mL/h", precision: 1 });
+  return false;
 }
