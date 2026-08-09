@@ -295,18 +295,57 @@ going to OCI Object Storage bucket `coolify-backups` (me-riyadh-1 — in-region,
 the residency claim holds). Local dumps land in
 `/data/coolify/backups/databases/root-team-0/shared-postgres-<uuid>/` (root-only).
 
-**Restore drill (2026-07-26): PASSED.** All 7 tables restored into a scratch
-database with row counts matching source and the admin row intact. Repeat it
-after any schema change:
+**Restore drill: PASSED 2026-07-26, re-run and PASSED again 2026-08-09.**
+
+The 2026-07-26 entry said "all 7 tables". By 2026-08-09 there were **9** — the
+`audit_nullable_actor` and `admin_session_allowlist` migrations had landed — so
+the drill was checking a number that no longer described the database. A drill
+whose success criterion is a stale literal will pass while proving nothing, and
+that is worse than not running it.
+
+**So the criterion below is DERIVED, not written down.** It compares the
+restored database against the live one, table for table and row for row. It
+cannot go stale, and it fails loudly on the case a fixed count silently misses:
+a table that restores but comes back empty.
 
 ```bash
+set -u
 PGC=tjuvmq29ogsdoocz59qigcoc
 DUMP=$(sudo sh -c "ls -t /data/coolify/backups/databases/root-team-0/shared-postgres-$PGC/pg-dump-towardpcc-*.dmp | head -1")
+echo "dump: $(basename "$DUMP")"
+
+sudo docker exec $PGC psql -U postgres -tAc "DROP DATABASE IF EXISTS towardpcc_restore_test"
 sudo docker exec $PGC psql -U postgres -tAc "CREATE DATABASE towardpcc_restore_test"
-sudo cat "$DUMP" | sudo docker exec -i $PGC pg_restore -U postgres -d towardpcc_restore_test --no-owner --no-privileges
-sudo docker exec $PGC psql -U postgres -d towardpcc_restore_test -tAc "\dt"      # expect 7 tables
+sudo cat "$DUMP" | sudo docker exec -i $PGC pg_restore -U postgres   -d towardpcc_restore_test --no-owner --no-privileges
+
+# Derived check: every table in the LIVE database must exist in the restore
+# with an identical row count.
+for T in $(sudo docker exec $PGC psql -U postgres -d towardpcc -tAc     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name"); do
+  A=$(sudo docker exec $PGC psql -U postgres -d towardpcc            -tAc "SELECT count(*) FROM \"$T\"" | tr -d ' ')
+  B=$(sudo docker exec $PGC psql -U postgres -d towardpcc_restore_test -tAc "SELECT count(*) FROM \"$T\"" | tr -d ' ')
+  printf "  %-22s src=%-6s restored=%-6s %s
+" "$T" "$A" "$B" "$([ "$A" = "$B" ] && echo OK || echo MISMATCH)"
+done
+
 sudo docker exec $PGC psql -U postgres -tAc "DROP DATABASE towardpcc_restore_test"
 ```
+
+Result on 2026-08-09, from `pg-dump-towardpcc-1786244406.dmp` (that night's
+03:00 dump): **9 tables source, 9 restored, every row count matching** —
+`AdminUser` 1, `AppSetting` 8, `AuditLog` 3, `_prisma_migrations` 5, the rest
+empty. Scratch database dropped.
+
+Two things that were open and are now closed by that run. The newest dump had
+previously predated the `AdminSession` migration by about three hours, so the
+restore could not have proved that table; the next nightly closed the gap and
+`AdminSession` restores. And `_prisma_migrations` restoring with all five rows
+means a restored database knows its own schema version — a restore that lost it
+would look healthy and then refuse the next `migrate deploy`.
+
+**`-d towardpcc` is load-bearing throughout.** This Postgres instance is shared
+with a co-tenant application holding real patient data. Every command above is
+scoped to our database or to the scratch copy; none may be widened to the
+instance.
 
 Note the glob must run **inside** `sudo` — the backup directory is not readable
 by `ubuntu`, so `sudo ls $DIR/*.dmp` expands to nothing before sudo is applied.
