@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
-import type { InputValues } from "../types";
+import type { InputValues, ScoreInput } from "../types";
 import { prism } from "./prism";
 
 /**
@@ -949,7 +949,7 @@ describe("prism states its regional calibration at the right strength", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.4.0");
+    expect(prism.version).toBe("2.4.1");
   });
 
   /**
@@ -995,5 +995,72 @@ describe("prism states its regional calibration at the right strength", () => {
     // the µmol path has to clear half a rounding step to register at all.
     expect(creatinineScore(1.301, "mg/dL")).toBe(2);
     expect(creatinineScore(116, "µmol/L")).toBe(2);
+  });
+});
+
+/**
+ * The "blank is not an answer" badge, derived rather than listed.
+ *
+ * `missingAsNormal` is a SCORE-level flag and it is true here, correctly — the
+ * physiologic variables score as normal when unmeasured. The four PRISM IV
+ * covariates are the opposite: blanking any one withholds the probability. All
+ * four nevertheless rendered "Optional · blank scored as normal" on the live
+ * site until 2026-08-09.
+ *
+ * This does not hard-code those four ids. It DERIVES the set: blank each
+ * optional input in turn on an otherwise-complete 4-hour case, and if the
+ * probability disappears, that input's blank is not "normal" and it must carry
+ * `missingIsNotNormal`. A fifth covariate added later is covered automatically;
+ * a flag put on the wrong input fails too.
+ */
+describe("missingIsNotNormal is set on exactly the inputs whose blank withholds", () => {
+  const complete = {
+    ...normal,
+    collection_window: { value: "first_4h" },
+    admission_source: { value: "ed" },
+    // These three are BOOLEAN, not categorical — a first draft of this fixture
+    // passed them as { value: "no" }, which is not a boolean, so nothing
+    // computed and every optional input looked like it withheld the
+    // probability. The "or the sweep proves nothing" assertion above is what
+    // caught that; without it this suite would have reported a defect in the
+    // score that did not exist.
+    cpr_24h: { value: false },
+    cancer: { value: false },
+    low_risk_system: { value: false },
+  } as unknown as InputValues<PrismInputs>;
+
+  const hasProbability = (values: InputValues<PrismInputs>): boolean => {
+    const outcome = prism.compute(values);
+    if (!outcome.ok) return false;
+    return outcome.result.values.some((v) => v.id === "mortality_probability");
+  };
+
+  it("emits a probability on the complete 4-hour case, or the sweep proves nothing", () => {
+    expect(hasProbability(complete)).toBe(true);
+  });
+
+  it("flags every optional input whose absence withholds the probability, and no other", () => {
+    for (const input of prism.inputs) {
+      if (input.required) continue;
+      const withoutIt = { ...complete } as Record<string, unknown>;
+      delete withoutIt[input.id];
+      const stillHasProbability = hasProbability(withoutIt as InputValues<PrismInputs>);
+      // `prism.inputs` keeps each member's literal type, which lists only the
+      // properties actually written on it — so the optional flag is not visible
+      // there even though `InputBase` declares it. Widening to `ScoreInput`
+      // reads the declared property rather than asserting it exists.
+      const flagged = (input as ScoreInput).missingIsNotNormal === true;
+      if (!stillHasProbability) {
+        expect(
+          flagged,
+          `${input.id}: blanking it withholds the probability, so it must declare missingIsNotNormal — otherwise the page tells the reader "blank scored as normal", which is false`,
+        ).toBe(true);
+      } else {
+        expect(
+          flagged,
+          `${input.id}: blanking it does NOT withhold the probability, so missingIsNotNormal is wrong here and would understate what a blank costs`,
+        ).toBe(false);
+      }
+    }
   });
 });

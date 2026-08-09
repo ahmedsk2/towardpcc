@@ -33,6 +33,26 @@ interface InputBase {
    * annotating a score is additive and can never break one that is not.
    */
   readonly group?: LocalizedText;
+
+  /**
+   * Exempts this input from the score's `missingAsNormal` claim.
+   *
+   * `missingAsNormal` is declared once for a whole score, and that is right for
+   * most: PRISM's physiologic variables genuinely score as normal when
+   * unmeasured, which is the published convention. But a score can hold two
+   * classes of optional input with OPPOSITE blank semantics, and PRISM does.
+   * Its four PRISM IV admission-context covariates are optional, and leaving
+   * any one blank does not score as normal — it WITHHOLDS the mortality
+   * probability entirely, deliberately, because each is zero at its reference
+   * level and reading a blank as "contributes nothing" would hand every
+   * clinician who skipped a question the OR/PACU, no-CPR, no-cancer curve.
+   *
+   * Until 2026-08-09 the badge on those four read "Optional · blank scored as
+   * normal", which is the exact opposite of what happens, on the four fields
+   * where the score is most careful. Set this to mark an input the score-level
+   * claim does not cover.
+   */
+  readonly missingIsNotNormal?: boolean;
 }
 
 export interface NumericInput extends InputBase {

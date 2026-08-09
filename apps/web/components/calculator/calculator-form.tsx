@@ -123,6 +123,28 @@ function groupInputs(inputs: readonly ScoreInput[]): [string | null, ScoreInput[
 }
 
 /**
+ * The badge beside an optional input's label.
+ *
+ * THREE STATES, NOT TWO, AND THE THIRD EXISTS BECAUSE THE SECOND WAS LYING.
+ * `missingAsNormal` is declared once per SCORE, and PRISM holds two classes of
+ * optional input with opposite blank semantics. Its physiologic variables do
+ * score as normal when unmeasured — the published convention. Its four PRISM IV
+ * admission-context covariates do not: leaving any one blank WITHHOLDS the
+ * mortality probability, deliberately, because each is zero at its reference
+ * level and reading a blank as "contributes nothing" would hand every clinician
+ * who skipped a question the OR/PACU, no-CPR, no-cancer curve.
+ *
+ * Until 2026-08-09 all four printed "Optional · blank scored as normal" — the
+ * exact opposite of what happens, on the four fields the score is most careful
+ * about. An input may now opt out with `missingIsNotNormal`, and the wording is
+ * the score's own: its notes say a blank "is not an answer of no".
+ */
+function optionalBadge(missingAsNormal: boolean, input: ScoreInput, copy: typeof c): string {
+  if (input.missingIsNotNormal) return copy.optionalBlankNotAnAnswer;
+  return missingAsNormal ? copy.optionalScoredAsNormal : copy.optionalLabel;
+}
+
+/**
  * Client-side calculator. Takes only the slug (a string) and resolves the
  * score itself, so the compute function and unit conversions live in the
  * browser — never serialized across the RSC boundary, and never sent to the
@@ -940,7 +962,7 @@ function InputField({
         {input.label.en}
         {!input.required && (
           <span className="ml-2 font-numeric text-[11px] tracking-[0.09em] text-ink-muted uppercase">
-            {missingAsNormal ? c.optionalScoredAsNormal : c.optionalLabel}
+            {optionalBadge(missingAsNormal, input, c)}
           </span>
         )}
       </legend>
