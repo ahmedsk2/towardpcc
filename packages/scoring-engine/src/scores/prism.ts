@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.5.0",
+  version: "2.6.0",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -697,6 +697,33 @@ export const prism = defineScore({
       { id: "non_neurologic_subscore", max: 58 },
     ],
   },
+  /**
+   * THE PROBABILITY IS DOWNSTREAM OF THE SUBSCORES, AND `from` SAYS SO.
+   *
+   * `["neurologic_subscore", "non_neurologic_subscore"]` and never
+   * `["prism_total"]`. PRISM IV does not use the total: it weights the
+   * neurologic subscore at 0.197 per point and the non-neurologic at 0.163, so
+   * the two halves are not interchangeable and their sum is never formed. A
+   * test in this file already guards against an implementation that summed
+   * first; declaring the total here would put the same error on screen, in
+   * words, where a clinician would read it as fact.
+   *
+   * Emitted only on the 4-hour window, and only once all four covariates are
+   * answered. That is why the gate on this is one-directional.
+   */
+  derived: {
+    id: "mortality_probability",
+    from: ["neurologic_subscore", "non_neurologic_subscore"],
+    label: defineText("prism.derived.label", "PRISM IV mortality estimate"),
+    description: defineText(
+      "prism.derived.desc",
+      "Derived from the two subscores above, weighted separately — 0.197 per neurologic point and 0.163 per non-neurologic point — plus age and the four admission-context answers. It is not computed from the total. The figure is the estimated probability of HOSPITAL mortality for a FIRST PICU admission, for a POPULATION: summed across a cohort it gives an expected death count, and applied to one patient it says nothing actionable.",
+    ),
+    caution: defineText(
+      "prism.derived.caution",
+      "UN-CALIBRATED FOR THIS POPULATION. Every published Gulf and Middle Eastern cohort found PRISM under-predicting death. At King Fahad Medical City in Riyadh — 4,019 admissions from the same VPS database that supplies much of the world's PRISM data — observed mortality was 6.54% against 2.50% predicted, an SMR of 2.61, and 3.96 in infants of 12 months and under. Discrimination was fine (AUC 0.81); it is calibration that failed, which is the half this number depends on. Roughly half those deaths carried a DNR order and the SMR falls to 1.52 excluding them, so much of the gap is local end-of-life practice rather than model failure — which is itself why a North American calibration does not transfer. This applies to the PRISM IV figure above, which is not exempt merely because its equation is citable.",
+    ),
+  },
   // `calculate`, not `compute`: validation and unit normalisation happen in the
   // defineScore wrapper, so this receives canonical, already-validated values
   // and a score author cannot forget either step (ADR-0002).
@@ -864,7 +891,7 @@ export const prism = defineScore({
   cautions: [
     defineText(
       "prism.caution.gulf",
-      "CALIBRATION IN THIS REGION: every published Gulf and Middle Eastern cohort found PRISM UNDER-predicting death, and this site is used in one. At King Fahad Medical City in Riyadh — 4,019 admissions drawn from the same VPS database that supplies much of the world's PRISM data — observed mortality was 6.54% against 2.50% predicted, an SMR of 2.61, and 3.96 in infants of 12 months and under. Discrimination was fine (AUC 0.81); it is calibration that failed, which is the half a probability depends on. Roughly half of those deaths were patients with a DNR order, and excluding them the SMR falls to 1.52 — so much of the gap is local end-of-life practice rather than model failure, and that is itself a reason a North American calibration does not transfer. Iran reported 1.34 and 1.73, Egypt 2.11, and in Karachi PRISM III-24 was out-performed by pSOFA. Treat the SCORE as a severity and case-mix description, which is what it is good for here. Treat any PRISM mortality probability — INCLUDING the PRISM IV one this calculator shows, which is not exempt merely because its equation is citable — as un-calibrated for this population until someone has recalibrated it locally.",
+      "CALIBRATION IN THIS REGION: PRISM's mortality models are un-calibrated for this population, and the detail sits with the number it is about — see the caution rendered beneath the PRISM IV estimate. In short: every published Gulf and Middle Eastern cohort found PRISM under-predicting death, with an SMR of 2.61 in the largest Saudi cohort and 3.96 in infants, while discrimination held at AUC 0.81. Iran reported 1.34 and 1.73, Egypt 2.11, and in Karachi PRISM III-24 was out-performed by pSOFA. Use the SCORE for severity and case-mix description, which is what it is good for here; treat any PRISM mortality probability as un-calibrated until someone has recalibrated it locally.",
     ),
   ],
 
@@ -1024,6 +1051,13 @@ export const prism = defineScore({
       date: "2026-08-09",
       summary:
         "Stops asking the four PRISM IV admission-context questions on the 12- and 24-hour windows. NO THRESHOLD, COEFFICIENT OR COMPUTED VALUE CHANGED, and no output stops being shown: the same inputs yield the same numbers, and the probability's absence on those two windows has been the behaviour since v2.1.0. What changes is that admission source, CPR within 24 hours, cancer and low-risk system are now asked ONLY where a probability is reachable. `calculate` already returned before every read of them on the other two windows, so on those windows they were questions with no destination - four fields a clinician could answer, on a form that counted them toward completion, that could travel in a copied link and print in a copied handover record, and that could change nothing. A reader who filled them in last week and cannot find them now is looking at the 12- or 24-hour window; switch to the 4-hour window and the answers are still there. Enforced in the ENGINE, not the form: `runValidation` drops an input whose `showWhen` is unsatisfied before the required check, so a hidden id never reaches `calculate` regardless of which UI, link or future runtime submitted it. The engine-side window gate in `calculate` is deliberately kept as well - two guards, because a filter with a hole should not be the only thing standing between a covariate and the logit.",
+      reason: "clarification",
+    },
+    {
+      version: "2.6.0",
+      date: "2026-08-09",
+      summary:
+        "Renders the PRISM IV mortality estimate as an output DERIVED from the two subscores, in its own block below the score, instead of as a peer row beside the total. NO COEFFICIENT, THRESHOLD OR COMPUTED VALUE CHANGED - the same inputs produce the same number, in the same units, to the same precision. Until now the result panel showed two flat values at equal visual weight, which said the score and the probability were equally direct measurements of the same thing. They are not: the probability is downstream of the score, and it is downstream of the two subscores SEPARATELY - PRISM IV weights the neurologic half at 0.197 per point and the non-neurologic at 0.163, and never forms their sum. The declaration records that as `from: [neurologic_subscore, non_neurologic_subscore]`, and the gate refuses a declaration naming the total, because a block headed 'derived from the total' would state on screen the exact error this file already carries an arithmetic test against. THE GULF CALIBRATION CAUTION MOVES TO THE NUMBER IT IS ABOUT. Alkhalifah 2022 found discrimination intact at AUC 0.81 and calibration failing at SMR 2.61 - so the finding is about the PROBABILITY, not the score. Rendered once for the whole score it attached a probability caveat to a score that does not deserve one and detached it from the figure a clinician actually reads. The score-level caution stays, shortened, and points at the fuller one beneath the estimate.",
       reason: "clarification",
     },
   ],

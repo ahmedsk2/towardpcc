@@ -1,4 +1,5 @@
-import type { Composition, ScoreValue } from "@towardpcc/scoring-engine";
+import { Callout } from "@towardpcc/ui";
+import type { Composition, DerivedOutput, ScoreValue } from "@towardpcc/scoring-engine";
 
 /** One declared component, paired with the value the score actually emitted. */
 export interface ComponentRow {
@@ -20,13 +21,20 @@ export interface ComponentRow {
 
 export interface CompositionSplit {
   /**
-   * Everything the score emitted that the composition does NOT account for —
-   * the total, plus any derived output (PRISM's and PELOD-2's mortality
-   * probability, Phoenix's sepsis and septic-shock flags).
+   * Everything the score emitted that neither the composition nor a `derived`
+   * declaration accounts for — the total, plus any UNdeclared extra output
+   * (PELOD-2's mortality probability, Phoenix's sepsis and septic-shock flags).
    */
   readonly flat: readonly ScoreValue[];
   /** The declared components, in declaration order. */
   readonly components: readonly ComponentRow[];
+  /**
+   * The declared derived output, when the score declares one AND emitted it on
+   * this run. Conditionally emitted is expected — PRISM shows a probability
+   * only on the 4-hour window, and only once all four covariates are answered —
+   * so `undefined` here is an ordinary state, not a missing value.
+   */
+  readonly derived?: ScoreValue;
 }
 
 /**
@@ -45,6 +53,7 @@ export interface CompositionSplit {
 export function splitComposition(
   values: readonly ScoreValue[],
   composition: Composition | undefined,
+  derived?: DerivedOutput,
 ): CompositionSplit {
   if (!composition) return { flat: values, components: [] };
   const byId = new Map(values.map((v) => [v.id, v]));
@@ -71,7 +80,17 @@ export function splitComposition(
     ];
   });
   const claimed = new Set(components.map((r) => r.id));
-  return { flat: values.filter((v) => !claimed.has(v.id)), components };
+  // The derived value leaves the flat list so it does not render twice — once
+  // as a peer of the total and once in its own block. Adding it to `claimed`
+  // rather than filtering separately keeps the ONE PREDICATE promise above: a
+  // consumer that reads `flat` cannot accidentally get it back.
+  const derivedValue = derived ? byId.get(derived.id) : undefined;
+  if (derivedValue) claimed.add(derivedValue.id);
+  return {
+    flat: values.filter((v) => !claimed.has(v.id)),
+    components,
+    ...(derivedValue ? { derived: derivedValue } : {}),
+  };
 }
 
 /**
@@ -146,5 +165,71 @@ export function CompositionPanel({ rows }: { rows: readonly ComponentRow[] }) {
         ))}
       </dl>
     </div>
+  );
+}
+
+/**
+ * A value the score DERIVES from the components above it.
+ *
+ * WHY ITS OWN BLOCK AND NOT A ROW. Rendered as a peer of the total — which is
+ * how PRISM's mortality probability rendered until v2.6.0 — two numbers sit
+ * side by side at equal weight and read as two equally direct measurements of
+ * the same patient. They are not. The score is measured; the probability is
+ * concluded from it, by a model with its own provenance, its own population and
+ * its own failure mode. The separation is the claim.
+ *
+ * THE CAUTION BELONGS HERE, NOT WITH THE SCORE. PRISM's Gulf calibration
+ * finding is about the probability specifically: discrimination held at AUC
+ * 0.81 and it is calibration that failed. Rendered once for the whole score it
+ * attached a probability caveat to a score that does not deserve one, and
+ * detached it from the figure a clinician actually reads. Amber with a
+ * non-colour marker, never crimson — crimson never means error here.
+ *
+ * NO BAND SCALE, deliberately. The flat list draws one where interpretation
+ * bands exist; PRISM declares none and never will (`interpretationStatus:
+ * "not-applicable"`), and inventing a ramp for a probability would imply
+ * thresholds nobody published.
+ */
+export function DerivedPanel({
+  value,
+  label,
+  description,
+  caution,
+}: {
+  readonly value: ScoreValue;
+  readonly label: string;
+  readonly description: string;
+  readonly caution?: string | undefined;
+}) {
+  return (
+    <section
+      data-derived-output={value.id}
+      aria-labelledby={`derived-${value.id}-heading`}
+      className="rounded-lg border border-border bg-surface-sunken p-4"
+    >
+      <h3
+        id={`derived-${value.id}-heading`}
+        className="font-display text-sm font-medium text-ink-strong"
+      >
+        {label}
+      </h3>
+      <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">{description}</p>
+      <p className="numeric mt-3 text-3xl font-medium tabular-nums text-ink-strong">
+        {value.value.toFixed(value.precision)}
+        {value.unit ? <span className="ml-1 text-lg text-ink-muted">{value.unit}</span> : null}
+      </p>
+      {/* The shared Callout, not a hand-rolled amber box: it already carries
+          the ADR rule that an alert is amber PLUS a non-colour marker, and a
+          second implementation of that contract is a second place for it to
+          drift. `live` stays false — this is static prose about the number
+          beside it, not a status change worth interrupting a screen reader
+          for, and the number itself is already announced by the result
+          region. */}
+      {caution ? (
+        <Callout tone="alert" className="mt-3 text-[13px]">
+          {caution}
+        </Callout>
+      ) : null}
+    </section>
   );
 }

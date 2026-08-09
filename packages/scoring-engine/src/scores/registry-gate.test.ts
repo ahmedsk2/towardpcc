@@ -336,3 +336,80 @@ describe("hidden inputs cannot change what a score emits", () => {
     }
   });
 });
+
+/**
+ * Structural gates on `derived`.
+ *
+ * The composition gate asserts an IDENTITY — components sum to the total —
+ * across a per-input sweep. A derived output is not a summand, so it can never
+ * enter that identity, and a copy of that gate would be wrong here in a way
+ * that looks right: `sampleInputs` picks `options[0]`, which on PRISM is the
+ * 4-hour window, and `false` for every boolean, so the base vector DOES emit a
+ * probability. The copy would pass on the base vector and fail across the
+ * sweep, once the window moves.
+ *
+ * So the behavioural gate below is ONE-DIRECTIONAL: if the value is emitted,
+ * its declared sources must be emitted too. Conditional emission is expected
+ * and is not a defect.
+ */
+describe("derived outputs are structurally sound wherever they are declared", () => {
+  const declaredDerived = registry.flatMap((s) => (s.derived ? [{ s, d: s.derived }] : []));
+
+  it("requires a composition, because `from` names component ids", () => {
+    for (const { s } of declaredDerived) {
+      expect(s.composition, `${s.slug}: derived without composition`).toBeDefined();
+    }
+  });
+
+  it("names at least one source, and every source is a declared component", () => {
+    for (const { s, d } of declaredDerived) {
+      const componentIds = (s.composition?.components ?? []).map((c) => c.id);
+      expect(d.from.length, `${s.slug}: derived.from is empty`).toBeGreaterThan(0);
+      for (const src of d.from) {
+        expect(componentIds, `${s.slug}: derived.from names "${src}"`).toContain(src);
+      }
+    }
+  });
+
+  it("is not itself a component or the total — a derived value is not a summand", () => {
+    // Declaring it as a component would put it into the sum identity, where it
+    // does not belong and would break every worked example. Declaring the total
+    // as the derived id would hide the total behind its own consequence.
+    for (const { s, d } of declaredDerived) {
+      const componentIds = (s.composition?.components ?? []).map((c) => c.id);
+      expect(componentIds, `${s.slug}/${d.id}`).not.toContain(d.id);
+      expect(d.id, `${s.slug}: derived id equals the composition total`).not.toBe(
+        s.composition?.total,
+      );
+      expect(d.from, `${s.slug}: derived.from contains its own id`).not.toContain(d.id);
+    }
+  });
+
+  it("emits its declared sources whenever it emits the value itself", () => {
+    // One-directional, for the reason above. This is what would catch a derived
+    // output rendering a number whose stated working is not on the page.
+    for (const { s, d } of declaredDerived) {
+      for (const vector of sweepInputs(s)) {
+        const r = s.compute(vector as never);
+        if (!r.ok) continue;
+        const ids = new Set(r.result.values.map((v) => v.id));
+        if (!ids.has(d.id)) continue;
+        for (const src of d.from) {
+          expect(ids.has(src), `${s.slug}: emitted ${d.id} without ${src}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("is emitted by the score at least once across the sweep", () => {
+    // Otherwise a typo in `id` declares a block that can never render, and
+    // every assertion above passes vacuously.
+    for (const { s, d } of declaredDerived) {
+      const everEmitted = sweepInputs(s).some((vector) => {
+        const r = s.compute(vector as never);
+        return r.ok && r.result.values.some((v) => v.id === d.id);
+      });
+      expect(everEmitted, `${s.slug}: nothing ever emits "${d.id}"`).toBe(true);
+    }
+  });
+});

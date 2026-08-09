@@ -40,6 +40,17 @@ async function chooseWindow(page: import("@playwright/test").Page, label: RegExp
  * so the two tests that read from it timed out on a missing copy button rather
  * than on anything about visibility.
  */
+/** All four covariates answered, which is what unlocks the probability. */
+async function answerCovariates(page: import("@playwright/test").Page) {
+  await page
+    .locator("#field-admission_source")
+    .getByRole("radio", { name: /Emergency/ })
+    .check();
+  for (const id of ["cpr_24h", "cancer", "low_risk_system"]) {
+    await page.locator(`#field-${id}`).getByRole("radio", { name: /^No$/ }).check();
+  }
+}
+
 async function enterRequired(page: import("@playwright/test").Page) {
   await page.locator("#field-age").fill("3");
   await page
@@ -156,15 +167,58 @@ test.describe("PRISM collection window", () => {
     // The total; the two subscores are claimed by the declared composition and
     // render in the panel rather than in the flat list.
     await expect(page.locator("[data-result-values]")).toHaveAttribute("data-result-values", "1");
+    await expect(page.locator("[data-derived-output]")).toHaveCount(0);
 
     await chooseWindow(page, WINDOW.h4);
-    await page
-      .locator("#field-admission_source")
-      .getByRole("radio", { name: /Emergency/ })
-      .check();
-    for (const id of ["cpr_24h", "cancer", "low_risk_system"]) {
-      await page.locator(`#field-${id}`).getByRole("radio", { name: /^No$/ }).check();
-    }
-    await expect(page.locator("[data-result-values]")).toHaveAttribute("data-result-values", "2");
+    await answerCovariates(page);
+    // STILL ONE FLAT VALUE. Since v2.6.0 the probability is a declared derived
+    // output and leaves the flat list for its own block — it is downstream of
+    // the score, not a peer of it. A regression that put it back would read
+    // "2" here.
+    await expect(page.locator("[data-result-values]")).toHaveAttribute("data-result-values", "1");
+    await expect(page.locator('[data-derived-output="mortality_probability"]')).toHaveCount(1);
+  });
+
+  test("the derived block names its working and carries the calibration caution", async ({
+    page,
+  }) => {
+    await page.goto(PRISM, { waitUntil: "networkidle" });
+    await chooseWindow(page, WINDOW.h4);
+    await enterRequired(page);
+    await answerCovariates(page);
+
+    const block = page.locator('[data-derived-output="mortality_probability"]');
+    await expect(block).toContainText("PRISM IV mortality estimate");
+    // The working, and specifically that it is NOT the total. PRISM IV weights
+    // the two subscores at 0.197 and 0.163 and never forms their sum, so a
+    // block claiming derivation from the total would be a clinical falsehood
+    // rendered in words.
+    await expect(block).toContainText("Derived from the two subscores");
+    await expect(block).not.toContainText("derived from the total");
+    // The caution sits with the number it is about, not with the score.
+    await expect(block).toContainText("UN-CALIBRATED FOR THIS POPULATION");
+    await expect(block).toContainText("AUC 0.81");
+  });
+
+  test("the probability stays in the copied handover record", async ({ page, context }) => {
+    // Pulling it out of the flat list for LAYOUT must not drop it from the
+    // clipboard. It is the number a reader is most likely to act on, and a
+    // handover note that silently omits it is worse than one that never had it.
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto(PRISM, { waitUntil: "networkidle" });
+    await chooseWindow(page, WINDOW.h4);
+    await enterRequired(page);
+    await answerCovariates(page);
+
+    await page.getByRole("button", { name: /copy result summary/i }).click();
+    const summary = await page.evaluate(() => navigator.clipboard.readText());
+    // The real emitted labels, read off an actual clipboard capture rather than
+    // guessed: a first draft of this test asserted "Mortality probability" and
+    // "PRISM total", neither of which this score emits.
+    expect(summary).toContain("Derived: PRISM IV predicted hospital mortality");
+    expect(summary).toMatch(/\d+\.\d+ %/);
+    // The score and its working are still there too.
+    expect(summary).toContain("PRISM score:");
+    expect(summary).toContain("Components:");
   });
 });
