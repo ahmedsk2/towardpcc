@@ -413,3 +413,37 @@ describe("derived outputs are structurally sound wherever they are declared", ()
     }
   });
 });
+
+/**
+ * A spelling variant must genuinely be one.
+ *
+ * `sameUnitSpelling` removes a unit from the form's toggle while keeping it
+ * accepted. That is only safe if the conversion really is the identity — used
+ * on a REAL conversion it would hide a choice that changes the number, which is
+ * the opposite of the safety problem it was added to fix. So the flag is not
+ * taken on trust: it is checked against the arithmetic.
+ */
+describe("units marked as spelling variants convert identically", () => {
+  it("round-trips every sameUnitSpelling conversion unchanged", () => {
+    const probes = [0, 0.0003, 0.5, 1, 7.25, 100, 12345.678];
+    let checked = 0;
+    for (const s of registry) {
+      for (const i of s.inputs) {
+        if (i.type !== "numeric") continue;
+        for (const a of i.unit.alternates ?? []) {
+          if (!a.sameUnitSpelling) continue;
+          checked += 1;
+          for (const v of probes) {
+            expect(a.toCanonical(v), `${s.slug}/${i.id}: ${a.unit} toCanonical(${v})`).toBe(v);
+            expect(a.fromCanonical(v), `${s.slug}/${i.id}: ${a.unit} fromCanonical(${v})`).toBe(v);
+          }
+        }
+      }
+    }
+    // Otherwise this passes vacuously the day someone removes the last one.
+    expect(
+      checked,
+      "no sameUnitSpelling conversions found — is the flag still used?",
+    ).toBeGreaterThan(0);
+  });
+});
