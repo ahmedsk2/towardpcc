@@ -88,7 +88,7 @@ export const site = {
     heroSceneCoupling: "heart rate rises on inspiration",
     heroSceneLabel:
       "A school-age child's heart and lungs, built from measured pediatric anatomy: airways branching from the carina into alveolar clusters that fill with each breath, four cardiac chambers in their true depth order, and both lungs outlined with the cardiac notch where the heart rests against the left one. It breathes about nineteen times a minute and beats about eighty-one, the way a well child at rest does, and the heart rate rises on inspiration as it does in a real one.",
-    status: "Live. 25 referenced calculators.",
+    status: "Live. {liveCalculators} referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
       heading: "How we handle data",
@@ -101,7 +101,7 @@ export const site = {
       href: "/legal/data-protection",
     },
     // Hero eyebrow — reflects the live registry count, not a marketing claim.
-    badge: "Live now · 25 referenced calculators",
+    badge: "Live now · {liveCalculators} referenced calculators",
     heroTrust: [
       { value: "25", label: "Calculators live" },
       // Value injected at render from the registry — see app/page.tsx. It was
@@ -247,7 +247,10 @@ export const site = {
         {
           state: "Live now",
           items: [
-            "23 referenced PICU calculators",
+            // Substituted at render from the registry. A literal here went stale
+            // at 23 while every other surface said 25, on a site that publishes
+            // "every figure here is something you can go and count".
+            "{liveCalculators} referenced PICU calculators",
             "Offline-capable, installable as an app",
             "Free research and biostatistics support",
           ],

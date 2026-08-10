@@ -8,6 +8,7 @@ import { Counter } from "@/components/home/counter";
 import { EvidenceCarousel } from "@/components/home/evidence-carousel";
 import { ImageSlot } from "@/components/image-slot";
 import { site } from "@/content/site";
+import { withCounts } from "@/lib/published-counts";
 
 const h = site.home;
 
@@ -112,7 +113,7 @@ export default function HomePage() {
                 aria-hidden="true"
                 className="size-2 rounded-full bg-success-bg motion-safe:animate-[ping_2.4s_ease-in-out_infinite]"
               />
-              {h.badge}
+              {withCounts(h.badge)}
             </p>
             {/* The page's thesis, so it gets the one display step nothing else
                 uses. Fluid rather than a 3rem→4rem jump at a single breakpoint,
