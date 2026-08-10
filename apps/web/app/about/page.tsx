@@ -1,3 +1,4 @@
+import { withCounts } from "@/lib/published-counts";
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { ImageSlot } from "@/components/image-slot";
 import { Reveal } from "@/components/reveal";
@@ -189,7 +190,7 @@ export default function AboutPage() {
                       key={item}
                       className="relative pl-5 text-[15px] leading-relaxed text-ink-body before:absolute before:top-2.5 before:left-0 before:size-1.5 before:rounded-full before:bg-accent"
                     >
-                      {item}
+                      {withCounts(item)}
                     </li>
                   ))}
                 </ul>

@@ -24,7 +24,23 @@ export function Counter({
   className?: string | undefined;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [display, setDisplay] = useState(0);
+  /**
+   * `null` means "show the real number". THE SERVER MUST RENDER THE TRUTH.
+   *
+   * This was `useState(0)`, so the served HTML literally contained
+   * "0 Referenced calculators" and "0 calculators, live today". That is what a
+   * crawler indexes and what anything reading the document before hydration
+   * receives, on a site whose whole pitch is that every figure is countable.
+   * Found by an outside reviewer extracting the homepage text, which is exactly
+   * how it would have been found by a reader.
+   *
+   * The animation is now an enhancement layered on a correct first paint: the
+   * number is in the DOM from the start, and only drops to zero to count up if
+   * the element was OFF SCREEN when the page loaded. Already in view means no
+   * animation, because the alternative is showing the real figure and then
+   * visibly wiping it to zero.
+   */
+  const [display, setDisplay] = useState<number | null>(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -39,7 +55,7 @@ export function Counter({
     // setState here would trigger a cascading render.
     const run = () => {
       if (reduced) {
-        setDisplay(value);
+        setDisplay(null);
         setDone(true);
         return;
       }
@@ -54,10 +70,17 @@ export function Counter({
       raf = requestAnimationFrame(tick);
     };
 
-    if (typeof IntersectionObserver === "undefined") {
-      raf = requestAnimationFrame(run);
-      return () => cancelAnimationFrame(raf);
-    }
+    // Both bail-outs below simply RETURN, leaving `display` null so the real
+    // number stays on screen. No setState: the effect cannot re-run while its
+    // deps are unchanged, so marking `done` would buy nothing and would be a
+    // synchronous setState in an effect body, which this repo lints against.
+    if (typeof IntersectionObserver === "undefined") return;
+
+    // Already on screen at first paint: a hash jump, a short page, or simply
+    // above the fold. Counting up from zero here would mean replacing a correct
+    // number with a wrong one in front of the reader.
+    const box = el.getBoundingClientRect();
+    if (box.top < window.innerHeight && box.bottom > 0) return;
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -77,7 +100,7 @@ export function Counter({
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {display.toLocaleString("en-US")}
+      {(display ?? value).toLocaleString("en-US")}
       {suffix}
     </span>
   );
