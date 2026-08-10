@@ -234,6 +234,21 @@ Table 3, p. 7. The authors' stated inclusion criterion was Hosmer-Lemeshow p > .
 | III-24 + squared term  | 1814.818 | .947 | 19.966        | .0677 | **fails**                 |
 | III-24 + all variables | 1723.773 | .958 | 17.335        | .1374 | passes                    |
 
+**Option labels name the model and its output, not the period** (2026-08-10):
+`PRISM IV (score and mortality probability)` and
+`PRISM III (severity score only)`. The periods live in the field's help text,
+which maps each model to its own — the direction a reader needs once the option
+names a model. Two things are load-bearing in that wording. It says
+**probability**, never _ratio_: PRISM IV predicts hospital mortality for one
+admission, while a standardised mortality ratio is observed over expected across
+a cohort, and this score's own caution cites an SMR of 2.61, so the two would sit
+inches apart. And the FIELD is labelled `Model, by the data you collected`,
+because once an option advertises a probability it becomes tempting to pick for
+that reason — a 12-hour dataset scored as PRISM IV yields a probability computed
+from variables gathered over the wrong period. The stored values are unchanged
+(`first_4h`, `first_12_24h`): ids are a wire format baked into shared links,
+labels are what a clinician reads.
+
 **This table is also why the calculator offers ONE PRISM III option, not two**
 (collapsed 2026-08-09). Everything that distinguishes III-12 from III-24 lives
 in the mortality models above — different coefficients, different calibration,
@@ -369,7 +384,7 @@ The window changes **nothing about the score**, which is computed identically fo
 
 | id                  | label                                  | type        | units      | conversions                      | plausible min/max                                                   |
 | ------------------- | -------------------------------------- | ----------- | ---------- | -------------------------------- | ------------------------------------------------------------------- |
-| `collection_window` | Data collection window                 | categorical | —          | —                                | `first_4h` \| `first_12_24h` (required)                             |
+| `collection_window` | Model, by the data you collected       | categorical | —          | —                                | `first_4h` \| `first_12_24h` (required)                             |
 | `age`               | Age                                    | numeric     | years      | 1 year = 12 months = 365.25 days | 0–18 [UI bound — NEEDS SOURCE]                                      |
 | `sbp_min`           | Systolic blood pressure (lowest)       | numeric     | mmHg (kPa) | 1 kPa = 7.50062 mmHg             | 0–300 [UI bound — NEEDS SOURCE]                                     |
 | `temp_min`          | Temperature (lowest)                   | numeric     | °C         | °F → °C: (°F−32)×5/9             | 20–45 [UI bound — NEEDS SOURCE]                                     |
