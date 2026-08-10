@@ -23,7 +23,7 @@ export const vis = defineScore({
   id: "vis",
   slug: "vis",
   name: "Vasoactive-Inotropic Score (VIS)",
-  version: "1.3.1",
+  version: "1.4.0",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -40,7 +40,7 @@ export const vis = defineScore({
       step: 0.5,
       helpText: defineText(
         "vis.dopamine.help",
-        "Infusion rate in mcg/kg/min. Coefficient ×1. Leave blank if not running.",
+        "Infusion rate in µg/kg/min (also written mcg/kg/min). Coefficient ×1. Leave blank if not running.",
       ),
     },
     {
@@ -56,7 +56,7 @@ export const vis = defineScore({
       step: 0.5,
       helpText: defineText(
         "vis.dobutamine.help",
-        "Infusion rate in mcg/kg/min. Coefficient ×1. Leave blank if not running.",
+        "Infusion rate in µg/kg/min (also written mcg/kg/min). Coefficient ×1. Leave blank if not running.",
       ),
     },
     {
@@ -72,7 +72,7 @@ export const vis = defineScore({
       step: 0.01,
       helpText: defineText(
         "vis.epinephrine.help",
-        "Infusion rate in mcg/kg/min. Coefficient ×100. Leave blank if not running.",
+        "Infusion rate in µg/kg/min (also written mcg/kg/min). Coefficient ×100. Leave blank if not running.",
       ),
     },
     {
@@ -88,7 +88,7 @@ export const vis = defineScore({
       step: 0.05,
       helpText: defineText(
         "vis.milrinone.help",
-        "Infusion rate in mcg/kg/min. Coefficient ×10. Leave blank if not running.",
+        "Infusion rate in µg/kg/min (also written mcg/kg/min). Coefficient ×10. Leave blank if not running.",
       ),
     },
     {
@@ -121,7 +121,7 @@ export const vis = defineScore({
       step: 0.01,
       helpText: defineText(
         "vis.norepinephrine.help",
-        "Infusion rate in mcg/kg/min. Coefficient ×100. Leave blank if not running.",
+        "Infusion rate in µg/kg/min (also written mcg/kg/min). Coefficient ×100. Leave blank if not running.",
       ),
     },
   ] as const,
@@ -207,6 +207,13 @@ export const vis = defineScore({
       date: "2026-08-04",
       summary:
         "Provenance correction in the notes; the computed number, every coefficient and every quoted threshold are unchanged. The paragraph that explains which coefficients are deliberately left out ended in a single blanket attribution — that every coefficient it named was quoted from the 2026-08-04 review and was [NEEDS SOURCE] for a primary. That sentence scoped over two terms it does not describe. Levosimendan (×50) and phenylephrine (×10) both predate the 2026-08-04 review; both were checked in the 2026-07-25 verification pass. And levosimendan ×50 is not unsourced at all — it was confirmed there against the independently fetched full texts of two variant cohorts, an ECMO one and a heart-transplant one — so the old wording marked as unsourced a coefficient this project has read primary text for. The attribution is now scoped to the three newer-agent disagreements it actually covers (methylene blue 1 versus 20, angiotensin II 0.25 versus 25, olprinone 10 versus 25), and each excluded term now carries its own provenance: levosimendan confirmed against two primaries, phenylephrine corroborated by two independent secondary aggregations but still [NEEDS SOURCE] for a directly fetched primary.",
+      reason: "clarification",
+    },
+    {
+      version: "1.4.0",
+      date: "2026-08-10",
+      summary:
+        "Removes a unit toggle that did nothing, from four fields sitting next to one where the toggle is worth a factor of a thousand. NO COMPUTED VALUE CHANGED and none could: dopamine, dobutamine, epinephrine, norepinephrine and milrinone offered a choice between `mcg/kg/min` and `µg/kg/min`, which are two spellings of microgram, converting identically in both directions. Vasopressin is on the same form with a units-versus-milliunits toggle that DOES change the answer - 0.0003 units/kg/min is 3 VIS points, 0.3 is 3000 - and is the documented trap the infusion unit file exists to contain. That is why this is a safety change rather than a tidy-up: a control that visibly does nothing teaches a clinician that infusion unit toggles do not matter, and the next one they skip is the one that does. The fields now show `µg/kg/min` and the help text names the mcg spelling once. The mcg spelling is still ACCEPTED on input, so anything typed or linked with it keeps working. Underneath, `UnitConversion` gained `sameUnitSpelling`, which separates a spelling variant from a real conversion - `alternates` had been doing both jobs - and a registry gate asserts that anything marked that way is genuinely the identity, so the flag cannot be used to hide a real conversion from the reader. From the external site review of 2026-08-10, finding 5.4.",
       reason: "clarification",
     },
   ],

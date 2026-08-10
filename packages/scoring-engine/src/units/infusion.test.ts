@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   mcgPerKgPerMin,
-  microgramSignForMcg,
+  mcgSpellingForMicrogram,
   milliunitsForUnits,
   unitsPerKgPerMin,
 } from "./infusion";
@@ -9,8 +9,8 @@ import { fromCanonical, toCanonical } from "./types";
 
 describe("infusion-rate units", () => {
   it("treats µg/kg/min as identical to mcg/kg/min (same unit, microgram)", () => {
-    expect(microgramSignForMcg.toCanonical(5)).toBe(5);
-    expect(microgramSignForMcg.fromCanonical(5)).toBe(5);
+    expect(mcgSpellingForMicrogram.toCanonical(5)).toBe(5);
+    expect(mcgSpellingForMicrogram.fromCanonical(5)).toBe(5);
     expect(toCanonical(mcgPerKgPerMin, 5, "mcg/kg/min")).toBe(5);
     expect(toCanonical(mcgPerKgPerMin, 5, "µg/kg/min")).toBe(5);
   });

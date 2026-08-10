@@ -153,7 +153,7 @@ describe("vis carries the corrected Gaies 2010 dichotomisation", () => {
       [...dates].sort((a, b) => a.localeCompare(b)),
     );
     expect(vis.version).toBe(vis.changelog[vis.changelog.length - 1]?.version);
-    expect(vis.version).toBe("1.3.1");
+    expect(vis.version).toBe("1.4.0");
   });
 
   it("states all five Table 1 groups across both periods", () => {

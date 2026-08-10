@@ -3,6 +3,29 @@ export interface UnitConversion {
   readonly unit: string;
   readonly toCanonical: (value: number) => number;
   readonly fromCanonical: (value: number) => number;
+  /**
+   * This is the SAME unit under another spelling, not another unit.
+   *
+   * `alternates` was doing two unrelated jobs. Most entries are real
+   * conversions: choosing one changes the number, so the form must offer the
+   * choice. A few are spelling variants — `mcg/kg/min` and `µg/kg/min` are both
+   * micrograms — where choosing changes nothing at all.
+   *
+   * Rendering the second kind as a toggle is a SAFETY problem, not a cosmetic
+   * one. Four VIS drugs offered a mcg/µg toggle that did nothing, sitting
+   * beside vasopressin, whose units-versus-milliunits toggle changes the answer
+   * by a factor of a thousand and is the documented trap this file exists to
+   * contain. A control that visibly does nothing teaches a clinician that
+   * infusion unit toggles do not matter, and the next one they skip is the one
+   * that does.
+   *
+   * Set this and the unit stays ACCEPTED on input — links and habits that use
+   * the other spelling keep working — while the form stops presenting it as a
+   * choice. A registry gate asserts that any conversion marked this way is
+   * genuinely the identity in both directions, so the flag cannot be used to
+   * hide a real conversion from the reader.
+   */
+  readonly sameUnitSpelling?: boolean;
 }
 
 /** The unit system for one input: canonical unit plus accepted alternates. */

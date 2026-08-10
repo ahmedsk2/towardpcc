@@ -28,7 +28,11 @@ type FieldState = Record<string, Field>;
 
 function unitOptions(input: ScoreInput): string[] {
   if (input.type !== "numeric") return [];
-  const alts = input.unit.alternates?.map((a) => a.unit) ?? [];
+  // Spelling variants are accepted but never OFFERED: a toggle between two
+  // spellings of one unit changes nothing, and a control that visibly does
+  // nothing teaches a clinician to ignore the next one, which on VIS is the
+  // vasopressin units/milliunits toggle worth a factor of a thousand.
+  const alts = (input.unit.alternates ?? []).filter((a) => !a.sameUnitSpelling).map((a) => a.unit);
   return input.unit.canonical ? [input.unit.canonical, ...alts] : alts;
 }
 
