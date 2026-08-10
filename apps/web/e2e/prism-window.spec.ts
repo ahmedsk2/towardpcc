@@ -21,11 +21,11 @@ import { expect, test } from "@playwright/test";
 const PRISM = "/calculators/prism";
 
 const WINDOW = {
-  h4: /First 4 hours of PICU care/,
+  h4: /^PRISM IV \(score and mortality probability\)$/,
   // ONE PRISM III option since v2.7.0: the 12- and 24-hour windows returned
   // byte-identical output, and the models that distinguish them are models
   // this platform does not ship.
-  iii: /First 12–24 hours of PICU care/,
+  iii: /^PRISM III \(severity score only\)$/,
 };
 
 /** The four PRISM IV admission-context covariates, by field id. */
@@ -128,7 +128,7 @@ test.describe("PRISM collection window", () => {
 
     await page.getByRole("button", { name: /copy result summary/i }).click();
     const summary = await page.evaluate(() => navigator.clipboard.readText());
-    expect(summary).toContain("First 12–24 hours");
+    expect(summary).toContain("PRISM III (severity score only)");
     expect(summary).not.toContain("Cancer, acute or chronic");
   });
 
@@ -241,7 +241,9 @@ test.describe("PRISM collection window", () => {
       await expect(
         page.locator("#field-collection_window").getByRole("radio", { checked: true }),
       ).toHaveCount(1);
-      await expect(page.locator("#field-collection_window")).toContainText("First 12–24 hours");
+      await expect(page.locator("#field-collection_window")).toContainText(
+        "PRISM III (severity score only)",
+      );
       // And the score actually renders, which is the thing that was at risk.
       await expect(page.locator("[data-result-values]")).toHaveAttribute("data-result-values", "1");
       await expect(page.locator("[data-derived-output]")).toHaveCount(0);
