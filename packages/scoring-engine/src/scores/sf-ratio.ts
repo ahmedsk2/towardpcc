@@ -24,7 +24,7 @@ export const sfRatio = defineScore({
   id: "sf-ratio",
   slug: "sf-ratio",
   name: "SpO₂/FiO₂ ratio (S/F)",
-  version: "1.1.0",
+  version: "1.0.0",
   status: "published",
   category: "respiratory",
   inputs: [
@@ -121,17 +121,9 @@ export const sfRatio = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: direct S/F ratio with PALICC-2 NIV-PARDS bands and the SpO₂ ≤ 97% validity guard.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
-    },
-    {
-      version: "1.1.0",
-      date: "2026-08-01",
-      summary:
-        "Limitations now state that the bands are the PALICC-2 paediatric strata and that the 2024 global ARDS definition cuts the same ratio at S/F ≤ 315, so a value between 250 and 315 classifies differently under the two frameworks. No threshold, band or computed value changed; the page previously named PALICC-2 four times without disclosing that an adult tool would disagree.",
-      reason: "clarification",
     },
   ],
   ipStatus: {
@@ -141,11 +133,11 @@ export const sfRatio = defineScore({
   },
   formula: defineText(
     "sf.formula",
-    "S/F ratio = SpO₂ (%) ÷ FiO₂ (fraction), where SpO₂ is the pulse-oximeter saturation as a percent and FiO₂ is the inspired-oxygen fraction (0.21–1.0); the single reported value is dimensionless. Interpretation follows the PALICC-2 (2023) non-invasive-ventilation PARDS strata: S/F ≤ 150 corresponds to the severe category, > 150 to ≤ 250 to the mild/moderate category (S/F ≤ 250 meets the NIV-PARDS oxygenation criterion), and > 250 is above that threshold. The ratio is computed only for SpO₂ 80–97%; values outside that cited validity window are rejected rather than scored, because above 97% the oxyhemoglobin dissociation curve plateaus and S/F loses discrimination.",
+    "S/F = SpO₂ (%) ÷ FiO₂ (fraction). It is computed only for SpO₂ 80–97%. Above 97% the dissociation curve plateaus and the ratio cannot discriminate, so a value outside that window is rejected rather than scored. The bands are the PALICC-2 (2023) strata for non-invasive-ventilation PARDS (full-facemask CPAP/BiPAP with PEEP ≥ 5 cmH₂O): ≤ 150 is severe, > 150 to ≤ 250 is mild/moderate (≤ 250 meets the NIV-PARDS oxygenation criterion), and > 250 is above the threshold.",
   ),
   notes: defineText(
     "sf.notes",
-    "S/F is interpretable only for SpO₂ 80–97% (enforced as input bounds; above 97% the dissociation curve plateaus and the ratio cannot discriminate severity — a value above 97% is rejected, not scored). PALICC-2 restricts NIV-PARDS grading to full-facemask CPAP/BiPAP with PEEP ≥ 5 cm H₂O; FiO₂ estimation on nasal-cannula/low-flow is unreliable and the ratio should not be trusted there. The bands above are the PALICC-2 PAEDIATRIC strata, and adult definitions cut this ratio in a different place: the 2024 global ARDS definition uses S/F ≤ 315 (with SpO₂ ≤ 97%, on HFNO ≥ 30 L/min or NIV/CPAP ≥ 5 cm H₂O). A ratio between 250 and 315 is therefore below the adult threshold while sitting above the paediatric one, so a value cross-checked against an adult calculator can appear to disagree when both are correct — read the number against the framework you intend, not whichever tool is to hand. When an arterial gas is available, PaO₂-based P/F is preferred; on invasive ventilation, OI/OSI are preferred over S/F. The published P/F↔S/F conversion equations (Rice 2007; Khemani 2009/2012) are notes only and are not computed here. No [NEEDS SOURCE] items apply to this score's inputs — the SpO₂ 80–97% window and FiO₂ 0.21–1.0 bounds are all cited; the research note's [NEEDS SOURCE] flags concern PaO₂/PF outer bounds, which are not inputs to S/F.",
+    "The 2024 global adult ARDS definition cuts S/F at ≤ 315, so a value between 250 and 315 is below the adult threshold while above the paediatric one. Both frameworks are correct, so read the number against the one intended. FiO₂ estimation on nasal cannula or low-flow is unreliable. Prefer P/F when a gas is available, and prefer OI/OSI on invasive ventilation.",
   ),
   calculate: (values) => {
     const ratio = values.spo2.value / values.fio2.value;

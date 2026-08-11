@@ -891,39 +891,42 @@ describeScore(kdigoAki, (ctx) => {
 });
 
 /**
- * TWO SOURCING QUESTIONS THAT ARE CLOSED, AND MUST STAY CLOSED.
+ * A SOURCING QUESTION THAT IS CLOSED, AND MUST STAY CLOSED.
  *
  * "We could not find a source" and "we established there is no source" look the
  * same on the page and are opposite conclusions. The first invites the next
- * reader to go looking; the second tells them not to bother. Both of these were
- * re-searched on 2026-08-03 and came back settled-absent, so the wording is
- * asserted here — a later edit that softens it back to an open question would
- * silently re-open work that is finished, and nothing else in the suite would
- * notice, because neither statement changes a computed stage.
+ * reader to go looking; the second tells them not to bother. KDIGO gives anuria
+ * no millilitre figure and nephrology has no agreed one either — re-searched
+ * 2026-08-03, settled-absent — so the text must say that a number is not
+ * INVENTED, never that one is missing and wanted.
+ *
+ * The condensed v1.0.0 text drops the settled-absent inventory; the claim that
+ * carries the behaviour moved into the formula rather than disappearing, so the
+ * assertions follow it there. Nothing else in the suite would notice a
+ * fabricated rate appearing in the text, because every anuria row above is
+ * driven by the boolean, not by a number.
  */
 describe("kdigo-aki records its settled absences as settled", () => {
   const notes = kdigoAki.notes.en;
+  const formula = kdigoAki.formula?.en ?? "(formula not found)";
 
   it("states that anuria has no numeric definition to find, not that one is missing", () => {
-    expect(notes).toContain("CONFIRMED ABSENCE");
-    expect(notes).toMatch(/no numeric definition of anuria|no single agreed numeric definition/i);
     // The behaviour this justifies: a clinical flag, never a fabricated rate.
-    expect(notes).toMatch(/clinical flag/i);
-    expect(notes).not.toMatch(/\[NEEDS SOURCE[^\]]*anuria/i);
-  });
-
-  it("states the 88.42-vs-88.4 creatinine factor is immaterial rather than undecided", () => {
-    expect(notes).toContain("SETTLED, NOT OPEN");
-    // The arithmetic that makes it immaterial must survive with the claim.
-    expect(notes).toContain("353.60");
-    expect(notes).toContain("353.68");
-    expect(notes).not.toMatch(/open item/i);
+    // Inventing one would require this sentence to go.
+    expect(formula).toMatch(/clinical flag/i);
+    expect(formula).toMatch(/KDIGO defines no millilitre figure and none is invented here/i);
+    // The opposite conclusion — an open, unsourced gap — must not come back in
+    // either surface, in either word order the [NEEDS SOURCE] marker is written.
+    for (const surface of [notes, formula]) {
+      expect(surface).not.toMatch(/anuria[^.]*\[NEEDS SOURCE/i);
+      expect(surface).not.toMatch(/\[NEEDS SOURCE[^\]]*anuria/i);
+    }
   });
 
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("3.2.1");
+    expect(kdigoAki.version).toBe("1.0.0");
   });
 });
 
@@ -940,12 +943,16 @@ describe("kdigo-aki records its settled absences as settled", () => {
  * counter-recommendation and its citation are asserted here so removing them
  * fails a test rather than passing review.
  *
- * v3.1.0 re-based that guidance on PAEDIATRIC evidence (Lee 2022, 710 children)
- * and demoted the adult malaria cohort to a secondary citation. The
- * recommendation itself did not move, which is exactly why the swap needs
- * pinning: the page reads almost the same either way, and reverting to the
- * adult study as primary would look like a wording change rather than the
- * downgrade in evidence it would be.
+ * The guidance rests on PAEDIATRIC evidence (Lee 2022, 710 children); the adult
+ * malaria cohort is a secondary citation only. The recommendation reads almost
+ * the same either way, which is exactly why the ordering needs pinning:
+ * reverting to the adult study as primary would look like a wording change
+ * rather than the downgrade in evidence it would be.
+ *
+ * The condensed v1.0.0 text keeps every claim below and cuts the surrounding
+ * narrative — the incidence pair, the candidate-window inventory, the CKD-EPI
+ * comparison. Assertions that needed that narrative are gone; what is left is
+ * targeted at the text as it now stands.
  */
 describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
   const notes = kdigoAki.notes.en;
@@ -953,23 +960,28 @@ describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
     kdigoAki.inputs.find((i) => i.id === "scr_baseline")?.helpText.en ?? "(input not found)";
 
   it("names the lowest admission creatinine as the surrogate to use", () => {
-    expect(notes).toMatch(/lowest creatinine measured during this admission/i);
+    expect(notes).toMatch(/lowest creatinine of this admission/i);
     expect(baselineHelp).toMatch(/lowest creatinine measured during this admission/i);
   });
 
   it("warns off KDIGO's own assumed-GFR-75 back-calculation, with the finding", () => {
-    expect(notes).toMatch(/assumed (e)?GFR of 75/i);
-    expect(notes).toMatch(/more than half of all AKI/i);
+    // The PROHIBITION, not merely the phrase: "assumed GFR of 75" would still
+    // appear if KDIGO's appendix method were reinstated as the recommendation,
+    // so matching the method name alone could not catch that.
+    expect(notes).toMatch(/Do not back-calculate from an assumed GFR of 75/i);
+    // And the magnitude of what it misses, which is what stops the warning
+    // reading as a close call.
+    expect(notes).toMatch(/missed roughly two thirds/i);
     expect(baselineHelp).toMatch(/assumed GFR of 75/i);
   });
 
   /**
-   * The paediatric study is the whole substance of v3.1.0. Its numbers are
-   * asserted individually because each carries a different part of the argument:
-   * the sensitivity pair is why SCr-min is recommended, and the incidence pair
-   * (19.1% found against 58.7% true) is the only figure that conveys the SIZE of
-   * what back-calculation misses. A summary that keeps the recommendation but
-   * drops the magnitude leaves a reader free to think it a close call.
+   * The recommendation must keep resting on PAEDIATRIC evidence, and the
+   * operating characteristics must keep pointing at the study they came from.
+   * The condensed text drops the incidence pair (19.1% found against a true
+   * 58.7%) and the cohort's age range, so neither is asserted any more; what
+   * survives is the part that carries the misattribution risk — these are
+   * figures from 710 CHILDREN in Lee 2022, not from the adult comparator.
    */
   it("rests the recommendation on the paediatric study, with its numbers", () => {
     const lee = kdigoAki.references.find((r) => "doi" in r && r.doi === "10.23876/j.krcp.21.120");
@@ -977,16 +989,16 @@ describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
     expect(lee?.citation).toMatch(/Lee YJ/);
     expect(lee?.note, "its role as primary must be stated in the reference").toMatch(/PRIMARY/);
 
-    // Cohort: paediatric, and large enough to say so.
-    expect(notes).toMatch(/710/);
-    expect(notes).toMatch(/1 month to 18 years/);
-    // SCr-min performance.
+    // Cohort: paediatric, large enough to say so, and named in the text.
+    expect(notes).toMatch(/710 critically ill children/i);
+    expect(notes).toMatch(/Lee 2022/);
+    // SCr-min performance — why it is the recommended surrogate.
     expect(notes).toMatch(/87\.8%/);
     expect(notes).toMatch(/71\.0%/);
-    // Back-calculation performance — the sensitivity AND the incidence gap.
+    // Back-calculation performance, measured in those same children rather than
+    // carried over from an adult cohort.
     expect(notes).toMatch(/31\.5%/);
-    expect(notes).toMatch(/19\.1%/);
-    expect(notes).toMatch(/58\.7%/);
+    expect(notes).toMatch(/in the same children/i);
   });
 
   /**
@@ -1000,56 +1012,53 @@ describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
    * a piece of trivia instead of a warning.
    */
   it("states that the adult-to-child direction reverses, and which way is dangerous", () => {
-    expect(notes).toMatch(/THE DIRECTION REVERSES BETWEEN ADULTS AND CHILDREN/);
-    expect(notes).toMatch(/OVER-estimates AKI/);
-    expect(notes).toMatch(/UNDER-estimated severely/);
-    expect(notes).toMatch(/dangerous direction/i);
+    expect(notes).toMatch(/direction reverses between adults and children/i);
+    // The adult finding is named as NOT transferable rather than repeated as
+    // reassurance. Someone who learned the adult direction reads a low
+    // estimated baseline as conservative when it is the opposite.
+    expect(notes).toMatch(/over-diagnoses must not be carried across/i);
+    expect(notes).toMatch(/under-staging is the dangerous direction/i);
   });
 
   /**
    * The 7-day window is the paper's choice, not a standard, and the operating
    * characteristics above belong to it. Publishing them beside an unqualified
    * "lowest creatinine" would attach 7-day numbers to a 3-day or whole-admission
-   * value, which is a different surrogate.
+   * value, which is a different surrogate. The condensed text drops the
+   * inventory of candidate windows; the qualifier bound to the figures and the
+   * instruction to record which window was used are what stop the misreading,
+   * so those are what is asserted.
    */
-  it("discloses that the SCr-min window is not standardised", () => {
-    expect(notes).toMatch(/NOT STANDARDISED/);
-    expect(notes).toMatch(/3 days/);
-    expect(notes).toMatch(/7 days/);
-    expect(notes).toMatch(/whole hospitalisation/);
+  it("attaches its operating characteristics to the window they came from", () => {
+    expect(notes).toMatch(/87\.8% and specificity 71\.0% \(Lee 2022, 7-day window\)/);
+    expect(notes).toMatch(/Record which window the entered value came from/i);
   });
 
   /**
    * Cooper survives as a secondary citation only, and only for the comparisons
-   * Lee does not run. It also stops the notes claiming a tidy adult-vs-child
-   * split that its own result contradicts.
+   * Lee does not run — 247 ADULTS with malaria. The condensed notes no longer
+   * restate that ordering, so the reference notes are where it is now recorded
+   * and where a silent promotion back to primary would have to show up.
    */
   it("keeps the adult cohort as secondary, for what the paediatric study lacks", () => {
     const cooper = kdigoAki.references.find((r) => "pmid" in r && r.pmid === "33732979");
     expect(cooper, "Cooper 2021 is retained for the surrogates Lee did not test").toBeDefined();
     expect(cooper?.note).toMatch(/SECONDARY/);
     expect(cooper?.note).toMatch(/adult/i);
-    expect(notes).toContain("33732979");
-    expect(notes).toMatch(/CKD-EPI at an assumed GFR of 100/);
-    // No longer the primary support, and the notes must not read as if it were.
-    expect(notes).not.toMatch(/THE COOPER EVIDENCE IS ADULT/);
-    expect(notes).toMatch(/no longer the primary support/i);
-    // "The adult literature" is not presented as one voice.
-    expect(notes).toMatch(/not one voice/i);
+    const lee = kdigoAki.references.find((r) => "doi" in r && r.doi === "10.23876/j.krcp.21.120");
+    expect(lee?.note, "and the paediatric study is the one holding primacy").toMatch(/PRIMARY/);
+    expect(lee?.note).toMatch(/paediatric|pediatric/i);
   });
 
   it("no longer flags a missing paediatric surrogate-baseline validation", () => {
-    expect(notes).not.toMatch(/NEEDS SOURCE for a pediatric surrogate-baseline validation/i);
+    // Answered by Lee 2022. Reasserting it as an unsourced gap would re-open
+    // finished work, in either word order the [NEEDS SOURCE] marker is written.
+    expect(notes).not.toMatch(/surrogate-baseline validation/i);
+    expect(notes).not.toMatch(/surrogate[- ]baseline[^.]*\[NEEDS SOURCE/i);
     // But the separate, still-open question — a KDIGO-ENDORSED method — stays,
     // and stays distinguished from it. Answering "which surrogate is best" did
     // not make any guideline endorse one.
-    expect(notes).toMatch(/NEEDS SOURCE for a KDIGO-endorsed pediatric baseline rule/i);
-    expect(notes).toMatch(/GUIDELINE ENDORSEMENT/);
-  });
-
-  it("says why no back-calculation is implemented, rather than leaving it a gap", () => {
-    expect(notes).toMatch(/NO BACK-CALCULATION IS OFFERED HERE/);
-    expect(notes).toMatch(/sex and race/i);
+    expect(notes).toMatch(/KDIGO-endorsed (paediatric|pediatric) baseline rule \[NEEDS SOURCE\]/i);
   });
 
   it("no longer describes the ≥ 4.0 mg/dL route as an unresolved deviation", () => {

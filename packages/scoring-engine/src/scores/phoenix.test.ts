@@ -1068,76 +1068,53 @@ describeScore(phoenix, (ctx) => {
   });
 
   /**
-   * THE v2.2.0 DISCLOSURES ARE PART OF THE PRODUCT, SO THEY GET A TEST.
+   * WHAT THE CONDENSED TEXT MUST NOT LOSE.
    *
-   * Three of them are the kind that decay quietly if nothing holds them: a
-   * confirmed negative re-read as an unfinished search, a sourced-from-code fact
-   * re-worded back into an inference, and an explicitly unquantified effect
-   * losing its qualifier. The fourth — high-flow nasal cannula counting here and
-   * not in the registries — is new and is the one a reader is most likely to
-   * need, because it is invisible until a Phoenix score is set beside registry
-   * ventilation data.
+   * The 1.0.0 rewrite cut the provenance narrative that used to sit in `notes`:
+   * the bounds inventory, the pSOFA contrast, the settled-absent survey of the
+   * proprietary registries, the halt-versus-null split in the reference package.
+   * Those were prose detail, and the guards that required them are gone with
+   * them rather than being softened into assertions that cannot fail.
+   *
+   * Two claims are NOT detail, and both survive the condensation because a
+   * reader can be actively misled if either half goes missing:
+   *
+   *   - HIGH-FLOW NASAL CANNULA counts as support here and is excluded from the
+   *     ventilation field PICANet and ANZPIC collect. The first half alone is
+   *     the dangerous shape — it reads as agreement with registry data that
+   *     does not exist, and the divergence is invisible until a Phoenix score
+   *     is set beside a registry extract.
+   *   - the machine-readable units file the reference implementation's docs
+   *     point at was never retrieved, so nothing may be cited to it. That is a
+   *     guard against a source being credited for a bound nobody read it for.
+   *
+   * Both are asserted where the text now lives: the high-flow divergence in
+   * `notes`, and the two source claims in the reference entry the condensation
+   * left untouched. The FiO₂-versus-support divergence lost its prose
+   * disclosure and is pinned as a computed value instead, by the "takes 'no
+   * respiratory support' at face value" case above.
    */
-  it("keeps the sourced support gate, the registry divergence and the bounds provenance", () => {
+  it("keeps the high-flow registry divergence and the limits of what is cited", () => {
     const notes = phoenix.notes.en;
 
-    // The gate is read off published SQL, and the MECHANISM is what makes the
-    // pSOFA contrast usable rather than merely surprising.
-    expect(notes, "the support gate must be attributed to the published code").toContain(
-      "READ OFF THE TASK FORCE'S OWN PUBLISHED CODE",
-    );
-    expect(notes, "with the flag the SQL derives").toMatch(
-      /other respiratory support is true when FiO₂ exceeds 0\.21 or the child is invasively ventilated/,
-    );
-    expect(notes, "and the pSOFA contrast, which inverts it").toContain(
-      "pSOFA IS BUILT THE OTHER WAY UP",
-    );
-    expect(notes, "stated as two numbers a reader can hold side by side").toMatch(
-      /Phoenix respiratory 0 and pSOFA respiratory 2 simultaneously/,
-    );
-    // The one input combination where this calculator and the extraction differ.
-    expect(notes, "the FiO₂-versus-support divergence must be disclosed").toMatch(
-      /the extraction would award the 1-point tier, this calculator scores 0/,
+    // HIGH FLOW: counted here, excluded by both registries — BOTH halves, in one
+    // assertion, because either alone is the misleading version.
+    expect(notes, "the high-flow divergence must be stated with its registry half").toMatch(
+      /HIGH-FLOW NASAL CANNULA counts as respiratory support here, while PICANet and ANZPIC exclude it from the ventilation field they collect, so the same child reads differently against registry data/,
     );
 
-    // HIGH FLOW: counted here, excluded by both registries.
-    expect(notes, "the high-flow divergence must be stated").toContain("HIGH-FLOW NASAL CANNULA");
-    expect(notes, "and name the registries that exclude it").toMatch(
-      /PICANet and ANZPIC both EXCLUDE high-flow nasal cannula/,
+    // The support gate's shape is READ OFF the task force's published SQL, not
+    // inferred here, and the flag that SQL derives is named. Attribution, not
+    // narrative: an edit that presents the gate as this project's own reasoning
+    // has to delete this line to pass.
+    const referenceNotes = phoenix.references.map((r) => r.note ?? "").join("\n");
+    expect(referenceNotes, "the support gate must stay attributed to the published SQL").toMatch(
+      /the SQL from which the respiratory support gate is read \(other respiratory support = FiO₂ > 0\.21 OR invasive ventilation\)/,
     );
-    expect(notes, "the magnitude is unknown and must stay marked unretrieved").toMatch(
-      /no cohort has quantified/,
-    );
-
-    // BOUNDS: which match, which do not, and that none moved.
-    expect(notes, "the bounds must stop being described as all ours").toContain(
-      "PLAUSIBILITY BOUNDS ARE NO LONGER ALL OURS",
-    );
-    expect(notes, "the matching ones must be named individually").toMatch(
-      /age months \[0, 216\) with an exclusive ceiling/,
-    );
-    expect(notes, "and the kept-narrower ones must say nothing moved").toContain(
-      "NO BOUND ON THIS SCORE MOVED",
-    );
-    expect(notes, "PICANet must be cited by manual and version").toContain(
-      "PICANet Admission Dataset Definitions Manual v5.4 (November 2020)",
-    );
-    // Provenance limit: the docs page was read; the units file was not, and must
-    // not be cited as though it had been.
-    expect(notes, "the unretrieved units file must stay disclosed as unretrieved").toMatch(
-      /could not be retrieved, so nothing here is cited to that file/,
-    );
-    // The confirmed negative — silence IS the finding, and must not decay into
-    // an open search someone re-runs.
-    expect(notes, "the proprietary-registry negative must be stated as confirmed").toMatch(
-      /VPS, PC4 and PHIS publish NO public numeric plausibility or edit-check bounds\. Confirmed negative/,
-    );
-
-    // The two behaviours the reference splits between halting and nulling are
-    // distinguished, because the older note claimed rejection was wholly source
-    // behaviour and that is only true of GCS and the support flags.
-    expect(notes, "the halt/null split in the reference must be stated").toContain(
-      "The R package's own argument checks HALT",
+    // Provenance limit: the implementation-notes page was read; the units file
+    // it refers to was not, and must not be cited as though it had been.
+    expect(referenceNotes, "the unretrieved units file must stay disclosed as unretrieved").toMatch(
+      /units file that page refers to could not be retrieved; nothing here is cited to it/,
     );
 
     // High flow is decided at the field, so it belongs on the field too.

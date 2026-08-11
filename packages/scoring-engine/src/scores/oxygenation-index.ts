@@ -31,7 +31,7 @@ export const oxygenationIndex = defineScore({
   id: "oxygenation-index",
   slug: "oxygenation-index",
   name: "Oxygenation Index (OI)",
-  version: "1.1.0",
+  version: "1.0.0",
   status: "published",
   category: "respiratory",
   inputs: [
@@ -139,17 +139,9 @@ export const oxygenationIndex = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: OI split out from the former OI/OSI score, with PALICC-2 (2023) two-tier severity bands.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
-    },
-    {
-      version: "1.1.0",
-      date: "2026-08-03",
-      summary:
-        "Sourcing pass, no change to the computed number. The FiO₂ convention is now stated as a requirement rather than an aside — PALICC-2 (2023) prints OI as MAP(cmH₂O) × FiO₂(percent) ÷ PaO₂(mmHg), and the ×100 in this implementation is exactly what converts the fraction to that form — and a worked example now pins the magnitude so a future simplification cannot introduce a silent 100-fold error. The PALICC-2 bands were re-verified and are unchanged (criterion OI ≥ 4, severe OI ≥ 16).",
-      reason: "clarification",
     },
   ],
   ipStatus: {
@@ -159,11 +151,11 @@ export const oxygenationIndex = defineScore({
   },
   formula: defineText(
     "oi.formula",
-    "OI = (MAP × FiO₂ × 100) ÷ PaO₂, where MAP is mean airway pressure in cmH₂O, FiO₂ is the inspired-oxygen FRACTION (0.21–1.0), and PaO₂ is arterial oxygen tension in mmHg; the result is a unitless index displayed to one decimal. The FiO₂ unit is load-bearing, not a detail: PALICC-2 (2023) prints this index as MAP(cmH₂O) × FiO₂(percent) ÷ PaO₂(mmHg), and the explicit ×100 above is precisely what converts a fraction into that percentage form, so the two renderings are the same number (the ×100 form is written out in Slaughter 2025). Applying both conventions, or neither, is a 100-fold error in opposite directions; a worked example in the test suite pins the magnitude so the factor cannot be simplified away. Bands are matched against the raw unrounded value using the PALICC-2 (2023) two-tier scheme: OI < 4 is below the invasive-ventilation oxygenation criterion, 4 ≤ OI < 16 is mild–moderate, and OI ≥ 16 is severe.",
+    "OI = (mean airway pressure × FiO₂ × 100) ÷ PaO₂, with MAP in cmH₂O, FiO₂ a fraction, and PaO₂ in mmHg. The ×100 converts the fraction into the percentage form PALICC-2 prints, so the two renderings are the same number. Applying both conventions, or neither, is a 100-fold error, and it is the single most likely implementation mistake: if another calculator disagrees by a factor of 100, check this first. Bands (PALICC-2 2023, invasively ventilated) are OI < 4 below the PARDS oxygenation criterion, 4 to < 16 mild–moderate, and ≥ 16 severe.",
   ),
   notes: defineText(
     "oi.notes",
-    "OI is the mean airway pressure times FiO₂ times 100, divided by the arterial oxygen tension (PaO₂) — higher OI means a worse oxygenation defect. It requires an arterial line (for the PaO₂) and is defined only on positive-pressure ventilation, where a mean airway pressure exists (conventional IMV or HFOV); it is undefined for spontaneous breathing, nasal cannula, or standard non-invasive masks. FiO₂ is entered as a fraction here and the ×100 converts it to the percentage form the guideline prints: PALICC-2 (2023) states OI as MAP(cmH₂O) × FiO₂(percent) ÷ PaO₂(mmHg), which is the identical number. This is the single most likely implementation error in the score — apply both conventions and the index is 100× too large, apply neither and it is 100× too small — so if a value here disagrees with another calculator by a factor of 100, that is the first thing to check. Interpretation bands here are the PALICC-2 (2023) two-tier scheme for invasively ventilated children: the oxygenation criterion is OI ≥ 4 and severe is OI ≥ 16. PALICC 2015 used a three-tier scheme — mild (4 ≤ OI < 8), moderate (8 ≤ OI < 16), severe (OI ≥ 16) — and PALICC-2 collapsed the two lower tiers into mild–moderate while leaving the OI severe cutoff (≥ 16) unchanged, so unlike OSI (whose severe cutoff moved from 12.3 to 12) no OI number changed between editions; this implementation applies the PALICC-2 (2023) edition. The map_awp (5–50 cmH₂O) and pao2 (10–700 mmHg) numeric limits are engineering input-validation bounds, not values from a specific publication [NEEDS SOURCE]. OI classifies a physiologic defect; it is not an individual-patient outcome prediction.",
+    "Requires an arterial line, and is defined only on positive-pressure ventilation, conventional or HFOV. PALICC 2015 used three tiers, 4/8/16; PALICC-2 merged the lower two, and the severe cutoff did not move.",
   ),
   calculate: (values) => {
     // Return the raw index; `precision` rounds for DISPLAY only. Interpretation

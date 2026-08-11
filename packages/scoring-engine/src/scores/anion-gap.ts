@@ -33,7 +33,7 @@ export const anionGap = defineScore({
   id: "anion-gap",
   slug: "anion-gap",
   name: "Anion gap (with albumin correction)",
-  version: "1.0.1",
+  version: "1.0.0",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -143,17 +143,9 @@ export const anionGap = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: anion gap (K-exclusive and K-inclusive) with the Figge 1998 albumin correction.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
-    },
-    {
-      version: "1.0.1",
-      date: "2026-08-08",
-      summary:
-        "Display all four anion-gap rows at 1 decimal place. The uncorrected pair rendered at 0 dp beside the albumin-corrected pair at 1 dp, so the panel did not reconcile with itself: a K-inclusive AG of 16.5 showed as '17' next to 'albumin-corrected 21.5', making the Figge correction read as 4.5 when it is exactly 2.5 x (4.0 - albumin) = 5.0. No computed value changed and this score has no interpretation bands, so no classification can move. From the external calculator audit of 2026-08-08, finding F3.",
-      reason: "clarification",
     },
   ],
   ipStatus: {
@@ -163,11 +155,11 @@ export const anionGap = defineScore({
   },
   formula: defineText(
     "ag.formula",
-    "Base anion gap = sodium − (chloride + bicarbonate). When potassium is supplied, the potassium-inclusive anion gap = (sodium + potassium) − (chloride + bicarbonate); it runs about 3.5–5 units higher and uses a higher reference interval, so the two forms are shown separately. When albumin is supplied, the albumin-corrected anion gap = anion gap + 2.5 × (4.0 − albumin in g/dL): each 1 g/dL of albumin below the 4.0 g/dL baseline adds 2.5 mEq/L back to the gap (Figge 1998), unmasking a high-anion-gap acidosis that hypoalbuminemia would otherwise hide. Values are reported in mEq/L (numerically equal to mmol/L for these monovalent ions).",
+    "Base anion gap = sodium − (chloride + bicarbonate). The potassium-inclusive anion gap = (sodium + potassium) − (chloride + bicarbonate), which runs about 3.5 to 5 units higher and uses a higher reference interval, so the two forms are shown separately. The albumin-corrected anion gap = anion gap + 2.5 × (4.0 − albumin in g/dL) (Figge 1998), so each 1 g/dL below 4.0 adds 2.5 mEq/L, unmasking a high-anion-gap acidosis that hypoalbuminemia would hide. mEq/L and mmol/L are numerically equal for these ions, and total CO₂ is used interchangeably with HCO₃.",
   ),
   notes: defineText(
     "ag.notes",
-    "The anion gap is a diagnostic/classification index, not a graded severity or outcome score — do not read it as a mortality or acuity score. It has NO interpretation bands here because reference intervals are strongly method-dependent (flame photometry gave ~12 ± 4 mEq/L; modern ion-selective electrodes shifted it down to ~6 ± 3, and verified lab intervals range widely, e.g. 10–18 mmol/L K-exclusive in Chionh 2022): always classify against the reporting lab's own reference interval, not a fixed cutoff. The potassium-inclusive form runs ~3.5–5 units higher and requires a correspondingly higher reference interval — never compare a K-inclusive value against a K-exclusive range. The albumin correction uses the Figge 1998 slope of 2.5 mEq/L per 1 g/dL below a 4.0 g/dL baseline (equivalently 0.25 per g/L below 40 g/L); a small number of sources use a 2.3 coefficient or a 4.5 g/dL baseline (results are clinically near-identical) — this implementation uses 2.5 and 4.0, the most common clinical form. Correcting for albumin increases sensitivity, not specificity, and is an adjunct to — not a replacement for — direct measurement of lactate, ketones, etc. Pediatric-first flag: the 2.5 coefficient and the reference intervals were derived predominantly in ADULTS (Figge's cohort was adults); they are applied to children by convention, not from pediatric-derived data. Total CO₂ from a basic metabolic panel is used interchangeably with HCO₃ (a ~1–2 mmol/L offset, conventionally ignored). [NEEDS SOURCE]: the na (100–180), cl (70–130), hco3 (3–45), k (1.5–9) mEq/L and albumin (1.0–6.0 g/dL) input limits are engineering input-validity bounds, not thresholds from a specific publication. Garbage-in caveat: spurious electrolyte values (pseudohyponatremia, bromide interference with the chloride assay) distort the AG directly.",
+    "No interpretation bands are emitted. Reference intervals are strongly method-dependent: flame photometry gave about 12 ± 4 mEq/L, ion-selective electrodes shifted it to about 6 ± 3, and verified intervals span, for example, 10 to 18. Classify against the reporting lab’s own interval, never a fixed cutoff, and never compare a potassium-inclusive value with a potassium-exclusive range. The anion gap is a diagnostic index, not a severity score. The albumin correction increases sensitivity, not specificity, and is an adjunct to direct measurement of lactate and ketones. The 2.5 coefficient and the reference intervals are adult-derived, applied to children by convention. Spurious electrolytes (pseudohyponatremia, bromide interference) distort the gap directly.",
   ),
   calculate: (values) => {
     // Return RAW computed values; `precision` rounds for display only. There

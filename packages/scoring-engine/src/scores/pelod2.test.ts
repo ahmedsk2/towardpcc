@@ -253,8 +253,8 @@ describeScore(pelod2, (ctx) => {
    * [0, 216) months. The declaration once read `max: 216`, and `max` is
    * INCLUSIVE — so exactly 18.0 years was accepted and scored, one month of
    * patients the paper excludes. It was then written as 215.99999999999997, the
-   * largest double below 216, which was exact but read as a typo; v1.1.1
-   * states it as `maxExclusive: 216` and accepts the identical set of ages.
+   * largest double below 216, which was exact but read as a typo; it is now
+   * stated as `maxExclusive: 216` and accepts the identical set of ages.
    *
    * `boundaryTest` above already proves that the accepted side computes and
    * that the declared value rejects. What it cannot prove is that the declared
@@ -452,16 +452,25 @@ describe("pelod2 ships no interpretation bands, by decision rather than backlog"
    * And says so where a reader sees it. Silence in `interpretation` renders the
    * same nothing whether the bands are absent by design or merely unwritten;
    * the limitations are what distinguish the two.
+   *
+   * Two distinct false claims are fenced off here, and both are one edit away:
+   * that the bands are merely unwritten (the word this guard demands is
+   * "settled"), and that the paper's organ-count mortality figures ARE a
+   * banding — they bin by number of dysfunctional organs, not by score, so
+   * presenting them as strata would misattribute a table the paper never
+   * offered as one. Rewriting either sentence into a backlog item or a band
+   * table drops the phrases below.
    */
   it("states in the limitations that the absence is settled, not outstanding", () => {
-    expect(pelod2.notes.en).toContain("NO SEVERITY BANDS ARE SHOWN");
-    expect(pelod2.notes.en).toContain("not work outstanding");
+    expect(pelod2.notes.en).toContain("No severity bands exist or are shown");
+    expect(pelod2.notes.en).toContain("settled decision");
+    expect(pelod2.notes.en).toContain("context, not a banding");
   });
 
   /** The version must track the user-visible text this decision changed. */
   it("declares the version its newest changelog entry describes", () => {
     const newest = pelod2.changelog[pelod2.changelog.length - 1];
     expect(pelod2.version).toBe(newest?.version);
-    expect(pelod2.version).toBe("1.1.2");
+    expect(pelod2.version).toBe("1.0.0");
   });
 });

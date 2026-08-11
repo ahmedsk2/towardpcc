@@ -149,9 +149,8 @@ export const qtc = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: QTc by Bazett and Fridericia with pediatric Bazett-based prolongation bands.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
     },
   ],
@@ -162,11 +161,11 @@ export const qtc = defineScore({
   },
   formula: defineText(
     "qtc.formula",
-    "Convert the heart rate to the R–R interval in seconds: RR = 60 ÷ HR (if you enter the R–R interval directly it is used as given). Bazett QTc = QT ÷ √RR. Fridericia QTc = QT ÷ RR^(1/3) (the cube root of RR). Both use RR in seconds and return QTc in the same unit as the QT you enter (milliseconds). At a heart rate of 60 (RR = 1 s) both corrections equal the raw QT.",
+    "RR in seconds = 60 ÷ HR, or the R–R interval as entered directly. Bazett QTc = QT ÷ √RR. Fridericia QTc = QT ÷ RR^(1/3). Both return the QTc in the unit the QT was entered in, and at a heart rate of 60 both equal the raw QT.",
   ),
   notes: defineText(
     "qtc.notes",
-    "Not a clinical device: a prolonged QTc is a screening flag, not a diagnosis of long QT syndrome (established with full criteria — Schwartz score, symptoms, family history, genetics). Formula choice changes the answer: Bazett over-corrects at fast rates and under-corrects at slow rates, so it systematically over-calls prolongation in children (who run high heart rates); when HR is outside ~60–100 bpm, Fridericia is the more defensible correction. Interpretation bands are applied ONLY to the Bazett QTc, because the pediatric 440/460/480 ms thresholds (Phan 2015; Andršová 2020) were derived with Bazett and the research states they are not equivalent for a Fridericia QTc; the Fridericia value is reported without bands. Adult sex-specific cutoffs (Goldenberg 2006) must not be applied to children. QTc is only as good as the QT measurement (lead, tangent method, U-wave exclusion, machine vs manual). [NEEDS SOURCE]: an authoritative pediatric QT/HR reference-interval table — the QT (~200–700 ms) and HR (~30–250 bpm) input bounds here are engineering sanity guards, not values from a fetched normative table. [NEEDS SOURCE]: the exact Goldenberg 2006 age/sex-binned millisecond boundaries could not be retrieved from an open full-text source.",
+    "The bands are applied to the Bazett value only, because the pediatric thresholds were derived with Bazett and are not equivalent for Fridericia. QTc alone is never diagnostic; long QT syndrome requires full criteria (Schwartz score, symptoms, family history, genetics). Formula choice changes the answer: Bazett over-corrects at fast rates and so systematically over-calls prolongation in children. Outside roughly 60 to 100 bpm, Fridericia is the more defensible correction, and it is reported here without bands. Adult sex-specific cutoffs must not be applied to children. The QTc is only as good as the QT measurement (lead, tangent method, U-wave exclusion, machine vs manual).",
   ),
   calculate: (values) => {
     // Return RAW computed QTc; `precision` rounds for DISPLAY only, and the

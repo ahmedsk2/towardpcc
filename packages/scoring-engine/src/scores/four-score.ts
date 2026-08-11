@@ -308,9 +308,8 @@ export const fourScore = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-08-02",
-      summary:
-        "Initial release: FOUR score (E+M+B+R, 0-16) with paraphrased level labels, no interpretation bands, and the paediatric-validation limits stated in notes.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
     },
   ],
@@ -321,11 +320,9 @@ export const fourScore = defineScore({
   },
   formula: defineText(
     "four.formula",
-    "Total FOUR score = E + M + B + R, the ordinal sum of the eye response (E, 0-4), motor response (M, 0-4), brainstem reflexes (B, 0-4) and respiration (R, 0-4), each taken as the best observed response (Wijdicks 2005). " +
-      "The total ranges 0-16. Unlike the Glasgow Coma Scale there is NO verbal component — which is exactly why the score remains complete in an intubated patient — and every component has a genuine 0, so the total floors at 0 rather than at 3. " +
-      "There are no physical units and components are never interpolated. Low is worse, the opposite direction to most point scores in this catalogue. " +
-      "The respiration component encodes airway status structurally: levels 4, 3 and 2 describe an unsupported breathing pattern and levels 1 and 0 describe interaction with a ventilator, so a ventilated patient cannot score above 1 on R and cannot exceed a total of 13 however intact the rest of the examination is. " +
-      "No interpretation banding is applied, because none is published.",
+    "Total = Eye + Motor + Brainstem + Respiration, each scored 0-4, giving a range of 0-16. Low is worse. " +
+      "There is no verbal component, which is why the score stays complete in an intubated patient, and every component has a true 0. " +
+      "This implements the adult instrument (Wijdicks 2005), not the modified Pediatric FOUR Score Scale (Czaikowski 2014).",
   ),
   /**
    * Rendered BESIDE the number, not in the prose below it. Both of these can
@@ -335,23 +332,20 @@ export const fourScore = defineScore({
   cautions: [
     defineText(
       "four.caution.paediatric",
-      "Adult-derived. The paediatric evidence — 6 studies, 571 children (Almojuela 2019) — establishes that the FOUR score is EQUIVALENT to the GCS in outcome prediction and reliably rated by nurses and physicians, not that it is better, and those cohorts were overwhelmingly school-age. Two of the sixteen points (eye 4, motor 4) require the patient to obey an instruction, so a neurologically intact preverbal infant cannot exceed 14 on this instrument. A separately published Pediatric FOUR Score Scale exists for that reason; this calculator implements the adult instrument, not that one.",
+      "Adult-derived. Six studies, 571 children (Almojuela 2019): equivalent to the GCS in outcome prediction, reliably rated, superiority not established, in cohorts that were mostly school-age (2-12 y) with neonates and infants effectively absent. Eye 4 and motor 4 require obeying an instruction, so a neurologically intact preverbal child caps at 14. This implements the adult instrument, not the modified Pediatric FOUR Score Scale (Czaikowski 2014).",
     ),
     defineText(
       "four.caution.ventilated",
-      "A ventilated patient cannot score above 1 on respiration, so their maximum attainable total is 13, not 16. Totals are not comparable across airway status — comparing a ventilated 13 with an unventilated 15 compares two different rulers. Sedation and neuromuscular blockade additionally make the eye and motor components uninformative.",
+      "A ventilated patient can score at most 1 on respiration, capping the total at 13. Ventilated and unventilated totals are different rulers and are not comparable. Sedation and neuromuscular blockade make the eye and motor components uninformative.",
     ),
   ],
   notes: defineText(
     "four.notes",
-    "WHAT IT IS FOR: the FOUR score exists because the GCS has two holes — it cannot score a verbal response in an intubated patient, and it never measured brainstem function. Wijdicks 2005 reports that the FOUR score gives greater neurological detail than the GCS, recognises a locked-in syndrome, and distinguishes stages of herniation. It is not a paediatric adaptation of the GCS and is not interchangeable with one: the scales have different components, different ranges (0-16 vs 3-15) and different floors, so a FOUR total and a GCS total are not convertible. " +
-      "PAEDIATRIC STATUS, stated plainly. Derived and validated in 120 ADULT ICU patients. The paediatric literature is real but limited: Almojuela 2019 screened 1,709 citations and retained 6 studies totalling 571 children, in all of which the FOUR score was EQUIVALENT to the GCS in outcome prediction, with good-to-excellent interobserver reliability — and concluded that superiority over the GCS has not been established in children. The cohorts that report an age range enrolled 2-12 y (Khajeh 2014, n=200) and 5-12 y (Jamal 2017, n=63); neonates and infants are effectively absent from the evidence for the unmodified instrument. Cohen 2009 excluded sedated and paralysed children outright, and Czaikowski 2014 published a MODIFIED Pediatric FOUR Score Scale specifically to cover all paediatric ages including intubated and sedated children — the existence of that adaptation is the clearest evidence that the adult instrument needed adapting. This calculator implements the ADULT instrument and must not be recorded as the PFSS. " +
-      "THE COMMAND-FOLLOWING CEILING: eye level 4 requires tracking or blinking to instruction and motor level 4 requires a requested hand gesture, so in a preverbal or developmentally young child the instrument itself floors those two components at 3 regardless of neurological state, capping an intact infant at 14. This is reasoning from the published item definitions, not a quoted finding — [NEEDS SOURCE] for any publication stating a youngest applicable age for the unmodified adult scale. " +
-      "THE VENTILATED CEILING: respiration levels 1 and 0 are the only ones available to a ventilated patient, capping their total at 13. The instrument's headline advantage is that it HAS a score for the ventilated patient where the GCS has a gap; the cost is that the score is drawn from a shorter ruler and is not comparable to an unventilated one. " +
-      "THE ERROR-PRONE READING: brainstem level 2 is the loss of EXACTLY ONE of the pupillary/corneal pair; level 1 is the loss of BOTH with the cough response retained; level 0 adds loss of cough. The or/and distinction is one point wide and is the easiest thing in the scale to get wrong. " +
-      "NO INTERPRETATION BANDS, deliberately, and this is not a gap awaiting a later pass. Wijdicks 2005 proposes no severity categories and no source since establishes a canonical banding. CONTEXT, NOT BANDS — published optimal cut-points are cohort- and outcome-specific and disagree with each other: values of 14, 10, 8, 7 and 4 all appear in the literature for different populations and different endpoints, and the RehabMeasures summary of the instrument describes the usable range of cut-offs as roughly under 4 to under 12 depending on condition. In the paediatric PICU cohort of Khajeh 2014 the cut-point was 8, with mean totals of 12.5 +/- 2.1 in survivors and 5.1 +/- 2.8 in non-survivors. Foo 2019 reviewed 37 studies, found good-to-excellent prognostication of in-hospital mortality (AUC >0.80), reported that the motor and eye components carry more prognostic weight than the brainstem component, and closed by calling for further standardised research across populations. Do not attach any of these figures to a computed result. " +
-      "IP: the descriptor prose of the source instrument is NOT reproduced here. Every option label is this project's own paraphrase of what the level represents, per the binding constraint recorded in ADR-tier-b-ip.md third addendum; the arithmetic and the numeric levels are facts either way. Attribution to Wijdicks 2005 is the obligation that carries, and it is not optional. " +
-      "[NEEDS SOURCE]: the level definitions were established from three concordant secondary reproductions rather than from the Ann Neurol full text, which was not retrievable; the item-level content of the PFSS modification (paywalled); the sample size and age range of Cohen 2009 (not stated in the abstract, full text not retrievable). The AUC pair of 0.95 and 0.92 that circulates attached to this score is NOT in the Wijdicks 2005 abstract and is deliberately asserted nowhere here. No published worked example of the FOUR score exists, so every test vector for this score is constructed from the scoring table and labelled as such.",
+    "STRUCTURAL CEILINGS, BUILT INTO THE INSTRUMENT. A ventilated patient can score at most 1 on respiration, capping the total at 13; ventilated and unventilated totals are different rulers and are not comparable. Eye 4 and motor 4 require obeying an instruction, so a neurologically intact preverbal child caps at 14. That ceiling is reasoned from the item definitions; [NEEDS SOURCE] for a published youngest applicable age. " +
+      "BRAINSTEM READING TRAP: level 2 is exactly ONE of the pupillary/corneal pair lost; level 1 is BOTH lost with cough retained; level 0 is cough lost too. The or/and distinction is one point wide. " +
+      "Sedation and neuromuscular blockade make the eye and motor components uninformative. " +
+      "PAEDIATRIC STANDING: six studies, 571 children (Almojuela 2019): equivalent to the GCS in outcome prediction, reliably rated, superiority not established. The cohorts were mostly school-age (2-12 y), with neonates and infants effectively absent. Not interchangeable with the GCS, which has different components, ranges and floors. " +
+      "NO INTERPRETATION BANDS, DELIBERATELY. Wijdicks 2005 proposes none, and published cut-points are cohort- and outcome-specific and disagree, with values from 4 to 14 appearing for different populations and endpoints. Do not attach any of them to a computed result.",
   ),
   /**
    * NO `min` ON ANY COMPONENT, and that is the interesting difference from

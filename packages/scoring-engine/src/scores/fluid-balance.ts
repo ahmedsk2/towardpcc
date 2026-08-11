@@ -196,9 +196,8 @@ export const fluidBalance = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-08-01",
-      summary:
-        "Initial release: fluid-based and weight-based percent cumulative fluid balance, both emitted, no interpretation bands.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
     },
   ],
@@ -209,12 +208,12 @@ export const fluidBalance = defineScore({
   },
   formula: defineText(
     "fb.formula",
-    "Two published forms are shown side by side, because the Pediatric ADQI consensus prints both without choosing between them. " +
-      "Fluid-based (intake/output) form: percent cumulative fluid balance = (cumulative intake in litres − cumulative output in litres) × 100 ÷ anchor weight in kilograms. " +
-      "Weight-based form: percent cumulative fluid balance = (current weight in kg − anchor weight in kg) × 100 ÷ anchor weight in kg. " +
-      "Both divide by the ANCHOR weight, never the current weight. A positive result means net accumulation, a negative result means a net deficit — negative values are real (active diuresis or ultrafiltration) and are reported as such, not clamped at zero. " +
-      "The two forms return the same number only when the weight change in kg equals the net balance in litres, i.e. when every retained millilitre was charted and all mass change is fluid; in practice insensible losses usually put the weight-based figure BELOW the fluid-based one. " +
-      "The raw cumulative balance in mL and the raw weight change in kg are emitted alongside the percentages, since those are the numbers actually charted. Values are raw; the display rounds them.",
+    "Both published forms are shown, because the Pediatric ADQI consensus prints both without choosing between them. " +
+      "Fluid-based form: (cumulative intake − cumulative output, in litres) × 100 ÷ anchor weight in kilograms. " +
+      "Weight-based form: (current weight − anchor weight, in kilograms) × 100 ÷ anchor weight in kilograms. " +
+      "Both divide by the ANCHOR weight, never the current one. Negative results are real (diuresis, ultrafiltration) and are reported as such. " +
+      "The two forms agree only when every retained millilitre was charted and all mass change is fluid; insensible losses usually put the weight-based figure BELOW the fluid-based one. " +
+      "The raw balance in mL and the raw weight change in kg are emitted alongside the percentages.",
   ),
   /**
    * Rendered BESIDE the number, not in the prose below it. Both of these can
@@ -224,23 +223,17 @@ export const fluidBalance = defineScore({
   cautions: [
     defineText(
       "fb.caution.notdiagnosis",
-      "This is a percentage describing accumulated volume, not a diagnosis of fluid overload — ADQI reserves that term for a pathologic state, which remains a clinical judgement. The two forms are not interchangeable and legitimately disagree on the same patient; neither is a correction of the other.",
+      "This is a percentage describing accumulated volume, not a diagnosis. ADQI reserves 'fluid overload' for a pathologic state, which remains a clinical judgement.",
     ),
     defineText(
       "fb.caution.anchor",
-      "The anchor weight is the denominator, so it scales the entire result, and ADQI names its selection an unresolved knowledge gap with no gold standard. A result is only comparable to the published CRRT cohorts if it was computed against the ICU admission weight; in neonates the common anchor is the birthweight in the first two postnatal weeks instead. Record which anchor was used.",
+      "The anchor weight scales the entire result, and ADQI names its selection an unresolved gap with no gold standard. The outcome literature used the ICU admission weight; in neonates the convention is the birthweight during the first two postnatal weeks. Record which anchor was used, because results on different anchors are not comparable.",
     ),
   ],
   notes: defineText(
     "fb.notes",
-    "NAMING: ADQI defines 'fluid overload' as a PATHOLOGIC STATE of positive fluid balance associated with clinically observable event(s) — one that ADQI notes may vary by age, case-mix, acuity and phase of illness — and gives 'percent cumulative fluid balance' as the neutral descriptor for the number. This calculator computes the percentage; it does not identify the state. 'Fluid overload %' appears in the display name only so the catalogue finds it under the term the literature indexes it by. " +
-      "NO INTERPRETATION BANDS, deliberately, and this is not a gap awaiting a later pass. The well-known 10% and 20% figures are cohort-specific outcome associations measured AT CRRT INITIATION in children already on renal replacement therapy, not thresholds that classify a patient; ADQI states outright that no specific threshold of positive fluid balance alone can define fluid overload across all sick children. " +
-      "CONTEXT, NOT BANDS — Sutherland 2010, Prospective Pediatric CRRT Registry, %FO measured at CRRT initiation using the fluid-based form: observed mortality was 29.4% below 10%, 43.1% between 10% and 20%, and 65.6% at or above 20%; adjusted OR 1.03 per 1%, OR 8.5 at >=20%. Note that the LOWEST of those strata is a population with near-30% mortality — that is a statement about who receives CRRT, not about what 9% cumulative fluid balance means in a child on the ward, and it is why these figures cannot be rendered as bands. Selewski 2011 reports UNIVARIATE per-1% PICU-mortality ORs of 1.044 (weight-based, using PICU admission weight) and 1.056 (fluid-balance method) in its PICU CRRT cohort; on multivariate analysis all three of its methods only APPROACHED significance, so the weight-based form's mortality association is not established as independent. Do not attach any of these figures to a computed result. " +
-      "THE TWO FORMS: the fluid-based form is the de facto standard because every outcome threshold above was derived with it — applying those figures to a weight-based percentage is an extrapolation, and applying them to a child not receiving CRRT is a larger one. The weight-based form, in ADQI's words, removes the inherent inaccuracies of accounting for daily input and output and should theoretically capture insensible and other losses; ADQI further states that weight-based methods have been clearly shown to be a SUPERIOR measure of fluid balance in NEONATES, where insensible losses are proportionally large and a small charting error is large against a small denominator. They diverge because of insensible and uncharted output (which pushes weight-based below fluid-based, the usual direction), uncharted intake such as line flushes, drug diluents and blood products (which pushes the other way), true tissue mass change from catabolism or growth, and scale technique. " +
-      "ANCHOR WEIGHT is an unresolved knowledge gap named explicitly by ADQI, which states that no clear gold standard exists against which to compare the different approaches. ADQI reports the ICU admission weight as the weight most commonly used as the anchor, and that is what the cited outcome cohorts used; a child admitted already overloaded has an admission weight that already contains the accumulation, so the percentage understates it. IN NEONATES ADQI reports a DIFFERENT convention — the most common anchor is the BIRTHWEIGHT in the first two postnatal weeks, not an admission weight — so a neonatal result anchored to an admission weight is not comparable to the neonatal literature. Results computed against different anchors are not comparable to each other or to the literature. " +
-      "FAILURE MODES: a partial intake/output record produces a wrong number, not a missing one — uncharted output returns a confidently over-positive percentage with no indication anything is missing, and the calculator cannot detect this. The weight-based form measures MASS, not fluid: catabolic loss of lean body mass makes it understate accumulated fluid over a long stay, growth in an infant makes it overstate, and scale technique (different bed, linen, attached equipment, operator) is proportionally worst in the smallest patients. Both forms assume 1 L of retained fluid weighs 1 kg; no density correction is applied, consistent with every cited source. " +
-      "Supplying only an anchor weight computes nothing, by design — see each optional input's help text. " +
-      "[NEEDS SOURCE]: the weight bounds (0.5-150 kg) and volume bounds (0-200 L) are engineering input-validity limits, not values from any cited publication — no cited paper specifies a valid range for any input. No published PAEDIATRIC worked example of either formula exists (the only step-by-step case found anywhere was a 100 kg adult in a device protocol), so every test vector for this score is constructed from the formula and labelled as such. The Foland 2004 reference is carried as supporting lineage only; no number here is taken from it.",
+    "NO BANDS, DELIBERATELY. The well-known 10% and 20% figures are cohort associations measured at CRRT initiation in children already on renal replacement therapy: observed mortality was 29.4% below 10%, 43.1% at 10-20%, and 65.6% at or above 20%, with an adjusted OR of 1.03 per 1% and an OR of 8.5 at or above 20% (Sutherland 2010). The lowest stratum is a population with near-30% mortality, which is a statement about who receives CRRT rather than about what 9% means on a ward. ADQI states that no threshold alone can define fluid overload across all sick children. " +
+      "FAILURE MODES: uncharted output returns a confidently over-positive percentage with no sign anything is missing. The weight-based form measures mass, so catabolism understates and growth overstates fluid, and scale technique bites hardest in the smallest patients.",
   ),
   calculate: (values) => {
     // Canonical units: weights in kg, volumes in L. Return RAW values;

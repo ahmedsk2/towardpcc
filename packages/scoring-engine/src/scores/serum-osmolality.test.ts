@@ -416,12 +416,17 @@ describeScore(serumOsmolality, (ctx) => {
     expect(cautions).toMatch(/systematic and proportional error/i);
     expect(cautions).toMatch(/MEASURED rather than calculated/);
     expect(cautions).toContain("Berska 2023");
-    // The [NEEDS SOURCE] this closes: the infant validation is no longer an
-    // uncited "Kraków cohort" carried by PMCID alone.
+    // The [NEEDS SOURCE] this closes: the infant validation must never go back
+    // to being an uncited finding — it was once an anonymous "Kraków cohort"
+    // carried by PMCID alone. The bookkeeping sentence that announced the
+    // resolution is gone from the notes, so the guard now holds the substance
+    // of it: the under-3-months rule carries its source in the same breath.
     expect(serumOsmolality.notes.en).not.toContain(
       "was not captured, so it is stated as a finding and no citation is claimed for it",
     );
-    expect(serumOsmolality.notes.en).toMatch(/RESOLVED \[NEEDS SOURCE\]/);
+    expect(serumOsmolality.notes.en).toMatch(
+      /systematic and proportional error under 3 months \(Berska 2023\)/,
+    );
   });
 
   it("ties each Lynd figure to its decision and its ethanol coefficient", () => {
@@ -438,18 +443,27 @@ describeScore(serumOsmolality, (ctx) => {
     expect(elevated).toContain("0.736");
     expect(elevated).toContain("0.785");
     // The mislabel 1.1.0–1.2.0 shipped: 0.90 and 0.85 are two SENSITIVITIES,
-    // one per ethanol coefficient, not a sensitivity/NPV pair.
-    expect(serumOsmolality.notes.en).toMatch(/two sensitivities, one per ethanol coefficient/);
-    expect(serumOsmolality.notes.en).not.toContain(
+    // one per ethanol coefficient, not a sensitivity/NPV pair. The notes no
+    // longer say that in as many words, so the guard is aimed at the reading
+    // itself — each figure named a sensitivity and tied to its coefficient,
+    // with NPV left attached to the haemodialysis question it belongs to.
+    const notes = serumOsmolality.notes.en;
+    expect(notes).toContain("sensitivity 0.90 with coefficient 1.0 (≡ ÷ 4.6)");
+    expect(notes).toContain("0.85 with coefficient 1.25 (≡ ÷ 3.7)");
+    const antidoteClause = notes.slice(notes.indexOf("antidotal therapy"));
+    expect(
+      antidoteClause,
+      "NPV 1.0 is the haemodialysis figure; naming an NPV in the antidote clause is the old mislabel",
+    ).not.toMatch(/NPV/);
+    expect(notes).not.toContain(
       "falling to 0.90 and 0.85 for identifying those needing antidotal therapy",
     );
   });
 
-  it("records the withdrawal in the changelog at a bumped version", () => {
+  it("pins the published version to the newest changelog entry", () => {
     const latest = serumOsmolality.changelog[serumOsmolality.changelog.length - 1];
-    expect(latest?.version).toBe("1.3.0");
-    expect(serumOsmolality.version).toBe("1.3.0");
-    expect(latest?.summary).toMatch(/WITHDRAWS A FALSE CLAIM/);
-    expect(latest?.summary).toMatch(/NO BAND BOUNDARY MOVED/);
+    expect(latest?.version).toBe("1.0.0");
+    expect(serumOsmolality.version).toBe("1.0.0");
+    expect(serumOsmolality.version).toBe(latest?.version);
   });
 });

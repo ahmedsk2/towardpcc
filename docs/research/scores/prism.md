@@ -339,7 +339,7 @@ R = -5.776
 | 1 month to <12 months | +0.357        |
 | ≥12 months            | 0 (reference) |
 
-**PRISM IV splits the first month at 14 days, where PRISM III has a single undivided neonate band; and PRISM IV's top category opens at 12 months, where PRISM III's child band runs to 144 months.** The two schemes are not interchangeable and must not be merged. The implementation expresses the PRISM IV age term **in days** so the 14-day boundary is exact rather than a converted fraction of a month. That is only true once the round trip through the canonical unit is accounted for: age is stored in years, and 14 days comes back from years as 13.999999999999998, which until v2.8.1 put a fourteen-day-old in the under-14-day row. The conversion now snaps to a millionth of a unit before any comparison; the edge is pinned by a test entered in days.
+**PRISM IV splits the first month at 14 days, where PRISM III has a single undivided neonate band; and PRISM IV's top category opens at 12 months, where PRISM III's child band runs to 144 months.** The two schemes are not interchangeable and must not be merged. The implementation expresses the PRISM IV age term **in days** so the 14-day boundary is exact rather than a converted fraction of a month. That is only true once the round trip through the canonical unit is accounted for: age is stored in years, and 14 days comes back from years as 13.999999999999998, which put a fourteen-day-old in the under-14-day row until the conversion was corrected. The conversion now snaps to a millionth of a unit before any comparison; the edge is pinned by a test entered in days.
 
 **Admission source:**
 

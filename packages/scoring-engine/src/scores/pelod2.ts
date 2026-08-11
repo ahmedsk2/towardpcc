@@ -128,7 +128,7 @@ export const pelod2 = defineScore({
   id: "pelod2",
   slug: "pelod2",
   name: "PELOD-2 (Pediatric Logistic Organ Dysfunction-2)",
-  version: "1.1.2",
+  version: "1.0.0",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -290,10 +290,10 @@ export const pelod2 = defineScore({
   ] as const,
   interpretation: [],
   /*
-   * "not-applicable" and NOT "pending". This read "pending" until 2026-08-04 on
-   * the claim that PELOD-2 has published mortality strata still to be
-   * transcribed. It does not, and the question is now closed permanently rather
-   * than deferred — the absence is a sourced decision, not a content gap.
+   * "not-applicable" and NOT "pending". PELOD-2 has no published mortality
+   * strata awaiting transcription, so the absence is a sourced decision rather
+   * than a content gap, and the question is closed permanently rather than
+   * deferred.
    *
    * WHAT LETEURTRE 2013 ACTUALLY PUBLISHES is a continuous 0–33 descriptor with
    * no named severity categories. The two quantitative tables that were mistaken
@@ -342,31 +342,9 @@ export const pelod2 = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: 10-item PELOD-2 total (0–33) with age-banded MAP/creatinine and the published mortality logit as a secondary output.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
-    },
-    {
-      version: "1.1.0",
-      date: "2026-08-03",
-      summary:
-        "Age ceiling corrected from inclusive 216 months to exclusive. Leteurtre 2013's exclusion criterion is 'age 18 years or older', so the eligible domain is [0, 216) months; the previous inclusive `max: 216` admitted exactly 18.0 years — the first age the derivation cohort excluded — and now rejects it. The declared maximum is the largest double below 216 (216 − 2⁻⁴⁵ = 215.99999999999997), because the shared numeric validator's `max` is inclusive and offers no exclusive bound; no representable age lies between that value and 216, so the accepted set is exactly the intended half-open interval. Only ages of exactly 216.000000 months change behaviour, from accepted to rejected. No computed value changed for any age that was already accepted. The age help text and limitations now state the bound.",
-      reason: "formula-correction",
-    },
-    {
-      version: "1.1.1",
-      date: "2026-08-03",
-      summary:
-        "NO AGE IS ACCEPTED OR REJECTED THAT WAS NOT BEFORE, and no computed value changed. The age ceiling is now declared as an exclusive bound (216 months, rejected) instead of as 215.99999999999997, the largest floating-point number below 216. Both express the identical domain — no representable age lies between those two numbers — but the old form was a workaround for a shared input type that could only state an INCLUSIVE maximum, and it read as a typo. What does change is the message an out-of-range age produces: it read 'must be between 0 and 215.99999999999997 months' and now reads 'must be at least 0 and less than 216 months', which is what the bound has always done.",
-      reason: "clarification",
-    },
-    {
-      version: "1.1.2",
-      date: "2026-08-04",
-      summary:
-        "The missing severity bands stop being described as unfinished work, because they are not. NOTHING COMPUTED CHANGED — no threshold, age band, coefficient, organ maximum or logit moved, and every worked example returns exactly what it returned before. This score declared `interpretationStatus: 'pending'`, which told a reader that PELOD-2 has published mortality strata this platform simply has not transcribed yet. It has none. Leteurtre 2013 defines no named severity categories; the two quantitative tables mistaken for them are a different thing in each case — Table 8 bins observed mortality by the NUMBER of dysfunctional organs rather than by the score, so it yields no score-to-band mapping, and the probability table is the published logit (-6.61 + 0.47 × total) restated, which is the model's own output rather than a stratification of it. Both continue to ship as context in the limitations, with the derivation cohort named, exactly as before. The status is now 'not-applicable' and the decision is permanent rather than deferred, resting on two things: no paediatric mortality model publishes endorsed severity tiers, and registries report unit-level standardised mortality ratios with funnel plots instead of per-patient bands, while calibration papers use probability intervals only to test goodness of fit; and cutting a validated continuous prediction into categories is argued against on statistical grounds (Altman & Royston, BMJ 2006;332(7549):1080, PMID 16675816; Royston, Altman & Sauerbrei, Stat Med 2006;25:127-141). The limitations now say so in place of rendering the same silence a genuine content gap would render.",
-      reason: "clarification",
     },
   ],
   ipStatus: {
@@ -376,7 +354,7 @@ export const pelod2 = defineScore({
   },
   formula: defineText(
     "pelod2.formula",
-    "PELOD-2 total = sum of 10 organ-dysfunction items, range 0–33. Neurologic: Glasgow Coma Scale ≥ 11 → 0, 5–10 → 1, 3–4 → 4; pupils both fixed → 5 (both reactive → 0). Cardiovascular: lactate < 5 mmol/L → 0, 5–10.9 → 1, ≥ 11 → 4; mean arterial pressure (mmHg) is scored 0 / 2 / 3 / 6 against age-banded cutoffs (a descending cascade: ≥ the 0-point cutoff → 0, else ≥ the 2-point cutoff → 2, else ≥ the 3-point cutoff → 3, else → 6) for the six age bands 0–<1, 1–11, 12–23, 24–59, 60–143 and ≥ 144 months. Renal: serum creatinine (µmol/L) ≥ the age-band threshold → 2, else 0. Respiratory: PaO₂/FiO₂ ≤ 60 → 2 (> 60 → 0); PaCO₂ ≤ 58 mmHg → 0, 59–94 → 1, ≥ 95 → 3; invasive mechanical ventilation → 3 (none → 0). Hematologic: white-cell count ≤ 2 ×10⁹/L → 2 (> 2 → 0); platelets ≥ 142 ×10⁹/L → 0, 77–141 → 1, ≤ 76 → 2. All age-banded MAP and creatinine cutoffs are transcribed from Leteurtre 2013 (Table 6). A second output reports predicted in-hospital mortality = 1 ÷ (1 + e^−logit) × 100%, with logit = −6.61 + 0.47 × total (Leteurtre 2013).",
+    "PELOD-2 total = the sum of 10 items across 5 organ systems, range 0–33, taking the worst value in the window for each item. Neurologic: Glasgow Coma Scale ≥ 11 → 0, 5–10 → 1, 3–4 → 4; pupils both fixed → 5, both reactive → 0. Cardiovascular: lactate < 5 mmol/L → 0, 5–10.9 → 1, ≥ 11 → 4; mean arterial pressure is scored 0, 2, 3 or 6 against age-banded cutoffs, across six bands (0–<1, 1–11, 12–23, 24–59, 60–143 and ≥ 144 months). Renal: serum creatinine at or above the age-band threshold → 2. Respiratory: PaO₂/FiO₂ ≤ 60 → 2; PaCO₂ ≤ 58 mmHg → 0, 59–94 → 1, ≥ 95 → 3; invasive mechanical ventilation → 3, and mask ventilation does not count. Haematologic: white cell count ≤ 2 ×10⁹/L → 2; platelets ≥ 142 → 0, 77–141 → 1, ≤ 76 → 2 (×10⁹/L). A second output reports predicted in-hospital mortality = 1/(1 + e^−logit), with logit = −6.61 + 0.47 × total.",
   ),
   // BESIDE THE NUMBER, not only in the prose below it.
   //
@@ -390,12 +368,12 @@ export const pelod2 = defineScore({
   cautions: [
     defineText(
       "pelod2.caution.unmeasured",
-      "Every item is required, and an unmeasured variable must be entered as normal — as the source specifies. A dataset with unmeasured items therefore understates the score, and the total should not be read as complete unless every item was actually measured.",
+      "Every item is required, and per the source an unmeasured variable is scored normal, so the caller must enter a normal value for anything that was not measured. A partial dataset therefore understates the score.",
     ),
   ],
   notes: defineText(
     "pelod2.notes",
-    "PELOD-2 describes the severity of multiple-organ dysfunction; the authors frame it as a descriptor, not an individual mortality predictor. The predicted-mortality output is derived from the published logit (logit = -6.61 + 0.47 × score; probability = 1/(1 + exp(-logit))) and is a population-level association in the derivation cohort (France/Belgium, n=3,671, 6% mortality); it must not be read as an individual prognosis and requires recalibration before predictive use elsewhere. Each item uses the worst value in the scoring window; per the source an unmeasured variable is scored normal (0 points), so this tool requires every input and the caller must supply a normal value for anything not measured — a partial dataset can understate the score. Pupillary reaction is binary in the source (Both reactive = 0, Both fixed = 5); the paper gives NO point value for a unilateral fixed pupil [NEEDS SOURCE], so only 'Both fixed' scores here and unilateral findings need an explicit clinical-team rule. GCS is consumed only as a total-score band (3–4, 5–10, ≥11); the GCS instrument itself is external — verify descriptor-wording provenance wherever a GCS entry widget is built. AGE RANGE: the derivation excluded premature newborns and patients aged 18 years or older, so the eligible range is 0 to under 216 months and 216 months (18.0 years) or more is rejected rather than scored — the exclusion is on 18 and over, so exactly 18.0 years is outside it. MAP and creatinine thresholds are age-banded exactly as printed in Leteurtre 2013 Table 6, with one exception the source forces: in the 24–59 month band Table 6 prints ≥62 → 0, 46–61 → 2, 32–44 → 3 and ≤31 → 6, so a MAP of exactly 45 mmHg falls in no printed range. The other five age bands tile without a gap, so this is an omission in the published table, not a deliberate exclusion, and the paper states no rule for it. This calculator scores 45 mmHg as 3 points — the conservative (higher-severity) reading, closing the gap downward; the public ESPNIC calculator closes it upward and scores the same value 2. A 2–4-year-old with a MAP of exactly 45 mmHg will therefore total one point higher here than on that tool, and it is the only value at which the two disagree. Context (not decision thresholds): observed in-PICU mortality rose with the number of dysfunctional organs (0→0.4%, 3→7.1%, 4→30.5%, 5→59.0%; Table 8), and the derivation-cohort predicted mortality is ≈0.1% at a total of 0, ≈1.4% at 5, ≈12.9% at 10, ≈60.8% at 15, ≈94.2% at 20 and ≈99.4% at 25. NO SEVERITY BANDS ARE SHOWN, AND NONE IS OWED — this is a settled decision, not work outstanding. Leteurtre 2013 defines no named severity categories, and neither figure set above is one: the first bins mortality by the NUMBER of failing organs rather than by the score, and the second is the score's own logit restated as probabilities. No paediatric mortality model publishes endorsed severity tiers; registries report unit-level standardised mortality ratios rather than per-patient bands. Cutting a continuous score into categories is also argued against in the methodology literature (Altman & Royston, BMJ 2006;332:1080), so the number is presented whole.",
+    "Every item is required. Per the source an unmeasured variable is scored normal, so the caller enters a normal value for anything not measured and a partial dataset understates the score. Pupillary reaction is binary here: a unilateral fixed pupil has no published point value [NEEDS SOURCE], only the both-fixed option scores, and unilateral findings need an explicit local rule. The predicted-mortality output is a population-level association from the derivation cohort (France/Belgium, n = 3,671, 6% mortality) and requires recalibration before predictive use elsewhere. No severity bands exist or are shown. That is a settled decision, and the organ-count mortality figures in the paper are context, not a banding. One published-table gap is resolved conservatively: in the 24–59-month band, Table 6 leaves a MAP of exactly 45 mmHg in no printed range. This calculator scores it 3, the higher-severity reading; the public ESPNIC calculator scores it 2. It is the only value at which the two tools disagree. Scope: the derivation excluded premature newborns and patients aged 18 years or older, so 216 months and above is rejected as an exclusive ceiling. PaO₂/FiO₂ is considered normal in cyanotic congenital heart disease. Use the pre-sedation GCS estimate if sedated.",
   ),
   // Maxima are Leteurtre 2013 Table 7, independently re-derived term by term
   // from the branches above in docs/research/scores/pelod2.md §Organ maxima

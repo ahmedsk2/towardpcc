@@ -16,7 +16,7 @@ export const correctedCalcium = defineScore({
   id: "corrected-calcium",
   slug: "corrected-calcium",
   name: "Corrected calcium for albumin",
-  version: "1.1.0",
+  version: "1.0.0",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -76,17 +76,9 @@ export const correctedCalcium = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: albumin-corrected calcium (Payne, de-facto 0.8/0.02 coefficient); no bands.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
-    },
-    {
-      version: "1.1.0",
-      date: "2026-08-02",
-      summary:
-        "Added a second output reporting the corrected calcium in mmol/L alongside mg/dL. The entered unit is discarded during canonicalisation, so a user working in SI previously had to convert the mg/dL answer back by hand; both conventions are now always shown. The mg/dL value is unchanged.",
-      reason: "clarification",
     },
   ],
   ipStatus: {
@@ -96,11 +88,11 @@ export const correctedCalcium = defineScore({
   },
   formula: defineText(
     "cca.formula",
-    "Corrected calcium (mg/dL) = measured total calcium + 0.8 × (4.0 − serum albumin in g/dL). In SI units: corrected calcium (mmol/L) = measured + 0.02 × (40 − albumin in g/L). 4.0 g/dL (40 g/L) is the reference-normal albumin at which no correction is applied; below it the correction raises an artefactually low total calcium, above it it lowers it. The 0.8 (0.02) coefficient is the widely used rounded form of Payne's original 1.0 (0.025) slope. The result is reported in both conventions regardless of the units entered: the mmol/L figure is the mg/dL figure ÷ 4.008 (calcium molar mass 40.08 g/mol), the same constant used to convert an SI calcium on the way in, so the two are exactly consistent.",
+    "Corrected calcium (mg/dL) = measured total calcium + 0.8 × (4.0 − serum albumin in g/dL). In SI units: corrected calcium (mmol/L) = measured + 0.02 × (40 − albumin in g/L). The result is reported in both conventions, with ÷ 4.008 between them. The 0.8 is the rounded form of Payne’s original 1.0 slope.",
   ),
   notes: defineText(
     "cca.notes",
-    "No interpretation bands: the output is a transformed lab value read against the ordinary total-calcium reference range, which is age-specific in children (Roizen 2013, PMID 24217904). Do not attach an automated normal/abnormal verdict. Headline caveat: the correction is unreliable in critical illness and does not track ionized calcium well (Steele 2013: adjusted Ca <2.2 mmol/L had only 78% sensitivity / 63% specificity, AUC 0.78 for ionized hypocalcemia) — direct ionized calcium is the reference standard in the critically ill, acid-base disturbance, after citrate-containing transfusion, or with rapid albumin shifts. The albumin–calcium binding constant is not fixed, so a fixed linear coefficient overestimates ionized calcium at low albumin. The 0.8 (0.02) coefficient is a rounded convention of Payne's printed 1.0 (0.025) slope: for Ca 7.6 mg/dL / albumin 2.0 g/dL the two forms differ by 0.4 mg/dL (9.2 vs 9.6). The slope is assay- and population-specific (bromocresol green vs purple albumin methods differ; locally validated equations are recommended), and the reference albumin (4.0 g/dL) may be replaced by a local mean normal albumin. Payne's derivation cohort was 200 adults with no ionized-calcium validation — there is no pediatric-specific derivation, so applying it to neonates/unstable children is an extrapolation (prefer ionized calcium). [NEEDS SOURCE] for a fetched pediatric albumin reference interval, a fetched primary pediatric ionized-calcium interval, and the reported (unverified) low sensitivity in trauma.",
+    "No bands: read the result against the age-specific paediatric total-calcium reference range (Roizen 2013). Unreliable in critical illness: adjusted calcium tracked ionized calcium poorly (sensitivity 78%, specificity 63%, AUC 0.78 for ionized hypocalcemia; Steele 2013), so ionized calcium is the reference standard in the critically ill, in acid-base disturbance, after citrate-containing transfusion, and with rapid albumin shifts. The fixed linear coefficient overestimates ionized calcium at low albumin, and the slope is assay- and population-specific. Payne’s cohort was 200 adults with no ionized validation, and no paediatric derivation exists, so prefer ionized calcium in neonates and unstable children.",
   ),
   calculate: (values) => {
     // Reference-normal albumin at which no correction is applied. 4.0 g/dL

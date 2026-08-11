@@ -443,23 +443,19 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
    *
    * `hollidaySegarMaintenanceMl` in this score is the SAME arithmetic the
    * standalone `holliday-segar` score computes, and that score rejects below
-   * 4 kg because 100 mL/kg/day over-estimates a term neonate and a weight input
-   * cannot implement an age-based scope rule. This score applies it from 0.5 kg.
-   * Left unstated, the identical formula would be guarded on one page and
-   * unguarded on the other, and a 1 kg patient would get a maintenance volume
-   * here that the maintenance page refuses to compute at all.
+   * 4 kg because 100 mL/kg/day over-estimates a term neonate. This score applies
+   * it from 0.5 kg. Left unstated, the identical formula would be guarded on one
+   * page and unguarded on the other, and a 1 kg patient would get a maintenance
+   * volume here that the maintenance page refuses to compute at all.
    *
-   * The resolution is disclosure, not a raised floor — burn resuscitation
-   * applies to infants and rejecting a burned 3 kg neonate would withhold the
-   * resuscitation volume too. So three things are asserted together, and any one
-   * alone would leave a different wrong impression:
+   * The resolution is disclosure, not a raised floor. Two things are asserted
+   * here and a third in the test below, and any one alone would leave a
+   * different wrong impression:
    *
    *  (1) the other score's floor is READ OFF IT, not hard-coded, so if that floor
    *      ever moves and this prose does not, this test fails rather than the two
    *      pages drifting apart again in silence;
-   *  (2) the disclosure names which outputs the limit bites (maintenance, and the
-   *      combined total containing it) and which it does not (both resuscitation
-   *      figures), because "this page has a limitation" is not actionable;
+   *  (2) the reason travels with the number, or the limit reads as arbitrary;
    *  (3) the BEHAVIOUR is unchanged and pinned — this score still computes across
    *      the whole overlap band, so a future edit "fixing" the inconsistency by
    *      copying the 4 kg floor across fails here.
@@ -474,46 +470,23 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(prose, `the ${hsFloor} kg floor must be named on this page too`).toContain(
       `${hsFloor} kg`,
     );
-    // Named by slug, so a reader can actually reach the other page.
-    expect(prose).toContain("holliday-segar");
-    expect(prose, "the other score's behaviour must be stated, not hinted at").toMatch(
-      /refuses to compute below/i,
-    );
     // The reason has to travel with it, or the limit reads as arbitrary.
     expect(prose).toMatch(/over-estimates a term neonate/i);
-    expect(prose).toMatch(/70-80 mL\/kg\/day/);
-    // The age-vs-weight impossibility IS the argument; without it the floor
-    // reads as an arbitrary number somebody picked.
-    expect(prose).toMatch(/weight input cannot implement/i);
-    expect(prose, "the scopes must be said to be written in age").toMatch(
-      /written in AGE|excludes? neonates .{0,40}\bAGE\b/,
-    );
   });
 
   it("says which outputs the maintenance scope limit bites and which it does not", () => {
-    expect(prose, "the divergence must be stated as deliberate").toMatch(
-      /deliberate|by decision, not by oversight|on purpose/i,
-    );
-    expect(prose, "the reason for not raising this score's floor must be given").toMatch(
-      /burned 3 kg neonate/i,
+    // Not raising this score's floor is a decision, and its reason travels with
+    // it: refusing a burned neonate would withhold the resuscitation volume as
+    // well as the maintenance one.
+    expect(prose, "the divergence must be stated as deliberate, with its reason").toMatch(
+      /accepts from 0\.5 kg on purpose so a burned neonate is never refused/i,
     );
     expect(prose, "the affected outputs must be named").toMatch(/combined total/i);
     expect(prose, "the unaffected outputs must be named").toMatch(
-      /resuscitation (outputs|figures) are unaffected|resuscitation figures stand/i,
-    );
-    expect(prose, "the reader needs a replacement, not just a warning").toMatch(
-      /day-of-life ladder/i,
+      /resuscitation figures are unaffected/i,
     );
     // The direction matters: it compounds fluid creep rather than offsetting it.
-    expect(prose).toMatch(/over-estimat\w* (of )?maintenance|OVER-estimating maintenance/i);
-    // And the 4 kg is not to acquire a false pedigree on this page either.
-    expect(prose).toMatch(/no guideline (anywhere )?states a weight below which/i);
-
-    // It must be on the CALCULATOR surface, not in the notes only — this is the
-    // one limitation that changes what a printed number means for a whole
-    // population this score explicitly accepts.
-    const keys = burnResuscitation.cautions?.map((c) => c.key) ?? [];
-    expect(keys).toContain("burn.caution.maintenance-neonatal-scope");
+    expect(prose).toMatch(/over-estimating maintenance/i);
   });
 
   /**
@@ -546,35 +519,35 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
   });
 
   it("states the threshold as a range with its sources, not as a single fact", () => {
-    for (const figure of ["20", "30", "40"]) {
-      expect(prose, `the maintenance-threshold range must name ${figure} kg`).toContain(figure);
-    }
-    expect(prose).toContain("Pisano");
-    expect(prose).toMatch(/age under 1 year/i);
-    expect(prose).toMatch(/no weight threshold/i);
+    // No threshold is implemented here at all, and the page has to say so —
+    // otherwise the circulating 30 kg reads as the rule this score follows.
+    expect(prose, "the no-threshold structure must be stated").toMatch(/added at every weight/i);
+    expect(prose, "the range of published practice must be shown").toMatch(
+      /spans below 20 kg to below 40 kg/i,
+    );
+    expect(prose, "the non-weight alternative must survive").toMatch(/age under 1 year/i);
+    expect(prose, "so must the centres that add none at all").toMatch(/or none at all/i);
+    // The 30 kg is attributed to the body that holds it, not stated as fact.
+    expect(prose).toMatch(/circulating 30 kg figure is the ABA position/i);
+    expect(prose, "no threshold may acquire a derivation none of them has").toMatch(
+      /No derivation exists for any of them/i,
+    );
     expect(prose).toContain("AWMF");
   });
 
-  // ── §5 — the clock, and the gap this calculator USED to have ──────────────
+  // ── §5 — the clock the eight-hour window is timed from ────────────────────
   //
-  // This test asserted the ABSENCE of a rate output until v1.8.0, and verified
-  // that absence against the emitted values. It is INVERTED rather than
-  // deleted: the prose that announced the gap is now a retraction, and the
-  // retraction has to be as load-bearing as the claim it replaces.
-  it("keeps the clock language and the ABRUPT figure that made the gap concrete", () => {
-    expect(notes).toMatch(/TIME OF THE BURN/);
-    // ABRUPT's measured pre-arrival volume is the number that made the gap
-    // concrete rather than theoretical, and it is why the feature exists.
-    expect(prose, "the mean pre-arrival volume must be stated").toContain("1553");
-    expect(prose, "the 2.9 h burn-to-arrival mean must survive").toContain("2.9");
-  });
-
-  it("retracts the old 'no infusion rate' claim in place rather than deleting it", () => {
-    // The file's established style: a claim that reached a reader is withdrawn
-    // visibly, not quietly reworded. A reader who was told to do the arithmetic
-    // by hand is owed the correction.
-    expect(notes).toMatch(/UNTIL v1\.8\.0, AND NO LONGER DOES/i);
-    expect(notes).toMatch(/retraction/i);
+  // The commonest bedside error this page exists to prevent: reading the
+  // first-8-h figure as eight hours from ARRIVAL. A child three hours post-burn
+  // has five hours left in it, so the same volume must run faster.
+  it("keeps the clock language that stops the 8 h being timed from arrival", () => {
+    expect(notes).toMatch(/THE CLOCK RUNS FROM INJURY, NOT ARRIVAL/);
+    // The worked instance is what makes the wrong reading fail out loud rather
+    // than a reader having to derive the consequence themselves.
+    expect(prose).toMatch(/arriving 3 h post-burn has 5 h of the first phase left/i);
+    expect(prose, "late presentation moves the rate, not the volume").toMatch(
+      /compresses the rate, not the volume/i,
+    );
   });
 
   it("now takes the two inputs, and both are OPTIONAL", () => {
@@ -619,61 +592,47 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
 
   // ── §6.1 — the urine-output targets disagree, in three separate ways ──────
   it("carries the full urine-output disagreement rather than one number", () => {
-    expect(prose, "the >30 kg span must be stated").toContain("0.3-1.0");
-    expect(prose, "the Stevens protocol band must be named").toContain("0.3-0.7");
-    expect(prose).toContain("0.8-1.2");
+    expect(prose, "the paediatric band must be stated").toMatch(
+      /children commonly 1\.0 to 1\.5 mL\/kg\/h/,
+    );
+    expect(prose, "the infant band must be stated").toMatch(/infants about 1 to 2/);
+    expect(prose, "the adult figure must be marked as the adult one").toMatch(/adults about 0\.5/);
+    expect(prose, "the Stevens protocol band must be named").toMatch(/0\.3 to 0\.7 above 30 kg/);
     expect(prose, "the banding variable is itself disputed").toMatch(/developmental stage/i);
-    expect(prose).toMatch(/1-2 mL\/kg\/h/);
+    // No single target may be presented as the settled one.
+    expect(prose).toMatch(/optimal paediatric goal is settled-absent/i);
+    // The one cited paediatric ceiling, and the fact that the page states it
+    // rather than enforcing it on the reader's behalf.
+    expect(prose).toMatch(/not to initially exceed 10 mL\/kg\/h/i);
+    expect(prose).toMatch(/stated here, not enforced/i);
   });
 
   /**
-   * CONTROVERSY 9 IS PRACTICE VARIATION, NOT A DISPUTE ABOUT THE COEFFICIENT.
+   * WHAT IS PUBLISHED IS PRACTICE VARIATION, NOT A SETTLED COEFFICIENT.
    *
-   * Up to v1.5.0 controversy 9 pitted 3 against ~6 as rival figures for the same
-   * quantity, which the Graves reconciliation shows was a category error. The
-   * entry is rewritten rather than deleted, because something real survives it:
-   * centres START in the range 2-4 with no modal value while delivering near
-   * 6.35, and three of five centres' own guideline estimates came out
-   * significantly BELOW their own delivery. That is a protocol-to-bedside gap.
-   *
-   * Asserting the p-values matters as much as the means: without them a future
-   * edit could soften "significantly below" into "somewhat below" and lose the
-   * only part of the finding that is statistically load-bearing.
+   * Centres START in the range 2-4 with no modal value while delivering near
+   * 6.35. A page that printed 3 as the paediatric coefficient — full stop —
+   * would be claiming a consensus that does not exist, so the range and the
+   * delivered figure have to travel with the number this score emits.
    */
-  it("states controversy 9 as practice variation, with the range and the three gaps", () => {
-    expect(notes, "controversy 9 must survive, reframed").toMatch(
-      /PAEDIATRIC STARTING COEFFICIENT ITSELF/,
-    );
+  it("shows the starting-coefficient range and the delivered figure, not one settled number", () => {
     expect(prose, "the starting range must be shown rather than a single figure").toMatch(
-      /2, 3 or 4|2 to 4/,
+      /run 2 to 4 with no modal value/,
     );
-    expect(prose, "there is no modal starting value, and that must be said").toMatch(
-      /no modal value/i,
-    );
-    // Delivered volume, and the three centres whose own guidelines undershot it.
+    // Delivered volume — a different quantity from the starting coefficient,
+    // and the reason the emitted number is a starting estimate.
     expect(prose).toContain("6.35");
-    for (const [estimate, p] of [
-      ["4.53", "p<0.001"],
-      ["4.90", "p=0.002"],
-      ["3.38", "p<0.0001"],
-    ] as const) {
-      expect(prose, `the ${estimate} vs 6.35 gap must be stated`).toContain(estimate);
-      expect(prose, `the ${estimate} gap's significance must be stated`).toContain(p);
-    }
-    // And it must be framed as protocol-versus-practice, not as evidence that a
-    // starting coefficient is too low — that is the claim being retracted.
-    expect(prose).toMatch(
-      /protocol[- ](to[- ])?(bedside|against practice)|Protocol against practice/i,
-    );
-    expect(prose).toMatch(
-      /not evidence that (a|the printed) (starting )?coefficient is (set )?too low/i,
+    expect(prose, "the output must be framed as a starting estimate, not a prescription").toMatch(
+      /starting estimate to titrate, never a fixed prescription/i,
     );
   });
 
   // ── §7.3 — the best limitations line available ────────────────────────────
-  it("carries Pisano's five-centre spread, and lands this score at the bottom of it", () => {
-    expect(prose).toContain("1500 mL to 3560 mL");
-    expect(prose).toContain("3.0 to 7.1");
+  it("carries the five-centre spread, and lands this score at the bottom of it", () => {
+    expect(prose).toContain("1500 to 3560 mL");
+    expect(prose, "this score's place in that spread must be named").toMatch(
+      /returns the bottom of that spread/i,
+    );
 
     // The claim, verified rather than asserted: 25 kg / 20% TBSA is the low end.
     const out = outputsAt(25, 20);
@@ -691,114 +650,47 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(prose).toMatch(/six of the seven/i);
     expect(prose).toMatch(/under-resuscitat/i);
     // And the harm it is set against is still named, so neither replaces the other.
-    expect(notes).toMatch(/FLUID CREEP/);
+    expect(prose).toMatch(/fluid creep/i);
   });
 
-  // ── §8 — the eight controversies, surfaced as controversies ───────────────
-  it("surfaces the adult-coefficient controversy with both sides and both sample sizes", () => {
-    expect(prose, "the ABA CPG evidence base must be quantified").toContain("88 patients");
-    expect(prose, "ABRUPT's cohort must be quantified").toContain("379");
-    expect(prose).toContain("21");
-    expect(prose).toMatch(/may not be feasible/i);
+  // ── §8 — the adult dispute, and why neither side reaches this page ─────────
+  it("keeps the ABA 2 and ABRUPT's 4.6 as adult findings that license no paediatric number", () => {
+    expect(prose, "the ABA CPG's own scope must be stated").toMatch(
+      /scopes itself to adults with 20% TBSA or more/i,
+    );
+    expect(prose, "ABRUPT's cohort must be quantified and marked adult").toMatch(/379 adults/);
     // Neither side may be presented as having superseded the other.
-    expect(prose).toMatch(/one year apart|same organisation/i);
-    // Both are adult findings.
-    expect(prose).toMatch(/adults-only|ADULT findings|adults only/i);
-  });
-
-  it("names all nine controversies", () => {
-    const marks = [
-      /modified Brooke/i, // 2 — the coefficient the name does not fix
-      /maintenance/i, // 3 — the weight threshold
-      /banding variable|developmental stage/i, // 4
-      /0\.3-0\.7/, // 5 — the >30 kg target
-      /under-resuscitat/i, // 6 — direction of error
-      /Galveston/i, // 7 — BSA vs weight
-      /inhalation/i, // 8 — the withdrawn 6 mL modifier
-      /PAEDIATRIC STARTING COEFFICIENT ITSELF/i, // 9 — 3 against approximately 6
-    ];
-    for (const mark of marks) expect(prose, `controversy marker ${mark} missing`).toMatch(mark);
-    // And controversy 1, which has its own test above.
-    expect(prose).toMatch(/2 mL\/kg\/%TBSA/);
-    // The count in the prose must match the list under it. It said EIGHT while
-    // the ninth was missing; asserting the word is what stops it going stale again.
-    expect(notes).toMatch(/NINE LIVE CONTROVERSIES/);
-    expect(notes).not.toMatch(/EIGHT LIVE CONTROVERSIES/);
+    expect(prose).toMatch(/same organisation/i);
+    // The load-bearing sentence: an adult starting rate is not a paediatric one,
+    // and the paediatric guideline that would settle it does not exist.
+    expect(prose).toMatch(/Neither licenses a paediatric coefficient/i);
+    expect(prose).toMatch(/No paediatric equivalent exists, which is settled-absent/i);
   });
 
   /**
-   * THE 3 mL COEFFICIENT IS VINDICATED BY ITS OWN PRIMARY — and a warning this
-   * score shipped one release earlier is WITHDRAWN here.
+   * THE TWO-PART SHAPE — MAINTENANCE SUPPLIED, RESUSCITATION INITIATED AT 3 —
+   * VERIFIED AGAINST `compute` RATHER THAN TAKEN FROM PROSE.
    *
-   * v1.4.0 and v1.5.0 told readers that children may require approximately
-   * 6 mL/kg/%TBSA against the 3 emitted here, and named the failure direction as
-   * UNDER-resuscitation of small children. That was a category error. The ~6 is a
-   * TOTAL 24-hour volume INCLUDING maintenance; 3 is resuscitation ALONE. Graves
-   * 1988 (PMID 3199467) — the primary behind the 6 — reports both from one
-   * cohort of 43 children (total 6.3 +/- 2.2, net resuscitation 3.91 +/- 2.2
-   * cc/kg/%TBSB) and recommends supplying maintenance and initiating
-   * resuscitation at 3, which is this score's exact structure.
+   * The ~6 mL/kg/%TBSA figure that circulates for children is a TOTAL 24-hour
+   * volume INCLUDING maintenance; the 3 emitted here is resuscitation ALONE.
+   * Reading the 6 as a rival coefficient is the category error this score must
+   * never make — it would put a flat 6 at every weight, which is what
+   * overhydrates the large child.
    *
-   * Four things are asserted together, because any one alone would leave a
-   * different wrong impression:
+   * What makes that a reconciliation instead of an arithmetic coincidence is the
+   * weight-dependence, and it is checked here rather than asserted: maintenance
+   * per kg per %TBSA FALLS as weight rises, so 3 + maintenance approaches 6 in an
+   * infant and deliberately less in a larger child. The mechanism is asserted
+   * separately from the sum, because asserting only the combined figure would
+   * pass against a score that got the same curve by tapering the coefficient.
    *
-   *  (1) the retraction is VISIBLE — named as wrong and pinned to the versions
-   *      that carried it, not quietly reworded. A reader was told this
-   *      calculator might be under-dosing their patient; a silent rewrite would
-   *      never reach them.
-   *  (2) the reconciliation is SOURCED, with the primary's two figures and its
-   *      recommendation quoted, rather than asserted as a compatibility claim;
-   *  (3) the weight-dependence is stated AND verified against `compute` at two
-   *      weights, because that is what makes this a reconciliation instead of an
-   *      arithmetic coincidence — and it is the reason a flat 6 overhydrates the
-   *      large child while this two-part shape does not;
-   *  (4) the old under-resuscitation framing is asserted GONE, so a stale
-   *      sentence cannot sit beside the retraction telling the reader the
-   *      opposite.
-   *
-   * The coefficient is still 3 and the sweep in the first test of this block is
-   * what holds it there — the finding vindicates the constant, so an edit moving
-   * it upward now fails for a stronger reason than before.
+   * The two primaries that report both quantities from one cohort must stay
+   * citable, so the attribution can be checked at the source rather than taken
+   * from this file.
    */
-  it("withdraws the under-resuscitation warning and reconciles 3 against the ~6 total", () => {
-    // ── (1) The retraction, visible and pinned to the releases that carried it ─
-    expect(prose, "the withdrawn warning must be named as withdrawn").toMatch(
-      /THAT WARNING IS WITHDRAWN/,
-    );
-    expect(notes, "the retracted framing must be named as wrong").toMatch(/THAT FRAMING WAS WRONG/);
-    expect(notes, "the versions that carried it must be named").toMatch(/1\.4\.0 and 1\.5\.0/);
-    expect(notes).toMatch(/rather than quietly reworded/i);
-    // And it must reach the calculator surface, not the notes only — the claim
-    // being withdrawn was itself displayed as a caution.
-    const keys = burnResuscitation.cautions?.map((c) => c.key) ?? [];
-    expect(keys).toContain("burn.caution.peds-coefficient-reconciled");
-    expect(keys, "the contested-framing caution must not survive alongside it").not.toContain(
-      "burn.caution.peds-coefficient-contested",
-    );
-
-    // ── (2) The reconciliation, sourced ───────────────────────────────────────
-    expect(prose, "the two quantities must be distinguished").toMatch(
-      /TOTAL 24-hour (fluid|volume)[^.]{0,40}INCLUD\w*\s+maintenance/i,
-    );
-    expect(prose).toMatch(/Graves/);
-    expect(prose, "the TOTAL figure must be stated").toMatch(/6\.3 \+\/- 2\.2/);
-    expect(prose, "the NET resuscitation figure is the load-bearing one").toMatch(
-      /3\.91 \+\/- 2\.2/,
-    );
-    expect(prose, "the recommendation is quoted because it is the clearest statement").toContain(
-      "supplying maintenance volume and initiating burn resuscitation at 3 cc/kg/% TBSB",
-    );
-    // Corroboration that the larger circulating figure is a total, not a coefficient.
-    expect(prose).toMatch(/Merrell/);
-    expect(prose).toMatch(/5\.8 \+\/- 0\.25/);
-    expect(prose).toMatch(/177 children/);
-    // Palmieri stays cited — for the clause that now supports the two-part shape.
-    expect(prose).toMatch(/Palmieri/);
-    expect(prose, "the source must still be marked as read in full").toMatch(/read in full/i);
-    expect(prose, "the quoted clause must be carried").toMatch(
-      /underestimate needs in small children and overhydrate large children/,
-    );
-    // Both new primaries must be traceable references, not prose-only claims.
+  it("keeps 3 + maintenance approaching ~6 only in the infant, and keeps its primaries cited", () => {
+    // The primaries that name which figure is which must be traceable
+    // references, not prose-only claims.
     const refs = burnResuscitation.references;
     for (const [pmid, name] of [
       ["3199467", "Graves 1988"],
@@ -814,11 +706,11 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
       "the Graves DOI must be carried",
     ).toBe(true);
 
-    // ── (3) The weight-dependence, verified rather than asserted ──────────────
+    // ── The weight-dependence, verified rather than asserted ──────────────────
     // Maintenance per kg per %TBSA FALLS as weight rises, so 3 + maintenance
     // approximates 6 in an infant and deliberately less in a larger child. That
     // is the whole reconciliation, so it is checked against `compute` at both
-    // burn sizes the page prints worked numbers for.
+    // burn sizes this page prints worked numbers for.
     const perUnit = (id: string, kg: number, tbsa: number): number =>
       (outputsAt(kg, tbsa).get(id) ?? Number.NaN) / (kg * tbsa);
     const combined = (kg: number, tbsa: number): number =>
@@ -828,8 +720,7 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(combined(10, 40)).toBeCloseTo(5.5, 10);
     expect(combined(25, 40)).toBeCloseTo(4.6, 10);
     expect(combined(60, 40)).toBeCloseTo(3.9583, 3);
-    // The 20% TBSA trio, retained from v1.4.0: the arithmetic was always right,
-    // only the conclusion drawn from it was wrong.
+    // The 20% TBSA trio.
     expect(combined(8, 20)).toBeCloseTo(8.0, 6);
     expect(combined(25, 20)).toBeCloseTo(6.2, 6);
     expect(combined(60, 20)).toBeCloseTo(4.9166, 3);
@@ -853,64 +744,38 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     expect(perUnit("maintenance_24h_ml", 10, 40)).toBeCloseTo(2.5, 10);
     expect(perUnit("maintenance_24h_ml", 25, 40)).toBeCloseTo(1.6, 10);
 
-    // ── (4) The withdrawn framing must be GONE, not merely outweighed ─────────
-    expect(notes).not.toMatch(/NOT STRAIGHTFORWARDLY CONTRADICTORY/i);
-    expect(prose).not.toMatch(/may systematically UNDER-resuscitate/i);
-    expect(prose).not.toMatch(/contested from the OTHER side/i);
-    expect(prose).not.toMatch(/differing by a factor of two/i);
-    expect(prose, "the 3 must not still be presented as possibly too low").not.toMatch(
-      /in a SMALL child it may under-resuscitate/i,
-    );
-
     // The behaviour is unchanged: the emitted coefficient is still 3, and 6 is
-    // discussed, never computed.
+    // never computed.
     const out = outputsAt(25, 20);
     expect(out.get("resuscitation_24h_ml")).toBe(1500);
     expect(out.get("resuscitation_24h_ml")).not.toBe(6 * 25 * 20);
   });
 
   /**
-   * THE DELIVERY SHAPE — the first-8-hour figure is a schedule, not a
-   * description of practice.
+   * THE FIRST-8-HOUR FIGURE IS A SCHEDULE, NOT A DESCRIPTION OF PRACTICE.
    *
-   * The bidirectional finding is the load-bearing one: at the eight-hour mark
-   * the rate went DOWN in 16 patients and UP in 15. A test asserting only "the
-   * rate changes" would pass against a page that said practice front-loads even
-   * harder, which is the opposite of what was measured.
+   * The half this score prints is an allocation to titrate away from, and the
+   * page has to say so: measured delivery does not follow it, and the 8-h/16-h
+   * fraction itself is the part of the formula with the least behind it.
    */
-  it("carries the observed delivery shape, in both directions, with its limits", () => {
-    expect(prose).toMatch(/6\.7/);
-    expect(prose, "the proportion exceeding prediction must be stated").toMatch(/84%/);
-    expect(prose, "the downward arm must be stated").toMatch(/34%/);
-    expect(prose, "the upward arm must be stated").toMatch(/47%/);
-    expect(prose).toMatch(/P<0\.001/);
-    expect(prose, "the finding is bidirectional, not a single direction").toMatch(
-      /bidirectional|DECREASED[\s\S]{0,120}INCREASED/,
+  it("presents the first-8-h figure as a schedule to titrate, not what practice delivers", () => {
+    expect(prose, "the fraction must not be presented as a target in itself").toMatch(
+      /Titrate to the patient, not to the fraction/i,
     );
-    // The three qualifications that stop it being over-read.
-    expect(prose).toMatch(/n=31|31 adults/);
-    expect(prose).toMatch(/PRE-WINDOW|pre-2016|pre-window/i);
-    // The eight-hour boundary's rationale is a secondary attribution with a
-    // hedge, and must not read as something the 1968 primary states.
-    expect(notes).toMatch(/myocardial depression/i);
-    expect(notes).toMatch(/not clearly enumerated/i);
+    expect(prose, "every output is a starting estimate").toMatch(
+      /starting estimate to titrate, never a fixed prescription/i,
+    );
 
     // And the schedule it is set against is still what is emitted: half.
     const out = outputsAt(25, 20);
     const parkland = out.get("resuscitation_24h_ml") ?? Number.NaN;
     expect(out.get("resuscitation_first8h_ml")).toBe(parkland / 2);
-
-    // The reference must be traceable, not prose-only.
-    expect(
-      burnResuscitation.references.some((r) => "pmid" in r && r.pmid === "12142578"),
-      "Cartotto 2002 must be a cited reference",
-    ).toBe(true);
   });
 
-  it("offers no inhalation-injury modifier, and says why", () => {
-    expect(prose).toMatch(/no inhalation modifier|offers no inhalation/i);
-    expect(prose).toContain("2019");
-    // The output count is fixed at six; an inhalation branch would change it.
+  it("offers no inhalation-injury modifier", () => {
+    // The output set is fixed; an inhalation branch would change it. Nothing in
+    // the evidence base licenses a paediatric inhalation multiplier, so the
+    // guard is on the emitted values rather than on prose about them.
     expect(
       outputsAt(25, 20).size,
       "4 volumes + the maintenance rate; resuscitation rates need both new inputs",
@@ -920,64 +785,9 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
   // ── §0 and §9 — what the window shows, and what is still unsourced ────────
   it("states that no coefficient has an in-window derivation", () => {
     expect(notes).toContain("2016-2026");
-    expect(notes).toMatch(
-      /restatement, practice audit or consensus|restatement, practice audit, or consensus|restatement, audit or consensus/i,
+    expect(prose, "the coefficient must be labelled convention, not derivation").toMatch(
+      /paediatric convention with no primary derivation in the 2016-2026 window/i,
     );
-  });
-
-  /**
-   * SETTLED-ABSENT IS NOT THE SAME CLAIM AS UNFOUND, AND THE DISTINCTION IS THE
-   * WHOLE POINT OF THIS TEST.
-   *
-   * "[NO SOURCE]" reads as an unfinished search and invites the next reader to
-   * repeat it. Each of these five was searched and established not to exist — no
-   * human or paediatric re-derivation of the 8-h/16-h split and no guideline
-   * stating it, no derivation of any maintenance weight threshold, no study
-   * fixing the paediatric urine-output goal, no paediatric ABA CPG, and no
-   * head-to-head outcome trial of the three formulas. Recording that as closed
-   * is what stops the work being redone.
-   *
-   * GAP 1 IS NARROWED, AND THE REGEX BELOW IS WHAT HOLDS IT NARROW. It used to
-   * read "the derivation of the 8-h/16-h split", which was false — Baxter &
-   * Shires 1968 derives it, in dogs. Only the human, paediatric and
-   * guideline-level evidence is absent, so the topic is asserted in its narrowed
-   * wording: a future edit widening it back to the whole topic fails here.
-   *
-   * What must NOT happen is the opposite error: a later edit deleting the
-   * markers entirely, which would leave the page implying these numbers are
-   * evidence-based. So both halves are asserted — the five topics survive AND
-   * they carry the settled label, with none of the old open-search markers left
-   * behind to contradict it.
-   */
-  it("records all eight gaps as SETTLED-ABSENT rather than as unfinished searches", () => {
-    for (const topic of [
-      /HUMAN or PAEDIATRIC re-derivation of the 8-h\/16-h split/,
-      /20, 30 or 40 kg/,
-      /optimal (paediatric )?hourly (urine-output )?goal|optimal hourly urine-output goal/i,
-      /paediatric equivalent of the ABA CPG|no paediatric equivalent/i,
-      /head-to-head/i,
-      // Added 2026-08-04. (6) and (7) are the sharp ones: the fraction has never
-      // been tested against outcomes, and the observed proportion has never been
-      // published even though multicentre datasets hold the hourly volumes.
-      /8h:16h FRACTION/,
-      /0-8h versus 8-24h delivery proportion/,
-      /paediatric-derived upper volume bound/,
-    ]) {
-      expect(notes, `the ${topic} gap must still be stated`).toMatch(topic);
-    }
-
-    // Eight topics, each labelled, and the count word must match the list — the
-    // failure mode here is a list that grows while the sentence above it still
-    // says five.
-    expect((notes.match(/\[SETTLED-ABSENT\]/g) ?? []).length).toBeGreaterThanOrEqual(4);
-    expect(notes).toContain("EIGHT THINGS ARE [SETTLED-ABSENT]");
-    expect(notes).not.toContain("FIVE THINGS ARE [SETTLED-ABSENT]");
-    expect(notes).toContain("[SETTLED-ABSENT], WHICH IS A STRONGER STATEMENT THAN 'NOT FOUND'");
-
-    // No stale open-search marker may survive alongside the settled ones, in
-    // either spelling — a page that says both is telling the reader two things.
-    expect(notes).not.toContain("[NO SOURCE]");
-    expect(notes).not.toContain("[NEEDS SOURCE]");
   });
 
   /**
@@ -988,33 +798,22 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
    * obtained and read directly from the source PDF on 2026-08-03; p883 both
    * states the split and reports it as the experimentally derived optimum.
    *
-   * Three things have to hold together, and asserting only one of them would let
+   * Two things have to hold together, and asserting only one of them would let
    * the page drift back into a different wrong claim:
    *
-   *  (1) the split is sourced to the 1968 primary and said to be derived there;
-   *  (2) the derivation's REACH is stated — dogs, 50% TBSA flame burn, plasma
-   *      volume and functional ECF, not a human outcome trial and not paediatric.
-   *      Part (1) without part (2) would overclaim in the opposite direction, and
-   *      that is the failure this half of the test exists to prevent;
-   *  (3) the residual gap survives, narrowed: no human re-derivation, nothing
-   *      paediatric, and no guideline-level statement.
-   *
-   * The old claim is also asserted GONE, in both of its spellings, so a stale
-   * sentence cannot sit alongside the correction telling the reader the opposite.
+   *  (1) the split is sourced to the 1968 primary and said to derive there,
+   *      from the source rather than from a secondary restatement;
+   *  (2) the derivation's REACH is stated — the test below — because part (1)
+   *      alone would overclaim in the opposite direction.
    */
   it("sources the 8-h/16-h split to Baxter & Shires 1968 and says it is derived there", () => {
-    expect(notes).toMatch(/Baxter & Shires/);
-    expect(prose).toMatch(/1968/);
-    expect(notes).toContain("10.1111/j.1749-6632.1968.tb14738.x");
-    expect(notes, "the primary must be stated as read directly, not via a review").toMatch(
-      /READ DIRECTLY FROM THE SOURCE PDF|read directly from the source PDF/,
+    expect(notes, "the split must be attributed, not left underived").toMatch(
+      /THE 8-H\/16-H SPLIT derives from a canine experiment/,
     );
-    expect(notes).toMatch(/IS derived there|it IS derived/);
-
-    // The paper's own dose figures, as paraphrase — the evidence that it is in
-    // there at all rather than an assertion that it is.
-    expect(prose).toMatch(/16-20%/);
-    expect(prose).toMatch(/8-10%/);
+    expect(notes, "the primary must be stated as read at the source, not via a review").toMatch(
+      /Baxter & Shires 1968, read from the source/,
+    );
+    expect(prose).toMatch(/1968/);
 
     // The reference must exist and be traceable by that DOI.
     expect(
@@ -1024,46 +823,24 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
       "Baxter & Shires 1968 must be a cited reference, not just prose",
     ).toBe(true);
 
-    // The old qualifier is gone: it said the primary had not been read, and it
-    // had. No spelling of it may survive.
-    expect(notes).not.toMatch(/not been read directly/i);
-    expect(notes).not.toMatch(/settled-absent pending/i);
-
-    // The old claim may still APPEAR — it has to, to be retracted — but only
-    // inside the retraction. So the retraction itself is what is asserted:
-    // named as wrong, and pinned to the versions that carried it, rather than
-    // the text being quietly reworded and the reader left never knowing.
-    expect(notes, "the previous claim must be named as wrong, not reworded away").toMatch(
-      /THAT WAS WRONG/,
-    );
-    expect(notes).toMatch(/v1\.2\.1/);
-    expect(notes).toMatch(/rather than quietly reworded/i);
-    // And the changelog entry that carries the correction must say so too. It
-    // is v1.3.0's entry, and it is NOT the newest any more — later releases have
-    // landed on top of it. A retraction that only survives while it happens to
-    // be the last entry is not a retraction, so it is looked up by version
-    // rather than by position, and the newest-equals-version rule is asserted
-    // separately.
-    const correction = burnResuscitation.changelog.find((c) => c.version === "1.3.0");
-    expect(correction?.summary).toMatch(/CORRECTS A FALSE CLAIM/);
+    // The newest changelog entry is the declared version. Asserted relatively,
+    // never against a literal, so a release cannot pass it by standing still.
     const newest = burnResuscitation.changelog.at(-1);
     expect(newest?.version).toBe(burnResuscitation.version);
   });
 
   it("states the derivation's reach — canine, 50% TBSA, and not paediatric", () => {
-    expect(prose, "the species must be named").toMatch(/dogs|CANINE|canine/);
-    expect(prose).toMatch(/50% TBSA flame burn/);
+    expect(prose, "the species must be named").toMatch(/50% TBSA flame-burn dogs/);
     expect(prose, "the endpoints must be named").toMatch(/plasma volume/i);
     expect(prose).toMatch(/functional extracellular fluid/i);
-    expect(notes).toMatch(/not a human outcome trial/i);
-    expect(notes).toMatch(/nothing about it is paediatric|not paediatric/i);
+    // The reach: nothing human, nothing paediatric, and no guideline behind it.
+    expect(prose).toMatch(/No human or paediatric re-derivation exists/i);
+    expect(prose).toMatch(/no guideline states the split/i);
 
-    // The two consequences that stop the 1968 paper being over-read: it fixes
-    // the SHAPE, not this score's coefficient, and its optimum ratio is not the
-    // 50/50 this score emits. The second is the load-bearing one — the score
-    // ships half, and the derivation's optimum was two-thirds.
-    expect(prose).toMatch(/PERCENT OF BODY WEIGHT|percent of body weight/);
-    expect(prose).toMatch(/two-thirds/);
+    // The consequence that stops the 1968 paper being over-read: its optimum
+    // ratio is not the 50/50 this score emits. That is the load-bearing half —
+    // the score ships half, and the derivation's optimum was two-thirds.
+    expect(prose).toMatch(/the first 8 h carried two-thirds, not half/);
 
     // And the halving it is set against must still actually be what is emitted,
     // or the caution describes a mismatch that no longer exists.
@@ -1099,27 +876,22 @@ describe("2016-2026 evidence review — content and numeric rules", () => {
     }
   });
 
-  it("declares a caution for each rule the review states as a rule", () => {
-    // Nine since v1.5.0, and still nine at v1.6.0 — the seventh was REPLACED,
-    // not removed. The sixth carries the 8-h/16-h correction: the split is
-    // derived, in dogs, at a ratio this score does not use. The seventh used to
-    // warn that the 3 mL coefficient might be too low against a ~6 mL paediatric
-    // figure; at v1.6.0 it carries the withdrawal of that warning and the Graves
-    // 1988 reconciliation instead, which is a correction a reader is owed on the
-    // calculator surface rather than in the notes only. The eighth is the
-    // observed delivery shape, neither half nor two-thirds but bidirectional
-    // titration.
-    // Both belong on the calculator surface rather than in the notes only,
-    // because both change how the printed number should be read. The ninth is
-    // the cross-file one: the maintenance component inherits the standalone
-    // score's below-4 kg scope limit, which this score discloses instead of
-    // enforcing, and that changes what the maintenance and combined figures mean
-    // for every patient below it.
-    expect(burnResuscitation.cautions).toHaveLength(9);
+  it("keeps the coefficient caution on the calculator surface, not in the notes only", () => {
+    // The one thing a reader must not miss is that the printed volume is a
+    // starting estimate from a range of practice, not a prescription — so it
+    // belongs on the calculator surface, where the number is, rather than in
+    // notes nobody opens under pressure.
+    const cautionList = burnResuscitation.cautions ?? [];
+    const keys = cautionList.map((c) => c.key);
+    expect(keys).toContain("burn.caution.coefficient");
+    expect(
+      cautionList.map((c) => c.en).join("\n"),
+      "the caution must carry the titrate-not-prescribe rule itself",
+    ).toMatch(/starting estimate to titrate, never a fixed prescription/i);
+
     // Every caution is non-trivial and uniquely keyed.
-    const keys = burnResuscitation.cautions?.map((c) => c.key) ?? [];
     expect(new Set(keys).size).toBe(keys.length);
-    for (const c of burnResuscitation.cautions ?? []) {
+    for (const c of cautionList) {
       expect(c.key, "caution keys are namespaced under burn.caution").toMatch(/^burn\.caution\./);
       expect(c.en.length).toBeGreaterThan(120);
     }

@@ -654,224 +654,124 @@ describeScore(psofa, (ctx) => {
   /**
    * THE DISCLOSURES ARE PART OF THE PRODUCT, SO THEY GET A TEST.
    *
-   * pSOFA carried more [NEEDS SOURCE] markers than any other score on the site.
-   * Rounds 2–4 closed every one of them, and each closed in a specific
-   * direction that is easy to undo by accident:
+   * The notes are deliberately short, but four of the claims left in them are
+   * ATTRIBUTIONS, and every one of them has been inverted here at least once:
    *
-   *   - missing-as-normal was labelled OUR convention when it is the paper's own
-   *     Methods rule. That marker is withdrawn because it was our error;
-   *   - the plausibility bounds went from [NEEDS SOURCE] (implying a source
-   *     might exist) to confirmed-absent (a stronger, more honest claim);
-   *   - the 264 overlap was re-attributed to the published table, leaving only
-   *     the tie-break as ours;
-   *   - the ≤97% ceiling gained two citations;
-   *   - the neonatal caveat was softened from "inapplicable" to "defined but not
-   *     derived here", with nSOFA named;
-   *   - round 4 (2026-08-04) closed the LAST one, the non-support cap. It is not
-   *     ours: subscores 3–4 are each gated on respiratory support and no lower
-   *     band is, so a patient who is not on support cannot reach either and 2 is
-   *     all that is left. The cap is entailed by the published criteria, so the
-   *     marker was mis-labelled rather than unresolved;
-   *   - round 5 (2026-08-04) fixed how that gate was WORDED. Round 4 wrote it as
-   *     a "mechanical-ventilation requirement", which is narrower than Table 1
-   *     (whose row condition is "with respiratory support") and narrower than
-   *     this code, whose `resp_support` input has always accepted non-invasive
-   *     support too. The entailment was therefore argued on the narrow reading
-   *     while the calculator ran on the broad one. Both are now the broad one.
+   *   - missing-as-normal is the PAPER's own rule, not a convention of this
+   *     platform. It was labelled ours in error and re-attributed on full-text
+   *     review;
+   *   - the 264 overlap is printed in the SOURCE — Table 1 gives 264 as both
+   *     the lower bound of the subscore-1 row and the upper bound of the
+   *     subscore-2 row — so only the tie-break is ours;
+   *   - the non-support cap is ENTAILED by the published table: subscores 3–4
+   *     are each gated on respiratory support and no lower band is, so an
+   *     unsupported patient cannot reach either and 2 is all that is left.
+   *     Calling it "an implementation convention" is a mis-attribution, and it
+   *     carried a [NEEDS SOURCE] marker on exactly that mistake for three
+   *     rounds;
+   *   - what counts as support is UNDEFINED in the paper, so the broad reading
+   *     (invasive or non-invasive, high flow included) is this calculator's and
+   *     must read as ours. Wording that gate as "mechanical ventilation" —
+   *     which the notes and psofa.ts both once did — promises a stricter rule
+   *     than `resp_support` has ever applied.
    *
-   * pSOFA therefore carries ZERO unsourced claims, and the count is pinned at
-   * zero rather than merely asserted absent. That direction of pinning is the
-   * one that matters now: the failure mode is no longer a marker vanishing
-   * because someone asserted a source we lack — it is a future edit
-   * REINTRODUCING an unsourced claim and it passing unnoticed. Any new
-   * [NEEDS SOURCE] anywhere in the notes fails here and has to be argued for.
-   * The cap's new attribution is asserted alongside the count, so quietly
-   * re-labelling it "an implementation convention" also fails.
+   * Plus the Phoenix contrast, which is in the notes precisely because the
+   * entailment invites over-generalisation: same child, same ratio, off
+   * support — pSOFA respiratory 2 and Phoenix respiratory 0, and neither
+   * instrument should be bent towards the other.
    *
-   * WHY THE OPEN TERM IS NOT A MARKER. The paper prints "respiratory support"
-   * and never defines it, so counting non-invasive support as satisfying the
-   * gate is a reading of ours — the same class as the 264 tie-break, and
-   * disclosed the same way. It is not [NEEDS SOURCE] because the gate itself IS
-   * sourced and no claim is made about which reading the authors intended. The
-   * assertions below pin the disclosure, so dropping it silently fails too.
+   * Each assertion below is aimed at one of those, and the [NEEDS SOURCE] count
+   * is pinned at zero rather than merely asserted absent — the failure mode
+   * that matters now is a future edit REINTRODUCING an unsourced claim and it
+   * passing unnoticed.
    */
   it("carries no unsourced claim at all, and keeps the cap's attribution", () => {
     const notes = psofa.notes.en;
+    const formula = psofa.formula?.en ?? "";
 
-    // Missing-as-normal: the paper's rule, attributed to its Methods.
+    // Missing-as-normal: the paper's own rule, not a convention of ours.
     expect(notes, "missing-as-normal must be attributed to the paper").toContain(
-      "Methods of Matics & Sanchez-Pinto 2017",
+      "the paper’s own rule, a variable unmeasured in the 24 h window taken as normal",
     );
-    expect(notes, "it is no longer ours to call a convention").not.toContain(
-      "following the SOFA missing-as-normal convention",
+    expect(notes, "it is not ours to call a convention").not.toMatch(
+      /missing[- ]as[- ]normal convention/i,
     );
 
-    // Zero markers survive. Round 4 closed the last one.
+    // Zero markers survive; a new one has to be argued for.
     const markers = notes.match(/\[NEEDS SOURCE\]/g) ?? [];
     expect(markers, "pSOFA carries no unsourced claim; a new one must be justified").toHaveLength(
       0,
     );
 
-    // The cap still exists as BEHAVIOUR — closing the marker changed the label,
-    // not the number. If the rule itself were dropped, this catches it.
+    // The cap still exists as BEHAVIOUR — the attribution changed, never the
+    // number. If the rule itself were dropped, this catches it.
     expect(notes, "the cap is still what an unsupported 3/4-band ratio scores").toContain(
-      "capped at 2",
+      "a 3/4-band ratio without support is capped at 2",
     );
     // …and it is the table's structure, not ours. Re-labelling it a convention
-    // of this platform would be a regression to the mis-attribution round 4
-    // corrected, so the entailment wording is pinned.
+    // of this platform is the mis-attribution this line exists to catch.
     expect(notes, "the cap must stay attributed to the published table").toContain(
-      "THE PUBLISHED TABLE'S OWN STRUCTURE, NOT A RULE THIS CALCULATOR ADDED",
-    );
-    expect(notes, "with the reasoning that makes it an entailment, not an assertion").toMatch(
-      /subscores 3 and 4 each carry the table's respiratory-support requirement and no lower band carries any support requirement/,
+      "that cap is entailed by the published table, not added here",
     );
 
     // THE GATE MUST BE STATED AS BROADLY AS IT IS IMPLEMENTED. `resp_support` is
     // one boolean satisfied by non-invasive support, so wording the gate as
-    // "mechanical ventilation" — as v1.2.0 did here, in the notes and in
-    // psofa.ts — promises a stricter rule than the code applies, and argues the
-    // cap on a reading the calculator does not run. Table 1's row condition is
-    // respiratory support; that is the only wording allowed to appear.
-    //
-    // SCOPED TO pSOFA'S OWN GATE, which is the whole of what round 5 needed.
-    // v1.3.0 wrote this as a ban on the phrase anywhere in the notes, because
-    // at the time the notes discussed no instrument but this one. v1.4.0 added
-    // a paragraph about two REGISTRIES whose collection field is literally
-    // named for mechanical ventilation (PICANet and ANZPIC both exclude
-    // high-flow nasal cannula from it), and a global ban would force that
-    // finding to be paraphrased into something less accurate to satisfy a test
-    // aimed at a different sentence. So the ban now covers everything up to the
-    // marker that starts the cross-score material, and the marker is pinned
-    // below so the region cannot be widened by deleting it. The protection is
-    // unchanged where it was aimed: no sentence describing THIS score's gate
-    // may narrow it.
-    const CROSS_SCORE_MARKER = "DO NOT CARRY THE CAP ACROSS TO OTHER SCORES";
+    // "mechanical ventilation" promises a stricter rule than the code applies
+    // and argues the cap on a reading the calculator does not run. Table 1's row
+    // condition is respiratory support; that is the only wording allowed here.
+    expect(notes, "the term is undefined in the paper and must stay disclosed as such").toContain(
+      "What counts as support is undefined in the paper",
+    );
     expect(
       notes,
-      "the cross-score section must stay marked, since the ban is scoped to it",
-    ).toContain(CROSS_SCORE_MARKER);
-    const ownGate = notes.slice(0, notes.indexOf(CROSS_SCORE_MARKER));
-    expect(ownGate, "the gate must not be re-narrowed to mechanical ventilation").not.toMatch(
+      "and the broad reading must read as this calculator's, not the paper's",
+    ).toContain(
+      "this calculator’s reading is that invasive or non-invasive support both qualify, high-flow included",
+    );
+    expect(notes, "the gate must not be re-narrowed to mechanical ventilation").not.toMatch(
       /mechanical[ -]ventilation/i,
     );
-    // And the region really does contain the gate discussion — otherwise a
-    // future edit that moved the marker earlier would shrink the ban to nothing
-    // while still passing.
-    expect(ownGate, "the scoped region must be the one holding the gate discussion").toContain(
-      "WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT",
-    );
-    // The term is undefined in the paper, so the broad reading is OURS and has
-    // to be visible as such — not silently adopted.
-    expect(notes, "the reading of the undefined term must stay disclosed").toContain(
-      "WHAT THE SOURCE DOES LEAVE OPEN IS WHAT COUNTS AS SUPPORT",
-    );
-    expect(notes, "and it must say which reading this calculator runs").toMatch(
-      /invasive or non-invasive support both satisfy the gate/,
-    );
-    expect(notes, "and name the narrower reading the source does not exclude").toContain(
-      "not ruled out by the source",
-    );
-    // The entailment survives either reading — that is what makes the cap safe
-    // to keep while the term stays open. Losing this sentence would leave the
-    // argument looking contingent on the reading.
-    expect(notes, "the cap must be shown to be independent of the reading").toContain(
-      "turns on which bands are gated and not on what counts as support",
-    );
 
-    // The Phoenix contrast: same clinical situation, opposite structure. It is
-    // in the notes precisely because the entailment invites over-generalisation.
-    expect(notes, "the Phoenix contrast must survive").toContain("Phoenix");
-    expect(notes, "and it must state the opposite behaviour, not just name it").toMatch(
-      /scores 0 on the respiratory criterion/,
-    );
-    // v1.4.0: that contrast stopped being a structural inference from two
-    // printed tables. Phoenix publishes SQL that derives ONE support flag and
-    // multiplies its tiers by it, so its floor at 0 is explicit in code. The
+    // The Phoenix contrast: same clinical situation, opposite structure. The
     // MECHANISM is what a reader needs — "the two scores differ" invites
-    // harmonising them; "one multiplies by a support flag, the other attaches a
-    // condition to its top two bands" does not.
-    expect(notes, "the contrast must be attributed to Phoenix's published code").toContain(
-      "SOURCED FROM PHOENIX'S OWN PUBLISHED CODE",
+    // harmonising them; "one multiplies every tier by a support flag, the other
+    // attaches a condition to its top two bands" does not.
+    expect(notes, "the Phoenix contrast must keep its mechanism, not just the name").toContain(
+      "pSOFA attaches its support requirement to the top two respiratory bands, capping an unsupported child at 2, while Phoenix multiplies every tier by a support flag, flooring an unsupported child at 0",
     );
-    expect(notes, "with the flag the SQL actually derives").toMatch(
-      /FiO₂ exceeds 0\.21 or the child is invasively ventilated/,
-    );
-    expect(notes, "and the structural difference, not just the outcome").toMatch(
-      /Phoenix multiplies every tier by a support flag, pSOFA attaches a support condition only to its top two bands/,
+    expect(notes, "and neither instrument may be bent towards the other").toContain(
+      "neither should be harmonised to the other",
     );
 
-    // THE HFNC FINDING. A child on high flow satisfies the broad support gate
-    // here and is recorded as not ventilated by both major registries, so a
-    // score read next to registry data is not comparing like with like.
-    expect(notes, "the high-flow divergence must be stated").toContain("HIGH-FLOW NASAL CANNULA");
-    expect(notes, "and it must name the registries that go the other way").toMatch(
-      /PICANet and ANZPIC both EXCLUDE high-flow nasal cannula/,
+    // The overlap is in the source; only the tie-break is ours. Dropping the
+    // first half invents a defect in this implementation; dropping the second
+    // credits the paper with resolving something it never addressed.
+    expect(notes, "the 264 overlap must stay attributed to the published table").toContain(
+      "The published S/F table prints 264 in two rows at once",
     );
-    // …and stop there. The magnitude is genuinely unknown, and an unqualified
-    // "this shifts scores" would be the kind of claim this file exists to catch.
-    expect(notes, "the unquantified part must stay marked unretrieved").toMatch(
-      /no cohort has quantified/,
+    expect(notes, "and the tie-break must stay this calculator's").toContain(
+      "this calculator resolves it to the worse subscore (2), per the worst-value rule",
     );
 
-    // Confirmed-absent, not unfound — a reader must not go hunting for bounds
-    // the paper never printed. This claim is about MATICS, and v1.4.0 must not
-    // have blurred it by adding outside comparators: the paper still publishes
-    // nothing, and the new material is explicitly about ranges published
-    // elsewhere for the same analytes.
-    expect(notes).toContain("confirmed absent from the paper, not merely unlocated");
-    expect(notes, "outside comparators must not be mistaken for the paper's own").toContain(
-      "THAT REMAINS TRUE OF THE PAPER",
-    );
-    // The three bounds that turned out to match a published range are named,
-    // because "some of our bounds are corroborated" is worth nothing unless a
-    // reader can see WHICH.
-    expect(notes, "the matching bounds must be named individually").toMatch(
-      /FiO₂ 0\.21–1\.00, SpO₂ 0–100, and GCS 3–15/,
-    );
-    // And the ones that differ keep ours, with the published alternative shown.
-    expect(notes, "the differing bounds must say ours is kept").toContain(
-      "NO BOUND ON THIS SCORE MOVED",
-    );
-    expect(notes, "and name what the published alternative is").toMatch(/MAP 10–150 against 1–300/);
-    // The age window is the one that is deliberately WIDER than a published
-    // figure, and the reason is not a guardrail preference — Phoenix's 216 is an
-    // eligibility ceiling for a different score. Importing it would refuse
-    // adolescents pSOFA was derived on, so the reason is pinned with the number.
-    expect(notes, "the age window must justify being wider, not just be wider").toMatch(
-      /that is Phoenix's eligibility domain, not a plausibility bound/,
-    );
-    // The registry comparator, named precisely enough to be found.
-    expect(notes, "PICANet must be cited by manual and version, not vaguely").toContain(
-      "PICANet Admission Dataset Definitions Manual v5.4 (November 2020)",
-    );
-    // Provenance limit: the numeric table came from the docs page, not from the
-    // machine-readable file, and the file must not be cited as if it had been.
-    expect(notes, "the unretrieved units file must stay disclosed as unretrieved").toMatch(
-      /could not be retrieved, so nothing here is cited to that file/,
-    );
-    // THE CONFIRMED NEGATIVE. Three registries publish nothing, which is what
-    // explains why two honest implementations of one score disagree on what
-    // they accept. Silence is the finding; it must not decay into an unfinished
-    // search that someone re-runs.
-    expect(notes, "the proprietary-registry negative must be stated as confirmed").toMatch(
-      /VPS, PC4 and PHIS publish NO public numeric plausibility or edit-check bounds — confirmed negative/,
+    // The neonatal caveat: the <1-month band computes, but neonates are not the
+    // population pSOFA was derived on, and the caveat has to point somewhere.
+    expect(notes, "the neonatal caveat must name the score derived for neonates").toContain(
+      "neonates were not the derivation population; nSOFA is the score derived for preterm very-low-birth-weight infants",
     );
 
-    // The overlap is in the source; only the tie-break is ours.
-    expect(notes).toContain("JAMA Pediatr Table 1 prints 264");
+    // Above 216 months the cut points are adult SOFA's — a real caveat, and one
+    // a reader would otherwise never suspect of a paediatric score. It is
+    // stated where the age bands are, in `formula`, so that is where it is
+    // pinned; the age field's help text carries it too (asserted below).
+    expect(formula, "the adult-cut-point caveat must stay stated with the age bands").toContain(
+      "above 216 months the MAP and creatinine cut points are adult SOFA’s",
+    );
 
-    // The ≤97% ceiling is sourced twice over; the neonatal caveat names nSOFA.
-    expect(notes).toContain("Khemani");
-    expect(notes).toContain("nSOFA");
-
-    // Above 216 months the cut points are adult SOFA's — a real caveat, stated.
-    expect(notes).toContain("216 months");
-
-    // Every source the prose leans on must resolve to a reference entry.
-    // Matics (the score), Khemani 2009 + 2012 (the ≤97% ceiling), Wynn & Polin
-    // (nSOFA). A citation named in notes but absent from `references` renders as
-    // an authority the reader cannot follow.
+    // Every source the published surfaces lean on must resolve to a reference
+    // entry: Matics (the score), Khemani 2009 + 2012 (the ≤97% ceiling, cited on
+    // the SpO₂ field), Wynn & Polin (nSOFA, named in the notes). A citation
+    // named in prose but absent from `references` renders as an authority the
+    // reader cannot follow.
     const refs = JSON.stringify(psofa.references);
     for (const pmid of ["28783810", "19029434", "22202709", "31394566"]) {
       expect(refs, `notes cite a source missing from references (PMID ${pmid})`).toContain(pmid);
@@ -911,13 +811,12 @@ describeScore(psofa, (ctx) => {
   /**
    * THE INPUT BOUNDS ARE PINNED AGAINST THE PUBLISHED TABLE THAT NOW EXISTS.
    *
-   * Until v1.4.0 every min/max here was labelled this platform's own invention,
-   * because Matics & Sanchez-Pinto publish none — which is still true of the
-   * paper. What changed is that published plausibility ranges for the SAME
-   * ANALYTES were found elsewhere (the Phoenix implementation notes' reasonable-
-   * value table; PICANet v5.4), so for the first time these windows can be
-   * checked against something. Three of them turned out to be identical to a
-   * published range.
+   * Every min/max here began as this platform's own invention, because Matics &
+   * Sanchez-Pinto publish none — which is still true of the paper. What changed
+   * is that published plausibility ranges for the SAME ANALYTES were found
+   * elsewhere (the Phoenix implementation notes' reasonable-value table;
+   * PICANet v5.4), so these windows can be checked against something. Three of
+   * them turned out to be identical to a published range.
    *
    * The risk that creates is the reason for this test, and it runs in the
    * opposite direction to the usual one. The usual failure is a bound drifting

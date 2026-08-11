@@ -914,64 +914,57 @@ describe("PRISM threshold rows", () => {
  * the Dubai study is PIM3's, and the two Gulf series evaluated PRISM III rather
  * than the PRISM IV model that produces this page's probability. Both of those
  * attributions are load-bearing and both are pinned here.
+ *
+ * 2026-08-10: the founder condensed `notes`, which took the figure-level
+ * narrative out of the prose — the second Gulf series, the Dubai probability
+ * strata and the sepsis subgroup are no longer stated there, and the tests that
+ * pinned those numbers went with them. The ATTRIBUTIONS survived the rewrite
+ * and still carry the whole weight, so they are what these tests now assert:
+ * the Riyadh series evaluated PRISM III and not the PRISM IV model behind this
+ * page's probability, the Dubai figures are PIM3's wherever they are stated,
+ * and the conclusion that calibration does not travel is drawn rather than
+ * left to the reader.
  */
 describe("prism states its regional calibration at the right strength", () => {
   const notes = prism.notes.en;
 
-  it("carries both Gulf findings, including the half that contradicts the other", () => {
-    // An SMR of 0.53 alone reads as "conservative, therefore safe". The 2.1 in
-    // the sepsis subgroup is the number that makes it false, so neither may
-    // survive without the other.
-    expect(notes).toContain("3396");
-    expect(notes).toContain("0.87");
-    expect(notes).toMatch(/infants under 12 months/);
-    expect(notes).toContain("0.53");
-    expect(notes).toContain("2.1");
-    expect(notes).toMatch(/sepsis/);
-  });
-
-  /**
-   * Round-3 verification (2026-08-04). v2.2.0 read the Dubai study's SMR 2.67 in
-   * the 1-5% predicted-probability band as evidence that the low end of the
-   * scale is where the model is most wrong. The SAME paper reports SMR 0.33
-   * below a 14.3% predicted probability against 0.72 above it — over-prediction
-   * across that same low range. Carrying one cut and not the other manufactured
-   * a finding out of a subgroup instability, so both are pinned: dropping
-   * either one is the defect returning.
-   */
-  it("carries both of the Dubai study's contradictory probability strata", () => {
-    expect(notes, "the fine-grained cut").toContain("2.67");
-    expect(notes, "the fine-grained cut").toContain("1-5%");
-    expect(notes, "the coarse cut that reverses it").toContain("14.3%");
-    expect(notes, "the coarse cut that reverses it").toContain("0.33");
-    expect(notes, "the coarse cut that reverses it").toContain("0.72");
-  });
-
   it("draws the conclusion instead of leaving the reader to assemble it", () => {
-    expect(notes).toMatch(/discrimination travels between populations/);
-    expect(notes).toMatch(/calibration frequently does not/);
-    // The conclusion may name sepsis, which the paper does not contradict. It
-    // may NOT name the low-probability band, which the paper does.
-    expect(notes, "the finding that survives is the sepsis one").toMatch(
-      /survives its own paper is the one in sepsis/,
-    );
-    expect(notes, "no direction may be asserted for the low end").toMatch(
-      /NEITHER SERIES SUPPORTS IS A CLAIM ABOUT THE LOW END/,
-    );
+    // An SMR list on its own reads as a validation exercise. The sentence that
+    // separates the two halves is what stops it: the discrimination transfers
+    // and the calibration does not. Drop either clause and the figures above it
+    // invite the opposite of the finding.
+    expect(notes, "the half that travels").toMatch(/[Dd]iscrimination travels between populations/);
+    expect(notes, "the half that does not").toMatch(/calibration frequently does not/);
   });
 
   it("labels the Dubai figures as a PIM3 finding, not a PRISM one", () => {
-    expect(notes).toMatch(/is a PIM3 finding and not a PRISM one/);
     const dubai = prism.references.find((r) => r.citation.includes("Dubai Med J"));
-    expect(dubai, "a figure stated in notes must resolve to a reference").toBeDefined();
-    expect(dubai?.note).toMatch(/A PIM3 evaluation, not a PRISM one/);
+    expect(
+      dubai,
+      "a figure stated anywhere on this score must resolve to a reference",
+    ).toBeDefined();
+    expect(
+      dubai?.note,
+      "the reference holding the Dubai figures must say whose model they are",
+    ).toMatch(/A PIM3 evaluation, not a PRISM one/);
+    // The condensed notes drop the Dubai figures altogether, which is the
+    // safest place for them to be. If any of them return to the prose, the PIM3
+    // attribution has to return with them — an SMR of 0.53 or 2.67 read as
+    // PRISM's is exactly the misattribution this guard exists for.
+    if (/SMR 0\.53|2\.67|14\.3%|Dubai/.test(notes)) {
+      expect(notes, "a Dubai figure in the notes must carry its PIM3 label").toMatch(/PIM3/);
+    }
   });
 
   it("claims no regional evaluation of PRISM IV, which is what it shows", () => {
     // Both series evaluated PRISM III. The probability on this page is PRISM
     // IV's, and reading regional validation into it would be the error.
-    expect(notes).toMatch(/They evaluated PRISM III, not PRISM IV/);
-    expect(notes).toMatch(/uncalibrated population estimate/);
+    expect(notes, "the evaluations are PRISM III's").toMatch(/PRISM III, not PRISM IV/);
+    // So the probability this page does show has to be named as uncalibrated
+    // rather than left to inherit the Gulf AUC as though it had been validated.
+    expect(notes, "the probability itself must be called uncalibrated").toMatch(
+      /mortality probability as uncalibrated for this region/,
+    );
     const riyadh = prism.references.find((r) => r.citation.includes("Front Pediatr. 2022"));
     expect(riyadh?.note).toMatch(/It evaluated PRISM III, not PRISM IV/);
   });
@@ -1000,9 +993,12 @@ describe("prism states its regional calibration at the right strength", () => {
     expect(prism.derived?.caution?.en).toMatch(/UN-CALIBRATED FOR THIS POPULATION/);
     expect(prism.derived?.caution?.en).toMatch(/2\.61/);
     expect(prism.derived?.caution?.en).toMatch(/AUC 0\.81/);
-    // The score-level caution survives and still points at the number.
+    // The score-level caution survives and still points at the number: it names
+    // the mortality probability as the thing that is uncalibrated. Without that
+    // it would caution the score, which discriminated fine, and say nothing
+    // about the figure the finding is actually about.
     expect(prism.cautions?.length).toBeGreaterThan(0);
-    expect(prism.cautions?.[0]?.en).toMatch(/beneath the PRISM IV estimate/);
+    expect(prism.cautions?.[0]?.en).toMatch(/mortality probability as uncalibrated/);
   });
 
   /**
@@ -1045,7 +1041,7 @@ describe("prism states its regional calibration at the right strength", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.8.1");
+    expect(prism.version).toBe("1.0.0");
   });
 
   /**
