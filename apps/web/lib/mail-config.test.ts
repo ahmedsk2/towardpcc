@@ -190,7 +190,7 @@ describe("credential-touching admin actions are OWNER-only", () => {
   // the third time a source-scanning guard in this repo has been tripped by
   // English rather than by a defect.
   const source = readFileSync(
-    new URL("../app/admin/(protected)/mail-actions.ts", import.meta.url),
+    new URL("../app/(site)/admin/(protected)/mail-actions.ts", import.meta.url),
     "utf8",
   )
     .replace(/\/\*[\s\S]*?\*\//g, " ")

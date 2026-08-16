@@ -11,7 +11,10 @@ import { describe, expect, it } from "vitest";
  * invariant the threat model asked to "start now"; the Playwright zero-network
  * compute assertion is the runtime half (P3 e2e).
  */
-const CALC_DIR = join(__dirname, "..", "app", "calculators");
+// `(site)` is a route group: it changes no URL, but it does change this
+// path. TM-001 scans the calculator sources, so it has to follow them or it
+// silently scans nothing.
+const CALC_DIR = join(__dirname, "..", "app", "(site)", "calculators");
 const CALC_COMPONENTS = join(__dirname, "..", "components", "calculator");
 
 function collectTs(dir: string): string[] {

@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+// `/` is the bare pre-launch holding page and carries no navigation at all,
+// so the mega-menu is exercised on a page that has the chrome.
+
 /**
  * The calculators mega-menu must stay inside the viewport.
  *
@@ -24,7 +27,7 @@ test.describe("calculators mega-menu stays on screen", () => {
   for (const width of DESKTOP_WIDTHS) {
     test(`fits the viewport at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto("/");
+      await page.goto("/home");
 
       await page.getByRole("button", { name: /calculators/i }).click();
       const panel = page.locator("#mega-calculators");
@@ -48,7 +51,7 @@ test.describe("calculators mega-menu stays on screen", () => {
     // be clipped, or push the document wider. Both are wrong and only one is
     // visible in a screenshot.
     await page.setViewportSize({ width: 1024, height: 900 });
-    await page.goto("/");
+    await page.goto("/home");
     await page.getByRole("button", { name: /calculators/i }).click();
     await expect(page.locator("#mega-calculators")).toBeVisible();
 
@@ -62,7 +65,7 @@ test.describe("calculators mega-menu stays on screen", () => {
     // The real user harm was not geometry — it was that half the catalogue
     // could not be clicked. Asserted directly rather than inferred from the box.
     await page.setViewportSize({ width: 1024, height: 900 });
-    await page.goto("/");
+    await page.goto("/home");
     await page.getByRole("button", { name: /calculators/i }).click();
     await expect(page.locator("#mega-calculators")).toBeVisible();
 

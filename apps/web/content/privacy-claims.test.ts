@@ -107,7 +107,7 @@ describe("privacy copy matches what the site actually does", () => {
   it("makes no absolute residency claim while data still leaves the Kingdom", () => {
     const sources = [
       JSON.stringify(site.dataProtection),
-      readFileSync(join(__dirname, "..", "app", "trust", "page.tsx"), "utf8"),
+      readFileSync(join(__dirname, "..", "app", "(site)", "trust", "page.tsx"), "utf8"),
     ].join(" ");
 
     const absolutes = [
@@ -126,7 +126,7 @@ describe("privacy copy matches what the site actually does", () => {
   it("discloses that the operator notification is relayed outside the Kingdom", () => {
     // The disclosure ADR-0004 decision 5 requires. Asserted positively so that
     // deleting it fails, rather than relying on nobody noticing it is gone.
-    const trust = readFileSync(join(__dirname, "..", "app", "trust", "page.tsx"), "utf8");
+    const trust = readFileSync(join(__dirname, "..", "app", "(site)", "trust", "page.tsx"), "utf8");
     expect(
       /relay outside the Kingdom|relayed outside the Kingdom/i.test(trust),
       "/trust no longer discloses that the operator notification leaves KSA — required by ADR-0004 decision 5",
