@@ -60,7 +60,7 @@ describe("public figures match the registry", () => {
   it("home pillar cards: the typed figures match the registry", () => {
     // The home page is parked at app/home while `/` serves the holding page.
     const src = readFileSync(
-      fileURLToPath(new URL("../app/home/page.tsx", import.meta.url)),
+      fileURLToPath(new URL("../app/(site)/home/page.tsx", import.meta.url)),
       "utf8",
     );
 

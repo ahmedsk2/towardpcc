@@ -271,51 +271,20 @@ export const site = {
   },
 
   /**
-   * The pre-launch holding page.
+   * The pre-launch holding page served at `/`.
    *
-   * It states what exists rather than promising what will. That is not modesty:
-   * this site's whole pitch to a PICU consultant is that every claim is
-   * checkable, and a holding page full of adjectives would be the first
-   * uncheckable thing on it. The calculator count is a token, resolved from the
-   * registry, so the page cannot go stale the way the About page did.
+   * DELIBERATELY SAYS ALMOST NOTHING. No navigation, no figures, no claims
+   * about the platform, no contact. A site under construction that describes
+   * itself in detail is not under construction. Who it is for, and that it is
+   * coming: that is the whole brief.
    */
   comingSoon: {
-    /**
-     * The FULL title, not a fragment. `title.template` in the root layout
-     * appends the site name to nested routes, but Next does not apply it to the
-     * root page that shares that layout, so `/` would otherwise read a bare
-     * "Opening soon" in the tab, the search result and every shared link.
-     */
-    metaTitle: "TowardPCC · pediatric critical care calculators, opening soon",
-    eyebrow: "Opening soon",
-    heading: "Paediatric critical care calculators, built to be checked",
-    lede: "{liveCalculators} referenced calculators for the PICU. Every threshold cites the paper it came from, every number is computed on your own device, and nothing here is called validated until a clinician outside this project has said so.",
-    stateHeading: "Where it stands today",
-    state: [
-      {
-        label: "Built and referenced",
-        value: "{liveCalculators} calculators",
-        detail:
-          "Each carries its source, its version, and a worked example checked against the paper it was taken from.",
-      },
-      {
-        label: "Independent clinical validation",
-        value: "Not yet complete",
-        detail:
-          "No calculator is described as validated before a named reviewer signs it off. The register is public and says plainly how many are still outstanding.",
-      },
-      {
-        label: "What leaves your device",
-        value: "Nothing you enter",
-        detail:
-          "Calculations run in your browser. No value you type is transmitted or stored, on this page or any other.",
-      },
-    ],
-    registerLink: "See the validation register",
-    ctaHeading: "Would you check these against your own sources?",
-    ctaBody:
-      "This opens once clinicians outside the project have reviewed the numbers. If that is work you would take on, or you would rather just be told when it opens, write to us.",
-    ctaLabel: "Get in touch",
+    metaTitle: "TowardPCC · coming soon",
+    metaDescription:
+      "A dedicated portal for pediatric critical care intensivists and trainees. Currently being built.",
+    eyebrow: "Coming soon",
+    heading: "TowardPCC",
+    lede: "A dedicated portal for pediatric critical care intensivists and trainees, currently being built.",
   },
 
   pillars: {

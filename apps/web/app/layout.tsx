@@ -2,11 +2,6 @@ import { FRAGMENT_LIFT_SCRIPT } from "@/lib/fragment-lift";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { SiteHeader } from "@/components/nav/site-header";
-import { BackToTop } from "@/components/nav/back-to-top";
-import { SiteFooter } from "@/components/site-footer";
-import { ServiceWorker } from "@/components/pwa/service-worker";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { site } from "@/content/site";
 import { SITE_URL } from "@/lib/site-url";
 import { graph, organizationSchema, webSiteSchema } from "@/lib/structured-data";
@@ -192,23 +187,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               silently ignored and the rule would stay at zero width forever. */}
           <style>{`[data-reveal]{opacity:1 !important;transform:none !important}[data-rule]{scale:1 1 !important}`}</style>
         </noscript>
-        <a
-          href="#content"
-          className="sr-only rounded-sm bg-surface-raised px-4 py-2 font-medium text-accent-deep focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        >
-          {site.nav.skipToContent}
-        </a>
-        <ServiceWorker />
-        <SiteHeader />
-        <main id="content" tabIndex={-1} className="flex-1">
-          {children}
-        </main>
-        <SiteFooter />
-        <BackToTop />
-        {/* Last in the body: it is fixed-position, phone-only, and renders
-            nothing at all on the server or on any device that is already
-            installed, so it costs nothing where it does not apply. */}
-        <InstallPrompt />
+        {/* CHROME LIVES IN `app/(site)/layout.tsx`, NOT HERE.
+            `/` is a bare pre-launch holding page with no navigation, and a root
+            layout that renders a header cannot be told to skip one route: App
+            Router layouts cannot read the pathname, and reading it from a
+            header would make every page dynamic. So the header, footer, skip
+            link and PWA helpers moved down one level into a route group, which
+            changes no URL. */}
+        {children}
       </body>
     </html>
   );

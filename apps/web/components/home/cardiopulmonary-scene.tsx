@@ -106,7 +106,26 @@ const INK = {
   pleura: "color-mix(in oklab, var(--color-peach), white 12%)",
 } as const;
 
-export function CardiopulmonaryScene({ className }: { className?: string }) {
+export function CardiopulmonaryScene({
+  className,
+  /**
+   * Show the physiology readout beside the mesh. Defaults to true, so the home
+   * page is unchanged.
+   *
+   * The pre-launch holding page turns it OFF. That page is deliberately almost
+   * wordless and says nothing about what the platform does, and a live strip of
+   * respiratory rate, I:E ratio, heart rate and RSA is exactly the detail it is
+   * meant to withhold. The mesh stays: it is the picture, this is commentary.
+   *
+   * The `sr-only` figcaption is NOT covered by this flag. It is invisible, and
+   * it is the only thing a screen reader gets from an aria-hidden mesh, so
+   * dropping it would leave the figure meaningless rather than quiet.
+   */
+  vitals = true,
+}: {
+  className?: string;
+  vitals?: boolean;
+}) {
   return (
     <figure className={className}>
       {/* The hover target wraps BOTH the mesh and the labels, so pointing
@@ -205,75 +224,77 @@ export function CardiopulmonaryScene({ className }: { className?: string }) {
           default state stays evocative and the labels do not compete with the
           headline on first paint. Off below the narrow breakpoint, where a
           cramped label is worse than none. */}
-        <ul className="cps-labels">
-          <li className="cps-label cps-label-rr">
-            <span className="cps-key">RR</span>
-            <span className="cps-val">{VITALS.respiratoryRate}</span>
-            <span className="cps-unit">/min</span>
-            {/* Capnography, from the breath curve itself. Square-shouldered
-                because a real trace is: near zero through inspiration, a steep
-                upstroke into the alveolar plateau, then a cliff at the next
-                breath. A smooth sine here would be recognisably wrong to
-                anyone who reads one at a bedside. */}
-            <svg
-              className="cps-trace"
-              viewBox={`0 0 ${capno.viewWidth} ${capno.height}`}
-              aria-hidden="true"
-              style={{ "--period": `${capno.periodMs}ms` } as CSSProperties}
-            >
-              <path d={capno.d} />
-            </svg>
-          </li>
-          <li className="cps-label cps-label-ie">
-            <span className="cps-key">I:E</span>
-            <span className="cps-val">{ie}</span>
-          </li>
-          <li className="cps-label cps-label-hr">
-            <span className="cps-key">HR</span>
-            <span className="cps-val">{VITALS.heartRate}</span>
-            <span className="cps-unit">bpm</span>
-            {/* The arterial pulse, from the same perfusion curve that drives
-                the brightness crossing the chambers, so the trace peaks
-                exactly when the figure does. The dicrotic notch sits on the
-                downstroke; without it this reads as a sine, not a pulse. */}
-            <svg
-              className="cps-trace"
-              viewBox={`0 0 ${pulse.viewWidth} ${pulse.height}`}
-              aria-hidden="true"
-              style={{ "--period": `${pulse.periodMs}ms` } as CSSProperties}
-            >
-              <path d={pulse.d} />
-            </svg>
-          </li>
-          {/* THE SIGNATURE OF THE WHOLE PIECE, and it used to be a sentence.
-            "Heart rate rises on inspiration" was the one thing in this figure
-            that asked to be believed rather than seen — a caption explaining a
-            coupling the picture was already running but never showed.
-            Now it is drawn: the breath as a swell along the bottom, the
-            instantaneous rate above it as one measured point per beat. They
-            rise and fall together. Nothing is claimed that is not on screen. */}
-          <li className="cps-label cps-label-rsa">
-            <span className="cps-key">RSA</span>
-            <span className="cps-val">±{rsaPercent}%</span>
-            {/* The sentence did not go away — it moved to the accessible route.
-                The strip is aria-hidden, so without this a screen-reader user
-                would lose the coupling entirely, which is the opposite of the
-                trade this change was making. */}
-            <span className="sr-only">{site.home.heroSceneCoupling}</span>
-            <svg
-              className="cps-strip"
-              viewBox={`0 0 ${rsa.viewWidth} ${rsa.height}`}
-              aria-hidden="true"
-              style={{ "--period": `${rsa.periodMs}ms` } as CSSProperties}
-            >
-              <g className="cps-strip-scroll">
-                <path className="cps-strip-breath" d={rsa.breath} />
-                <path className="cps-strip-rate" d={rsa.rate} />
-                <path className="cps-strip-beats" d={rsa.beats} />
-              </g>
-            </svg>
-          </li>
-        </ul>
+        {vitals ? (
+          <ul className="cps-labels">
+            <li className="cps-label cps-label-rr">
+              <span className="cps-key">RR</span>
+              <span className="cps-val">{VITALS.respiratoryRate}</span>
+              <span className="cps-unit">/min</span>
+              {/* Capnography, from the breath curve itself. Square-shouldered
+                  because a real trace is: near zero through inspiration, a steep
+                  upstroke into the alveolar plateau, then a cliff at the next
+                  breath. A smooth sine here would be recognisably wrong to
+                  anyone who reads one at a bedside. */}
+              <svg
+                className="cps-trace"
+                viewBox={`0 0 ${capno.viewWidth} ${capno.height}`}
+                aria-hidden="true"
+                style={{ "--period": `${capno.periodMs}ms` } as CSSProperties}
+              >
+                <path d={capno.d} />
+              </svg>
+            </li>
+            <li className="cps-label cps-label-ie">
+              <span className="cps-key">I:E</span>
+              <span className="cps-val">{ie}</span>
+            </li>
+            <li className="cps-label cps-label-hr">
+              <span className="cps-key">HR</span>
+              <span className="cps-val">{VITALS.heartRate}</span>
+              <span className="cps-unit">bpm</span>
+              {/* The arterial pulse, from the same perfusion curve that drives
+                  the brightness crossing the chambers, so the trace peaks
+                  exactly when the figure does. The dicrotic notch sits on the
+                  downstroke; without it this reads as a sine, not a pulse. */}
+              <svg
+                className="cps-trace"
+                viewBox={`0 0 ${pulse.viewWidth} ${pulse.height}`}
+                aria-hidden="true"
+                style={{ "--period": `${pulse.periodMs}ms` } as CSSProperties}
+              >
+                <path d={pulse.d} />
+              </svg>
+            </li>
+            {/* THE SIGNATURE OF THE WHOLE PIECE, and it used to be a sentence.
+              "Heart rate rises on inspiration" was the one thing in this figure
+              that asked to be believed rather than seen — a caption explaining a
+              coupling the picture was already running but never showed.
+              Now it is drawn: the breath as a swell along the bottom, the
+              instantaneous rate above it as one measured point per beat. They
+              rise and fall together. Nothing is claimed that is not on screen. */}
+            <li className="cps-label cps-label-rsa">
+              <span className="cps-key">RSA</span>
+              <span className="cps-val">±{rsaPercent}%</span>
+              {/* The sentence did not go away — it moved to the accessible route.
+                  The strip is aria-hidden, so without this a screen-reader user
+                  would lose the coupling entirely, which is the opposite of the
+                  trade this change was making. */}
+              <span className="sr-only">{site.home.heroSceneCoupling}</span>
+              <svg
+                className="cps-strip"
+                viewBox={`0 0 ${rsa.viewWidth} ${rsa.height}`}
+                aria-hidden="true"
+                style={{ "--period": `${rsa.periodMs}ms` } as CSSProperties}
+              >
+                <g className="cps-strip-scroll">
+                  <path className="cps-strip-breath" d={rsa.breath} />
+                  <path className="cps-strip-rate" d={rsa.rate} />
+                  <path className="cps-strip-beats" d={rsa.beats} />
+                </g>
+              </svg>
+            </li>
+          </ul>
+        ) : null}
       </div>
 
       {/* The accessible route to the same information. The mesh is aria-hidden
