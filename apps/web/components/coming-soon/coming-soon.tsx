@@ -5,15 +5,6 @@ import { withCounts } from "@/lib/published-counts";
 
 const c = site.comingSoon;
 
-export const metadata = {
-  title: c.eyebrow,
-  description: withCounts(c.lede),
-  // NOINDEX while the real site is live and indexed. A holding page competing
-  // with the pages it is holding for is worse than no holding page. Flip this
-  // the day it becomes the front door.
-  robots: { index: false, follow: false },
-};
-
 /**
  * The pre-launch holding page.
  *
@@ -31,7 +22,7 @@ export const metadata = {
  * the same organs: its anatomy carries its own test suite, and a decorative
  * copy would be the one heart on this site nobody had checked.
  */
-export default function ComingSoonPage() {
+export function ComingSoon() {
   return (
     <>
       <section className="relative overflow-hidden bg-gradient-hero text-ink-on-dark">

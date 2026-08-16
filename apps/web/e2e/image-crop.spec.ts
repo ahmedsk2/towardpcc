@@ -34,7 +34,11 @@ import { expect, test, type Page } from "@playwright/test";
  * arrives. Dropping the page entirely would have removed both.
  */
 const PAGES = [
-  { path: "/" },
+  // `/` serves the pre-launch holding page, whose only figure is the
+  // server-rendered cardiopulmonary mesh: no photography to crop. The home
+  // page's images moved to /home with it.
+  { path: "/", imageless: true },
+  { path: "/home" },
   { path: "/about" },
   { path: "/knowledge" },
   { path: "/data", imageless: true },

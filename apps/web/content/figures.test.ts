@@ -58,7 +58,11 @@ describe("public figures match the registry", () => {
    * so the text is exactly what a reader sees.
    */
   it("home pillar cards: the typed figures match the registry", () => {
-    const src = readFileSync(fileURLToPath(new URL("../app/page.tsx", import.meta.url)), "utf8");
+    // The home page is parked at app/home while `/` serves the holding page.
+    const src = readFileSync(
+      fileURLToPath(new URL("../app/home/page.tsx", import.meta.url)),
+      "utf8",
+    );
 
     const scores = src.match(/\{ label: "Scores", value: "(\d+)" \}/);
     expect(scores, "the calculators pillar should still carry a score count").not.toBeNull();

@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+// The real home page is parked at /home while `/` serves the pre-launch
+// holding page. This spec tests home-page content, so it follows the content.
+
 /**
  * The hero figure.
  *
@@ -26,7 +29,7 @@ import { expect, test } from "@playwright/test";
  */
 test.describe("hero figure", () => {
   test("loops every bedside trace seamlessly", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/home");
     await page.waitForLoadState("load");
 
     /**
@@ -88,7 +91,7 @@ test.describe("hero figure", () => {
   });
 
   test("renders the cardiopulmonary mesh, shaded by depth", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/home");
     await page.waitForLoadState("load");
 
     const scene = await page.evaluate(() => {
@@ -163,7 +166,7 @@ test.describe("hero figure", () => {
   });
 
   test("lays the scene out proportionally, with nothing escaping the frame", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/home");
     await page.waitForLoadState("load");
 
     // Positions are percentages and depths are container units, so the figure
@@ -193,7 +196,7 @@ test.describe("hero figure", () => {
   });
 
   test("the figure carries an accessible description", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/home");
     await page.waitForLoadState("load");
 
     // The 3D construction is aria-hidden on purpose: its reading order is a
@@ -210,7 +213,7 @@ test.describe("hero figure", () => {
     const ctx = await browser.newContext({ reducedMotion: "reduce" });
     try {
       const page = await ctx.newPage();
-      await page.goto("/");
+      await page.goto("/home");
       await page.waitForLoadState("load");
 
       const before = await page.evaluate(() => {
@@ -267,7 +270,7 @@ test.describe("hero figure", () => {
     page.on("response", (r) => {
       if (r.request().resourceType() === "script") scripts.push(r.url());
     });
-    await page.goto("/");
+    await page.goto("/home");
     await page.waitForLoadState("networkidle");
 
     const bodies = await Promise.all(

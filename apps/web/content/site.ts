@@ -280,6 +280,13 @@ export const site = {
    * registry, so the page cannot go stale the way the About page did.
    */
   comingSoon: {
+    /**
+     * The FULL title, not a fragment. `title.template` in the root layout
+     * appends the site name to nested routes, but Next does not apply it to the
+     * root page that shares that layout, so `/` would otherwise read a bare
+     * "Opening soon" in the tab, the search result and every shared link.
+     */
+    metaTitle: "TowardPCC · pediatric critical care calculators, opening soon",
     eyebrow: "Opening soon",
     heading: "Paediatric critical care calculators, built to be checked",
     lede: "{liveCalculators} referenced calculators for the PICU. Every threshold cites the paper it came from, every number is computed on your own device, and nothing here is called validated until a clinician outside this project has said so.",

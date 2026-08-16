@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+// The real home page is parked at /home while `/` serves the pre-launch
+// holding page. This spec tests home-page content, so it follows the content.
+
 /**
  * The evidence rail is the site's testimonial-killer — the section that says
  * "we don't have testimonials, we have the literature" — so it is worth it
@@ -15,7 +18,7 @@ import { expect, test } from "@playwright/test";
 test.describe("evidence rail", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto("/");
+    await page.goto("/home");
     // `networkidle`, not just `load`. The service worker registers on load and
     // then reloads the page to take control; interacting before that reload
     // means the click scrolls the rail, the reload resets it to the start, and
