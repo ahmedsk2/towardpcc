@@ -270,6 +270,47 @@ export const site = {
     },
   },
 
+  /**
+   * The pre-launch holding page.
+   *
+   * It states what exists rather than promising what will. That is not modesty:
+   * this site's whole pitch to a PICU consultant is that every claim is
+   * checkable, and a holding page full of adjectives would be the first
+   * uncheckable thing on it. The calculator count is a token, resolved from the
+   * registry, so the page cannot go stale the way the About page did.
+   */
+  comingSoon: {
+    eyebrow: "Opening soon",
+    heading: "Paediatric critical care calculators, built to be checked",
+    lede: "{liveCalculators} referenced calculators for the PICU. Every threshold cites the paper it came from, every number is computed on your own device, and nothing here is called validated until a clinician outside this project has said so.",
+    stateHeading: "Where it stands today",
+    state: [
+      {
+        label: "Built and referenced",
+        value: "{liveCalculators} calculators",
+        detail:
+          "Each carries its source, its version, and a worked example checked against the paper it was taken from.",
+      },
+      {
+        label: "Independent clinical validation",
+        value: "Not yet complete",
+        detail:
+          "No calculator is described as validated before a named reviewer signs it off. The register is public and says plainly how many are still outstanding.",
+      },
+      {
+        label: "What leaves your device",
+        value: "Nothing you enter",
+        detail:
+          "Calculations run in your browser. No value you type is transmitted or stored, on this page or any other.",
+      },
+    ],
+    registerLink: "See the validation register",
+    ctaHeading: "Would you check these against your own sources?",
+    ctaBody:
+      "This opens once clinicians outside the project have reviewed the numbers. If that is work you would take on, or you would rather just be told when it opens, write to us.",
+    ctaLabel: "Get in touch",
+  },
+
   pillars: {
     calculators: {
       title: "Calculators",
