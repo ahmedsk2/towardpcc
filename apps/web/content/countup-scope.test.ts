@@ -24,7 +24,11 @@ import { describe, expect, it } from "vitest";
 const ROOTS = [join(__dirname, "..", "app"), join(__dirname, "..", "components")];
 
 /** The home counter band, and the component itself. Nothing else. */
-const ALLOWED = ["app/page.tsx", "components/home/counter.tsx"];
+// `app/home/page.tsx`, not `app/page.tsx`: the home counter band moved when
+// `/` was given over to the pre-launch holding page. The RULE is unchanged
+// and still positional, so restoring the home page to `/` must move this
+// entry back rather than widen it.
+const ALLOWED = ["app/home/page.tsx", "components/home/counter.tsx"];
 
 const IMPORTS_COUNTER =
   /from\s+["'](?:@\/components\/home\/counter|\.\/counter|\.\.\/home\/counter)["']/;
@@ -60,7 +64,7 @@ describe("count-up scope", () => {
   it("still has a home counter band to animate", () => {
     // Guards the guard: if Counter were deleted outright this test would pass
     // vacuously while the home band silently lost its animation.
-    const home = readFileSync(join(__dirname, "..", "app", "page.tsx"), "utf8");
+    const home = readFileSync(join(__dirname, "..", "app", "home", "page.tsx"), "utf8");
     expect(IMPORTS_COUNTER.test(home)).toBe(true);
   });
 });

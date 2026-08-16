@@ -115,7 +115,7 @@ test("public assets are served (service worker, icons, images)", async ({ reques
 
 test("home counters animate to their real values", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/");
+  await page.goto("/home");
 
   // Wait for hydration before touching the DOM. Without this the scroll raced
   // React and failed with "element is not attached to the DOM": the locator
@@ -147,7 +147,7 @@ test("home counters animate to their real values", async ({ page }) => {
 test("reduced motion still shows the final counter values", async ({ browser }) => {
   const context = await browser.newContext({ reducedMotion: "reduce" });
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/home");
   // Hydration first: the counter is a client component, and under reduced
   // motion it renders its final value on mount. Asserting before that resolved
   // against the server HTML, where the only 64,388 on the page belongs to a

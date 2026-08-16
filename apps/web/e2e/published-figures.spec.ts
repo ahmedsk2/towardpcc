@@ -18,8 +18,9 @@ import { expect, test } from "@playwright/test";
 const isDigits = /^\d+$/;
 
 test.describe("published figures in the served document", () => {
-  test("the homepage counters carry real numbers, not zero", async ({ request }) => {
-    const html = await (await request.get("/")).text();
+  // The counters live on the parked home page while `/` is the holding page.
+  test("the home page counters carry real numbers, not zero", async ({ request }) => {
+    const html = await (await request.get("/home")).text();
     const text = html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<[^>]+>/g, " ");
 
     for (const label of ["Referenced calculators", "calculators, live today"]) {
