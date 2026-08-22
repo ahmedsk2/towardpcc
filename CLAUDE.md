@@ -82,6 +82,13 @@ batch is never scoped down. `pnpm gate --full` forces the lot, `pnpm gate
 fast-path on doubt; the fast path is the shortcut this gate was written to
 prevent, and it is only safe because it is bounded to a file type proven inert.
 
+**The opposite waste is real too: reaching for `--full` by reflex.** On a
+markdown-only change the full gate spends about three minutes — typecheck 48s,
+lint 38s, tests 18s, build 55s, measured 2026-08-17 — to check something no
+markdown file can affect. Plain `pnpm gate` decides for itself and is the
+default; `--full` is for when you want to override that decision, not for
+every run.
+
 Four traps it exists to remove:
 
 - **`pnpm test` does not typecheck.** Vitest never has. Running tests and lint
@@ -118,6 +125,42 @@ other. That is not the interesting part. Run it as `npx playwright test > log
 run that executed **nothing at all** reports **0**. Same shape as the
 `pnpm gate | tail` trap above. Read the line count or the `N passed` line, never
 the exit code alone.
+
+**A bash heredoc mangles regexes and paths, and the error names the wrong
+thing.** Writing a Python or Node script inline via `<<'PY'` collides with shell
+and language parsing often enough to be a tax: an escaped `\.` arrives as a bare
+`\.` and blows up the character class, a Windows `$TEMP` lands inside a string
+as an invalid `\U` escape, and a backtick opens a subshell. Every one fails with
+a syntax error pointing at a line you did not write. Five of them in one session
+on 2026-08-17 — including, twice, while writing this very paragraph.
+
+**Write the script to a file and run the file.** The scratchpad directory exists
+for exactly this, costs one extra command, and makes escaping the language's
+problem instead of the shell's.
+
+Same discipline for editing source: derive line boundaries from CONTENT, never
+from remembered line numbers. Hardcoded indices broke a JSX wrap twice on
+2026-08-17 — searching for the opening tag and matching its indent worked first
+try.
+
+**`pkill` DOES NOT KILL A NODE SERVER ON THIS MACHINE, and says nothing.** It
+exits cleanly and leaves the process listening, so the next thing you measure is
+the OLD build. This cost three wrong readings on 2026-08-17: two dev-server
+diagnoses against a stale process, and one FULL e2e run reporting 25 failures
+including `/admin` returning 500 — none real, all a server on port 3000 serving
+code from before the change. A stale server is worse than a crashed one, because
+a crash is visible and this is not.
+
+Kill by port, then confirm the port is dead before believing anything:
+
+```bash
+for pid in $(powershell.exe -NoProfile -Command "(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue).OwningProcess" | tr -d '\r'); do taskkill //PID "$pid" //F; done
+curl -sS -o /dev/null -w '%{http_code}\n' --max-time 4 http://localhost:3000/
+```
+
+`000` means dead. Then check the new server bound the port it was ASKED for:
+Next silently falls back to 3001 and Playwright falls back to a stale 3100 with
+`EADDRINUSE`, and in both cases the run continues against the wrong thing.
 
 This was written on 2026-08-08 as a fact about Playwright, and on 2026-08-09
 the identical failure arrived from `npx vitest` while probing a score — so the
@@ -245,11 +288,29 @@ build`. Measured twice on 2026-08-08: six merges queued four deployments, and
   mistake there fakes a green canary). **Markdown anywhere and comment-only edits
   batch into one PR per session.** Four markdown-only PRs landed between
   2026-08-04 and 2026-08-07 that should have been one.
+- **Scale the verification to the change, and say what you skipped.** The
+  expensive habits here earn their keep and should not be dropped by default: a
+  before/after diff of generated CSS caught three classes silently lost to a
+  narrowed Tailwind glob, a mutation test proved a re-pointed TM-001 was still
+  scanning something rather than passing on an empty directory, and a guard
+  caught the PRISM calibration figures being moved away from where the founder
+  had put them. None of that was free. On 2026-08-17 one session ran the full
+  gate about twelve times and the full e2e six, roughly an hour of wall clock,
+  and a measurable slice bought nothing — four gate runs died on `format:check`
+  alone and three readings came off stale servers. **When a change plainly does
+  not warrant a full adversarial pass, do the cheap checks, say plainly which
+  ones you ran and which you skipped, and let the founder ask for more.** State
+  the omission; never let a light pass read as a thorough one.
 - **Run the fixers before the gate**, not after it fails. `pnpm lint --fix` and
   `pnpm format` — or just commit and let husky's `lint-staged` do it. Three of
   eight gate runs in one session died on an unused `eslint-disable` and prettier
   on two markdown files, each costing a full build to discover a nit that
-  auto-fixes.
+  auto-fixes. **Re-measured 2026-08-17 and it had got worse, not better: at
+  least four of roughly twelve gate runs in one session failed on
+  `format:check` ALONE.** This rule was already written here and was read and
+  not followed, so treat it as mechanical rather than advisory — the two fixers
+  take about fifty seconds together and a failed gate costs three minutes to
+  learn nothing.
 - **Never put more than a sentence or two inside a `- [ ]` markdown item.**
   Prettier's markdown printer is not idempotent on multi-paragraph list items —
   each run indents the continuation further, so `pnpm format` succeeds while
