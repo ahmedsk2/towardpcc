@@ -23,6 +23,9 @@ export const site = {
     "Free clinical calculators, knowledge and data systems, and research support for the pediatric critical care community. Built from Saudi Arabia for the world.",
 
   nav: {
+    quickSearchLabel: "Search calculators",
+    quickSearchPlaceholder: "Search",
+    quickSearchNoResults: "No calculator matches that",
     calculators: "Calculators",
     knowledge: "Knowledge",
     data: "Data",
@@ -907,7 +910,7 @@ export const site = {
     indexLede:
       "Free, clinically referenced pediatric critical care scores. Every calculation runs in your browser and cites its published source.",
     searchPlaceholder: "Search calculators",
-    searchLabel: "Search calculators by name. Press slash to jump here.",
+    searchLabel: "Search calculators by name, condition or drug. Press slash to jump here.",
     noResults: "No calculators match your search.",
     noFavorites: "You have not starred any calculators yet.",
     filterGroupLabel: "Filter calculators by category",
