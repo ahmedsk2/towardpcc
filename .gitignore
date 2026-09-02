@@ -38,3 +38,7 @@ test-results/
 
 # personal project-scoped Claude Code settings
 .claude/settings.local.json
+
+# Validation agents write throwaway probes here and delete them; one was
+# swept into a commit by `git add -A` on 2026-08-17. Never trackable.
+packages/scoring-engine/src/scores/__probe_*.test.ts
