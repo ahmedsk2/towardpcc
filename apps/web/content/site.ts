@@ -940,6 +940,21 @@ export const site = {
     // telling it the same thing it tells an empty one, while the field
     // actually standing in the way can be a screen and a half below.
     resultBlockedHeading: "Waiting on",
+    /**
+     * Why a field is blocking, when it is NOT simply blank.
+     *
+     * "Waiting on: Serum glucose" reads as "you have not entered this yet". For
+     * a value that WAS entered and rejected, that is the wrong story and sends
+     * the reader back to a field they believe they already filled. The full
+     * message was reaching screen readers through the sr-only span all along;
+     * this puts the distinction on screen too.
+     */
+    resultBlockedReason: {
+      "out-of-range": "out of range",
+      "unknown-unit": "unit not supported",
+      "invalid-type": "not a number",
+      "invalid-category": "not a valid choice",
+    } as Record<string, string>,
     resultBlockedJump: "Go to",
     resultBlockedMore: "and {n} more",
     interpretationLabel: "Interpretation",

@@ -154,11 +154,20 @@ measure; `globals.css` argues the case at the definition.
 
 **Count-up is allow-listed to the home counter band.**
 `content/countup-scope.test.ts` fails the suite if anything other than
-`app/page.tsx` imports `components/home/counter.tsx`. The component
-server-renders `0` and animates after hydration, so anywhere above the fold the
-first paint contradicts the copy beside it. The rule is positional, which is why
-it is a source scan rather than a value assertion — "the dial is 7 on marketing
-surfaces" is not licence to use count-up on another marketing page.
+`app/page.tsx` imports `components/home/counter.tsx`. The rule is positional,
+which is why it is a source scan rather than a value assertion — "the dial is 7
+on marketing surfaces" is not licence to use count-up on another marketing page.
+
+**The reason recorded here used to be that the component server-renders `0`.
+That was true, and it was a bug rather than a justification** — fixed
+2026-08-10, after an outside reviewer extracted the homepage text and got
+"0 Referenced calculators". `Counter` now renders the real value from first
+paint and animates only when the element was OFF SCREEN at load, so a figure
+above the fold shows its true number immediately instead of counting up from a
+wrong one. Anything asserting on the served document should expect the real
+figure; `e2e/published-figures.spec.ts` does, deliberately via `request.get`
+rather than `page.goto`, because a real browser animates the counters to their
+true values and would sail past the bug.
 
 ## Build, budget and e2e
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   ComputeResult,
   InterpretationBand,
+  RejectionCode,
   ScoreDefinition,
   ScoreInput,
 } from "@towardpcc/scoring-engine";
@@ -369,7 +370,9 @@ function CalculatorFormInner({
     const byId = new Map(inputs.map((i) => [i.id, i]));
     return outcome.errors.flatMap((e) => {
       const input = byId.get(e.inputId);
-      return input ? [{ id: input.id, label: input.label.en, message: e.message }] : [];
+      return input
+        ? [{ id: input.id, label: input.label.en, message: e.message, code: e.code }]
+        : [];
     });
   }, [outcome, inputs]);
 
@@ -1126,6 +1129,9 @@ interface BlockingField {
   id: string;
   label: string;
   message: string;
+  /** Why it blocks. `missing-required` means genuinely blank; the rest were
+   *  entered and rejected, which the rail must not report as "waiting on". */
+  code: RejectionCode;
 }
 
 function ResultPanel({
@@ -1332,6 +1338,22 @@ function ResultPanel({
                     </span>
                     <span>
                       {b.label}
+                      {/* ENTERED AND REJECTED IS NOT THE SAME AS BLANK, and the
+                          heading above says "Waiting on", which tells the blank
+                          story for both. A clinician who typed 5000 into a
+                          field accepting 0-2000 was sent back to a box they
+                          knew they had filled, with nothing on screen saying
+                          why. `missing-required` gets no qualifier because for
+                          that code the heading is already true.
+                          The full message has always reached screen readers
+                          through the sr-only span below; this is the sighted
+                          half of the same information, not a new signal. */}
+                      {b.code !== "missing-required" && c.resultBlockedReason[b.code] ? (
+                        <span className="text-ink-muted">
+                          {" · "}
+                          {c.resultBlockedReason[b.code]}
+                        </span>
+                      ) : null}
                       <span className="sr-only">{` — ${b.message}. ${c.resultBlockedJump}`}</span>
                     </span>
                   </button>
