@@ -749,6 +749,36 @@ describe("PRISM threshold rows", () => {
     expect(ivPct(neuroHeavy)).toBeGreaterThan(ivPct(bodyHeavy));
   });
 
+  /**
+   * THE 14-DAY EDGE, entered in the unit a clinician would use.
+   *
+   * Age is canonicalised to years and converted back, and 14/365.25*365.25 is
+   * 13.999999999999998 in IEEE-754 — so a fourteen-day-old used to take the
+   * "0 to <14 d" coefficient and over-predict. Table 3 prints the rows as
+   * "0 to <14 d" and "14 d to <1 mo", so 14 days belongs to the second. Found
+   * by an independent recompute on 2026-08-17; the probe below at ~21 days
+   * never saw it, which is the point of this one.
+   */
+  it("puts exactly 14 days in the 14-day-to-1-month row, whichever unit it arrives in", () => {
+    const days = (v: number) => ({ value: v, unit: "days" });
+    const at14 = ivPct({ age: days(14) });
+    // Same row as 20 days, and NOT the under-14 row that 13 days sits in.
+    expect(at14).toBeCloseTo(ivPct({ age: days(20) }), 6);
+    expect(at14).toBeLessThan(ivPct({ age: days(13) }));
+    // The same age entered in years must land in the same row.
+    expect(ivPct({ age: { value: 14 / 365.25, unit: "years" } })).toBeCloseTo(at14, 6);
+    // On the reference patient the published row gives exactly this figure.
+    expect(at14).toBeCloseTo(100 / (1 + Math.exp(-(-5.776 + 0.968))), 3);
+  });
+
+  it("keeps the month edges exact when age is entered in days", () => {
+    const days = (v: number) => ({ value: v, unit: "days" });
+    // 365.25 / 12 = 30.4375 days is the first day of the infant row.
+    expect(ivPct({ age: days(30.4375) })).toBeCloseTo(ivPct({ age: mo(1) }), 6);
+    // 365.25 days is the first day on which the PRISM IV age term is 0.
+    expect(ivPct({ age: days(365.25) })).toBeCloseTo(ivPct({ age: yrs(3) }), 6);
+  });
+
   it("applies every PRISM IV term", () => {
     const floor = ivPct({ age: yrs(3) });
     // Each covariate must move the probability in its published direction.
@@ -1015,7 +1045,7 @@ describe("prism states its regional calibration at the right strength", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = prism.changelog[prism.changelog.length - 1];
     expect(prism.version).toBe(newest?.version);
-    expect(prism.version).toBe("2.8.0");
+    expect(prism.version).toBe("2.8.1");
   });
 
   /**
