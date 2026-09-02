@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { site } from "@/content/site";
+import { HOME_HREF } from "@/lib/home-href";
 
 export type Crumb = { href?: string; label: string };
 
@@ -14,7 +15,7 @@ export function Breadcrumbs({ trail }: { trail: Crumb[] }) {
       <ol className="flex flex-wrap items-center gap-2 font-numeric text-[11px] tracking-[0.06em] text-ink-muted uppercase">
         <li>
           <Link
-            href="/"
+            href={HOME_HREF}
             // Breadcrumbs render on every inner page, so the default viewport
             // prefetch pulled home's RSC payload — measured at 76 KB — on each
             // one. Home is the largest flight payload on the site because the
