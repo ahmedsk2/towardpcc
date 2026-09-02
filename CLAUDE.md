@@ -265,6 +265,15 @@ build`. Measured twice on 2026-08-08: six merges queued four deployments, and
   Pro. Getting this wrong wastes the founder's time in both directions.
 - **Docker 29.6.2 is installed.** This file previously claimed otherwise and the
   error cost two agents real work — verify before asserting an absence.
+- **The Browser pane's tab is usually HIDDEN, and a hidden document freezes CSS
+  transitions.** `getAnimations()` shows them `running` at `currentTime` 0 for
+  as long as the tab stays hidden, so `getComputedStyle` reports the START value
+  of any transitioning property. On 2026-09-03 that read the glass header as
+  fully opaque on production while a fresh div with the same class read alpha
+  0.85, and it cost most of a session before `document.visibilityState` was
+  checked. Front the tab with `tabs_select` before sampling a computed style,
+  or set `transition: none` on the element first — and treat a screenshot from
+  a hidden tab with the same suspicion.
 - `corepack enable` fails with EPERM; pnpm comes from `npm -g`, pinned 10.34.5.
 - No `sqlite3` CLI — use `node:sqlite`.
 - TypeScript `^5.9.3` and ESLint `^9.39.5` are **deliberate pins**. The
