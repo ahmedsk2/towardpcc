@@ -31,12 +31,23 @@ export function StickyShell({ children }: { children: React.ReactNode }) {
       // flicker. See the @view-transition block in globals.css.
       data-site-header
       className={cn(
-        "sticky top-0 z-50 bg-surface-raised transition-shadow duration-150",
+        "sticky top-0 z-50 transition-[box-shadow,background-color] duration-150",
+        // GLASS ONCE STUCK. Content scrolling under the bar shows through a
+        // blur at 85% surface, which is what makes a sticky header read as
+        // floating over the page rather than cutting it off. The mix is written
+        // out rather than as `bg-surface-raised/85`: the modifier form read as
+        // opaque on the one measurement taken, and rather than argue with a
+        // possibly mid-transition sample, this form was verified translucent
+        // at 0.85 across six samples over 2.5 s (2026-08-17). It is what is
+        // known to work.
+        // At rest it is
+        // fully opaque, so nothing bleeds into the hero band. `backdrop-filter`
+        // is a paint property, not a layout one, so motion.md is untouched.
         stuck
-          ? "shadow-[0_6px_28px_-14px_rgba(61,21,38,0.35)]"
+          ? "bg-[color-mix(in_oklab,var(--color-surface-raised)_85%,transparent)] backdrop-blur-md shadow-[0_6px_28px_-14px_rgba(61,21,38,0.35)]"
           : // A hairline drawn as a shadow so it costs no layout height. It was
             // painted in a fill colour (1.06:1) and so was never visible.
-            "shadow-[0_1px_0_var(--color-border)]",
+            "bg-surface-raised shadow-[0_1px_0_var(--color-border)]",
       )}
     >
       <div
