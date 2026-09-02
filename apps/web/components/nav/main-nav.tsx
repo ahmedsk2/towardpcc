@@ -1,5 +1,7 @@
 "use client";
 
+import type { ScoreCategory } from "@towardpcc/scoring-engine";
+import { CategoryIcon } from "@/components/category-icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -7,7 +9,7 @@ import { cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 
 export type MegaGroup = {
-  category: string;
+  category: ScoreCategory;
   label: string;
   items: { slug: string; name: string; meta: string }[];
 };
@@ -251,7 +253,8 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
                           .filter((_, i) => i % 3 === col)
                           .map((g) => (
                             <div key={g.category}>
-                              <p className="m-0 px-2 pt-3 pb-1 font-numeric text-[11px] font-semibold tracking-[0.11em] text-accent uppercase">
+                              <p className="m-0 flex items-center gap-1.5 px-2 pt-3 pb-1 font-numeric text-[11px] font-semibold tracking-[0.11em] text-accent uppercase">
+                                <CategoryIcon category={g.category} className="size-3.5 shrink-0" />
                                 {g.label}
                               </p>
                               {g.items.map((it) => (

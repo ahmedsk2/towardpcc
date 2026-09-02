@@ -1,5 +1,6 @@
 "use client";
 
+import { CategoryIcon } from "@/components/category-icon";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { ScoreCategory, ScoreSummary } from "@towardpcc/scoring-engine";
@@ -145,6 +146,7 @@ export function CalculatorsIndex({
         {presentCategories.map((cat) => (
           <FilterChip
             key={cat}
+            icon={<CategoryIcon category={cat} className="size-4 shrink-0" />}
             active={activeCategory === cat && !showFavoritesOnly}
             onClick={() => {
               setActiveCategory((cur) => (cur === cat ? null : cat));
@@ -271,10 +273,12 @@ export function CalculatorsIndex({
 function FilterChip({
   active,
   onClick,
+  icon,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -283,7 +287,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3.5 py-1.5 text-sm transition-[color,background-color,border-color,scale] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
+        "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-[color,background-color,border-color,scale] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
         "motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         // Selected state carries a non-color cue (checkmark + heavier weight) so
         // it never relies on color alone (WCAG 1.4.1); cf. the active nav link's
@@ -294,6 +298,7 @@ function FilterChip({
       )}
     >
       {active && <span aria-hidden="true">✓ </span>}
+      {icon}
       {children}
     </button>
   );
