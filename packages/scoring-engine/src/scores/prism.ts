@@ -210,7 +210,7 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "2.8.0",
+  version: "2.8.1",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -780,8 +780,18 @@ export const prism = defineScore({
   // and a score author cannot forget either step (ADR-0002).
   calculate(values) {
     const ageYears = values.age.value;
-    const ageMonths = ageYears * 12;
-    const ageDays = ageYears * 365.25;
+    // AGE ARRIVES IN YEARS, the canonical unit, and every band is stated in
+    // months or days, so the conversion back is a floating-point round trip.
+    // 14 days entered as days becomes 14/365.25 years and comes back as
+    // 13.999999999999998, which `< 14` accepts: a two-week-old took the
+    // "0 to <14 d" PRISM IV row and was over-predicted, 78.4% against 72.1%
+    // on a full case. Found by an independent recompute on 2026-08-17; the
+    // existing probe at ~21 days could not see it. Snapping to a millionth
+    // of a unit removes the residue and cannot move any entry a clinician
+    // could make — a millionth of a day is 0.09 seconds.
+    const snap = (v: number) => Math.round(v * 1e6) / 1e6;
+    const ageMonths = snap(ageYears * 12);
+    const ageDays = snap(ageYears * 365.25);
     const band = bandFor(ageMonths);
     const num = (v: { value: number } | undefined): number | undefined => v?.value;
 
@@ -910,7 +920,8 @@ export const prism = defineScore({
       // PRISM IV's own age categories, which are NOT the PRISM III bands:
       // it splits the first month at 14 days, where PRISM III has one
       // neonate band. Expressed in days so the 14-day boundary is exact
-      // rather than a converted fraction of a month.
+      // rather than a converted fraction of a month — exact only once the
+      // round-trip residue is snapped off; see the age derivation above.
       (ageDays < 14 ? 1.311 : ageMonths < 1 ? 0.968 : ageMonths < 12 ? 0.357 : 0) +
       (source.value === "another_hospital"
         ? 1.012
@@ -1124,6 +1135,13 @@ export const prism = defineScore({
       summary:
         "Names the two options for the MODEL and what it outputs rather than for the collection period: 'PRISM IV (score and mortality probability)' and 'PRISM III (severity score only)'. NO SCORE, THRESHOLD OR COEFFICIENT CHANGED, and the stored values are untouched - `first_4h` and `first_12_24h` still travel in every link, so nothing already shared is affected. The periods have not been dropped, they have moved into the help text, which now maps each model to its own period rather than the other way round: that is the direction a reader needs once the option names a model. MORTALITY PROBABILITY, NOT MORTALITY RATIO. The founder's draft wording asked about an 'expected mortality ratio'; what PRISM IV emits is a predicted probability of HOSPITAL mortality for ONE admission, while a standardised mortality ratio is observed deaths over expected deaths across a COHORT - a different quantity this calculator does not compute. The distinction is not pedantry on this particular score: its own caution cites an SMR of 2.61 from the Riyadh validation, so a label reading 'ratio' would sit inches from a real SMR and invite exactly that conflation. THE FIELD LABEL CARRIES THE SAFETY CONSTRAINT NOW. It reads 'Model, by the data you collected', because once an option advertises a mortality probability it becomes a tempting thing to click for its own sake - and a 12-hour dataset scored as PRISM IV is not a probability for that patient, it is a probability computed from variables gathered over the wrong period. The label is the last thing read before the click, so the constraint belongs there and not only in the help text beneath it. The value ids still name periods while the labels name models: the ids are a wire format baked into shared links, the labels are what a clinician reads, and they answer to different constituencies.",
       reason: "clarification",
+    },
+    {
+      version: "2.8.1",
+      date: "2026-08-17",
+      reason: "formula-correction",
+      summary:
+        "Corrects the PRISM IV age term at exactly 14 days of age. ONE NUMBER MOVED, at one whole-day value, in the direction of LESS predicted mortality. Age is stored in years and converted back to days for the PRISM IV categories, and 14 days makes that round trip as 13.999999999999998 in floating point, so a fourteen-day-old was placed in the 0-to-under-14-days row (coefficient 1.311) where Pollack 2016 Table 3 prints 14 days as the first day of the 14-days-to-under-1-month row (0.968). On the reference patient that read 1.14% where 0.81% was published; on a full case, 78.4% where 72.1%. No other age is affected: 13 days round-trips as 13.000000000000002 and stays in its row, and the 1-, 12- and 144-month edges were already exact when entered in months. The conversion now snaps to a millionth of a unit before comparing, which removes the residue and cannot move any entry a clinician could make. Found on 2026-08-17 by an independent Python recompute from Table 3 while validating every calculator against a published source; the existing test probed about 21 days and could not see it. Tests now pin 14 days entered as days and as years, and the 1- and 12-month edges entered in days.",
     },
   ],
 });
