@@ -3,6 +3,7 @@ import { getScore, listScores } from "@towardpcc/scoring-engine";
 import type { ScoreCategory } from "@towardpcc/scoring-engine";
 import { inputCountLabel } from "@/lib/input-count";
 import { site } from "@/content/site";
+import { HOME_HREF } from "@/lib/home-href";
 import { MainNav, type MegaGroup } from "./main-nav";
 import { StickyShell } from "./sticky-shell";
 import { UtilityBar } from "./utility-bar";
@@ -50,7 +51,7 @@ export function SiteHeader() {
       <UtilityBar />
       <StickyShell>
         <Link
-          href="/"
+          href={HOME_HREF}
           // The logo sits in the sticky header on every route, so Next's
           // default viewport prefetch pulled home's RSC payload — measured at
           // 68 KB — on every page view, including on home itself where the same
