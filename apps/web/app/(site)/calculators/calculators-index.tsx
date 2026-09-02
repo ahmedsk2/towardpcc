@@ -1,6 +1,7 @@
 "use client";
 
 import { CategoryIcon } from "@/components/category-icon";
+import { matchScores } from "@/lib/calculator-search";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { ScoreCategory, ScoreSummary } from "@towardpcc/scoring-engine";
@@ -45,8 +46,10 @@ export function CalculatorsIndex({
   );
 
   const grouped = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let matched = q ? scores.filter((s) => s.name.toLowerCase().includes(q)) : scores.slice();
+    // ONE PREDICATE, shared with the header search, so the two can never
+    // disagree about what a query finds; it also carries the aliases that
+    // make "PARDS" and "adrenaline" find something.
+    let matched = matchScores(scores, query, c.categoryLabels);
     if (activeCategory) matched = matched.filter((s) => s.category === activeCategory);
     if (showFavoritesOnly) matched = matched.filter((s) => favorites.includes(s.slug));
     return CATEGORY_ORDER.map((cat) => ({

@@ -46,20 +46,32 @@ test.describe("calculators mega-menu stays on screen", () => {
     });
   }
 
-  test("does not make the page scroll sideways", async ({ page }) => {
-    // The other half of the failure: a panel escaping the viewport can either
-    // be clipped, or push the document wider. Both are wrong and only one is
-    // visible in a screenshot.
-    await page.setViewportSize({ width: 1024, height: 900 });
-    await page.goto("/home");
-    await page.getByRole("button", { name: /calculators/i }).click();
-    await expect(page.locator("#mega-calculators")).toBeVisible();
+  for (const width of DESKTOP_WIDTHS) {
+    test(`does not make the page scroll sideways at ${width}px`, async ({ page }) => {
+      // The other half of the failure: a panel escaping the viewport can either
+      // be clipped, or push the document wider. Both are wrong and only one is
+      // visible in a screenshot.
+      //
+      // EVERY DESKTOP WIDTH, and the header is measured BEFORE the menu opens
+      // too. On 2026-09-03 a header search box overflowed the row by 227px at
+      // 1024 with the menu closed, and this test — then 1024-only and
+      // menu-open-only — was the one that caught it. The 1280 case had no
+      // guard at all and was 29px from the same failure.
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/home");
+      const overflowsClosed = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      );
+      expect(overflowsClosed, `the header alone widens the document at ${width}px`).toBe(false);
 
-    const overflows = await page.evaluate(
-      () => document.documentElement.scrollWidth > window.innerWidth,
-    );
-    expect(overflows, "opening the menu widened the document").toBe(false);
-  });
+      await page.getByRole("button", { name: /calculators/i }).click();
+      await expect(page.locator("#mega-calculators")).toBeVisible();
+      const overflows = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      );
+      expect(overflows, `opening the menu widened the document at ${width}px`).toBe(false);
+    });
+  }
 
   test("every score link is actually reachable", async ({ page }) => {
     // The real user harm was not geometry — it was that half the catalogue

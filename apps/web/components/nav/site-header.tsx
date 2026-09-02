@@ -5,6 +5,7 @@ import { inputCountLabel } from "@/lib/input-count";
 import { site } from "@/content/site";
 import { HOME_HREF } from "@/lib/home-href";
 import { MainNav, type MegaGroup } from "./main-nav";
+import { QuickSearch } from "./quick-search";
 import { StickyShell } from "./sticky-shell";
 import { UtilityBar } from "./utility-bar";
 
@@ -91,6 +92,10 @@ export function SiteHeader() {
             Toward<span className="text-accent">PCC</span>
           </span>
         </Link>
+        <QuickSearch
+          scores={listScores({ status: "published" })}
+          categoryLabels={site.calculators.categoryLabels}
+        />
         <MainNav groups={buildGroups()} />
       </StickyShell>
     </>
