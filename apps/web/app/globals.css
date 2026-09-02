@@ -26,6 +26,37 @@
 /* Tailwind must scan the UI package sources for class usage. */
 @source "../../../packages/ui/src";
 
+/*
+ * MARKDOWN IS DOCUMENTATION, NEVER A CLASS SOURCE.
+ *
+ * Tailwind v4 detects sources automatically, which sweeps in every tracked
+ * markdown file. That is not merely wasteful: a doc that QUOTES a class breaks
+ * the dev server. apps/web/CLAUDE.md documents the banned surface-token border
+ * escape by writing it out, Tailwind read it as a real utility, and emitted an
+ * invalid declaration on which Turbopack failed the whole stylesheet. Every
+ * route returned 500 under next dev while next build --webpack passed, because
+ * the production pipeline drops the bad rule silently. The gate could not see
+ * it; only someone running the dev server could.
+ *
+ * Excluding markdown is the general fix rather than rewording that one doc
+ * line: it holds for docs nobody has written yet, and the property is
+ * checkable, since this repo renders no markdown at all (no MDX pipeline, and
+ * no markdown imported by app code).
+ *
+ * TWO TRAPS, BOTH PAID FOR ONCE.
+ *
+ * The path is relative to THIS FILE, which sits in app/. A first attempt walked
+ * no levels up, matched nothing, and left the dev server failing on the rule it
+ * was meant to remove. Three levels reach the repo root, the same distance the
+ * packages/ui/src source above walks.
+ *
+ * And do not write the glob inside this comment. A CSS comment ends at the
+ * first star-slash, which the glob itself contains, so quoting it here spills
+ * the remainder into the stylesheet and breaks the build in a new way. That is
+ * exactly what happened on the second attempt.
+ */
+@source not "../../../**/*.md";
+
 /* Map design tokens (single source of truth: packages/ui/src/tokens.css)
    into Tailwind theme keys. `inline` makes utilities carry the var()
    expression directly, so the :root definitions stay authoritative. */
