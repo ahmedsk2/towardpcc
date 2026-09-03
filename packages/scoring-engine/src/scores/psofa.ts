@@ -577,6 +577,10 @@ export const psofa = defineScore({
     // subscore is 0 because a FILLED field was discarded, not because the
     // child is well. Say so on the value itself; the partial-entry cue
     // watches for blanks and cannot see this one.
+    // P/F genuinely SUPERSEDES S/F here — the branch above is an `else if` —
+    // so a PaO₂ means nothing was lost. FiO₂ is `required` on this score, so
+    // its presence needs no test. Phoenix is the opposite on both counts;
+    // see the condition there before copying either.
     const spo2Discarded =
       values.pao2 === undefined && values.spo2 !== undefined && values.spo2.value > 97;
 
@@ -584,7 +588,7 @@ export const psofa = defineScore({
       point("total", "Total pSOFA", total),
       {
         ...point("respiratory", "Respiratory subscore", respiratory),
-        ...(spo2Discarded ? { notice: saturatingSpo2Notice() } : {}),
+        ...(spo2Discarded ? { notice: saturatingSpo2Notice(false) } : {}),
       },
       point("coagulation", "Coagulation subscore", coagulation),
       point("hepatic", "Hepatic subscore", hepatic),

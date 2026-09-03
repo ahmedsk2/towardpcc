@@ -491,6 +491,10 @@ function CalculatorFormInner({
             `${c.copyComponentsLabel}: ${components
               .map((r) => `${r.label} ${r.value} of ${r.max}`)
               .join(" · ")}`,
+            // A NOTICE LEAVES THE PAGE WITH THE NUMBER IT EXPLAINS.
+            // The clipboard summary is pasted into a handover note, where
+            // "Respiratory 0 of 4" with no reason reads as a well child.
+            ...components.filter((r) => r.notice).map((r) => `${r.label}: ${r.notice}`),
           ]
         : []),
       // THE DERIVED VALUE STAYS IN THE RECORD. Pulling it out of `flat` for
@@ -980,8 +984,12 @@ function InputField({
   const noticeLine = notice ? (
     <p
       id={`${id}-notice`}
+      // NO `role="status"`. A live region inserted in the same mutation as
+      // its content is not announced by any major screen reader — see the
+      // result region below, which exists from first paint for exactly that
+      // reason. This sentence reaches a listener two other ways: it is in
+      // the field's `aria-describedby`, and the result region announces it.
       className="flex items-start gap-1.5 text-sm text-alert-text"
-      role="status"
     >
       <span
         aria-hidden="true"
@@ -1281,8 +1289,8 @@ function ResultPanel({
   const barShown = Boolean(ok && primaryValue);
   useEffect(() => {
     if (!barShown) return;
-    document.body.setAttribute("data-result-bar", "");
-    return () => document.body.removeAttribute("data-result-bar");
+    document.documentElement.setAttribute("data-result-bar", "");
+    return () => document.documentElement.removeAttribute("data-result-bar");
   }, [barShown]);
   const bandsFor = useCallback(
     (valueId: string) => definition.interpretation.filter((b) => b.appliesTo === valueId),
@@ -1347,6 +1355,12 @@ function ResultPanel({
             what a listener hears — it is the number most likely to be acted
             on. Last, and named as derived, because that is the order it is
             reached on screen: the score, then what follows from it. */}
+        {/* NOTICES ARE ANNOUNCED, even though components are not.
+            The rule above is that components stay out of the live region —
+            six organ subscores read aloud on every keystroke is noise. A
+            notice is the exception: it is not working, it is the reason a
+            number is wrong to read at face value, and a listener who never
+            hears it has only the misleading total. */}
         {ok
           ? [...flatValues, ...(derivedValue ? [derivedValue] : [])]
               .map((v) => {
@@ -1355,6 +1369,12 @@ function ResultPanel({
                 return band ? `${num}, ${band.label.en}` : num;
               })
               .join(". ")
+          : ""}
+        {ok
+          ? ok.result.values
+              .filter((v) => v.notice)
+              .map((v) => ` ${v.label.en}: ${v.notice?.text.en}`)
+              .join("")
           : ""}
       </div>
 
@@ -1646,13 +1666,23 @@ function ResultPanel({
       {barShown && primaryValue ? (
         <button
           type="button"
+          // A fixed overlay must never reach paper. `lg:hidden` is a bare
+          // min-width query, which an A4 page box does not reliably fail,
+          // so the bar printed across the bottom of every page without it.
+          data-print="hide"
           onClick={() => {
             const el = document.getElementById("calc-result");
-            el?.scrollIntoView({ block: "start", behavior: "smooth" });
-            el?.querySelector("h2")?.setAttribute("tabindex", "-1");
-            (el?.querySelector("h2") as HTMLElement | null)?.focus();
+            const heading = el?.querySelector("h2") as HTMLElement | null;
+            // Reduced motion is absolute here (motion.md rule 1).
+            const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            el?.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+            heading?.setAttribute("tabindex", "-1");
+            // `preventScroll`: focusing an element otherwise triggers the
+            // browser's own instant scroll, which aborts the smooth one
+            // started on the line above and lands somewhere else.
+            heading?.focus({ preventScroll: true });
           }}
-          className="fixed inset-x-0 bottom-0 z-40 flex min-h-14 w-full items-center justify-between gap-3 border-t border-border-strong bg-surface-raised px-5 pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-2px_12px_rgb(0_0_0/0.08)] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 flex min-h-14 w-full items-center justify-between gap-3 border-t border-border-strong bg-surface-raised px-5 pb-[env(safe-area-inset-bottom)] text-left transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
         >
           <span className="flex min-w-0 flex-col py-2">
             <span className="truncate text-[12px] text-ink-muted">

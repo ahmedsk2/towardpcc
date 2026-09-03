@@ -177,12 +177,7 @@ export default async function CalculatorDetailPage({
   ];
 
   return (
-    /* pb-28 below lg reserves the bottom result bar's 56px plus breathing
-       room, so the last field is never underneath it. Reserved
-       unconditionally rather than when the bar shows, because a padding
-       that appears with the first result would shift the page under the
-       reader's thumb mid-entry. */
-    <div className="mx-auto max-w-[1200px] px-6 pt-12 pb-28 lg:pb-12">
+    <div className="mx-auto max-w-[1200px] px-6 py-12">
       {/* Per-calculator graph: the page as a clinical reference, the calculator
           as a free tool, and the trail back to the catalogue. Every value is
           drawn from data this page already renders — citations, version, and
