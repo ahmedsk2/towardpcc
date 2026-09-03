@@ -18,7 +18,8 @@
     "gate": "node scripts/gate.mjs",
     "check:residency": "node scripts/check-residency.mjs",
     "check:integrity": "node scripts/check-integrity.mjs",
-    "check:ct": "node scripts/check-ct-log.mjs"
+    "check:ct": "node scripts/check-ct-log.mjs",
+    "check:lookalikes": "node scripts/check-lookalikes.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,js}": [
