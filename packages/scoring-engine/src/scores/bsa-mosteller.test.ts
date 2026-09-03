@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { bsaMosteller } from "./bsa-mosteller";
 
@@ -13,6 +14,34 @@ const mosteller = {
 };
 
 describeScore(bsaMosteller, (ctx) => {
+  /**
+   * THE BOUND IS ENTERABLE IN EVERY UNIT IT IS OFFERED IN.
+   *
+   * Height accepts 30-220 cm. Entering 220 cm worked and entering 2.2 m did
+   * not, because `2.2 * 100` is 220.00000000000003 — while the field's own
+   * hint read "Accepted 0.3-2.2 m", because the hint converts the same bound
+   * the other way and `fromCanonical` then `toCanonical` is not the identity.
+   * The form told a clinician to enter a value and then refused it. Measured
+   * 2026-09-03 by an independent recompute of every calculator.
+   */
+  it("accepts its declared bounds whichever unit they are entered in", () => {
+    const at = (value: number, unit: string) =>
+      bsaMosteller.compute({
+        height_cm: { value, unit },
+        weight_kg: { value: 16, unit: "kg" },
+      } as never).ok;
+
+    // The ceiling, 220 cm, in both spellings.
+    expect(at(220, "cm"), "220 cm is the declared maximum").toBe(true);
+    expect(at(2.2, "m"), "2.2 m IS 220 cm").toBe(true);
+    // The floor, 30 cm, in both.
+    expect(at(30, "cm")).toBe(true);
+    expect(at(0.3, "m"), "0.3 m IS 30 cm").toBe(true);
+    // And the tolerance reaches no further than the bound itself.
+    expect(at(2.21, "m"), "genuinely above the ceiling").toBe(false);
+    expect(at(0.29, "m"), "genuinely below the floor").toBe(false);
+  });
+
   // Example A (bsa-mosteller.md): 170 cm, 70 kg → sqrt(11900/3600) = 1.8181 m²
   // (independently cross-checked by an external calculator at 1.8181).
   ctx.workedExample(

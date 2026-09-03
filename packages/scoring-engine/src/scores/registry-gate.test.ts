@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { registry } from "./registry";
 import { sampleInputs, sweepInputs, sweepWithOmissions } from "../testing/sample-inputs";
 import { isVisible } from "../visibility";
-import type { ScoreDefinition } from "../types";
+import type { NumericInput, ScoreDefinition } from "../types";
 
 /**
  * Crown-jewel structural gate (PRD §6.3): every registered score MUST have a
@@ -183,6 +183,56 @@ describe("registry §6.3 gate", () => {
       for (const c of s.composition.components) {
         const min = c.min ?? 0;
         expect(c.max, `${s.slug}/${c.id}: max must exceed min`).toBeGreaterThan(min);
+      }
+    }
+  });
+});
+
+/**
+ * EVERY DECLARED BOUND IS ENTERABLE, IN EVERY UNIT THE INPUT OFFERS.
+ *
+ * A bound the form advertises and validation then refuses is the worst kind of
+ * range error: the clinician did what the field told them. It happened on body
+ * surface area, where 220 cm was accepted and the identical 2.2 m was not,
+ * because converting a bound out and back is not the identity in binary
+ * floating point.
+ *
+ * Swept over the whole registry rather than fixed on one score, because the
+ * defect was in shared validation and any input with an alternate unit can
+ * express it.
+ */
+describe("every declared bound is enterable in every unit offered", () => {
+  const numeric = registry.flatMap((s) =>
+    s.inputs.filter((i) => i.type === "numeric").map((i) => ({ s, i: i as NumericInput })),
+  );
+
+  it("has numeric inputs with alternates, or this proves nothing", () => {
+    expect(numeric.filter(({ i }) => (i.unit.alternates ?? []).length > 0).length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("accepts min and max expressed in each alternate unit", () => {
+    for (const { s, i } of numeric) {
+      // `maxExclusive` is deliberately out of scope: it exists to reject its
+      // own value, so there is no bound to be enterable.
+      const bounds: [number, string][] = [[i.min, "min"]];
+      if (i.maxExclusive === undefined || i.maxExclusive > i.max) bounds.push([i.max, "max"]);
+
+      for (const [canonical, which] of bounds) {
+        for (const alt of i.unit.alternates ?? []) {
+          if (alt.sameUnitSpelling) continue;
+          const inAlt = alt.fromCanonical(canonical);
+          const vector = { ...sampleInputs(s), [i.id]: { value: inAlt, unit: alt.unit } };
+          const outcome = s.compute(vector as never);
+          const rejected =
+            !outcome.ok &&
+            outcome.errors.some((e) => e.inputId === i.id && e.code === "out-of-range");
+          expect(
+            rejected,
+            `${s.slug}/${i.id}: ${which} is ${canonical} ${i.unit.canonical}, which is ${inAlt} ${alt.unit}, and that is refused`,
+          ).toBe(false);
+        }
       }
     }
   });

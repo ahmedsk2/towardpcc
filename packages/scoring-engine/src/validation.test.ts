@@ -5,6 +5,7 @@ import { defineText } from "./i18n/text";
 import { mmhgWithKpa } from "./units/pressure";
 import { NO_UNIT } from "./units/types";
 import type { ScoreInput } from "./types";
+import type { UnitSpec } from "./units/types";
 
 const numeric = (unit = mmhgWithKpa, min = 10, max = 700): ScoreInput => ({
   id: "n",
@@ -192,5 +193,64 @@ describe("a hidden input never reaches calculate", () => {
     const { errors, canonical } = runValidation(conditional, { w: { value: "off" } });
     expect(errors).toEqual([]);
     expect(Object.keys(canonical)).not.toContain("dep");
+  });
+});
+
+/**
+ * A VALUE THAT IS THE BOUND IS ACCEPTED, WHATEVER UNIT IT ARRIVES IN.
+ *
+ * Found on body surface area 2026-09-03: height accepts 30-220 cm, 220 cm was
+ * accepted and the identical 2.2 m was refused, because `2.2 * 100` is
+ * 220.00000000000003 — while the field's own hint read "Accepted 0.3-2.2 m",
+ * since the hint converts the same bound the other way and `fromCanonical` then
+ * `toCanonical` is not the identity.
+ *
+ * The units here are SYNTHETIC and deliberately so. The upper half is pinned by
+ * a real score, but no bound in the registry currently converts to just BELOW
+ * its minimum, so that half could be deleted with every test still green — a
+ * mutation run proved exactly that. These two conversions are built to land a
+ * hair either side, so both halves can fail.
+ */
+describe("bounds are enterable in every unit that expresses them", () => {
+  // Converting out and back lands ABOVE: 2.2 * 100 = 220.00000000000003.
+  const overshoots: UnitSpec = {
+    canonical: "cm",
+    alternates: [{ unit: "m", toCanonical: (m) => m * 100, fromCanonical: (cm) => cm / 100 }],
+  };
+  // And BELOW: (0.21 / 3) * 3 is 0.20999999999999996. 0.21 is FiO2's real
+  // floor here, so this is the shape a genuine unit could take rather than a
+  // contrivance. Found by a numeric search, because the first attempt at this
+  // fixture — 1 with a factor of 3 — rounds back to exactly 1 and left the
+  // lower half of the tolerance unfalsifiable.
+  const undershoots: UnitSpec = {
+    canonical: "fraction",
+    alternates: [{ unit: "third", toCanonical: (t) => t * 3, fromCanonical: (f) => f / 3 }],
+  };
+
+  const accepts = (input: ScoreInput, value: number, unit: string) =>
+    runValidation([input], { n: { value, unit } } as never).errors.every(
+      (e) => e.code !== "out-of-range",
+    );
+
+  it("accepts a maximum that overshoots when converted back", () => {
+    const input = numeric(overshoots, 30, 220);
+    expect(accepts(input, 220, "cm"), "the canonical maximum").toBe(true);
+    expect(accepts(input, 2.2, "m"), "2.2 m IS 220 cm").toBe(true);
+    expect(accepts(input, 2.21, "m"), "and the tolerance reaches no further").toBe(false);
+  });
+
+  it("accepts a minimum that undershoots when converted back", () => {
+    const input = numeric(undershoots, 0.21, 1);
+    expect(accepts(input, 0.21, "fraction"), "the canonical minimum").toBe(true);
+    // (0.21 / 3) * 3 lands at 0.20999999999999996, a hair under the floor.
+    expect(accepts(input, 0.21 / 3, "third"), "a third of 0.21, times three, IS 0.21").toBe(true);
+    expect(accepts(input, 0.06, "third"), "and the tolerance reaches no further").toBe(false);
+  });
+
+  it("does not widen maxExclusive, whose whole job is to reject its own value", () => {
+    const input = { ...numeric(overshoots, 0, 216), maxExclusive: 216 } as ScoreInput;
+    expect(accepts(input, 216, "cm"), "216 is the value it exists to refuse").toBe(false);
+    expect(accepts(input, 2.16, "m"), "and the same value in metres").toBe(false);
+    expect(accepts(input, 215.9, "cm"), "while 215.9 is inside it").toBe(true);
   });
 });
