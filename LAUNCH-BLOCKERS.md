@@ -53,13 +53,15 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       `services-statistics.jpg`, pipeline job queued) and a `/data` registry
       image, which needs the pilot unit's written OK first
 - [ ] Say when `/` should stop being the holding page and serve the home page
-- [ ] A license file for the public tree — the founder's choice; without one the
-      code is visible but all rights reserved (branch protection itself is done)
 
 ### Engineering — open, each with a written reason it is still open
 
-- [ ] **SPC-DB-002** — put web↔postgres on their own network, TLS second. Both
-      touch Coolify-managed infrastructure, so re-run the restore drill after
+- [ ] **SPC-DB-002** — put web↔postgres on their own network (the TLS half is
+      done: `ssl = on`, the app connects over TLSv1.3). Measured and planned
+      2026-09-03 — `docs/superpowers/plans/2026-09-03-spc-db-002-segmentation.md`:
+      Coolify 4.1.2 cannot express a separate network, so the options are a
+      fixed app IP plus a pg_hba allow-list (costs rolling updates) or client
+      certificates. The founder chose the status quo for now; the plan stands
 - [ ] **SPC-DB-004** — submission payloads stay cleartext JSONB. Accepted; the
       honest mitigation is the 24-month purge, which runs
 - [ ] **SPC-WEB-002** — dropping `style-src 'unsafe-inline'` on the /admin tier
@@ -72,11 +74,10 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       applied, so this is the smaller half of the gap
 - [ ] **Umami URL query/hash stripping** — deferred until analytics is actually
       integrated. If it ever is: page views only, never an event payload
-- [ ] **`CalculatorMeta` is written by nothing and read by nothing** since
-      #164 made the admin Calculators screen read-only. Dropping the table is a
-      Prisma migration under the database review; until then it is dead weight
 - [ ] **The ~1-in-5 local e2e flake** — one face diagnosed and hardened (#99),
-      never reproduced. Capture the reporter output before assuming it was that
+      never reproduced. Capture the reporter output before assuming it was that.
+      2026-09-03: five consecutive full local runs, 157 passed and 5 skipped
+      each, no failure and no flaky test, list-reporter output kept — 0 in 5
 - [ ] **PR #152** — the dev-dependency group carrying the TypeScript 7 and
       ESLint 10 majors. Held open deliberately; both pins are recorded in the
       root `CLAUDE.md`
@@ -462,6 +463,25 @@ Order matters, and two of the four are done:
    DNS first.
 4. Move DNS, wait out the TTL, then narrow the old ingress **last**. Only then
    rewrite the public residency copy.
+
+### License — Apache-2.0, 2026-09-03
+
+The repository had been public since creation with no license, which leaves the
+code visible but all rights reserved. The founder chose Apache-2.0; #163 added
+`LICENSE` (the canonical text), `NOTICE` (copyright holder as this record has
+it, and the boundary: the published clinical scores keep their original
+authors' and publishers' IP status, per `ADR-tier-b-ip.md`), a README section,
+and the SPDX field in the root `package.json`.
+
+### `CalculatorMeta` dropped — 2026-09-03
+
+#167 removed the model and the `AdminUser` relation and added a single
+`DROP TABLE` migration; the database review confirmed a plain drop suffices (the
+PK, unique index and outbound FK are owned by the table, no inbound FK, policy
+or trigger anywhere, and the app role's grant came from the one-time
+`ALTER DEFAULT PRIVILEGES`, so it dies with the table). The table was empty
+when checked. Applied by hand on the host as the owner role after the commit
+was serving — `migrate status`, `deploy`, `status` — per the runbook.
 
 ### Branch protection — enabled 2026-09-03, free, because the repo is public
 
