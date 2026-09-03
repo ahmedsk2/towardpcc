@@ -136,7 +136,7 @@ export const vis = defineScore({
         "Gaies MG, Gurney JG, Yen AH, Napoli ML, Gajarski RJ, Ohye RG, Charpie JR, Hirsch JC. Vasoactive-inotropic score as a predictor of morbidity and mortality in infants after cardiopulmonary bypass. Pediatr Crit Care Med. 2010;11(2):234–238.",
       pmid: "19794327",
       doi: "10.1097/PCC.0b013e3181b806fc",
-      note: "Original VIS derivation (primary). Full text read directly from the source PDF on 2026-08-03, and Table 1 (p235) read directly on 2026-08-04 — source of the adjusted OR 8.1 (95% CI 3.4–19.2, p<0.001), of the six coefficients (Box 1), and of the five-group, two-period classification with its per-group cut-points, all now stated in the notes. No extraction gap remains.",
+      note: "Original VIS derivation (primary). Table 1 (p235) is the source of the adjusted OR 8.1 (95% CI 3.4–19.2, p<0.001), of the six coefficients (Box 1), and of the five-group, two-period classification with its per-group cut-points, all now stated in the notes. No extraction gap remains.",
     },
     {
       citation:

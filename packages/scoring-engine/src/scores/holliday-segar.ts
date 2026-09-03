@@ -111,7 +111,7 @@ export const hollidaySegar = defineScore({
         "Holliday MA, Segar WE. The maintenance need for water in parenteral fluid therapy. Pediatrics. 1957;19(5):823–832.",
       pmid: "13431307",
       doi: "10.1542/peds.19.5.823",
-      note: "Origin of the method. NOT read in full for this implementation — every figure attributed to it arrives through the AAP 2018 guideline's direct citation, the AAP structured summary, and Chesney's 1998 commentary. The journal is Pediatrics, not Journal of Pediatrics, and the page range is 823–832; both errors circulate widely.",
+      note: "Origin of the method. SECOND-HAND — every figure attributed to it arrives through the AAP 2018 guideline's direct citation, the AAP structured summary, and Chesney's 1998 commentary. The journal is Pediatrics, not Journal of Pediatrics, and the page range is 823–832; both errors circulate widely.",
     },
     {
       citation:

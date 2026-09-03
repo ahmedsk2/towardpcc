@@ -1026,7 +1026,7 @@ export const prism = defineScore({
         "Alkhalifah AS, AlSoqati A, Zahraa J. Performance of Pediatric Risk of Mortality III and Pediatric Index of Mortality III Scores in Tertiary Pediatric Intensive Unit in Saudi Arabia. Front Pediatr. 2022;10:926686.",
       pmid: "35874581",
       doi: "10.3389/fped.2022.926686",
-      note: "Read IN FULL from PMC9300935 on 2026-08-09; every figure below was taken from the paper, not from a summary of it. 4,019 admissions across 2,620 patients at King Fahad Medical City, Riyadh, 2015-2019, drawn from the Virtual Pediatric Systems database. PRISM III SMR 2.61 (2.44-2.79) against PIM III 2.75; observed mortality 6.54% against 2.50% predicted; AUC-ROC 0.81 (0.79-0.84), rising to 0.87 (0.84-0.90) once DNR patients are excluded; SMR 3.96 (3.16-4.76) in infants 12 months and under; SMR 1.52 (1.24-1.80) excluding DNR. Authors' conclusion, quoted: 'Both models showed adequate discrimination ability, but poor calibration.'",
+      note: "FIRST-HAND — every figure below is taken from the paper itself (PMC9300935), not from a summary of it. 4,019 admissions across 2,620 patients at King Fahad Medical City, Riyadh, 2015-2019, drawn from the Virtual Pediatric Systems database. PRISM III SMR 2.61 (2.44-2.79) against PIM III 2.75; observed mortality 6.54% against 2.50% predicted; AUC-ROC 0.81 (0.79-0.84), rising to 0.87 (0.84-0.90) once DNR patients are excluded; SMR 3.96 (3.16-4.76) in infants 12 months and under; SMR 1.52 (1.24-1.80) excluding DNR. Authors' conclusion, quoted: 'Both models showed adequate discrimination ability, but poor calibration.'",
     },
   ],
   validators: [{ status: "pending" }, { status: "pending" }],

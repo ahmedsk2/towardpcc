@@ -350,7 +350,7 @@ export const pim3 = defineScore({
       citation:
         "Malhotra D, Nour N, El Halik M, Zidan M. Performance of Pediatric Index of Mortality 3 score in a tertiary pediatric ICU in Dubai. Dubai Med J. 2019;3(1):19–25.",
       doi: "10.1159/000505205",
-      note: "Latifa Hospital, Dubai; single centre, n = 583 with 46 deaths (7.9%). Full text read 2026-08-04. Three findings are stable and are what this page rests on: AUC 0.78 (95% CI 0.69–0.87), an overall SMR of 0.53 — the model OVER-predicted deaths across the unit — and SMR 2.1 in the sepsis subgroup, an UNDER-prediction that nothing else in the paper contradicts. Its predicted-probability strata do contradict each other and are carried as unstable rather than as a finding: SMR 2.67 in the 1–5% band (severe under-prediction) against SMR 0.33 below a predicted probability of 14.3% and 0.72 above it (over-prediction across that same low range). Both cuts are this study's own, so neither direction can be asserted for the low end of the scale.",
+      note: "Latifa Hospital, Dubai; single centre, n = 583 with 46 deaths (7.9%). Three findings are stable and are what this page rests on: AUC 0.78 (95% CI 0.69–0.87), an overall SMR of 0.53 — the model OVER-predicted deaths across the unit — and SMR 2.1 in the sepsis subgroup, an UNDER-prediction that nothing else in the paper contradicts. Its predicted-probability strata do contradict each other and are carried as unstable rather than as a finding: SMR 2.67 in the 1–5% band (severe under-prediction) against SMR 0.33 below a predicted probability of 14.3% and 0.72 above it (over-prediction across that same low range). Both cuts are this study's own, so neither direction can be asserted for the low end of the scale.",
     },
     {
       citation:

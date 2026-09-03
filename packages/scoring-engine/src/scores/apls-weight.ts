@@ -97,7 +97,7 @@ export const aplsWeight = defineScore({
   ),
   notes: defineText(
     "apls.notes",
-    "A population point estimate for use only when weighing is impossible. A measured weight is always preferred, and the Broselow tape is the length-based alternative, which needs the tape and the child supine and loses accuracy above ~25 kg. Systematically underestimates in overweight and obese children. Not defined outside 0–12 years.",
+    "A population point estimate for use only when weighing is impossible. A measured weight is always preferred, and the Broselow tape is the length-based alternative, which needs the tape and the child supine and loses accuracy above ~25 kg. Systematically underestimates in overweight and obese children. Not defined outside 0–12 years, and NOT to be extrapolated to a preterm or low-birth-weight neonate: the infant band is anchored to an average term newborn and returns 4 kg at age 0, which over-estimates a small preterm baby several-fold.",
   ),
   calculate: (values) => {
     // Canonical age is in YEARS (age unit spec). Return the RAW formula value;
