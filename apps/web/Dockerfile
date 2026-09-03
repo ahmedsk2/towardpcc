@@ -109,7 +109,25 @@ ENV NODE_ENV=production
 # bundled dependencies under /usr/local/lib/node_modules/npm — nothing this
 # application depends on, and unfixable by changing our lockfile. Deleting npm
 # fixes them properly rather than suppressing them.
-RUN apk add --no-cache dumb-init \
+# Upgrade Alpine's own packages before adding ours. The digest above pins the
+# base image's LAYERS, and a base rebuild lags Alpine's security releases by
+# weeks: on 2026-09-03 Trivy failed every code push on libcrypto3 3.5.7-r0
+# (CVE-2026-14456, HIGH) while Alpine's index already carried 3.5.8-r0 — and
+# the newest node:24-alpine build shared the very same base layer, so bumping
+# the digest would have shipped the same hole. `apk upgrade` resolves against
+# the live index at build time, exactly as `apk add` below already does for
+# dumb-init, and the Trivy scan in CI is what verifies the result.
+#
+# hadolint's DL3017 objects that `apk upgrade` makes the package set
+# unreproducible. It was never reproducible: the digest pins the base LAYERS,
+# and `apk add` has always resolved against the live index — the DL3018 note
+# in ci.yml records why that stays unpinned (a pin drops out of the index when
+# the branch moves and turns a security update into a hard build failure).
+# The control that actually holds is Trivy on every code commit, and this
+# change relies on that one, so DL3017 is ignored here on the same footing.
+# hadolint ignore=DL3017
+RUN apk upgrade --no-cache \
+  && apk add --no-cache dumb-init \
   # PINNED, both halves. The comments below reason about "uid=100, verified
   # in the built image", but 100 was only what Alpine's system range handed
   # out first — a base-image change could have moved it and quietly
