@@ -498,8 +498,8 @@ describe("pim3 citations carry no dead locator", () => {
   });
 
   it("still names the booklet in the references", () => {
-    // Removing the dead link must not lose the attribution. Since v1.1.0 the
-    // coding rules are sourced to Appendix 1 of the paper itself and the
+    // Removing the dead link must not lose the attribution. The coding rules
+    // are sourced to Appendix 1 of the paper itself and the
     // booklet is only the source of the registry code numbers, which this
     // implementation deliberately does not consume — but it is still named.
     const named = pim3.references.some((r) => (r.note ?? "").includes("Information Booklet"));
@@ -519,11 +519,29 @@ describe("pim3 citations carry no dead locator", () => {
     const notes = pim3.notes.en;
     expect(notes).toContain("tracheostomy");
     expect(notes).toContain("ANZPIC");
-    // Provenance, its date, and its weakness must all survive together.
-    expect(notes).toContain("2026-08-03");
-    expect(notes, "grey literature must be labelled as such").toMatch(/grey literature/i);
-    expect(notes, "the paper's silence is the point").toMatch(
-      /NO PEER-REVIEWED SOURCE ADDRESSES THE EDGE CASE/,
+    // The attribution is the whole point: a data-entry convention must not be
+    // promoted into something the derivation study states.
+    expect(notes, "a booklet convention must not be read as a paper rule").toMatch(
+      /ANZPIC Registry data-entry convention[^.]*rather than a rule in the paper/,
+    );
+    expect(notes, "the paper's silence is the point").toMatch(/the paper is silent/);
+    // The booklet's provenance and its WEAKNESS live with the reference that
+    // credits it, and must survive together there. This pinned the retrieval
+    // date until 2026-09-03, when the founder moved read-level declarations and
+    // retrieval dates out of the calculator text and into the research notes.
+    // A date was never the thing a clinician needed: what they need is that the
+    // rule rests on ONE grey-literature source and that the source can no
+    // longer be fetched to check it. Those three are pinned instead, so the
+    // guard still fails if a later edit softens the disclosure.
+    const derivation = pim3.references.find((r) => "pmid" in r && r.pmid === "23863821");
+    expect(derivation?.note, "the booklet must be named as the rule's ONLY source").toMatch(
+      /only source for the rule/i,
+    );
+    expect(derivation?.note, "a reader must learn the source cannot be fetched").toMatch(
+      /no longer retrievable/i,
+    );
+    expect(derivation?.note, "grey literature must be labelled as such").toMatch(
+      /grey literature/i,
     );
   });
 
@@ -629,7 +647,9 @@ describe("pim3 surfaces its group-level-only warning beside the result", () => {
   it("ships no interpretation bands, permanently rather than pending", () => {
     expect(pim3.interpretation).toEqual([]);
     expect(pim3.interpretationStatus).toBe("not-applicable");
-    expect(pim3.notes.en).toContain("no risk bands");
+    // The absence is stated as a property of the source, not as unfinished
+    // work: nothing on this page may imply a published stratification exists.
+    expect(pim3.formula?.en ?? "").toMatch(/No severity bands are published, so none are shown/);
   });
 
   it("states the age range as under 16 and flags the paper's own contradiction", () => {
@@ -654,45 +674,49 @@ describe("pim3 surfaces its group-level-only warning beside the result", () => {
   });
 
   /**
-   * Round-3 verification (2026-08-04). v1.2.0 carried SMR 2.67 in the 1–5%
-   * predicted-probability band and concluded from it that the reassuring end of
-   * the scale is where this model is most wrong. Malhotra 2019 also reports
-   * SMR 0.33 below a 14.3% predicted probability against 0.72 above it —
-   * over-prediction across that same low range. One cohort of 583, two ways of
-   * cutting it, opposite directions. Both are pinned here because carrying
-   * either alone manufactures a finding out of an unstable subgroup, and the
-   * conclusion must not name a direction for the low end.
+   * Malhotra 2019 reports SMR 2.67 in the 1–5% predicted-probability band
+   * (severe under-prediction) AND SMR 0.33 below a 14.3% predicted probability
+   * against 0.72 above it (over-prediction across that same low range). One
+   * cohort of 583, two ways of cutting it, opposite directions. The reference
+   * note is where these figures resolve, and both cuts have to survive together
+   * there: carrying either alone manufactures a finding out of an unstable
+   * subgroup, and no direction may be asserted for the low end of the scale.
    */
   it("carries both of the Dubai study's contradictory probability strata", () => {
-    const surfaced = pim3.notes.en + " " + (pim3.cautions ?? []).map((c) => c.en).join(" ");
-    expect(surfaced, "the fine-grained cut").toContain("2.67");
-    expect(surfaced, "the fine-grained cut").toContain("1–5%");
-    expect(surfaced, "the coarse cut that reverses it").toContain("14.3%");
-    expect(surfaced, "the coarse cut that reverses it").toContain("0.33");
-    expect(surfaced, "the coarse cut that reverses it").toContain("0.72");
-    // The reference note must carry both too, since it is where the figures resolve.
     const dubai = pim3.references.find((r) => r.citation.includes("Dubai Med J"));
-    expect(dubai?.note).toContain("2.67");
-    expect(dubai?.note).toContain("0.33");
-    expect(dubai?.note).toContain("0.72");
+    expect(dubai, "the Dubai evaluation must be cited").toBeDefined();
+    expect(dubai?.note, "the fine-grained cut").toContain("2.67");
+    expect(dubai?.note, "the coarse cut that reverses it").toContain("0.33");
+    expect(dubai?.note, "the coarse cut that reverses it").toContain("0.72");
+    expect(dubai?.note, "neither cut may be turned into a direction").toMatch(
+      /neither direction can be asserted/,
+    );
   });
 
   it("names infants under 12 months as the worst-calibrated group in the region", () => {
     const surfaced = pim3.notes.en + " " + (pim3.cautions ?? []).map((c) => c.en).join(" ");
-    expect(surfaced).toContain("3396");
-    expect(surfaced).toMatch(/infants under 12 months/);
+    expect(surfaced, "the Riyadh cohort and its size").toMatch(/Riyadh \(n = 3,396\)/);
+    expect(surfaced, "the subgroup the regional evidence singles out").toMatch(
+      /infants under 12 months/,
+    );
   });
 
   /**
-   * The figures alone let a reader conclude "over-predicts, so it is safe".
-   * The conclusion is the deliverable: discrimination travels, calibration does
-   * not, and the error sits where a low number gets trusted.
+   * The figures alone let a reader conclude "it over-predicts, so it is safe".
+   * The conclusion is the deliverable: discrimination travels between
+   * populations and calibration does not, a low overall SMR is not reassurance,
+   * and the numbers may not ship as a bare list with that left unsaid.
    */
   it("draws the calibration conclusion rather than only listing statistics", () => {
-    expect(pim3.notes.en).toMatch(/discrimination travels between populations/);
-    expect(pim3.notes.en).toMatch(/calibration frequently does not/);
-    const cautions = (pim3.cautions ?? []).map((c) => c.en).join(" ");
-    expect(cautions).toMatch(/least trustworthy/);
+    expect(pim3.notes.en, "the conclusion, not just the AUCs and SMRs").toMatch(
+      /CALIBRATION TRAVELS FAR WORSE THAN DISCRIMINATION/,
+    );
+    expect(pim3.notes.en, "a reassuring SMR must not be left reading as safety").toMatch(
+      /under-prediction inside an over-predicting unit/,
+    );
+    expect(pim3.notes.en, "and what the reader is to do about it").toMatch(
+      /Recalibrate and monitor locally before comparative use/,
+    );
   });
 
   /**
@@ -714,7 +738,7 @@ describe("pim3 version tracks its user-visible text", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = pim3.changelog[pim3.changelog.length - 1];
     expect(pim3.version).toBe(newest?.version);
-    expect(pim3.version).toBe("1.2.3");
+    expect(pim3.version).toBe("1.0.0");
   });
 
   it("keeps InputValues in step with the declared inputs", () => {

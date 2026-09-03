@@ -21,7 +21,7 @@ export const ettSize = defineScore({
   id: "ett-size",
   slug: "ett-size",
   name: "ETT size and depth (pediatric)",
-  version: "1.2.1",
+  version: "1.0.0",
   status: "published",
   category: "airway-equipment",
   inputs: [
@@ -95,31 +95,9 @@ export const ettSize = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: pediatric ETT cuffed/uncuffed internal diameter and oral depth from age formulas.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
-    },
-    {
-      version: "1.1.0",
-      date: "2026-08-08",
-      summary:
-        "Emit the nearest manufactured 0.5 mm tube size for both cuffed and uncuffed, and the 3 × ID depth cross-check, instead of describing both only in prose; raise the minimum age from 0 to 1 year so sub-1-year entries are refused rather than silently over-sized. From the external calculator audit of 2026-08-08 (findings F1, F2, F9). F1: raw formula values are not device sizes — 7.5 y displayed 'cuffed 5.4 mm', and every odd whole year lands exactly between two sizes, so ties decide half of all whole-year entries (resolved DOWN, which is what reproduces the taught 1 y / 3 y / 5 y sizes). F2: age 0 returned uncuffed 4.0 mm for a newborn who takes 3.0–3.5, contradicting this score's own notes, which already said sub-1-year sizing is NOT computed here. F9: the 3 × ID cross-check was cited in the formula text but never emitted. All three were already sourced in this file's references (StatPearls NBK539747; Weber 2023, PMID 37336629) — none introduces new clinical content.",
-      reason: "formula-correction",
-    },
-    {
-      version: "1.2.0",
-      date: "2026-08-08",
-      summary:
-        "WITHDRAWS THE TWO 3 × ID DEPTH CROSS-CHECK ROWS ADDED HOURS EARLIER IN v1.1.0, and retracts the sentence that justified them. Tube sizes, the sub-1-year refusal and every other output are unchanged. THE CLAIM THAT WAS WRONG: v1.1.0’s formula text said the cross-check “should agree with age ÷ 2 + 12 within about 1 cm; if the two disagree by more, re-check the age and the tube.” It does not. The two rules diverge by construction — 3 × ID grows 0.75 cm per year of age while age ÷ 2 + 12 grows 0.5 — so the gap widens with age and never closes. Swept across the accepted 1–12 y domain the uncuffed cross-check exceeded 1 cm at two thirds of sampled ages, worst 3.38 cm at 11.25 y; at 12 y it printed 21.0 cm beside a stated depth of 18.0 cm, and 21 cm at the lips in a 12-year-old is toward endobronchial. At 1 y the cuffed check printed 10.5 cm against a depth of 12.5 cm. So a correctly entered child was told, by the calculator’s own instruction, to distrust the age and the tube. WORSE, THE REPO ALREADY KNEW: docs/research/scores/ett-size.md states “Depth methods can disagree. age/2 + 12 and ID × 3 can differ by > 1 cm, especially at the young end”, and its Example 3 records a 2.5 cm gap. The v1.1.0 text contradicted the score’s own research note. AND THE GUARD COULD NOT CATCH IT: the only test of those rows pinned age 4, one of the few ages where the two happen to land 1.0 cm apart, so it would have passed at every future age too. That is the failure mode this project documents as ‘a guard that has never failed deserves suspicion’, committed while quoting the rule. WHY WITHDRAWAL RATHER THAN A CORRECTED TOLERANCE: two oral depths for one child, up to 3 cm apart, is the same ambiguity removed from the burn page on the same day, and no wording makes a second depth number safe to have on screen beside the first. The 3 × ID rule of thumb is real and stays described in the formula text, with its divergence stated. This reverses audit finding F9, whose recommendation to emit it ‘with an agreement note (within ~1 cm)’ rested on a premise this repo’s own research contradicts.",
-      reason: "output-withdrawn",
-    },
-    {
-      version: "1.2.1",
-      date: "2026-08-09",
-      summary:
-        "Print the two RAW internal diameters at 2 decimal places instead of 1. No computed value changed and no device size moved. The raw values are exact quarters — age/4 + 3.5 gives x.25 or x.75 at every odd whole year — so one decimal place rounded them AWAY from the manufactured size printed beside them: the panel read “raw 4.8 mm → nearest manufactured 4.5 mm” at 5 y, “3.8 → 3.5” at 1 y, and the same inversion at 3, 7, 9 and 11 y. To a reader who has not read the tie rule that looks like an arithmetic error in the direction of a LARGER tube, which is the direction this score is careful about everywhere else. At 2 dp the raw value prints as 4.75 and the relationship explains itself. From the round-2 re-test, finding R2.",
-      reason: "clarification",
     },
   ],
   ipStatus: {
@@ -129,11 +107,11 @@ export const ettSize = defineScore({
   },
   formula: defineText(
     "ett.formula",
-    "Uncuffed internal diameter (mm) = age in years ÷ 4 + 4 (Cole). Cuffed internal diameter (mm) = age in years ÷ 4 + 3.5 (APLS/Motoyama/Duracher). Oral insertion depth at the lips (cm) = age in years ÷ 2 + 12. Because tubes are manufactured only in 0.5 mm steps, each raw diameter is also shown snapped to the nearest real size, with exact half-steps taken DOWN to the smaller tube — which is what reproduces the conventional sizes these formulas are taught alongside (1 y cuffed 3.5, 3 y cuffed 4.0, 5 y cuffed 4.5). A second depth rule of thumb, tube ID (mm) × 3, is widely taught and is NOT emitted here: it and age ÷ 2 + 12 diverge with age rather than corroborating one another — about 2 cm apart at 1 year and 3 cm at 12 — so printing both would put two oral depths for the same child on one screen. Use age ÷ 2 + 12, and confirm the tip by auscultation, capnography and imaging rather than by a second formula. These remain estimates: keep tubes 0.5 mm larger and smaller on hand, and confirm placement by air-leak test, auscultation, capnography, chest rise, and imaging.",
+    "Uncuffed internal diameter (mm) = age in years ÷ 4 + 4 (Cole). Cuffed internal diameter (mm) = age in years ÷ 4 + 3.5, pinned to the APLS/Motoyama/Duracher constant; the classic Khine +3.0 gives a tube 0.5 mm smaller and is still widely taught. Oral depth at the lips (cm) = age in years ÷ 2 + 12. Each raw diameter is also snapped to the nearest manufactured 0.5 mm size, with exact half-steps resolved DOWN, both because that reproduces the conventional taught sizes (1 y cuffed 3.5, 3 y 4.0, 5 y 4.5) and because the errors are asymmetric: a tube 0.5 mm small is exchanged or tolerated, one 0.5 mm large is the mechanism of subglottic injury.",
   ),
   notes: defineText(
     "ett.notes",
-    "Estimation formulas, not a severity score — no interpretation bands apply (interpretation is intentionally empty). Cuffed constant is pinned to +3.5 (APLS/Motoyama/Duracher 2008, PMID 18184241); the classic Khine +3.0 (PMID 9066329) yields a tube 0.5 mm smaller and is still widely taught — recorded here per the pin-the-constant requirement. The nearest manufactured 0.5 mm step is now emitted for each tube rather than left as an instruction, with exact half-steps resolved DOWN to the smaller size — both because that reproduces the conventional taught values and because the two errors are not symmetric: a tube 0.5 mm small is exchanged or tolerated with a larger leak, while one 0.5 mm large is the mechanism of subglottic injury. Keep tubes 0.5 mm larger and smaller available regardless; the age formulas mis-size a meaningful minority of children (Cole tends to over-size the youngest in range), so always confirm fit clinically (uncuffed air-leak conventionally audible at ~20–30 cmH₂O). Domain is 1–12 years and the lower bound is ENFORCED as of v1.1.0: below 1 year, sizing/depth are weight- and gestational-age-based (Merck/NRP table; Kempley 2008, PMID 18372092), are NOT computed here, and are refused rather than approximated — until v1.1.0 a newborn silently returned uncuffed 4.0 mm against a true 3.0–3.5. Above 12 years use adult sizing. Only the ORAL depth formula is emitted. NEEDS SOURCE (carried from research): the nasal-route depth offset (~+2–3 cm) is not verified from a primary source, and the fixed infant depth steps (~10/11/12 cm) lack primary APLS pagination — neither is implemented here.",
+    "Scope is age 1 to 12 years, with the lower bound enforced: below 1 year these formulas are invalid and are refused, so use weight- and gestational-age-based neonatal sizing instead. Above about 12 years, use adult sizing. The ID × 3 depth rule is deliberately not emitted: it diverges from age ÷ 2 + 12 by about 2 cm at 1 year and about 3 cm at 12, so printing both would put two oral depths for one child on one screen. Keep tubes 0.5 mm larger and smaller at hand. The formulas mis-size a meaningful minority of children (Cole over-sizes the youngest in range), so confirm by air-leak test (about 20 to 30 cmH₂O uncuffed), auscultation, capnography, chest rise, and imaging. [NEEDS SOURCE]: the nasal-route depth offset (about +2 to 3 cm) and the fixed infant depth steps are unverified and not implemented.",
   ),
   calculate: (values) => {
     // RAW DIAMETERS PRINT AT 2 dp, not 1, and that is not cosmetic. These

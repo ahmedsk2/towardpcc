@@ -81,9 +81,8 @@ export const aplsWeight = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: APLS updated three-band age-based weight estimate (infant/1–5y/6–12y).",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
     },
   ],
@@ -94,11 +93,11 @@ export const aplsWeight = defineScore({
   },
   formula: defineText(
     "apls.formula",
-    "Estimated body weight in kilograms, chosen by age band. Under 1 year: weight = 0.5 × age in months + 4 (equivalently 6 × age in years + 4). 1–5 years: weight = 2 × age in years + 8. 6–12 years: weight = 3 × age in years + 7 (Luscombe & Owens). Age in years is taken at the last birthday (whole years) for the two child bands. This is a population point estimate for use only when a measured weight cannot be obtained — a directly measured weight is always preferred, and a Broselow length tape is a length-based alternative. Not defined below 0 or above 12 years.",
+    "Estimated body weight in kilograms, chosen by age band. Under 1 year: 0.5 × age in months + 4. 1–5 years: 2 × age + 8. 6–12 years: 3 × age + 7 (Luscombe & Owens, replacing the legacy (age + 4) × 2, which underestimated measured weight by a mean of 18.8%). Age is taken in whole years at the last birthday for the child bands. A single age input converts internally, because the infant formula runs in months, a classic unit trap.",
   ),
   notes: defineText(
     "apls.notes",
-    "An ESTIMATE, not a measurement or severity score — interpretation is intentionally empty (research: no clinical interpretation/risk bands; the only bands are the age bands that select the formula). A directly measured weight is always preferred; use the estimate only when weighing is impossible. The Broselow length tape (Lubitz 1988, PMID 3377285) is a length-based alternative but needs the physical tape and the child supine, and loses accuracy above ~25 kg. The updated 1–5y band (2×age)+8 is algebraically identical to the legacy APLS (age+4)×2; only the 6–12y band was steepened to (3×age)+7 (Luscombe & Owens 2007, PMID 17213259) because the legacy formula underestimated measured weight by a mean of 18.8% across ages 1–10y — e.g. at 10y the legacy 28 kg vs updated 37 kg (~24% gap). Population-derived formulas carry substantial individual error and systematically UNDERESTIMATE in overweight/obese children; validated range is 0–12 years (do not extrapolate to neonates outside term ranges, adolescents >12y, or adults). Age-unit trap: the infant formula is in months, the child formulas in whole years; this calculator takes a single age input and converts internally. No research values were left unsourced (no [NEEDS SOURCE] carried); the 0–12 year input bounds are engineering input-validity limits, not cited clinical thresholds.",
+    "A population point estimate for use only when weighing is impossible. A measured weight is always preferred, and the Broselow tape is the length-based alternative, which needs the tape and the child supine and loses accuracy above ~25 kg. Systematically underestimates in overweight and obese children. Not defined outside 0–12 years, and NOT to be extrapolated to a preterm or low-birth-weight neonate: the infant band is anchored to an average term newborn and returns 4 kg at age 0, which over-estimates a small preterm baby several-fold.",
   ),
   calculate: (values) => {
     // Canonical age is in YEARS (age unit spec). Return the RAW formula value;

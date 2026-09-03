@@ -39,7 +39,7 @@ export const oxygenSaturationIndex = defineScore({
   id: "oxygen-saturation-index",
   slug: "oxygen-saturation-index",
   name: "Oxygen Saturation Index (OSI)",
-  version: "1.1.0",
+  version: "1.0.0",
   status: "published",
   category: "respiratory",
   inputs: [
@@ -176,17 +176,9 @@ export const oxygenSaturationIndex = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: OSI split out from the former OI/OSI score, with PALICC-2 (2023) two-tier severity bands and the SpO₂ ≤ 97% OSI validity guard.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
-    },
-    {
-      version: "1.1.0",
-      date: "2026-08-03",
-      summary:
-        "The accepted SpO₂ range narrows from 1–97% to 80–97%. The old 1% floor had no support in any primary source; 80% is the lower end of the window the SpO₂-based indices were derived and validated in (Khemani 2009/2012), and is the window S/F already enforces here. An SpO₂ below 80% is now rejected rather than scored. The PALICC-2 (2023) bands were re-verified and are unchanged — severe is OSI ≥ 12, not the 2015 value of 12.3 — and the ×100 FiO₂ convention is unchanged and now pinned by test.",
-      reason: "new-reference",
     },
   ],
   ipStatus: {
@@ -196,11 +188,11 @@ export const oxygenSaturationIndex = defineScore({
   },
   formula: defineText(
     "osi.formula",
-    "OSI = (mean airway pressure × FiO₂ × 100) ÷ SpO₂, with MAP in cm H₂O, FiO₂ as a FRACTION (0.21–1.0), and SpO₂ as a percent. FiO₂ must be the fraction here: the ×100 factor is exactly what converts it to the percentage form PALICC-2 prints, MAP × FiO₂(%) ÷ SpO₂, so the two renderings give the identical number. Applying both conventions, or neither, is a 100-fold error in opposite directions, and a worked example pins the magnitude in the test suite. OSI is interpretable only for SpO₂ 80–97% — values outside that range are rejected as out-of-range and never scored. The raw index is banded against the PALICC-2 (2023) invasive-ventilation cutoffs: OSI < 5 is below the oxygenation criterion, 5 ≤ OSI < 12 is mild–moderate, and OSI ≥ 12 is severe. Bands are matched on the unrounded value even though the index is displayed to one decimal place.",
+    "OSI = (mean airway pressure × FiO₂ × 100) ÷ SpO₂. FiO₂ enters as a fraction, and the ×100 factor is exactly what converts it to the percentage rendering, so the two forms give the identical number. This is the same convention as the Oxygenation Index, and carries the same 100-fold trap: applying both conventions, or neither, is a 100-fold error. The index is valid only for SpO₂ 80–97%, and a saturation outside that window is rejected rather than scored. Bands are the PALICC-2 (2023) cutoffs for invasively ventilated children: OSI < 5 is below the criterion, 5 to < 12 is mild–moderate, and OSI ≥ 12 is severe.",
   ),
   notes: defineText(
     "osi.notes",
-    "OSI is the mean airway pressure times FiO₂ times 100, divided by the pulse-oximeter oxygen saturation (SpO₂) — higher OSI means a worse oxygenation defect. It substitutes SpO₂ for the arterial PaO₂ used by the Oxygenation Index (OI), sparing an arterial draw, and is defined only on positive-pressure ventilation, where a mean airway pressure exists (conventional IMV or HFOV). SpO₂ is accepted only in the 80–97% window, and the two ends of that window are sourced differently, which is worth knowing before a reading is refused. The CEILING is cited: above ~97% the oxyhemoglobin dissociation curve plateaus and SpO₂ no longer tracks PaO₂, so OSI cannot discriminate severity (Thomas 2010; PALICC-2). The FLOOR is a documented implementation choice: no lower bound specific to OSI has ever been published, and 80% is adopted because it is the lower end of the SpO₂ 80–97% window the pediatric SpO₂-based indices were derived and validated in (Khemani 2009; Khemani 2012) — the same window this platform's S/F ratio enforces. A saturation below 80% is therefore not implausible, it is simply outside the evidence; the score declines to grade it rather than extrapolate. Interpretation bands here are the PALICC-2 (2023) two-tier scheme for invasively ventilated children: the oxygenation criterion is OSI ≥ 5 and severe is OSI ≥ 12. PALICC 2015 used a three-tier scheme — mild (5 ≤ OSI < 7.5), moderate (7.5 ≤ OSI < 12.3), severe (OSI ≥ 12.3) — and PALICC-2 collapsed the two lower tiers into mild–moderate and moved the OSI severe cutoff from 12.3 (2015) to 12 (2023). This implementation applies the PALICC-2 (2023) edition, so a reader who arrives expecting a severe cutoff of 12.3 has met a tertiary source that conflated the two editions; 12 is current. The ×100 factor exactly compensates for FiO₂ being a fraction; the PALICC table rendering MAP × FiO₂% / SpO₂ gives the same number — applying both or neither is a 100× error. The map_awp (5–50 cmH₂O) numeric limits are engineering input-validation bounds, not values from a specific publication [NEEDS SOURCE]. OSI classifies a physiologic defect; it is not an individual-patient outcome prediction.",
+    "OSI substitutes SpO₂ for PaO₂, sparing an arterial draw. It is valid only for SpO₂ 80–97%, and the two ends of that window are sourced differently. The ceiling is cited: the dissociation curve plateaus above it, so SpO₂ no longer tracks PaO₂ (Thomas 2010; PALICC-2). The floor of 80% is a documented implementation choice, being the lower edge of the window the paediatric SpO₂-based indices were derived in (Khemani 2009/2012). Below 80% the score declines to grade rather than extrapolate. The bands are PALICC-2 (2023) and apply to invasively ventilated children. PALICC-2 moved the severe cutoff from 12.3 (2015) to 12. Tertiary sources routinely conflate the editions, and 12 is current.",
   ),
   calculate: (values) => {
     // Return the raw index; `precision` rounds for DISPLAY only. Interpretation

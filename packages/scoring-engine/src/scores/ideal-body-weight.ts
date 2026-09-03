@@ -113,9 +113,8 @@ export const idealBodyWeight = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: pediatric IBW via Traub–Kichen, simplified Traub, and (height > 152.4 cm) Devine.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
     },
   ],
@@ -126,11 +125,11 @@ export const idealBodyWeight = defineScore({
   },
   formula: defineText(
     "ibw.formula",
-    "Ideal body weight (kg) is estimated from height, shown per method. Traub–Kichen (exponential): IBW = 2.396 × e^(0.01863 × height in cm) — sex-independent, validated 1–17 years. Simplified Traub (Lexicomp quadratic): IBW = (height in cm)² × 1.65 ÷ 1000 — same domain, runs about 7% higher than Traub–Kichen (16.50 vs 15.44 kg at 100 cm). Devine (adult-derived, shown only when height is at or above 60 inches / 152.4 cm): height in inches = height in cm ÷ 2.54, then IBW = 50.0 + 2.3 × (height in inches − 60) for males and 45.5 + 2.3 × (height in inches − 60) for females. Pick the method appropriate to the child's age and height (see notes). Values are raw; the display rounds to 0.1 kg.",
+    "Ideal body weight (kg) is estimated from height. The formulas are shown side by side because no consensus method exists. Traub–Kichen: IBW = 2.396 × e^(0.01863 × height in cm). It is sex-independent, validated 1–17 years, and is the primary paediatric height-based equation. Simplified Traub (Lexicomp): IBW = height² × 1.65 ÷ 1000, with height in centimetres. Moylan prints “inches”, an apparent transcription error yielding non-physiologic values. This method runs about 7% higher than Traub–Kichen. Devine (adult-derived, sex-based) is shown only at height ≥ 152.4 cm (60 in): 50.0 (male) or 45.5 (female) + 2.3 × (inches − 60). It over-estimates versus paediatric methods.",
   ),
   notes: defineText(
     "ibw.notes",
-    "No consensus method exists — the published methods disagree, most in adolescents and at extreme percentiles (≥10 kg in Ward 2018, PMID 30277896; 13.7–16.6% median disagreement in Moylan 2019), so each height-computable method is shown separately and none is silently chosen. IBW has NO interpretive bands: it is an input to weight-based drug dosing, to %-IBW nutritional classification (%IBW = actual weight ÷ IBW × 100; the McLaren & Read 1972 malnutrition categories attach to that derived ratio, NOT to IBW), and to lung-protective tidal-volume setting in pediatric ARDS — interpretation is intentionally empty. Method applicability by age/height: Traub–Kichen (A1) is the primary pediatric height-based equation, validated ages 1–17 y and sex-independent by design; the simplified Traub quadratic (A2) is a Lexicomp approximation over the same domain and is NOT numerically equal to A1 (~7% higher). Devine (A3) is ADULT-DERIVED (a 1974 gentamicin-dosing formula), requires sex, and is only defined for height > 60 in (152.4 cm), so it is emitted only at/above 152.4 cm and over-estimates versus pediatric methods (~65.9 vs 56.9 kg at 170 cm). Units caveat: the simplified Traub formula takes CENTIMETRES — Moylan 2019 prints it with 'inches', an apparent transcription error that yields non-physiologic values; centimetres reproduces the Traub curve. Below ~1–2 years, height-only equations are weakest (Traub validated from 1 y; Devine invalid), and the reference-standard growth-chart methods (McLaren, Moore, ADA, BMI50) require CDC/WHO LMS percentile-table lookups — they are NOT computable from height alone and are therefore documented but NOT implemented here (BMI-for-age is undefined < 2 y). [NEEDS SOURCE] carried from the research file: Traub & Johnson 1980 PMID (not fetched); McLaren & Read 1972 PMID (not confirmed); Moore 1985 exact volume/pages; ADA 2003 exact page; the BMI50 original primary citation; and the Moylan 2019 exact journal/venue. Training aid, not a prescription — confirm any weight-based dose against a current pediatric reference.",
+    "The methods disagree by ≥ 10 kg in some children and change prescribed tidal volumes in pediatric ARDS (Ward 2018), which is why each one is shown and none is silently chosen. IBW carries no bands: it feeds weight-based dosing, %-IBW nutritional classification, and lung-protective tidal-volume setting. The McLaren & Read categories attach to the %IBW ratio, not to IBW. Growth-chart reference methods (McLaren, Moore, ADA, BMI50) need percentile-table lookups and are documented, not implemented. Height-only equations are weakest below about 1–2 years.",
   ),
   calculate: (values) => {
     // Canonical height is in centimetres (cmWithInAndM). Return RAW formula

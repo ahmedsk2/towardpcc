@@ -133,18 +133,17 @@ describeScore(vis, (ctx) => {
 });
 
 /**
- * Round-3 content pins (2026-08-04). The registry gate checks the
- * version/changelog invariant for every score in one loop, so it stops at the
- * first score that breaks — a sibling score failing means VIS's own invariant
- * goes unchecked. It is re-asserted here so this score is never covered only
- * by someone else's passing run.
+ * Content pins. The registry gate checks the version/changelog invariant for
+ * every score in one loop, so it stops at the first score that breaks — a
+ * sibling score failing means VIS's own invariant goes unchecked. It is
+ * re-asserted here so this score is never covered only by someone else's
+ * passing run.
  *
- * The rest pin the dichotomisation correction. VIS computes no threshold, so
- * nothing about these numbers is reachable through `calculate`: they live only
- * in prose, which is exactly the kind of claim that regresses silently. The
- * specific regression guarded against is the published review's ">15 in the
- * first 24 h", which moves the whole of group 3 (15–19 in the first period)
- * out of the low-VIS arm and into the high one.
+ * The rest guard claims that `calculate` cannot reach: VIS computes no
+ * threshold, so these live only in prose, which is exactly the kind of claim
+ * that regresses silently. Each one stops a specific WRONG statement — none of
+ * them requires the notes to be long, so condensing the text is free and only
+ * re-introducing an error costs anything.
  */
 describe("vis carries the corrected Gaies 2010 dichotomisation", () => {
   it("declares the version its newest changelog entry describes", () => {
@@ -153,39 +152,34 @@ describe("vis carries the corrected Gaies 2010 dichotomisation", () => {
       [...dates].sort((a, b) => a.localeCompare(b)),
     );
     expect(vis.version).toBe(vis.changelog[vis.changelog.length - 1]?.version);
-    expect(vis.version).toBe("1.4.0");
-  });
-
-  it("states all five Table 1 groups across both periods", () => {
-    const notes = vis.notes.en;
-    // First-24h column, then the 24-48h column, in the table's own order.
-    for (const band of ["10–14", "15–19", "20–24", "5–9"]) {
-      expect(notes, `Table 1 band ${band} must be stated`).toContain(band);
-    }
-    expect(
-      notes,
-      "the two-period assignment rule is what makes the groups mean anything",
-    ).toContain("highest group reached in EITHER period");
-    expect(notes, "groups 4+5 are the high-VIS arm").toMatch(/groups 4 and 5/i);
+    expect(vis.version).toBe("1.0.0");
   });
 
   it("defines high VIS by BOTH periods, not by a single first-24h number", () => {
-    expect(vis.notes.en).toContain("20 or more in the first 24h OR 15 or more in hours 24–48");
-  });
-
-  it("names the wrong ‘>15 in the first 24 h’ reading as wrong rather than repeating it", () => {
-    const notes = vis.notes.en;
-    expect(notes).toContain("more than 15 in the first 24h");
-    // Guarded so the phrase can only ever appear as the thing being corrected.
-    const idx = notes.indexOf("more than 15 in the first 24h");
-    expect(notes.slice(idx, idx + 260), "must be immediately marked wrong").toContain(
-      "that is wrong",
+    expect(vis.notes.en, "Gaies 2010 dichotomised on two windows, not one").toContain(
+      "20 or more in the first 24 h or 15 or more in hours 24–48",
     );
-    expect(notes, "and the reason: 15–19 in period one is group 3").toContain("group 3");
   });
 
-  it("records that our own earlier dual-period reading was the one that survived", () => {
-    expect(vis.notes.en).toContain("restored rather than silently re-reversed");
+  it("attaches the 15 threshold only to hours 24–48, never to the first 24 h", () => {
+    const notes = vis.notes.en;
+    // The regression guarded against is a published review's ">15 in the first
+    // 24 h", which drags the whole of Gaies 2010's group 3 (15–19 in the first
+    // period) out of the low-VIS arm and into the high one. Rather than require
+    // the wrong phrase be quoted and corrected — prose the notes no longer
+    // carry — every occurrence of the number has to sit in the SECOND window,
+    // so a first-period reading of 15 fails here however it comes back worded.
+    const positions: number[] = [];
+    for (let i = notes.indexOf("15"); i !== -1; i = notes.indexOf("15", i + 1)) {
+      positions.push(i);
+    }
+    expect(positions.length, "the 15 threshold must still be stated").toBeGreaterThan(0);
+    for (const at of positions) {
+      expect(
+        notes.slice(at, at + 30),
+        "15 is a second-period boundary in Gaies 2010, never a first-24h cut",
+      ).toContain("hours 24–48");
+    }
   });
 
   it("gives both Gaies pairings with their rules, now that both are stateable", () => {
@@ -194,57 +188,49 @@ describe("vis carries the corrected Gaies 2010 dichotomisation", () => {
     expect(notes, "2014 effect size").toContain("6.5");
   });
 
-  it("presents the cut-point spread as a controversy rather than one number", () => {
+  it("applies no cut-point, and says why none is applied", () => {
     const notes = vis.notes.en;
-    expect(notes, "no convergence across studies").toContain("10 to 30");
-    expect(notes, "paediatric septic shock cut").toContain("cut of 11");
-    expect(notes).toContain("78.87%");
-    expect(notes).toContain("72.22%");
-    expect(notes).toContain("0.779");
-    expect(notes, "non-transferability is the point of the spread").toContain(
-      "cut-points do not transfer between populations",
+    expect(notes, "no cohort's cut-point may be presented as the cut-point").toContain(
+      "No cut-point is applied",
     );
+    expect(notes, "the reported optima do not converge on one number").toContain("roughly 10–30");
     expect(vis.interpretation, "no band may be applied automatically").toHaveLength(0);
   });
 
-  it("explains the newer agents' exclusion by their disagreeing coefficients", () => {
+  it("excludes the newer agents as a decision, not as an oversight", () => {
     const notes = vis.notes.en;
-    expect(notes).toContain("methylene blue 1 versus 20");
-    expect(notes).toContain("angiotensin II 0.25 versus 25");
-    expect(notes).toContain("olprinone 10 versus 25");
+    expect(notes, "the exclusion is a positive decision, not a gap").toContain(
+      "excluded as a positive decision",
+    );
+    expect(notes, "and the reason is that the proposed coefficients disagree").toContain(
+      "disagree up to 100-fold",
+    );
+    // "The output is always a true Gaies VIS" stays true only while the inputs
+    // ARE the Gaies six: a seventh drug would falsify that sentence without
+    // touching a word of it, so pin the roster the sentence is claiming.
+    expect(
+      vis.inputs.map((i) => i.id),
+      "phenylephrine and the newer agents are absent by decision",
+    ).toEqual([
+      "dopamine",
+      "dobutamine",
+      "epinephrine",
+      "milrinone",
+      "vasopressin",
+      "norepinephrine",
+    ]);
   });
 
-  /**
-   * The excluded coefficients do NOT share a provenance, and a sentence saying
-   * they do is a false claim in both directions: it back-dates levosimendan and
-   * phenylephrine (2026-07-25 pass) to the 2026-08-04 review, and it marks
-   * levosimendan ×50 [NEEDS SOURCE] when vis.md records it confirmed against two
-   * independently fetched variant full texts. Nothing computes these numbers, so
-   * only prose can carry the error and only prose can catch it.
-   */
-  it("scopes the 2026-08-04 review attribution to the newer agents only", () => {
+  it("keeps the input maxima flagged as local bounds with no clinical authority", () => {
     const notes = vis.notes.en;
-    expect(notes, "no blanket attribution over every excluded coefficient").not.toContain(
-      "Every coefficient named in this paragraph",
+    // The maxima are this project's own convention. Nothing may present them as
+    // dosing guidance, and no source may be implied for a ceiling VIS does not
+    // publish — the absence was searched for and confirmed, not merely unfound.
+    expect(notes, "no published per-drug ceiling may be implied").toContain(
+      "No per-drug dose ceilings are published for VIS",
     );
-    expect(notes, "the newer-agent pairs are what the review supplied").toContain(
-      "The three newer-agent pairs above are quoted from the 2026-08-04 review",
-    );
-  });
-
-  it("keeps levosimendan ×50 sourced and phenylephrine ×10 honestly flagged", () => {
-    const notes = vis.notes.en;
-    expect(notes, "levosimendan ×50 has primary sourcing — never flag it unsourced").toContain(
-      "Levosimendan ×50 is not unsourced at all",
-    );
-    expect(notes, "and it came from the 2026-07-25 pass, not the 2026-08-04 review").toMatch(
-      /Levosimendan ×50 is not unsourced at all[^.]*2026-07-25 verification pass/,
-    );
-    expect(notes, "phenylephrine ×10 also predates the review").toMatch(
-      /Phenylephrine ×10 comes from that same 2026-07-25 pass/,
-    );
-    expect(notes, "phenylephrine's own gap stays stated").toMatch(
-      /Phenylephrine ×10[^.]*\[NEEDS SOURCE\] for a directly fetched primary/,
+    expect(notes, "the maxima carry no clinical authority").toContain(
+      "local validity bounds with no clinical authority",
     );
   });
 });

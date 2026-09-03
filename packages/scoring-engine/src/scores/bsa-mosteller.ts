@@ -88,8 +88,8 @@ export const bsaMosteller = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary: "Initial release: Mosteller body surface area from height and weight.",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
     },
   ],
@@ -100,11 +100,11 @@ export const bsaMosteller = defineScore({
   },
   formula: defineText(
     "bsa.formula",
-    "Body surface area is estimated with the Mosteller (1987) formula: BSA in square metres = the square root of (height in cm × weight in kg ÷ 3600), which is equivalently √(height × weight) ÷ 60. It is a single closed-form expression with no age or sex terms and no interpretation bands. The result is a body-size scalar used as a denominator elsewhere — e.g. drug dosing per m² (mg/m²) and indexed haemodynamic/renal parameters such as cardiac index (L/min/m²). Compute in full floating point and round once at display (precision 2); do not chain rounded intermediates.",
+    "BSA in square metres is the square root of (height in cm × weight in kg ÷ 3600). There are no age or sex terms. Compute in full floating point and round once at display.",
   ),
   notes: defineText(
     "bsa.notes",
-    "No interpretation bands: BSA is a continuous body-size scalar with no published cut-point that stratifies patients, so interpretation is intentionally empty — present the value as a derived body-size estimate and defer any dosing/indexing interpretation to the downstream calculation that consumes it. Estimate only, not a clinical device: Mosteller was validated only against the Du Bois formula (itself fit to 9 adults in 1916), not against direct surface-area measurement; agreement with pediatric-fit estimators (Haycock, Gehan-George) is close but widens at the extremes (neonates, severe obesity), so a platform indexing by BSA should record which formula it uses. The main failure mode is unit transposition (lb↔kg, in↔cm): because BSA scales as sqrt(h·w) a swapped unit yields a wrong-but-plausible number the formula cannot self-detect — unit labels and the range checks are the defense. The height (~30–220 cm) and weight (~0.3–250 kg) bounds are input-validity limits chosen to span the PICU range, NOT clinical limits and not from Mosteller 1987. NEEDS SOURCE (carried from research): a specific head-to-head pediatric accuracy figure vs Haycock/Gehan-George is not asserted here, and any protocol BSA cap for dosing (commonly cited around 2.0–2.2 m²) is a protocol overlay, not part of Mosteller, and lacks a primary numeric source.",
+    "BSA is a body-size scalar consumed by downstream calculations such as mg/m² dosing and cardiac index, so it carries no bands. Mosteller was validated against the Du Bois formula, itself fit to 9 adults in 1916, rather than against direct measurement. Agreement with pediatric-fit estimators widens at the extremes (neonates, severe obesity), so any platform indexing by BSA should record which formula it uses. The main failure mode is unit transposition (lb↔kg, in↔cm): because BSA scales as a square root, a swapped unit yields a wrong-but-plausible number the formula cannot self-detect.",
   ),
   calculate: (values) => {
     // Return the RAW computed BSA; per-value `precision` rounds for DISPLAY

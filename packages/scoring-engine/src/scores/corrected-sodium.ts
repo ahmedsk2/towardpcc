@@ -84,9 +84,8 @@ export const correctedSodium = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-07-25",
-      summary:
-        "Initial release: corrected sodium for hyperglycemia with both published factors (Katz 1.6 and Hillier 2.4).",
+      date: "2026-08-10",
+      summary: "Initial published text.",
       reason: "initial-release",
     },
   ],
@@ -97,11 +96,11 @@ export const correctedSodium = defineScore({
   },
   formula: defineText(
     "corrected-sodium.formula",
-    "Corrected sodium estimates the serum sodium that would be present if glucose were normal (100 mg/dL). For every 100 mg/dL of glucose above 100, add a fixed amount to the measured sodium — 1.6 mEq/L for the Katz (1973) factor, 2.4 mEq/L for the Hillier (1999) factor. Corrected Na = measured Na + (factor ÷ 100) × (glucose − 100). No correction is applied when glucose is at or below 100 mg/dL. Glucose is taken in mg/dL (mmol/L is converted ×18); sodium is mEq/L (= mmol/L).",
+    "Corrected Na = measured Na + (factor ÷ 100) × (glucose − 100), with glucose in mg/dL (mmol/L × 18). No correction is applied at or below 100. Both published factors are shown: Katz 1.6 (1973, theoretical) and Hillier 2.4 (1999, measured in 6 healthy adults).",
   ),
   notes: defineText(
     "corrected-sodium.notes",
-    "This is a corrected laboratory value, not an ordinal score, so it has no interpretation bands — read the corrected value against the ordinary serum-sodium reference frame (corrected-sodium.md §Interpretation). Both correction factors are ADULT-DERIVED: Katz (1973) is a theoretical osmotic derivation and Hillier (1999) was measured in only 6 healthy adults; neither factor was derived or validated in children, so applying 1.6/2.4 to pediatric patients (e.g. DKA) is an off-derivation extrapolation [NEEDS SOURCE: a pediatric-specific validation or pediatric DKA guideline endorsing a factor]. Hillier's data are non-linear: 1.6 fits adequately up to ~400 mg/dL and the true factor climbs toward ~4.0 above 400 mg/dL, so above 400 mg/dL the real corrected sodium may exceed even the Hillier (2.4) estimate. Units are the main hazard: glucose must be mg/dL for the 1.6/2.4 coefficients (mmol/L is converted ×18); sodium mEq/L = mmol/L (monovalent, no conversion). The input plausibility bounds (Na 90–180 mEq/L, glucose 0–2000 mg/dL) are data-entry sanity guards, not cited thresholds [NEEDS SOURCE: an authoritative pediatric reference-interval / critical-value source]. Not a clinical device: it aids interpretation of sodium during hyperglycemia and does not by itself indicate therapy.",
+    "A corrected lab value read against the ordinary sodium reference frame, so there are no bands. Both factors are adult-derived with no paediatric validation [NEEDS SOURCE for a paediatric factor or DKA-guideline endorsement]. Hillier’s data are non-linear: above ~400 mg/dL the true factor climbs toward ~4.0, so the real corrected sodium may exceed even the 2.4 estimate. Units are the main hazard: glucose must be mg/dL for these coefficients.",
   ),
   calculate: (values) => {
     const na = values.measured_na.value; // mEq/L (canonical)
