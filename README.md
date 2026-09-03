@@ -43,3 +43,7 @@ pnpm dev               # Next.js dev server on http://localhost:3000
 - `docs/runbooks/` — operational runbooks (deploy, incident, backup-restore)
 - `SECURITY.md` — security policy and responsible disclosure
 - `PRIVACY-ENGINEERING.md` — privacy-by-design commitments
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). The license covers code and content authored for TowardPCC; the published clinical scores implemented here keep their original authors' and publishers' IP status, recorded per score in [ADR-tier-b-ip](docs/decisions/ADR-tier-b-ip.md).
