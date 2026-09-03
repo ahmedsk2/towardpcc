@@ -2,8 +2,16 @@
 
 Implements decision 2 of [ADR-0004](../decisions/ADR-0004-ksa-only-processing.md).
 
-**Nothing here has been executed.** It is blocked on step 1, which is a
-conversation, not a command.
+> **Status: CUT OVER on 2026-08-08.** The apex and `www` resolve to the load
+> balancer and Cloudflare is DNS-only for them. The record of the cutover, what
+> must never be reversed, and how to verify a deploy against it are in
+> [`deploy-production.md`](deploy-production.md) under "Before you touch
+> production". Everything below is the design and the staging record, kept as
+> written: lines such as "nothing has been cut over" are true of the dates
+> they carry, not of today.
+
+**Nothing here had been executed when this was first written.** It was blocked
+on step 1, which is a conversation, not a command.
 
 > ⚠️ **The single most dangerous mistake is flipping DNS first.** The
 > replacement is stood up and proven **while Cloudflare is still serving**, then
