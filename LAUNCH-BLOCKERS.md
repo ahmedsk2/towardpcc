@@ -45,8 +45,8 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       would make the residency claim unqualified
 - [ ] Supply independent clinical validator names — the badge reads "pending"
       until then
-- [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar, and
-      lookalike monitoring (CT-log monitoring is done — daily canary)
+- [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar (CT-log
+      and lookalike monitoring are done — daily canaries)
 - [ ] Add a DKIM key and a DMARC `rua=` for towardpicu.com — SPF alone breaks on
       forwarding
 - [ ] Two images: the `/services` photo (Envato PQBLD6T, saved as
@@ -337,10 +337,16 @@ now stands, which is true and tested.
       records**, so any CA in the world may issue for this domain. Also still
       open and not verifiable from the repo: registry lock proper (no `server*`
       status codes), org-owned auto-renew payment, a two-owner renewal
-      calendar, lookalike monitoring, defensive registrations. **CT-log
-      monitoring is done** — verified 2026-09-03: `scripts/check-ct-log.mjs`
-      runs in the daily `towardpcc-canary.timer` on the host alongside the
-      residency and integrity canaries, and passed that morning.
+      calendar, defensive registrations. **CT-log monitoring is done** —
+      verified 2026-09-03: `scripts/check-ct-log.mjs` runs in the daily
+      `towardpcc-canary.timer` on the host alongside the residency and
+      integrity canaries, and passed that morning. **Lookalike monitoring is
+      done** — `scripts/check-lookalikes.mjs` (2026-09-03) asserts that no
+      variant of either name we do not own has nameservers, ten TLDs and the
+      confusable substitutions; on its first run it reported `towardpcc.net`
+      and `towardpicu.net`, which registry RDAP showed are ours (GoDaddy, the
+      same locks, registered 2022 in step with the .com pair) — defensive
+      registrations that were not recorded anywhere until then.
 
 ### SMTP relay (TM-008) — needs one credential
 
