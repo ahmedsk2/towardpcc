@@ -160,8 +160,10 @@ Coolify API token is `~/.coolify-token` **on the host**. The OCI CLI is
 MCP is usually disconnected. The Cloudflare token (`~/.cloudflare-token` on the
 host) **can edit DNS** but is refused on zone settings and WAF — so DNS moves
 are yours to make, while Bot Fight Mode, JS Detections, WAF rules and Turnstile
-are genuinely founder-only. Branch protection 403s: a private repo needs GitHub
-Pro. Getting this wrong wastes the founder's time in both directions.
+are genuinely founder-only. **The repository is PUBLIC and has been since it was
+created on 2026-07-24** (GitHub's `PublicEvent`); the line that stood here —
+"a private repo needs GitHub Pro" — was wrong, and branch protection is free.
+Getting this wrong wastes the founder's time in both directions.
 
 The host runs an application holding real patient data. Every command you run
 there is scoped to TowardPCC's own containers and its own database — the

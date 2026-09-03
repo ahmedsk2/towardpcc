@@ -127,12 +127,11 @@ Retain the incident documentation afterwards (Stage Three of the guide).
 - Data loss or suspected breach (SEV1) → founder immediately; preserve logs +
   the AuditLog; do not destroy evidence.
 - **A suspected personal-data breach starts a 72-hour regulatory clock** (above).
-  Contact counsel the same day — **Dr Ahmed Alkhalifah**, confirmed reachable
-  inside 72 hours on 2026-09-03; the founder holds the contact details. If
-  counsel has not been reached by hour 60, the standing decision (the
-  founder's, 2026-09-03, recorded in `LAUNCH-BLOCKERS.md`) is: **keep trying
-  counsel; do not notify SDAIA without them.** Do not improvise a different
-  answer at hour 60.
+  Contact counsel the same day. **Counsel is not yet named** (2026-09-03; an
+  earlier wording here named the founder by mistake) — until it is, the
+  founder is the contact and the hour-60 default is NOT settled. The open
+  decision and its recommendation are in `LAUNCH-BLOCKERS.md`; do not
+  improvise it at hour 60, escalate to the founder.
 - Prolonged outage (> 30 min) with no clear cause → roll back to last-known-good
   image and restore the latest verified backup.
 - **Secondary contact (pre-launch requirement):** name a second person who can

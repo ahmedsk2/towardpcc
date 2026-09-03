@@ -36,6 +36,10 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
 
 ### Founder-only — none of these is an engineering task
 
+- [ ] Counsel review of the legal pages — reopened 2026-09-03; the pages say
+      "pending counsel review" again
+- [ ] Name counsel reachable inside 72 hours, and settle the hour-60 default —
+      the founder is the interim contact; the default is NOT settled
 - [ ] Register on SDAIA's National Data Governance Platform, before it is needed
 - [ ] Move MX off SiteGround to a KSA-hosted provider — the one change that
       would make the residency claim unqualified
@@ -49,7 +53,8 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       `services-statistics.jpg`, pipeline job queued) and a `/data` registry
       image, which needs the pilot unit's written OK first
 - [ ] Say when `/` should stop being the holding page and serve the home page
-- [ ] GitHub Pro, if branch protection on `main` is wanted (a private repo 403s)
+- [ ] Branch protection on `main` — free, the repo has been PUBLIC since
+      2026-07-24; needs the founder's go, and a license file for a public tree
 
 ### Engineering — open, each with a written reason it is still open
 
@@ -241,7 +246,8 @@ confirming at cutover, when it starts to matter.
       rate-limited / admin-login outcomes. Error telemetry (Sentry/GlitchTip
       DSN) is still a deploy-time config (P8).
 - [x] GitHub remote — approved by founder 2026-07-24; created during P0
-      (private, https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
+      (PUBLIC since creation on 2026-07-24 — the word "private" stood here
+      until 2026-09-03; https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
       fails without admin on this machine (EPERM in Program Files); pnpm is
       installed via `npm i -g pnpm@10.34.5`, documented in README.
 
@@ -665,11 +671,13 @@ this.
 
 ## Content / legal
 
-- [x] **Legal pages counsel-reviewed — 2026-09-03.** Dr Ahmed Alkhalifah
-      signed off on `/legal/data-protection`, `/legal/terms` and
-      `/legal/disclaimer` as written; both `TODO(counsel-review)` markers and
-      both `pendingNote` strings are removed in #160. No copy corrections
-      came with the sign-off; any that follow are a separate change.
+- [ ] **Legal pages need counsel review — reopened 2026-09-03 the same day it
+      was ticked.** The tick recorded "Dr Ahmed Alkhalifah signed off"; that is
+      the founder's own name, given in answer to a question that asked for
+      counsel, and no lawyer has reviewed the pages. #160 had removed the
+      "pending counsel review" notes on that basis; the revert restores them.
+      Lesson: check a name against the founder entry in `content/site.ts`
+      before recording it as a third party.
 - [ ] Calculator validator slots empty by design — badge shows
       "Independent clinical validation: pending" until real names provided.
       **Checked 2026-09-03:** validators not yet recruited, so nothing can be
@@ -918,13 +926,13 @@ absence is not later read as an oversight.
 - [x] **The duty is now written down**, in `docs/runbooks/incident.md` under
       "Regulatory notification (PDPL)", with sources.
 - [ ] **Register on the National Data Governance Platform, before you need it.**
-- [x] **Counsel named and the hour-60 default settled — 2026-09-03.** Counsel
-      is Dr Ahmed Alkhalifah, confirmed by the founder as reachable inside 72
-      hours; contact details stay with the founder, not in this repo. The
-      standing default at hour 60 if counsel has not been reached: keep
-      trying counsel and do not notify SDAIA without them. The founder chose
-      this over the recommendation below, and owns the deadline risk it
-      carries.
+- [ ] **Counsel not yet named; hour-60 default NOT settled — corrected
+      2026-09-03.** An earlier entry that day recorded the founder's own name
+      as counsel, and a default of "keep trying counsel; never notify without
+      them" taken on the assumption that counsel existed. With no counsel that
+      default means never notify, so it is withdrawn rather than kept. Until
+      counsel is named: the founder is the contact; the decision below is
+      still open and is his to make, with the recommendation standing.
 
 `CMP-03` asked for "the PDPL 72h breach clock + SDAIA contact". The number turned
 out to be right, and it was in the repo only as an unsourced open question — it is
@@ -943,9 +951,9 @@ day and not to notify on your own initiative. Against a hard deadline that is
 incomplete, because silence from counsel at hour 60 is itself a decision. Settle
 it in advance and record it here. The recommendation is to notify — the notice
 carries no admission and late notice is the sanctionable failure — but it is the
-founder's call to own, not the runbook's to assume. **Settled 2026-09-03,
-the other way:** keep trying counsel; never notify without them. See the
-ticked item above and the escalation bullet in `docs/runbooks/incident.md`.
+founder's call to own, not the runbook's to assume. **Not settled.** A
+2026-09-03 entry recorded it as settled the other way, under a
+misidentification of counsel; withdrawn the same day — see the item above.
 
 **One coupling worth seeing.** The missing DPAs stop being paperwork here: a
 processor who tells us late burns our own 72 hours, and there are three disclosed
