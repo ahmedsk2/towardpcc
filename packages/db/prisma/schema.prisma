@@ -49,20 +49,19 @@ enum SubmissionStatus {
 /// Operator accounts for /admin. TOTP is mandatory (PRD §9); passwords are
 /// Argon2id; totpSecret is application-encrypted on top of at-rest encryption.
 model AdminUser {
-  id                String           @id @default(cuid())
-  email             String           @unique
+  id                String         @id @default(cuid())
+  email             String         @unique
   passwordHash      String
   totpSecret        String // application-encrypted
   totpRecoveryCodes String[] // hashed, single-use
   lastTotpStep      BigInt? // last consumed TOTP period — blocks code replay (RFC 6238 §5.2)
-  role              AdminRole        @default(EDITOR)
-  failedLoginCount  Int              @default(0)
+  role              AdminRole      @default(EDITOR)
+  failedLoginCount  Int            @default(0)
   lockedUntil       DateTime?
-  createdAt         DateTime         @default(now())
+  createdAt         DateTime       @default(now())
   lastLoginAt       DateTime?
-  triaged           Submission[]     @relation("TriagedBy")
+  triaged           Submission[]   @relation("TriagedBy")
   auditLogs         AuditLog[]
-  calcMetaEdits     CalculatorMeta[]
   settingEdits      AppSetting[]
   sessions          AdminSession[]
 }
@@ -150,17 +149,6 @@ model Submission {
 
 /// Editable presentation layer over the immutable scoring-engine. Governs
 /// presentation + publish state only — never formulas or bands (engine-owned).
-model CalculatorMeta {
-  id               String     @id @default(cuid())
-  slug             String     @unique // must match a registered engine score id
-  published        Boolean    @default(false)
-  displayOverrides Json? // presentation only
-  validatorSlots   Json? // the two independent-validator slots (§6.4)
-  updatedAt        DateTime   @updatedAt
-  updatedBy        AdminUser? @relation(fields: [updatedById], references: [id])
-  updatedById      String?
-}
-
 /// Append-only audit trail of every admin mutation (PRD §9). Code never updates
 /// or deletes rows. Retention: 12 months from ts, then purged (§8.4).
 model AuditLog {
