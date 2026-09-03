@@ -1,3 +1,4 @@
+import { Callout } from "@towardpcc/ui";
 import { PageHero } from "@/components/page-hero";
 
 type Section = { heading: string; body: string };
@@ -8,11 +9,13 @@ export function LegalPage({
   heading,
   lede,
   sections,
+  pendingNote,
 }: {
   crumb: string;
   heading: string;
   lede: string;
   sections: readonly Section[];
+  pendingNote?: string;
 }) {
   return (
     <>
@@ -27,6 +30,13 @@ export function LegalPage({
             </section>
           ))}
         </div>
+
+        {pendingNote && (
+          <Callout tone="note" className="mt-12 text-[13px]">
+            {/* The counsel-review marker lives in the source; strip it from display. */}
+            {pendingNote.replace(/\s*<!--.*?-->\s*$/, "")}
+          </Callout>
+        )}
       </div>
     </>
   );
