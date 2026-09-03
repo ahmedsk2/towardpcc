@@ -697,7 +697,7 @@ export const site = {
     heading: "How we handle data",
     metaDescription:
       "TowardPCC's data-handling approach: client-side calculators, servers in Saudi Arabia, and minimal collection. Never patient data.",
-    lede: "Privacy is designed into TowardPCC, not bolted on. This page states plainly what happens to data today; the full legal privacy policy lands before public launch.",
+    lede: "Privacy is designed into TowardPCC, not bolted on. This page states plainly what happens to data today.",
     sections: [
       {
         heading: "The calculators never send your inputs anywhere",
