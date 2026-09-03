@@ -1,5 +1,7 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { oxygenSaturationIndex } from "./oxygen-saturation-index";
+import { matchInterpretationBand } from "../interpretation";
 
 // OSI worked examples are traced to docs/research/scores/oi-osi.md; the PALICC-2
 // bands and the SpO₂ ≤ 97% guard carry the primary citation.
@@ -15,6 +17,24 @@ const slaughter2025 = {
 };
 
 describeScore(oxygenSaturationIndex, (ctx) => {
+  /** The OSI twin of the OI cut-point case; see oxygenation-index.test.ts. */
+  it("grades the exact PALICC-2 cut-points, not their floating-point residue", () => {
+    const at = (map: number, fio2: number, spo2: number) => {
+      const out = oxygenSaturationIndex.compute({
+        map_awp: { value: map, unit: "cmH2O" },
+        fio2: { value: fio2, unit: "fraction" },
+        spo2: { value: spo2, unit: "%" },
+      } as never);
+      expect(out.ok).toBe(true);
+      if (!out.ok) throw new Error("rejected");
+      const v = out.result.values.find((x) => x.id === "osi")!;
+      return matchInterpretationBand(oxygenSaturationIndex, "osi", v.value)?.id;
+    };
+    expect(at(17, 0.6, 85)).toBe("osi-severe"); // exactly 12, computes as 11.999999999999998
+    expect(at(12, 0.95, 95)).toBe("osi-severe"); // exactly 12 by a different route
+    expect(at(10, 0.47, 94)).not.toBe("osi-below-threshold"); // exactly 5
+    expect(at(15, 0.6, 85)).not.toBe("osi-severe"); // genuinely below
+  });
   // Worked example 2 (oi-osi.md): MAP 15, FiO₂ 0.50, SpO₂ 92 (≤ 97, valid) →
   // OSI (15×0.50×100)/92 = 8.15 (PALICC-2 mild–moderate).
   ctx.workedExample(

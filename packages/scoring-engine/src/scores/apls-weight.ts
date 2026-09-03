@@ -22,7 +22,7 @@ export const aplsWeight = defineScore({
   id: "apls-weight",
   slug: "apls-weight",
   name: "APLS age-based weight estimate (pediatric)",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "general",
   inputs: [
@@ -84,6 +84,13 @@ export const aplsWeight = defineScore({
       date: "2026-08-10",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.1.0",
+      date: "2026-09-03",
+      reason: "formula-correction",
+      summary:
+        "Reads a birthday entered in DAYS as that birthday. Age is stored in years and days convert at 365.25, so a sixth birthday of 2191 days became 5.9986 years and a tenth of 3652 days became 9.9986. Anything that floors or bands on whole years then read the child as a year younger. The conversion now snaps to a whole year when the day count is within one day of one, which is the largest the drift can be: 365.25 averages the leap cycle exactly, so a true birthday is always within 0.75 days of the integer. Ages entered in years or months were already exact and are unchanged, and an age more than a day from a birthday is untouched. Found 2026-09-03 by an independent recompute of every calculator from its published source. On this score that returned 18 kg for a six-year-old whose own row gives 25, a 7 kg error on a figure that seeds weight-based drug and fluid doses.",
     },
   ],
   ipStatus: {

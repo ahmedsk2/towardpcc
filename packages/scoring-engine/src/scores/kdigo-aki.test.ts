@@ -22,6 +22,24 @@ const kdigo = {
 };
 
 describeScore(kdigoAki, (ctx) => {
+  /**
+   * KDIGO's estimated-GFR route to Stage 3 is for patients UNDER 18. An
+   * eighteenth birthday entered in days divided to 17.9986 years, so the
+   * paediatric branch stayed open on an adult. Found 2026-09-03.
+   */
+  it("closes the under-18 eGFR route on an eighteenth birthday entered in days", () => {
+    const stage = (days: number) => {
+      const out = kdigoAki.compute({
+        age: { value: days, unit: "days" },
+        egfr: { value: 30, unit: "mL/min/1.73m2" },
+      } as never);
+      expect(out.ok).toBe(true);
+      if (!out.ok) throw new Error("rejected");
+      return out.result.values.find((v) => v.id === "kdigo_stage")!.value;
+    };
+    expect(stage(6574), "an 18th birthday is not a patient under 18").toBe(0);
+    expect(stage(6209), "a 17-year-old still reaches the paediatric route").toBe(3);
+  });
   // ═══════════════════════════════════════════════════════════════════════════
   // Serum-creatinine axis (KDIGO Table 2)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -926,7 +944,7 @@ describe("kdigo-aki records its settled absences as settled", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("1.0.0");
+    expect(kdigoAki.version).toBe("1.1.0");
   });
 });
 

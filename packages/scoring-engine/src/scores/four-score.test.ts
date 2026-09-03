@@ -14,7 +14,7 @@ import { fourScore } from "./four-score";
  * way `prism.test.ts` does.
  *
  * Each case doubles as a trap for a specific way this score is easy to get
- * wrong: the floor that is 0 rather than GCS's 3, the ventilated ceiling of 13,
+ * wrong: the floor that is 0 rather than GCS's 3, the intubated ceiling of 13,
  * and the one-point or/and boundary inside the brainstem component.
  *
  * Integer points → exact match, no tolerance.
@@ -52,6 +52,62 @@ const worst = {
 } as const;
 
 describeScore(fourScore, (ctx) => {
+  /**
+   * THREE LABELS THAT HAD DRIFTED FROM THE PUBLISHED INSTRUMENT.
+   *
+   * Found 2026-09-03 by an independent recompute of every calculator against
+   * its source. All three are wording rather than arithmetic, which is why the
+   * suite could pass over them: the vectors here are the readings a rater
+   * arrives at, and what changed is which level those readings match.
+   *
+   * The labels are paraphrases, never the source descriptors, so these assert
+   * the DISCRIMINATOR each level turns on rather than any published sentence.
+   */
+  it("splits respiration on intubation, not on ventilator support", () => {
+    const resp = fourScore.inputs.find((i) => i.id === "four_respiration")!;
+    expect(resp.type).toBe("categorical");
+    if (resp.type !== "categorical") return;
+    const label = (v: string) => resp.options.find((o) => o.value === v)!.label.en;
+    // A child on mask CPAP or high-flow is NOT intubated and is scored on
+    // rhythm alone — three points that the old "without mechanical support"
+    // wording put out of reach, on a scale where low is worse.
+    for (const v of ["4", "3", "2"]) {
+      expect(label(v), `level ${v} must turn on intubation`).toMatch(/not intubated/i);
+      expect(label(v), `level ${v} must not turn on ventilator support`).not.toMatch(
+        /mechanical support|mechanically ventilated/i,
+      );
+    }
+    for (const v of ["1", "0"]) {
+      expect(label(v), `level ${v} describes an intubated patient`).toMatch(/intubated/i);
+    }
+  });
+
+  it("keeps withdrawal inside motor level 2, which this scale does not split", () => {
+    const motor = fourScore.inputs.find((i) => i.id === "four_motor")!;
+    expect(motor.type).toBe("categorical");
+    if (motor.type !== "categorical") return;
+    const m2 = motor.options.find((o) => o.value === "2")!.label.en;
+    // The published level is a flexion response to pain and collapses what the
+    // GCS separates. Naming only the decorticate pattern left a child who
+    // withdraws but does not localise matching no level, and raters reach for
+    // level 3 — one point high.
+    expect(m2, "withdrawal must be inside level 2").toMatch(/pulling away|withdraw/i);
+    expect(m2, "and the decorticate pattern with it").toMatch(/decorticate/i);
+    expect(m2, "and the collapse must be stated, not left to inference").toMatch(
+      /does not separate|not separated|collapses/i,
+    );
+  });
+
+  it("counts eyes OPENED by the examiner at the top eye level", () => {
+    const eye = fourScore.inputs.find((i) => i.id === "four_eye")!;
+    expect(eye.type).toBe("categorical");
+    if (eye.type !== "categorical") return;
+    const e4 = eye.options.find((o) => o.value === "4")!.label.en;
+    // Lids held shut by periorbital swelling is an everyday trauma
+    // presentation; the published level counts them once opened.
+    expect(e4, "eyes opened by the examiner still reach level 4").toMatch(/opened by/i);
+  });
+
   // four-score.md Example 1 — intact examination, breathing spontaneously:
   // 4 + 4 + 4 + 4 = 16 (best possible).
   ctx.workedExample(
@@ -106,9 +162,11 @@ describeScore(fourScore, (ctx) => {
     [{ id: "four_total", value: 9 }],
   );
 
-  // four-score.md Example 4 — the ventilated ceiling. An otherwise perfect
-  // examination in a ventilated patient tops out at 13, because respiration
-  // cannot exceed 1 once the patient is on a ventilator. This is the vector
+  // four-score.md Example 4 — the INTUBATED ceiling. An otherwise perfect
+  // examination in an intubated patient tops out at 13, because respiration
+  // cannot exceed 1 once the patient is intubated. Intubation is the split,
+  // not ventilator support: a child on mask CPAP or high-flow is scored on
+  // rhythm like any unsupported patient. This is the vector
   // that makes the "totals are not comparable across airway status" caution
   // concrete rather than rhetorical.
   ctx.workedExample(

@@ -18,6 +18,28 @@ const statpearls = {
 };
 
 describeScore(ettSize, (ctx) => {
+  /**
+   * The same birthday-in-days defect, at a tie-break rather than a band edge.
+   * 366 days is a first birthday after a leap year; divided by 365.25 it was
+   * 1.002053 years, which lifted the raw cuffed size from exactly 3.75 to
+   * 3.7505 and rounded it UP to 4.0 instead of down to 3.5.
+   */
+  it("sizes a birthday entered in days as that birthday", () => {
+    const sizes = (days: number) => {
+      const out = ettSize.compute({ age: { value: days, unit: "days" } } as never);
+      expect(out.ok).toBe(true);
+      if (!out.ok) throw new Error("rejected");
+      return {
+        cuffed: out.result.values.find((v) => v.id === "cuffed_device_id")!.value,
+        uncuffed: out.result.values.find((v) => v.id === "uncuffed_device_id")!.value,
+      };
+    };
+    // Exactly 1 year: raw 3.75 / 4.25, both exact ties, both resolved DOWN.
+    expect(sizes(366)).toEqual(sizes(365));
+    expect(sizes(366).cuffed).toBe(3.5);
+    // Exactly 3 years: raw 4.25 / 4.75.
+    expect(sizes(1096).cuffed).toBe(4.0);
+  });
   // Research Worked example 1 — 4-year-old.
   // Uncuffed = 4/4 + 4 = 5.0 mm; cuffed(+3.5) = 4/4 + 3.5 = 4.5 mm; depth = 4/2 + 12 = 14 cm.
   ctx.workedExample(

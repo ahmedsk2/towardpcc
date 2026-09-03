@@ -43,7 +43,7 @@ export const fourScore = defineScore({
   id: "four-score",
   slug: "four-score",
   name: "FOUR score (Full Outline of UnResponsiveness)",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "general",
   inputs: [
@@ -61,7 +61,7 @@ export const fourScore = defineScore({
           value: "4",
           label: defineText(
             "four.eye.4",
-            "Eyes open, and obey an instruction — follow a moving target, or blink on request (4)",
+            "Eyes open, or opened by the examiner, and then obey an instruction — follow a moving target, or blink on request (4)",
           ),
         },
         {
@@ -113,7 +113,7 @@ export const fourScore = defineScore({
           value: "2",
           label: defineText(
             "four.motor.2",
-            "Bends the arm inward to pain — abnormal flexion, the decorticate pattern (2)",
+            "Any flexion of the arm to pain — pulling away from it, or bending it inward in the decorticate pattern; this scale does not separate the two (2)",
           ),
         },
         {
@@ -183,42 +183,42 @@ export const fourScore = defineScore({
       type: "categorical",
       helpText: defineText(
         "four.respiration.help",
-        "The top three levels describe an unsupported breathing pattern; the bottom two describe how a ventilated patient interacts with the set rate. A ventilated patient therefore cannot score above 1 here, capping their total at 13.",
+        "THE SPLIT IS INTUBATION, NOT VENTILATOR SUPPORT. The top three levels describe the breathing pattern of a patient who is not intubated — including one on mask CPAP, BiPAP or high-flow, all of which still score on rhythm alone. The bottom two describe how an intubated patient interacts with the set rate. An intubated patient therefore cannot score above 1 here, capping their total at 13.",
       ),
       options: [
         {
           value: "4",
           label: defineText(
             "four.respiration.4",
-            "Breathing without mechanical support, regular rhythm (4)",
+            "Not intubated, and breathing in a regular rhythm (4)",
           ),
         },
         {
           value: "3",
           label: defineText(
             "four.respiration.3",
-            "Breathing without mechanical support, in a waxing-and-waning periodic cycle (Cheyne–Stokes) (3)",
+            "Not intubated, breathing in a waxing-and-waning periodic cycle (Cheyne–Stokes) (3)",
           ),
         },
         {
           value: "2",
           label: defineText(
             "four.respiration.2",
-            "Breathing without mechanical support, irregular rhythm (2)",
+            "Not intubated, and breathing in an irregular rhythm (2)",
           ),
         },
         {
           value: "1",
           label: defineText(
             "four.respiration.1",
-            "Mechanically ventilated, and triggering breaths above the set rate (1)",
+            "Intubated, and triggering breaths above the ventilator's set rate (1)",
           ),
         },
         {
           value: "0",
           label: defineText(
             "four.respiration.0",
-            "Mechanically ventilated with no breaths beyond the set rate, or apnoeic (0)",
+            "Intubated with no breaths beyond the set rate, or apnoeic (0)",
           ),
         },
       ],
@@ -312,6 +312,13 @@ export const fourScore = defineScore({
       summary: "Initial published text.",
       reason: "initial-release",
     },
+    {
+      version: "1.1.0",
+      date: "2026-09-03",
+      reason: "formula-correction",
+      summary:
+        "Corrects three option labels that had drifted from the published instrument, each worth points on a scale where low is worse. RESPIRATION now splits on INTUBATION rather than on ventilator support, which is what the source splits on: a child on mask CPAP, BiPAP or high-flow is not intubated and is scored on breathing rhythm alone, where the old wording sent them to level 1 and cost up to three points. The mirror ran the other way, letting an intubated patient on a T-piece reach 16 where the instrument allows 13. MOTOR level 2 now covers any flexion response to pain, pulling away from it as well as the decorticate pattern; this scale collapses what the Glasgow Coma Scale separates, and naming only decorticate flexion left a child who withdraws without localising matching no level, so raters reached for level 3 and scored a point high. EYE level 4 now counts eyes OPENED by the examiner, not only eyes already open, so lids held shut by periorbital swelling no longer put the top level out of reach. Every label remains this project own paraphrase rather than the source descriptors. Found 2026-09-03 by an independent recompute of every calculator against its published source.",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -336,12 +343,12 @@ export const fourScore = defineScore({
     ),
     defineText(
       "four.caution.ventilated",
-      "A ventilated patient can score at most 1 on respiration, capping the total at 13. Ventilated and unventilated totals are different rulers and are not comparable. Sedation and neuromuscular blockade make the eye and motor components uninformative.",
+      "An INTUBATED patient can score at most 1 on respiration, capping the total at 13. Intubation, not ventilator support, is what the scale splits on: a child on mask CPAP, BiPAP or high-flow still scores the top three levels on rhythm alone. Intubated and non-intubated totals are different rulers and are not comparable. Sedation and neuromuscular blockade make the eye and motor components uninformative.",
     ),
   ],
   notes: defineText(
     "four.notes",
-    "STRUCTURAL CEILINGS, BUILT INTO THE INSTRUMENT. A ventilated patient can score at most 1 on respiration, capping the total at 13; ventilated and unventilated totals are different rulers and are not comparable. Eye 4 and motor 4 require obeying an instruction, so a neurologically intact preverbal child caps at 14. That ceiling is reasoned from the item definitions; [NEEDS SOURCE] for a published youngest applicable age. " +
+    "STRUCTURAL CEILINGS, BUILT INTO THE INSTRUMENT. An INTUBATED patient can score at most 1 on respiration, capping the total at 13 — intubation is the split, not ventilator support, so a child on mask CPAP or high-flow is scored on rhythm like any unsupported patient; intubated and non-intubated totals are different rulers and are not comparable. Eye 4 and motor 4 require obeying an instruction, so a neurologically intact preverbal child caps at 14. That ceiling is reasoned from the item definitions; [NEEDS SOURCE] for a published youngest applicable age. " +
       "BRAINSTEM READING TRAP: level 2 is exactly ONE of the pupillary/corneal pair lost; level 1 is BOTH lost with cough retained; level 0 is cough lost too. The or/and distinction is one point wide. " +
       "Sedation and neuromuscular blockade make the eye and motor components uninformative. " +
       "PAEDIATRIC STANDING: six studies, 571 children (Almojuela 2019): equivalent to the GCS in outcome prediction, reliably rated, superiority not established. The cohorts were mostly school-age (2-12 y), with neonates and infants effectively absent. Not interchangeable with the GCS, which has different components, ranges and floors. " +

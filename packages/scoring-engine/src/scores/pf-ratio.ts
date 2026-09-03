@@ -13,7 +13,7 @@ export const pfRatio = defineScore({
   id: "pf-ratio",
   slug: "pf-ratio",
   name: "PaO₂/FiO₂ ratio (P/F)",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "respiratory",
   inputs: [
@@ -113,6 +113,13 @@ export const pfRatio = defineScore({
       date: "2026-08-10",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.1.0",
+      date: "2026-09-03",
+      reason: "formula-correction",
+      summary:
+        "Grades the exact PALICC-2 and Berlin cut-points correctly. The arithmetic behind these indices is binary and the thresholds are decimal, so a value that IS the cut-point did not compute to it: an OI of exactly 16 evaluates to 15.999999999999998 from a mean airway pressure of 24, FiO2 0.60 and PaO2 90; an OSI of exactly 12 to 11.999999999999998; a P/F of exactly 100 to 100.00000000000001. Compared raw, all three placed the patient one band TOO MILD, the under-triage direction and never the reverse, while the page printed the rounded figure beside the milder label and appeared to contradict itself. The band matcher now treats a value within a millionth of a millionth of a bound as being on it, which is four orders above the floating-point residue and far below any difference a clinician draws. NO OTHER VALUE MOVES: a number genuinely below a cut-point still bands below it. Found 2026-09-03 by an independent recompute of every calculator from its published source; the same defect as the PRISM 14-day age term, in a different unit. On this score a patient at the Berlin severe threshold of 100, or at the moderate threshold of 200, was graded one band milder.",
     },
   ],
   ipStatus: {
