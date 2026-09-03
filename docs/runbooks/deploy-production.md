@@ -678,6 +678,16 @@ checksums of the applied ones, so it catches drift before you write anything.
 Swap `status` for `deploy` to apply. `node` is not installed on the host itself,
 only in containers; `python3` is.
 
+Two things from applying `drop_calculator_meta` this way on 2026-09-03. From a
+Windows checkout, build the archive with `git archive --format=tar.gz -o <path>
+origin/main packages/db/prisma packages/db/prisma.config.ts` — that also ships
+exactly the merged commit rather than whatever the working tree holds — and do
+not "check" it with `tar -tzf C:\...`: GNU tar reads `C:` as a remote host and
+reports a garbage failure while the archive is fine. And `npm install` inside the
+container leaves `/tmp/mig/node_modules` owned by root, so the cleanup is
+`sudo rm -rf /tmp/mig`; a plain `rm` fails after the migration has already
+succeeded and turns a green run into a red exit code.
+
 ## Revoking an admin session
 
 Sessions are allow-listed server-side (SPC-TM-002): the JWT is only honoured
