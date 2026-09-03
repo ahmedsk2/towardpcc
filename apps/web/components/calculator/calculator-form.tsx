@@ -976,10 +976,34 @@ function InputField({
     if (converted === null) return v;
     return roundInward(converted, direction);
   };
-  const range =
-    input.type === "numeric"
-      ? `${bound(input.min, "up")}–${bound(input.max, "down")}${selectedUnit ? ` ${selectedUnit}` : ""}`
-      : null;
+  /** The same conversion, unrounded, so the two ends can be ordered first. */
+  const convertBound = (v: number): number | null =>
+    input.type === "numeric" ? fromCanonical(input.unit, v, selectedUnit) : null;
+  /**
+   * ORDER-REVERSING UNITS EXIST, and one ships. QTc's R-R alternates are
+   * reciprocal (RR_ms = 60000 / bpm), so the canonical MINIMUM of 30 bpm
+   * converts to the R-R MAXIMUM of 2000 ms. Printed in declaration order that
+   * reads "Accepted 2000-240 ms".
+   *
+   * Both halves have to flip together. Which value is the lower BOUND decides
+   * which end of the printed range it belongs at, and it also decides which way
+   * `roundInward` must round — under a reversing conversion the canonical lower
+   * bound becomes the displayed upper one, so rounding it "up" would round it
+   * OUTWARD and break the subset contract roundInward exists to keep.
+   *
+   * Detected by comparing the two converted bounds rather than by asking the
+   * unit whether it reverses: a conversion is a pair of functions, and the
+   * comparison is the only thing that cannot go stale against a new one.
+   */
+  const range = (() => {
+    if (input.type !== "numeric") return null;
+    const lo = convertBound(input.min);
+    const hi = convertBound(input.max);
+    const reversed = lo !== null && hi !== null && lo > hi;
+    const low = reversed ? bound(input.max, "up") : bound(input.min, "up");
+    const high = reversed ? bound(input.min, "down") : bound(input.max, "down");
+    return `${low}–${high}${selectedUnit ? ` ${selectedUnit}` : ""}`;
+  })();
 
   const noticeLine = notice ? (
     <p
