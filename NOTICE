@@ -1,0 +1,9 @@
+TowardPCC - clinical calculators for paediatric critical care
+Copyright 2026 Toward Pediatric Critical Care
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+The license covers the code and content authored for TowardPCC. Published clinical
+scores and instruments implemented here keep the intellectual-property status of
+their original authors and publishers; see docs/decisions/ADR-tier-b-ip.md for the
+status recorded against each one.
