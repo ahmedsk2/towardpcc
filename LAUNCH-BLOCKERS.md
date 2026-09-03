@@ -22,6 +22,82 @@ Running list of everything that must be resolved before public launch.
 Working agreement §16.1: every placeholder on the site is marked in code
 AND listed here.
 
+## Open items — the whole list, on one screen
+
+**Everything below this section is the record**: what was done, how it was
+verified, and why several things were decided against. It is long on purpose and
+it is history. This index is the open work, and it is the only part that moves.
+Read it first; page into a section only when you are about to act on one.
+
+Reconciled against the body of this file and against production on 2026-09-03 —
+both canaries green, `main` at `ce8cfbd` serving live.
+
+### Founder-only — none of these is an engineering task
+
+- [ ] Counsel review of the legal pages (`TODO:counsel-review`)
+- [ ] Register on SDAIA's National Data Governance Platform, before it is needed
+- [ ] Name counsel reachable inside 72 hours, and settle the hour-60 default
+- [ ] Move MX off SiteGround to a KSA-hosted provider — the one change that
+      would make the residency claim unqualified
+- [ ] Supply independent clinical validator names — the badge reads "pending"
+      until then
+- [ ] Publish the DNSSEC DS record at GoDaddy — it is in
+      `docs/runbooks/dns-hardening.md`, and it is the one DNS change that can
+      take the domain offline
+- [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar, CT-log
+      and lookalike monitoring
+- [ ] Add a DKIM key and a DMARC `rua=` for towardpicu.com — SPF alone breaks on
+      forwarding
+- [ ] Confirm info@towardpicu.com actually receives mail — a dead published
+      contact address is a trust failure
+- [ ] Supply the four counter figures, a portrait, and the mission / library /
+      registry images — placeholders ship until then
+- [ ] Re-enable GitHub Actions billing — e2e, `pnpm audit`, gitleaks, Lighthouse
+      and the container build are all dark without it
+- [ ] Say when `/` should stop being the holding page and serve the home page
+- [ ] GitHub Pro, if branch protection on `main` is wanted (a private repo 403s)
+
+### Engineering — open, each with a written reason it is still open
+
+- [ ] **SPC-DB-002** — put web↔postgres on their own network, TLS second. Both
+      touch Coolify-managed infrastructure, so re-run the restore drill after
+- [ ] **SPC-DB-004** — submission payloads stay cleartext JSONB. Accepted; the
+      honest mitigation is the 24-month purge, which runs
+- [ ] **SPC-WEB-002** — dropping `style-src 'unsafe-inline'` on the /admin tier
+      needs `app/global-error.tsx` restyled first, or the one screen that
+      renders when everything else has failed loses its styling
+- [ ] **SPC-SUP-002** — provenance and signing, only once the builder moves.
+      Signing the CI image would attest to an artefact production never ran
+- [ ] **Read-only rootfs and tmpfs** — needs the compose cutover that caused the
+      2026-08-08 outage. `cap_drop: ALL` and the non-root user are already
+      applied, so this is the smaller half of the gap
+- [ ] **Umami URL query/hash stripping** — deferred until analytics is actually
+      integrated. If it ever is: page views only, never an event payload
+- [ ] **The ~1-in-5 local e2e flake** — one face diagnosed and hardened (#99),
+      never reproduced. Capture the reporter output before assuming it was that
+- [ ] **PR #152** — the dev-dependency group carrying the TypeScript 7 and
+      ESLint 10 majors. Held open deliberately; both pins are recorded in the
+      root `CLAUDE.md`
+
+### Settled — do not re-open without new evidence
+
+Each cost a real investigation, and each is the kind of thing a fresh reader
+tries to fix on sight.
+
+- **Hero mesh stays inline.** Measured: it begins after the `<h1>`, which is the
+  LCP element, so removing it buys transfer and not LCP.
+- **`script-src 'unsafe-inline'` on the public tier** — waived 2026-08-07. `/`
+  carries 101 bare inline scripts; nonces cannot reach prerendered HTML.
+- **`no-new-privileges`** cannot be expressed through Coolify 4.1.2 — its option
+  parser excludes hyphens from the value group.
+- **`dumb-init` stays unpinned.** A pinned apk version drops out of the index
+  when the Alpine branch moves; Trivy on every commit is the real cover.
+- **No secondary on-call contact** (OPS-02) — declined by the founder,
+  bus-factor-one accepted as an operating condition.
+- **No error tracker.** Five containers on a host holding real patient data, and
+  a browser SDK would transmit from pages that promise they transmit nothing.
+- **TM-013 notification** — settled 2026-08-07, none owed.
+
 ## 🚀 DEPLOYED — https://towardpcc.com (2026-07-26)
 
 Live on the founder's OCI host (me-riyadh-1, KSA) as a **Coolify application**
@@ -287,42 +363,26 @@ no `rua=`.
 
 ### KSA-only processing (ADR-0004)
 
-- [~] **Edge migration — STAGED AND PROVEN 2026-07-29, not cut over.** An OCI
-  flexible load balancer at `145.241.110.213` serves the whole site
-  correctly over HTTPS with a Let's Encrypt certificate, with an HTTP→HTTPS
-  redirect and a healthy backend. Verified with `curl --resolve` while
-  Cloudflare continued serving every real visitor, and confirmed live
-  throughout that neither the site nor the co-tenant's application was
-  affected. The shared security list was never touched — ingress came from
-  two NSGs, which are additive to it.
+- [x] **Edge migration — CUT OVER 2026-08-08.** The apex and `www` now resolve
+      to the OCI flexible load balancer at `145.241.110.213`, which terminates
+      TLS in me-riyadh-1; Cloudflare is authoritative DNS only and is out of the
+      request path. Proven before it was trusted: the LB served the whole site
+      correctly over HTTPS with a Let's Encrypt certificate, an HTTP→HTTPS
+      redirect and a healthy backend, verified with `curl --resolve` on
+      2026-07-29 while Cloudflare continued serving every real visitor, and
+      confirmed live throughout that neither the site nor the co-tenant's
+      application was affected. The shared security list was never touched —
+      ingress came from two NSGs, which are additive to it.
 - [x] **Client IP SOLVED 2026-07-29.** Traefik now trusts the LB subnet, the LB
       injects a secret `x-via-edge`, and `client-ip.ts` resolves from
       `x-real-ip`. The first implementation counted hops and was wrong — the
       measured chain has TWO trusted proxies, so it would have resolved every
       visitor to the load balancer's own address, silently. Caught by measuring
       the live chain with a temporary echo service, not by reasoning.
-- [~] **Certificate renewal — deadline now monitored, not automated.** The LB's
-  certificate expires **2026-10-27** and nothing renews it. The daily
-  production check now fails 21 days out with the exact reissue steps, so it
-  cannot pass unnoticed; verified by lowering the threshold and watching it
-  go red.
-
-      **AUTOMATED SINCE 2026-08-08, and the reason for not automating turned out
-      not to apply.** This paragraph read "Deliberately NOT automated yet. Doing
-      so means an OCI API key with load-balancer write access sitting on a host
-      that also runs an application holding real patient data" — and the premise
-      was wrong: no API key is needed. `/usr/local/sbin/lb-cert-push.sh` uses
-      **instance principals** (`--auth instance_principal`), so the host
-      authenticates as itself through a dynamic group and no long-lived
-      credential exists on disk to be stolen. The trade the paragraph declined
-      was never the trade on offer.
-
-      Verified on the host rather than inferred: the script is present
-      (root-owned, 0750), `acme-towardpcc.service` carries
-      `ExecStartPost=/usr/local/sbin/lb-cert-push.sh`, and the script's own
-      OCI calls read `--auth instance_principal`. It is idempotent by
-      certificate fingerprint, so a no-change renewal pushes nothing, and it
-      runs `--user 0:0` because the private key is 0600.
+- [x] **Certificate renewal — AUTOMATED 2026-08-08.** Renewal and delivery to
+      the load balancer both run unattended, and the daily production check
+      still fails 21 days out with the exact reissue steps, so a broken chain
+      cannot pass unnoticed. See "Certificate renewal in detail" below.
 
 - [x] **WAF attached and INSPECTING, 2026-07-29.** Applied through the OCI
       Console after `create-for-load-balancer` returned silently on this CLI
@@ -336,6 +396,30 @@ no `rua=`.
       done 2026-08-08. The claim did NOT become absolute: email still leaves in
       both directions, so the caveat moved from the CDN to the mail path rather
       than disappearing, and `privacy-claims.test.ts` still passes on all five.
+
+#### Certificate renewal in detail
+
+The LB certificate expires **2026-10-27**. An `acme-towardpcc.timer` renews it
+and `/usr/local/sbin/lb-cert-push.sh` uploads the result; the daily check fails
+21 days out regardless, verified by lowering the threshold and watching it go
+red. A falling number there now means the chain has broken, not that nobody has
+got round to it.
+
+**The reason originally given for NOT automating turned out not to apply.** This
+entry read "Deliberately NOT automated yet. Doing so means an OCI API key with
+load-balancer write access sitting on a host that also runs an application
+holding real patient data" — and the premise was wrong: no API key is needed.
+The push script uses **instance principals** (`--auth instance_principal`), so
+the host authenticates as itself through a dynamic group and no long-lived
+credential exists on disk to be stolen. The trade the paragraph declined was
+never the trade on offer.
+
+Verified on the host rather than inferred: the script is present (root-owned,
+0750), `acme-towardpcc.service` carries
+`ExecStartPost=/usr/local/sbin/lb-cert-push.sh`, and the script's own OCI calls
+read `--auth instance_principal`. It is idempotent by certificate fingerprint,
+so a no-change renewal pushes nothing, and it runs `--user 0:0` because the
+private key is 0600.
 
 Settled 2026-07-28: scope is plaintext PII **and** metadata for everything the
 platform controls, with written carve-outs for recipient-chosen mail delivery
@@ -450,17 +534,18 @@ SDK would transmit from pages that promise they transmit nothing.
       cycle. Every subdomain was confirmed HTTPS-capable first, because
       `includeSubDomains` binds all of them, and the commitment is effectively
       irreversible on any useful timescale.
-- [~] **CSP + security headers ship WITH P5** (TM-005). DONE: strict static
-  security headers (HSTS, nosniff, Referrer-Policy, X-Frame-Options, a
-  restrictive Permissions-Policy, COOP) + a two-tier CSP in
-  apps/web/proxy.ts — verified the app hydrates under it
-  (docs/decisions/ADR-security-headers.md). **The `/admin` nonce tier is also
-  DONE** — verified live 2026-07-27: `/admin/login` returns
-  `script-src 'self' 'nonce-…' 'strict-dynamic'` with no `unsafe-inline`, and
-  it is regression-guarded by `e2e/security-headers.spec.ts`. **Remaining:**
-  only re-run `sec-web` against the live URL and record the grade. Public pages
-  keep scoped `script-src 'unsafe-inline'` (SSG constraint; no injection
-  surface there) — tracked separately as SPC-WEB-001.
+- [x] **CSP + security headers — DONE, and the live grade is recorded**
+      (TM-005). Strict static security headers (HSTS, nosniff, Referrer-Policy,
+      X-Frame-Options, a restrictive Permissions-Policy, COOP) plus a two-tier
+      CSP in apps/web/proxy.ts — verified the app hydrates under it
+      (docs/decisions/ADR-security-headers.md). **The `/admin` nonce tier is
+      also DONE** — verified live 2026-07-27: `/admin/login` returns
+      `script-src 'self' 'nonce-…' 'strict-dynamic'` with no `unsafe-inline`,
+      regression-guarded by `e2e/security-headers.spec.ts`. The live grade was
+      measured 2026-08-07 and is recorded under SPC-WEB-001 below: **A− public
+      tier, A+ `/admin` tier**, the split caused by that one waiver and nothing
+      else. Public pages keep scoped `script-src 'unsafe-inline'` (SSG
+      constraint; no injection surface there) — tracked as SPC-WEB-001.
 - [~] **Privacy-invariant test suite (TM-001)** — DONE in P3: Playwright
   zero-network/airplane-mode calculator compute test (apps/web/e2e/
   calculator-privacy.spec.ts, CI `e2e` job) + static grep-guards (no
