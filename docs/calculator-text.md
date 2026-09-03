@@ -8,6 +8,19 @@ Every word the calculators put in front of a clinician, pulled straight from the
 
 `—` counts em dashes and `CAPS` counts runs of shouted words, in user-visible text only. They are the two mechanically countable tells from the 10 August review, and they are here so the editorial pass has a target rather than an impression. Neither is a defect on its own.
 
+## Conditional notices
+
+Shown only when the entered values make them true, beside the number they explain and beside the field they name. Not in the counts below, because they are emitted rather than declared.
+
+**Phoenix Sepsis Score**
+
+- Respiratory component — The SpO₂ entered is above 97%, where the SpO₂:FiO₂ ratio saturates, so it was not used. The PaO₂ still counts, but this subscore carries no contribution from the saturation and may read lower than the child is.
+- Respiratory component — The SpO₂ entered is above 97%, where the SpO₂:FiO₂ ratio saturates, so it was not used and this subscore is 0. Enter a PaO₂ if one is available; otherwise read the total as a lower bound.
+
+**pSOFA (Pediatric SOFA)**
+
+- Respiratory subscore — The SpO₂ entered is above 97%, where the SpO₂:FiO₂ ratio saturates, so it was not used and this subscore is 0. Enter a PaO₂ if one is available; otherwise read the total as a lower bound.
+
 ## Where the work is
 
 | Calculator | Version | Inputs | Strings | Em dashes | Caps runs |
@@ -18,12 +31,12 @@ Every word the calculators put in front of a clinician, pulled straight from the
 | [Serum osmolality (calculated) and osmolar gap](#serum-osmolality) | 1.0.0 | 5 | 22 | 12 | 5 |
 | [Pediatric burn fluid resuscitation (Parkland / modified Brooke)](#burn-resuscitation) | 1.0.0 | 4 | 12 | 3 | 12 |
 | [FOUR score (Full Outline of UnResponsiveness)](#four-score) | 1.0.0 | 4 | 33 | 6 | 5 |
-| [Phoenix Sepsis Score](#phoenix) | 1.0.0 | 15 | 56 | 7 | 4 |
+| [Phoenix Sepsis Score](#phoenix) | 1.1.0 | 15 | 56 | 7 | 4 |
 | [Percent cumulative fluid balance (fluid overload %)](#fluid-balance) | 1.0.0 | 4 | 13 | 2 | 2 |
 | [Corrected QT interval (QTc — Bazett & Fridericia)](#qtc) | 1.0.0 | 2 | 15 | 2 | 0 |
 | [Oxygen Saturation Index (OSI)](#oxygen-saturation-index) | 1.0.0 | 3 | 15 | 2 | 0 |
 | [Pediatric Glasgow Coma Scale (pGCS)](#pediatric-gcs) | 1.0.0 | 3 | 30 | 1 | 1 |
-| [pSOFA (Pediatric SOFA)](#psofa) | 1.0.0 | 14 | 49 | 2 | 0 |
+| [pSOFA (Pediatric SOFA)](#psofa) | 1.1.0 | 14 | 49 | 2 | 0 |
 | [Corrected sodium for hyperglycemia](#corrected-sodium) | 1.0.0 | 2 | 7 | 0 | 1 |
 | [ETT size and depth (pediatric)](#ett-size) | 1.0.0 | 1 | 5 | 0 | 1 |
 | [PELOD-2 (Pediatric Logistic Organ Dysfunction-2)](#pelod2) | 1.0.0 | 11 | 39 | 0 | 1 |
@@ -1264,7 +1277,7 @@ NO BANDS, DELIBERATELY. The well-known 10% and 20% figures are cohort associatio
 
 <a id="phoenix"></a>
 
-`phoenix` · v1.0.0 · published · sepsis · blank scores as normal
+`phoenix` · v1.1.0 · published · sepsis · blank scores as normal
 
 ### Inputs
 
@@ -1359,7 +1372,7 @@ A diagnostic criterion, not a graded severity ladder. A HALF-ENTERED PHOENIX REA
 
 <a id="psofa"></a>
 
-`psofa` · v1.0.0 · published · organ-dysfunction · blank scores as normal
+`psofa` · v1.1.0 · published · organ-dysfunction · blank scores as normal
 
 ### Inputs
 
