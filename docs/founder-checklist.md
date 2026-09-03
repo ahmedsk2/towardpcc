@@ -55,6 +55,11 @@ These four remain worth doing. None of them gates launch.
 
 ### 1. Counsel review of the legal pages
 
+> **Done 2026-09-03.** Dr Ahmed Alkhalifah signed off as written; both
+> markers and both `pendingNote` strings are removed in #160. Kept below
+> for the four questions, whose answers belong in `LAUNCH-BLOCKERS.md` if
+> counsel gave them.
+
 Two pages ship telling readers they are provisional. Markers at
 `apps/web/content/site.ts:777` (privacy policy) and `:810` (terms); each renders
 a visible `pendingNote`.

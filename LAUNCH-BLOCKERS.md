@@ -36,7 +36,6 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
 
 ### Founder-only — none of these is an engineering task
 
-- [ ] Counsel review of the legal pages (`TODO:counsel-review`)
 - [ ] Register on SDAIA's National Data Governance Platform, before it is needed
 - [ ] Move MX off SiteGround to a KSA-hosted provider — the one change that
       would make the residency claim unqualified
@@ -197,7 +196,7 @@ balancer staged for the edge migration, which is not yet serving traffic — wor
 confirming at cutover, when it starts to matter.
 
 - [x] `[ORG_LEGAL_NAME]` = Toward Pediatric Critical Care (footer updated).
-      Legal pages (P6) still get `TODO:counsel-review`.
+      Legal pages (P6) carried `TODO:counsel-review` until 2026-09-03.
 - [x] PedsCC Library repo — founder provided github.com/ahmedsk2/pedscc-library
       (2026-07-25); read-only feature audit done
       (docs/research/pedscc-library-audit.md), informs /knowledge.
@@ -610,7 +609,11 @@ this.
 
 ## Content / legal
 
-- [ ] Legal pages need counsel review (`TODO:counsel-review` markers, P6)
+- [x] **Legal pages counsel-reviewed — 2026-09-03.** Dr Ahmed Alkhalifah
+      signed off on `/legal/data-protection`, `/legal/terms` and
+      `/legal/disclaimer` as written; both `TODO(counsel-review)` markers and
+      both `pendingNote` strings are removed in #160. No copy corrections
+      came with the sign-off; any that follow are a separate change.
 - [ ] Calculator validator slots empty by design — badge shows
       "Independent clinical validation: pending" until real names provided
 - [x] Tier-B instrument IP checks done (docs/decisions/ADR-tier-b-ip.md,
