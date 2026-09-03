@@ -1262,6 +1262,28 @@ function ResultPanel({
     [definition.interpretation],
   );
   const primaryId = ok?.result.values.find((v) => bandedIds.has(v.id))?.id;
+  // The one number to put on a phone's bottom bar: the banded value where a
+  // score has one, else the first emitted value — ideal body weight declares
+  // no bands and would otherwise show nothing at all.
+  const primaryValue = ok
+    ? (ok.result.values.find((v) => v.id === primaryId) ?? ok.result.values[0])
+    : undefined;
+
+  /**
+   * Tell the page a bottom bar owns the bottom of the screen.
+   *
+   * The back-to-top FAB is fixed at `bottom-6`, inline-end, and at 375px it
+   * lands ON the bar — the same overlap that made it eat taps on the unit
+   * toggles once already. `globals.css` stands it down while this is set.
+   * An attribute rather than moving the FAB, because the FAB is on every
+   * page and this bar is on one route.
+   */
+  const barShown = Boolean(ok && primaryValue);
+  useEffect(() => {
+    if (!barShown) return;
+    document.body.setAttribute("data-result-bar", "");
+    return () => document.body.removeAttribute("data-result-bar");
+  }, [barShown]);
   const bandsFor = useCallback(
     (valueId: string) => definition.interpretation.filter((b) => b.appliesTo === valueId),
     [definition.interpretation],
@@ -1273,6 +1295,7 @@ function ResultPanel({
 
   return (
     <aside
+      id="calc-result"
       data-print="result"
       // top-24 clears the sticky header (84px, shrinking to 64px on scroll)
       // rather than tucking underneath it.
@@ -1599,6 +1622,51 @@ function ResultPanel({
       <Callout tone="note" className="mt-6 text-[13px]">
         {c.privacyLine}
       </Callout>
+
+      {/* THE ANSWER, ON A PHONE.
+          The rail above is `lg:sticky`, so on a desktop the number never leaves
+          the screen. Below `lg` the grid collapses and this same rail stacks
+          under the entire form — about 8.4 screens below the first field on
+          PRISM at 375x812. This bar is the small-screen equivalent of the
+          sticky rail: the primary number and how much of the instrument has
+          been answered, one tap from the full panel.
+
+          NOT A LIVE REGION. The `sr-only` region above already announces every
+          value on change; a second one would say each number twice. This is a
+          plain control with a label, so a screen-reader user reaches it in the
+          normal way and hears the result once.
+
+          Rendered only once a result EXISTS. A bar that says nothing is a bar
+          that costs 56px and earns none of it — before that the blocking rail
+          is the thing worth reading, and it is in the panel.
+
+          Clearance for it is reserved in the page wrapper rather than here, so
+          the reservation cannot depend on this component's own visibility and
+          the last field is never covered. */}
+      {barShown && primaryValue ? (
+        <button
+          type="button"
+          onClick={() => {
+            const el = document.getElementById("calc-result");
+            el?.scrollIntoView({ block: "start", behavior: "smooth" });
+            el?.querySelector("h2")?.setAttribute("tabindex", "-1");
+            (el?.querySelector("h2") as HTMLElement | null)?.focus();
+          }}
+          className="fixed inset-x-0 bottom-0 z-40 flex min-h-14 w-full items-center justify-between gap-3 border-t border-border-strong bg-surface-raised px-5 pb-[env(safe-area-inset-bottom)] text-left shadow-[0_-2px_12px_rgb(0_0_0/0.08)] transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent lg:hidden"
+        >
+          <span className="flex min-w-0 flex-col py-2">
+            <span className="truncate text-[12px] text-ink-muted">
+              {primaryValue.label.en}
+              {definition.composition ? ` · ${enteredCount} of ${visibleCount} entered` : ""}
+            </span>
+            <span className="numeric font-numeric text-lg font-medium text-ink-strong tabular-nums">
+              {primaryValue.value.toFixed(primaryValue.precision)}
+              {primaryValue.unit ? ` ${primaryValue.unit}` : ""}
+            </span>
+          </span>
+          <span className="shrink-0 text-[12px] font-medium text-accent">{c.jumpToResult}</span>
+        </button>
+      ) : null}
     </aside>
   );
 }

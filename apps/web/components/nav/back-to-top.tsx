@@ -27,6 +27,7 @@ export function BackToTop() {
     <button
       type="button"
       data-print="hide"
+      data-back-to-top=""
       onClick={() =>
         window.scrollTo({
           top: 0,
@@ -50,6 +51,9 @@ export function BackToTop() {
         // Paired with the end padding the form column reserves at the same
         // widths, so the button clears the controls rather than merely
         // overlapping them less.
+        // `data-back-to-top` is what globals.css stands down while the
+        // calculator's bottom result bar is on screen; the two are fixed to
+        // the same corner and overlap at 375px.
         "fixed end-3 z-[90] grid size-12 place-items-center rounded-full bg-gradient-accent text-ink-on-accent lg:end-6",
         // `translate`, not `bottom`: bottom is a layout property, which
         // motion.md revision 4 forbids outright, and the compositor cannot

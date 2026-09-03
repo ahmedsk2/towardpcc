@@ -438,3 +438,17 @@ body {
     padding-bottom: 0.2rem;
   }
 }
+
+/* TWO BOTTOM-ANCHORED JUMP AFFORDANCES IS ONE TOO MANY.
+   The calculator's result bar is fixed across the bottom below the `lg`
+   breakpoint; the back-to-top button is fixed at bottom-6 inline-end. At 375px
+   they intersect, and this FAB has already cost one round of tap-eating on the
+   unit toggles. While the bar is up it owns the bottom of the screen and offers
+   the jump itself, so the FAB stands down.
+   Bounded to the widths where the bar actually renders: from `lg` the bar is
+   `hidden` and the FAB behaves exactly as it always has. */
+@media (width < 64rem) {
+  body[data-result-bar] [data-back-to-top] {
+    display: none;
+  }
+}
