@@ -1,24 +1,33 @@
 import Link from "next/link";
-import { db } from "@towardpcc/db";
-import { listScores } from "@towardpcc/scoring-engine";
+import { registry } from "@towardpcc/scoring-engine";
 import { requireAdmin } from "@/lib/auth/guard";
-import { setPublished } from "./actions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * READ-ONLY, on purpose. Until 2026-09-03 this page carried a publish toggle
+ * and a validator form that wrote to `CalculatorMeta` — and nothing public
+ * ever read that table. The catalogue, `/validation` and the counts all come
+ * from the engine registry, so a name saved here changed nothing a visitor
+ * saw while the audit log recorded that it had. A control that looks like it
+ * works and does not is worse than no control, so both are gone. Status and
+ * validator slots live in the score definition in `packages/scoring-engine`,
+ * change through a pull request, and ship with the score's version and tests.
+ * This page shows exactly what the site shows.
+ */
 export default async function AdminCalculatorsPage() {
   await requireAdmin();
-  const scores = listScores();
-  const metaRows = await db.calculatorMeta.findMany();
-  const meta = new Map(metaRows.map((r) => [r.slug, r]));
+  const scores = registry;
 
   return (
     <div>
       <h1 className="font-display text-2xl font-medium text-ink-strong">Calculators</h1>
       <p className="mt-2 max-w-[62ch] text-[15px] text-ink-muted">
-        Presentation and publish state only — formulas and interpretation bands are owned by the
-        scoring engine and cannot be edited here.
+        What the site shows, read from the scoring engine. Status, validator slots, formulas and
+        interpretation bands are all owned by the score definition and change through a pull request
+        against <code className="font-numeric text-[13px]">packages/scoring-engine</code>— nothing
+        on this screen is editable.
       </p>
 
       <div className="mt-6 overflow-x-auto rounded-lg border border-border">
@@ -29,51 +38,31 @@ export default async function AdminCalculatorsPage() {
                 Calculator
               </th>
               <th scope="col" className="px-4 py-2 font-medium">
-                Validators
+                Status
               </th>
               <th scope="col" className="px-4 py-2 font-medium">
-                Published
+                Validators
               </th>
               <th scope="col" className="px-4 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {scores.map((s) => {
-              const m = meta.get(s.slug);
-              const published = m?.published ?? true;
-              const validators = Array.isArray(m?.validatorSlots)
-                ? (m.validatorSlots as unknown[]).filter(Boolean).length
-                : 0;
+              const assigned = s.validators.filter((v) => v.status === "assigned").length;
               return (
                 <tr key={s.slug} className="border-b border-border-subtle/60 last:border-0">
                   <td className="px-4 py-3">
                     <span className="font-medium text-ink-strong">{s.name}</span>
                     <span className="ml-2 font-numeric text-xs text-ink-muted">{s.slug}</span>
                   </td>
-                  <td className="px-4 py-3 font-numeric text-xs text-ink-muted">{validators}/2</td>
-                  <td className="px-4 py-3">
-                    <form action={setPublished}>
-                      <input type="hidden" name="slug" value={s.slug} />
-                      <input type="hidden" name="published" value={published ? "false" : "true"} />
-                      <button
-                        type="submit"
-                        className={
-                          published
-                            ? "rounded-full bg-success-bg px-2.5 py-1 font-numeric text-[11px] tracking-wide text-success-text uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                            : "rounded-full bg-surface-sunken px-2.5 py-1 font-numeric text-[11px] tracking-wide text-ink-body uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                        }
-                        title="Toggle published"
-                      >
-                        {published ? "Published" : "Unpublished"}
-                      </button>
-                    </form>
-                  </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 font-numeric text-xs text-ink-muted">{s.status}</td>
+                  <td className="px-4 py-3 font-numeric text-xs text-ink-muted">{assigned}/2</td>
+                  <td className="px-4 py-3 text-right">
                     <Link
                       href={`/admin/calculators/${s.slug}`}
-                      className="rounded-sm text-sm font-medium text-accent-deep hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="rounded-sm text-sm text-accent-deep hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
-                      Validators <span aria-hidden="true">→</span>
+                      View
                     </Link>
                   </td>
                 </tr>
