@@ -27,30 +27,30 @@ Shown only when the entered values make them true, beside the number they explai
 | --- | --- | ---: | ---: | ---: | ---: |
 | [Pediatric Risk of Mortality (PRISM III and PRISM IV)](#prism) | 1.0.0 | 26 | 94 | 18 | 45 |
 | [Paediatric Index of Mortality 3 (PIM3)](#pim3) | 1.0.0 | 11 | 60 | 16 | 10 |
-| [KDIGO AKI staging (pediatric)](#kdigo-aki) | 1.0.0 | 8 | 31 | 16 | 8 |
+| [KDIGO AKI staging (pediatric)](#kdigo-aki) | 1.1.0 | 8 | 31 | 16 | 8 |
 | [Serum osmolality (calculated) and osmolar gap](#serum-osmolality) | 1.0.0 | 5 | 22 | 12 | 5 |
 | [Pediatric burn fluid resuscitation (Parkland / modified Brooke)](#burn-resuscitation) | 1.0.0 | 4 | 12 | 3 | 12 |
-| [FOUR score (Full Outline of UnResponsiveness)](#four-score) | 1.0.0 | 4 | 33 | 6 | 5 |
+| [FOUR score (Full Outline of UnResponsiveness)](#four-score) | 1.1.0 | 4 | 33 | 8 | 6 |
 | [Phoenix Sepsis Score](#phoenix) | 1.1.0 | 15 | 56 | 7 | 4 |
 | [Percent cumulative fluid balance (fluid overload %)](#fluid-balance) | 1.0.0 | 4 | 13 | 2 | 2 |
 | [Corrected QT interval (QTc — Bazett & Fridericia)](#qtc) | 1.0.0 | 2 | 15 | 2 | 0 |
-| [Oxygen Saturation Index (OSI)](#oxygen-saturation-index) | 1.0.0 | 3 | 15 | 2 | 0 |
+| [Oxygen Saturation Index (OSI)](#oxygen-saturation-index) | 1.1.0 | 3 | 15 | 2 | 0 |
 | [Pediatric Glasgow Coma Scale (pGCS)](#pediatric-gcs) | 1.0.0 | 3 | 30 | 1 | 1 |
 | [pSOFA (Pediatric SOFA)](#psofa) | 1.1.0 | 14 | 49 | 2 | 0 |
 | [Corrected sodium for hyperglycemia](#corrected-sodium) | 1.0.0 | 2 | 7 | 0 | 1 |
-| [ETT size and depth (pediatric)](#ett-size) | 1.0.0 | 1 | 5 | 0 | 1 |
+| [ETT size and depth (pediatric)](#ett-size) | 1.1.0 | 1 | 5 | 0 | 1 |
 | [PELOD-2 (Pediatric Logistic Organ Dysfunction-2)](#pelod2) | 1.0.0 | 11 | 39 | 0 | 1 |
 | [SpO₂/FiO₂ ratio (S/F)](#sf-ratio) | 1.0.0 | 2 | 13 | 0 | 1 |
 | [Anion gap (with albumin correction)](#anion-gap) | 1.0.0 | 5 | 13 | 0 | 0 |
-| [APLS age-based weight estimate (pediatric)](#apls-weight) | 1.0.0 | 1 | 5 | 0 | 0 |
+| [APLS age-based weight estimate (pediatric)](#apls-weight) | 1.1.0 | 1 | 5 | 0 | 0 |
 | [Body surface area (Mosteller)](#bsa-mosteller) | 1.0.0 | 2 | 7 | 0 | 0 |
 | [Corrected calcium for albumin](#corrected-calcium) | 1.0.0 | 2 | 7 | 0 | 0 |
 | [Holliday-Segar maintenance fluids](#holliday-segar) | 1.0.0 | 1 | 6 | 0 | 0 |
 | [Ideal body weight (pediatric)](#ideal-body-weight) | 1.0.0 | 2 | 9 | 0 | 0 |
-| [Oxygenation Index (OI)](#oxygenation-index) | 1.0.0 | 3 | 15 | 0 | 0 |
-| [PaO₂/FiO₂ ratio (P/F)](#pf-ratio) | 1.0.0 | 2 | 15 | 0 | 0 |
+| [Oxygenation Index (OI)](#oxygenation-index) | 1.1.0 | 3 | 15 | 0 | 0 |
+| [PaO₂/FiO₂ ratio (P/F)](#pf-ratio) | 1.1.0 | 2 | 15 | 0 | 0 |
 | [Vasoactive-Inotropic Score (VIS)](#vis) | 1.0.0 | 6 | 15 | 0 | 0 |
-| **Total** | | | **586** | **87** | **96** |
+| **Total** | | | **586** | **89** | **97** |
 
 ---
 
@@ -102,7 +102,7 @@ No interpretation bands are emitted. Reference intervals are strongly method-dep
 
 <a id="apls-weight"></a>
 
-`apls-weight` · v1.0.0 · published · general
+`apls-weight` · v1.1.0 · published · general
 
 ### Inputs
 
@@ -302,7 +302,7 @@ A corrected lab value read against the ordinary sodium reference frame, so there
 
 <a id="ett-size"></a>
 
-`ett-size` · v1.0.0 · published · airway-equipment
+`ett-size` · v1.1.0 · published · airway-equipment
 
 ### Inputs
 
@@ -344,12 +344,12 @@ Scope is age 1 to 12 years, with the lower bound enforced: below 1 year these fo
 
 <a id="four-score"></a>
 
-`four-score` · v1.0.0 · published · general · interpretation not-applicable
+`four-score` · v1.1.0 · published · general · interpretation not-applicable
 
 ### Inputs
 
 - **Eye response** — choice of 5, required
-  - _Eyes open, and obey an instruction — follow a moving target, or blink on request (4)_
+  - _Eyes open, or opened by the examiner, and then obey an instruction — follow a moving target, or blink on request (4)_
   - _Eyes open, but the gaze follows nothing and no instruction is obeyed (3)_
   - _Eyes stay shut until a loud voice opens them (2)_
   - _Eyes stay shut until a painful stimulus opens them (1)_
@@ -358,7 +358,7 @@ Scope is age 1 to 12 years, with the lower bound enforced: below 1 year these fo
 - **Motor response** — choice of 5, required
   - _Carries out a requested hand gesture — a fist, a thumbs-up, or a V-sign (4)_
   - _No gesture on request, but reaches toward the site of a painful stimulus (3)_
-  - _Bends the arm inward to pain — abnormal flexion, the decorticate pattern (2)_
+  - _Any flexion of the arm to pain — pulling away from it, or bending it inward in the decorticate pattern; this scale does not separate the two (2)_
   - _Straightens the arm away from pain — abnormal extension, the decerebrate pattern (1)_
   - _Nothing at all to pain, or generalised myoclonus status rather than a purposeful response (0)_
   - Help: Score the best response in the upper limbs. As with the eye component, the top level requires the patient to carry out a request, which a preverbal child cannot do.
@@ -370,12 +370,12 @@ Scope is age 1 to 12 years, with the lower bound enforced: below 1 year these fo
   - _Pupillary, corneal and cough responses all lost (0)_
   - Help: Which reflexes remain, not how brisk they are. Read the middle two levels carefully: losing ONE of the pupillary/corneal pair is a different level from losing BOTH, and it is worth one point.
 - **Respiration** — choice of 5, required
-  - _Breathing without mechanical support, regular rhythm (4)_
-  - _Breathing without mechanical support, in a waxing-and-waning periodic cycle (Cheyne–Stokes) (3)_
-  - _Breathing without mechanical support, irregular rhythm (2)_
-  - _Mechanically ventilated, and triggering breaths above the set rate (1)_
-  - _Mechanically ventilated with no breaths beyond the set rate, or apnoeic (0)_
-  - Help: The top three levels describe an unsupported breathing pattern; the bottom two describe how a ventilated patient interacts with the set rate. A ventilated patient therefore cannot score above 1 here, capping their total at 13.
+  - _Not intubated, and breathing in a regular rhythm (4)_
+  - _Not intubated, breathing in a waxing-and-waning periodic cycle (Cheyne–Stokes) (3)_
+  - _Not intubated, and breathing in an irregular rhythm (2)_
+  - _Intubated, and triggering breaths above the ventilator's set rate (1)_
+  - _Intubated with no breaths beyond the set rate, or apnoeic (0)_
+  - Help: THE SPLIT IS INTUBATION, NOT VENTILATOR SUPPORT. The top three levels describe the breathing pattern of a patient who is not intubated — including one on mask CPAP, BiPAP or high-flow, all of which still score on rhythm alone. The bottom two describe how an intubated patient interacts with the set rate. An intubated patient therefore cannot score above 1 here, capping their total at 13.
 
 ### Composition
 
@@ -394,7 +394,7 @@ _None declared._
 
 > Adult-derived. Six studies, 571 children (Almojuela 2019): equivalent to the GCS in outcome prediction, reliably rated, superiority not established, in cohorts that were mostly school-age (2-12 y) with neonates and infants effectively absent. Eye 4 and motor 4 require obeying an instruction, so a neurologically intact preverbal child caps at 14. This implements the adult instrument, not the modified Pediatric FOUR Score Scale (Czaikowski 2014).
 
-> A ventilated patient can score at most 1 on respiration, capping the total at 13. Ventilated and unventilated totals are different rulers and are not comparable. Sedation and neuromuscular blockade make the eye and motor components uninformative.
+> An INTUBATED patient can score at most 1 on respiration, capping the total at 13. Intubation, not ventilator support, is what the scale splits on: a child on mask CPAP, BiPAP or high-flow still scores the top three levels on rhythm alone. Intubated and non-intubated totals are different rulers and are not comparable. Sedation and neuromuscular blockade make the eye and motor components uninformative.
 
 ### How it is calculated
 
@@ -402,7 +402,7 @@ Total = Eye + Motor + Brainstem + Respiration, each scored 0-4, giving a range o
 
 ### Limitations and notes
 
-STRUCTURAL CEILINGS, BUILT INTO THE INSTRUMENT. A ventilated patient can score at most 1 on respiration, capping the total at 13; ventilated and unventilated totals are different rulers and are not comparable. Eye 4 and motor 4 require obeying an instruction, so a neurologically intact preverbal child caps at 14. That ceiling is reasoned from the item definitions; [NEEDS SOURCE] for a published youngest applicable age. BRAINSTEM READING TRAP: level 2 is exactly ONE of the pupillary/corneal pair lost; level 1 is BOTH lost with cough retained; level 0 is cough lost too. The or/and distinction is one point wide. Sedation and neuromuscular blockade make the eye and motor components uninformative. PAEDIATRIC STANDING: six studies, 571 children (Almojuela 2019): equivalent to the GCS in outcome prediction, reliably rated, superiority not established. The cohorts were mostly school-age (2-12 y), with neonates and infants effectively absent. Not interchangeable with the GCS, which has different components, ranges and floors. NO INTERPRETATION BANDS, DELIBERATELY. Wijdicks 2005 proposes none, and published cut-points are cohort- and outcome-specific and disagree, with values from 4 to 14 appearing for different populations and endpoints. Do not attach any of them to a computed result.
+STRUCTURAL CEILINGS, BUILT INTO THE INSTRUMENT. An INTUBATED patient can score at most 1 on respiration, capping the total at 13 — intubation is the split, not ventilator support, so a child on mask CPAP or high-flow is scored on rhythm like any unsupported patient; intubated and non-intubated totals are different rulers and are not comparable. Eye 4 and motor 4 require obeying an instruction, so a neurologically intact preverbal child caps at 14. That ceiling is reasoned from the item definitions; [NEEDS SOURCE] for a published youngest applicable age. BRAINSTEM READING TRAP: level 2 is exactly ONE of the pupillary/corneal pair lost; level 1 is BOTH lost with cough retained; level 0 is cough lost too. The or/and distinction is one point wide. Sedation and neuromuscular blockade make the eye and motor components uninformative. PAEDIATRIC STANDING: six studies, 571 children (Almojuela 2019): equivalent to the GCS in outcome prediction, reliably rated, superiority not established. The cohorts were mostly school-age (2-12 y), with neonates and infants effectively absent. Not interchangeable with the GCS, which has different components, ranges and floors. NO INTERPRETATION BANDS, DELIBERATELY. Wijdicks 2005 proposes none, and published cut-points are cohort- and outcome-specific and disagree, with values from 4 to 14 appearing for different populations and endpoints. Do not attach any of them to a computed result.
 
 ### References
 
@@ -539,7 +539,7 @@ The methods disagree by ≥ 10 kg in some children and change prescribed tidal v
 
 <a id="kdigo-aki"></a>
 
-`kdigo-aki` · v1.0.0 · published · renal-metabolic
+`kdigo-aki` · v1.1.0 · published · renal-metabolic
 
 ### Inputs
 
@@ -606,7 +606,7 @@ Stage 0 means the KDIGO definition is not met on the criteria entered, which is 
 
 <a id="oxygen-saturation-index"></a>
 
-`oxygen-saturation-index` · v1.0.0 · published · respiratory
+`oxygen-saturation-index` · v1.1.0 · published · respiratory
 
 ### Inputs
 
@@ -655,7 +655,7 @@ OSI substitutes SpO₂ for PaO₂, sparing an arterial draw. It is valid only fo
 
 <a id="oxygenation-index"></a>
 
-`oxygenation-index` · v1.0.0 · published · respiratory
+`oxygenation-index` · v1.1.0 · published · respiratory
 
 ### Inputs
 
@@ -800,7 +800,7 @@ PIM3 estimates hospital-mortality probability from data at first ICU contact, fo
 
 <a id="pf-ratio"></a>
 
-`pf-ratio` · v1.0.0 · published · respiratory
+`pf-ratio` · v1.1.0 · published · respiratory
 
 ### Inputs
 

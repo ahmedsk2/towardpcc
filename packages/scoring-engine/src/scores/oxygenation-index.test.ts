@@ -1,5 +1,7 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { oxygenationIndex } from "./oxygenation-index";
+import { matchInterpretationBand } from "../interpretation";
 
 // OI worked examples are traced to docs/research/scores/oi-osi.md; the PALICC-2
 // severity bands carry the primary citation.
@@ -15,6 +17,35 @@ const slaughter2025 = {
 };
 
 describeScore(oxygenationIndex, (ctx) => {
+  /**
+   * THE CUT-POINT IS THE CUT-POINT, even when binary arithmetic disagrees.
+   *
+   * (24 x 0.60 x 100) / 90 is exactly 16, and IEEE-754 returns
+   * 15.999999999999998. Compared raw, a child at the PALICC-2 severe threshold
+   * was graded mild-moderate — the under-triage direction — while the page
+   * printed "16.0" beside the milder label. Found 2026-09-03 by an independent
+   * recompute from the published source.
+   */
+  it("grades the exact PALICC-2 cut-points, not their floating-point residue", () => {
+    const at = (map: number, fio2: number, pao2: number) => {
+      const out = oxygenationIndex.compute({
+        map_awp: { value: map, unit: "cmH2O" },
+        fio2: { value: fio2, unit: "fraction" },
+        pao2: { value: pao2, unit: "mmHg" },
+      } as never);
+      expect(out.ok).toBe(true);
+      if (!out.ok) throw new Error("rejected");
+      const v = out.result.values.find((x) => x.id === "oi")!;
+      return { value: v.value, band: matchInterpretationBand(oxygenationIndex, "oi", v.value)?.id };
+    };
+    // Severe opens at 16.
+    expect(at(24, 0.6, 90).value).toBeLessThan(16); // the residue is still there
+    expect(at(24, 0.6, 90).band).toBe("oi-severe"); // and it no longer decides the band
+    // The diagnostic threshold at 4 behaves the same way.
+    expect(at(6, 0.6, 90).band).not.toBe("oi-below-threshold");
+    // A value genuinely below a cut-point still bands below it.
+    expect(at(23, 0.6, 90).band).not.toBe("oi-severe");
+  });
   // Worked example 1 (oi-osi.md): MAP 20, FiO₂ 0.60, PaO₂ 60 → OI (20×0.60×100)/60 = 20
   // (PALICC-2 severe, OI ≥ 16). No SpO₂ needed — OI is arterial only.
   ctx.workedExample(

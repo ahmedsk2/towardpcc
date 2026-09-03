@@ -1,5 +1,7 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { pfRatio } from "./pf-ratio";
+import { matchInterpretationBand } from "../interpretation";
 
 const berlin = {
   citation: "ARDS Definition Task Force (Ranieri VM, et al). Berlin Definition. JAMA. 2012.",
@@ -7,6 +9,26 @@ const berlin = {
 };
 
 describeScore(pfRatio, (ctx) => {
+  /**
+   * The Berlin cut-points are upper bounds, so the residue runs the other way:
+   * 57 / 0.57 is 100.00000000000001, and a patient exactly at the severe
+   * threshold was graded moderate. Same defect, opposite sign.
+   */
+  it("grades the exact Berlin cut-points, not their floating-point residue", () => {
+    const at = (pao2: number, fio2: number) => {
+      const out = pfRatio.compute({
+        pao2: { value: pao2, unit: "mmHg" },
+        fio2: { value: fio2, unit: "fraction" },
+      } as never);
+      expect(out.ok).toBe(true);
+      if (!out.ok) throw new Error("rejected");
+      const v = out.result.values.find((x) => x.id === "pf_ratio")!;
+      return matchInterpretationBand(pfRatio, "pf_ratio", v.value)?.id;
+    };
+    expect(at(57, 0.57)).toBe("severe"); // exactly 100
+    expect(at(114, 0.57)).toBe("moderate"); // exactly 200
+    expect(at(58, 0.57)).not.toBe("severe"); // genuinely above 100
+  });
   // Worked example 1 (pf-sf.md): PaO₂ 80 mmHg, FiO₂ 0.5 → P/F 160 (Berlin moderate).
   ctx.workedExample(
     { ...berlin, locator: "derived from formula; Berlin moderate band" },

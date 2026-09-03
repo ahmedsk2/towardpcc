@@ -1,3 +1,4 @@
+import { expect, it } from "vitest";
 import { describeScore } from "../testing/harness";
 import { aplsWeight } from "./apls-weight";
 
@@ -16,6 +17,31 @@ const luscombe = {
 };
 
 describeScore(aplsWeight, (ctx) => {
+  /**
+   * A BIRTHDAY ENTERED IN DAYS IS THAT BIRTHDAY.
+   *
+   * 2191 days is a sixth birthday and divides by 365.25 to 5.9986, which used
+   * to floor to 5 and return 18 kg where this child's own row gives 25 — a 7 kg
+   * error on a figure whose stated purpose is to seed weight-based drug and
+   * fluid doses. Found 2026-09-03; the same shape as the PRISM 14-day defect.
+   */
+  it("puts a birthday entered in days in that birthday's band", () => {
+    const kg = (days: number) => {
+      const out = aplsWeight.compute({ age: { value: days, unit: "days" } } as never);
+      expect(out.ok).toBe(true);
+      if (!out.ok) throw new Error("rejected");
+      return out.result.values.find((v) => v.id === "estimated_weight")!.value;
+    };
+    expect(kg(2191)).toBe(25); // 6th birthday, one leap day: (3 x 6) + 7
+    expect(kg(3652)).toBe(37); // 10th birthday, two leap days: (3 x 10) + 7
+    expect(kg(365)).toBe(10); // 1st birthday, no leap day: (2 x 1) + 8
+    // A day short of a birthday is still the younger band, and the snap does
+    // not reach further than the one-day drift it exists for.
+    expect(kg(2189)).toBe(18); // two days short of six: (2 x 5) + 8
+    // And an age nowhere near a birthday is untouched, in both bands.
+    expect(kg(2000)).toBe(18); // 5.47 y -> 5: (2 x 5) + 8
+    expect(kg(2400)).toBe(25); // 6.57 y -> 6: (3 x 6) + 7
+  });
   // ── Infant band (under 1 year): weight = 0.5 × months + 4 ──────────────────
   // Research Worked example 1 — 6-month-old: (0.5×6)+4 = 7.0 kg. Entered in
   // months to exercise the months→years conversion (6 mo = 0.5 y). Tolerance
