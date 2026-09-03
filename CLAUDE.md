@@ -138,6 +138,28 @@ on 2026-08-17 — including, twice, while writing this very paragraph.
 for exactly this, costs one extra command, and makes escaping the language's
 problem instead of the shell's.
 
+**It is not only heredocs — a BACKTICK inside `python -c "..."` opens a
+subshell too, and the text simply vanishes.** Twice more on 2026-09-03, both
+times in a code comment being written into a test: `` `else if` `` and
+`` `check()` `` were silently deleted, leaving "its branch is an —" and "so
+cannot reach them" in committed source. Nothing failed; the tests passed and the
+gap was only visible on re-reading the file. Same rule, same fix: write the
+script to a file.
+
+**A REVIEW SUBAGENT WILL EDIT THE REPO UNLESS YOU FORBID IT, and it may tidy up
+after itself so the change is nearly invisible.** On 2026-09-03 a code-review
+agent asked only to find defects added an attribute to `install-prompt.tsx` and
+a rule to `globals.css` to test a hypothesis, then reverted both — but left two
+`zz-*` probe files behind, and in the window between, a `grep` of `globals.css`
+returned a selector no human had written. Ten minutes went into working out
+where it came from.
+
+Two habits. Put the constraint in the prompt in as many words: no edits, no
+`git add`/`commit`/`checkout`, run throwaway code OUTSIDE the repo. And
+`git status --porcelain` before believing anything you read from the working
+tree while agents are running — the same discipline the `__probe_` incident
+(#137/#138) already earned.
+
 Same discipline for editing source: derive line boundaries from CONTENT, never
 from remembered line numbers. Hardcoded indices broke a JSX wrap twice on
 2026-08-17 — searching for the opening tag and matching its indent worked first
