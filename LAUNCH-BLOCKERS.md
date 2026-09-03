@@ -47,8 +47,6 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       and lookalike monitoring
 - [ ] Add a DKIM key and a DMARC `rua=` for towardpicu.com — SPF alone breaks on
       forwarding
-- [ ] Confirm info@towardpicu.com actually receives mail — a dead published
-      contact address is a trust failure
 - [ ] Supply the four counter figures, a portrait, and the mission / library /
       registry images — placeholders ship until then
 - [ ] Say when `/` should stop being the holding page and serve the home page
@@ -172,8 +170,9 @@ then — no figure is invented.
       **Changed to `info@towardpicu.com` on 2026-08-07** — that mailbox is
       confirmed working, and `towardpcc.com` publishes `v=spf1 -all`, so an
       address there can receive but can never legitimately reply.
-      **Remaining:** verify the mailbox actually exists and receives mail
-      before launch — a dead contact address is a trust failure.
+      **Done 2026-09-03:** the founder sent a test message to
+      `info@towardpicu.com` and it arrived. Receiving is confirmed; the
+      residency caveat on mail (MX still at SiteGround) is a separate item.
 - [x] `[ADMIN_EMAIL]` = ahmedsk2@gmail.com ("for now") — used as the form
       notification recipient env value in P5; never hardcoded in public code.
 - [x] `[HOSTING_TARGET]` = founder's Oracle OCI tenancy. **Deployed region
