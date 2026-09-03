@@ -38,7 +38,6 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
 
 - [ ] Counsel review of the legal pages (`TODO:counsel-review`)
 - [ ] Register on SDAIA's National Data Governance Platform, before it is needed
-- [ ] Name counsel reachable inside 72 hours, and settle the hour-60 default
 - [ ] Move MX off SiteGround to a KSA-hosted provider — the one change that
       would make the residency claim unqualified
 - [ ] Supply independent clinical validator names — the badge reads "pending"
@@ -858,8 +857,13 @@ absence is not later read as an oversight.
 - [x] **The duty is now written down**, in `docs/runbooks/incident.md` under
       "Regulatory notification (PDPL)", with sources.
 - [ ] **Register on the National Data Governance Platform, before you need it.**
-- [ ] **Name counsel who answers inside 72 hours, and settle the hour-60
-      default now.**
+- [x] **Counsel named and the hour-60 default settled — 2026-09-03.** Counsel
+      is Dr Ahmed Alkhalifah, confirmed by the founder as reachable inside 72
+      hours; contact details stay with the founder, not in this repo. The
+      standing default at hour 60 if counsel has not been reached: keep
+      trying counsel and do not notify SDAIA without them. The founder chose
+      this over the recommendation below, and owns the deadline risk it
+      carries.
 
 `CMP-03` asked for "the PDPL 72h breach clock + SDAIA contact". The number turned
 out to be right, and it was in the repo only as an unsourced open question — it is
@@ -878,7 +882,9 @@ day and not to notify on your own initiative. Against a hard deadline that is
 incomplete, because silence from counsel at hour 60 is itself a decision. Settle
 it in advance and record it here. The recommendation is to notify — the notice
 carries no admission and late notice is the sanctionable failure — but it is the
-founder's call to own, not the runbook's to assume.
+founder's call to own, not the runbook's to assume. **Settled 2026-09-03,
+the other way:** keep trying counsel; never notify without them. See the
+ticked item above and the escalation bullet in `docs/runbooks/incident.md`.
 
 **One coupling worth seeing.** The missing DPAs stop being paperwork here: a
 processor who tells us late burns our own 72 hours, and there are three disclosed
