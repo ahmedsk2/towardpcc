@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { it } from "vitest";
 import { registry } from "./scores/registry";
+import { sweepWithOmissions } from "./testing/sample-inputs";
 import type { InterpretationBand, Reference, ScoreDefinition, ScoreInput } from "./types";
 
 /**
@@ -106,6 +107,43 @@ it("writes the calculator text dump", () => {
       "a target rather than an impression. Neither is a defect on its own.",
   );
   w();
+
+  // ---- conditional notices -------------------------------------------------
+  // NOT part of `visibleStrings`, and cannot be: a notice is emitted by
+  // `calculate` only for the values that make it true, so it is not declared
+  // anywhere to be read off. It is still a sentence a clinician reads beside a
+  // number, so it belongs in the file the wording is reviewed in. Enumerated by
+  // sweeping each score the way the registry gate does — every input pushed
+  // to its accepted maximum in turn, each of those re-run with one optional
+  // input dropped. The minimum-only vector finds nothing: it sets SpO2 to 0.
+  const notices = new Map<string, Set<string>>();
+  for (const s of scores) {
+    for (const v of sweepWithOmissions(s)) {
+      const outcome = s.compute(v as never);
+      if (!outcome.ok) continue;
+      for (const value of outcome.result.values) {
+        if (!value.notice) continue;
+        if (!notices.has(s.name)) notices.set(s.name, new Set());
+        notices.get(s.name)!.add(`${value.label.en} — ${value.notice.text.en}`);
+      }
+    }
+  }
+  if (notices.size > 0) {
+    w("## Conditional notices");
+    w();
+    w(
+      "Shown only when the entered values make them true, beside the number " +
+        "they explain and beside the field they name. Not in the counts below, " +
+        "because they are emitted rather than declared.",
+    );
+    w();
+    for (const [name, set] of notices) {
+      w(`**${name}**`);
+      w();
+      for (const line of set) w(`- ${q(line)}`);
+      w();
+    }
+  }
 
   // ---- summary table -------------------------------------------------------
   w("## Where the work is");

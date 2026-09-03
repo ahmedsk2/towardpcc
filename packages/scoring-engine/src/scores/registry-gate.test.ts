@@ -2,57 +2,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { registry } from "./registry";
-import { boundaryValues } from "../testing/harness";
+import { sampleInputs, sweepInputs, sweepWithOmissions } from "../testing/sample-inputs";
 import { isVisible } from "../visibility";
 import type { ScoreDefinition } from "../types";
-
-/**
- * A minimal valid input vector, built from each input's own declared domain.
- * Deliberately dumb: it exists to make `compute` return, not to be clinically
- * meaningful, and every assertion above is about ids rather than values.
- */
-function sampleInputs(s: ScoreDefinition): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const i of s.inputs) {
-    if (i.type === "numeric") out[i.id] = { value: i.min, unit: i.unit.canonical };
-    else if (i.type === "boolean") out[i.id] = { value: false };
-    else out[i.id] = { value: i.options[0]!.value };
-  }
-  return out;
-}
-
-/**
- * The minimal vector, plus one variant per input pushed off its floor.
- *
- * A single all-minimum vector is a weak place to check an arithmetic identity:
- * it can score an undeclared organ 0 and let `0 === 0` pass for it, which is
- * exactly the case the identity below exists to catch. Moving one input at a
- * time keeps every other term fixed, so any subscore that responds to any input
- * at all is non-zero in at least one vector.
- *
- * Still built only from each input's OWN declared domain — plausibility bounds
- * and declared options — so no vector asserts anything clinical, and none can
- * become stale against a score it does not know about.
- */
-function sweepInputs(s: ScoreDefinition): Record<string, unknown>[] {
-  const base = sampleInputs(s);
-  const vectors = [base];
-  for (const i of s.inputs) {
-    if (i.type === "numeric") {
-      // The largest ACCEPTED value, which is not `i.max` on an input with a
-      // half-open ceiling — pushing 216 at PELOD-2's `maxExclusive: 216` would
-      // be rejected, and the vector would silently drop out of the sweep below
-      // instead of exercising the top of the range it was added for.
-      const { bound } = boundaryValues(i, "max");
-      vectors.push({ ...base, [i.id]: { value: bound, unit: i.unit.canonical } });
-    } else if (i.type === "boolean") {
-      vectors.push({ ...base, [i.id]: { value: true } });
-    } else {
-      for (const o of i.options.slice(1)) vectors.push({ ...base, [i.id]: { value: o.value } });
-    }
-  }
-  return vectors;
-}
 
 /**
  * Crown-jewel structural gate (PRD §6.3): every registered score MUST have a
@@ -261,17 +213,7 @@ describe("value notices are structurally sound wherever they are emitted", () =>
    * Required inputs are never dropped: their absence is a rejection, not a
    * result, and `compute` would return `ok: false` with nothing to inspect.
    */
-  const noticeVectors = (s: ScoreDefinition): Record<string, unknown>[] => {
-    const optional = s.inputs.filter((i) => !i.required).map((i) => i.id);
-    return sweepInputs(s).flatMap((vector) => [
-      vector,
-      ...optional.map((id) => {
-        const dropped = { ...vector };
-        delete dropped[id];
-        return dropped;
-      }),
-    ]);
-  };
+  const noticeVectors = sweepWithOmissions;
 
   const emitted = registry.flatMap((s) =>
     noticeVectors(s).flatMap((vector) => {
