@@ -27,7 +27,7 @@ Shown only when the entered values make them true, beside the number they explai
 | --- | --- | ---: | ---: | ---: | ---: |
 | [Pediatric Risk of Mortality (PRISM III and PRISM IV)](#prism) | 1.0.0 | 26 | 94 | 18 | 45 |
 | [Paediatric Index of Mortality 3 (PIM3)](#pim3) | 1.0.0 | 11 | 60 | 16 | 10 |
-| [KDIGO AKI staging (pediatric)](#kdigo-aki) | 1.1.0 | 8 | 31 | 16 | 8 |
+| [KDIGO AKI staging (pediatric)](#kdigo-aki) | 1.2.0 | 8 | 31 | 16 | 8 |
 | [Serum osmolality (calculated) and osmolar gap](#serum-osmolality) | 1.0.0 | 5 | 22 | 12 | 5 |
 | [Pediatric burn fluid resuscitation (Parkland / modified Brooke)](#burn-resuscitation) | 1.0.0 | 4 | 12 | 3 | 12 |
 | [FOUR score (Full Outline of UnResponsiveness)](#four-score) | 1.1.0 | 4 | 33 | 8 | 6 |
@@ -539,7 +539,7 @@ The methods disagree by ≥ 10 kg in some children and change prescribed tidal v
 
 <a id="kdigo-aki"></a>
 
-`kdigo-aki` · v1.1.0 · published · renal-metabolic
+`kdigo-aki` · v1.2.0 · published · renal-metabolic
 
 ### Inputs
 
