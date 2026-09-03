@@ -6,17 +6,30 @@ runs. The OCI host is a shared multi-site server operated by **Coolify**, so
 TowardPCC is deployed as a Coolify application behind Coolify's Traefik proxy.
 
 - **Live:** https://towardpcc.com (+ `www`), first deployed 2026-07-26
-- **Host:** OCI `hosting-1`, `145.241.105.239`, me-riyadh-1 (KSA — residency claim holds)
+- **Host:** OCI `hosting-1`, `145.241.105.239`, me-riyadh-1 (KSA — the request
+  path is in-Kingdom; mail is not, see invariant 3 in the root `CLAUDE.md`)
+- **Edge:** OCI load balancer `towardpcc-edge`, `145.241.110.213`, same region.
+  Terminates TLS and forwards to Traefik on the host. Fronts the apex and `www`
+  only, since the 2026-08-08 cutover (`edge-migration-ksa.md` is the build
+  record; the cutover itself is under "Before you touch production" below).
 - **Platform:** Coolify v4.1.2, Traefik v3.6 (TLS via Let's Encrypt, HTTP-01)
 - **Canonical host:** `www.towardpcc.com`. The apex 308s to it in `proxy.ts`
   (exact host match, so `next.` and `localhost` are unaffected). Coolify's
   `NEXT_PUBLIC_SITE_URL` is `https://www.towardpcc.com` for production and
   `https://next.towardpcc.com` for preview — the two must not be the same, or
   the preview advertises production's canonical.
-- **DNS:** Cloudflare zone `towardpcc.com`, apex + `www` → the host.
+- **DNS:** Cloudflare zone `towardpcc.com`, authoritative DNS only. The apex and
+  `www` are **DNS-only (grey cloud)** and resolve to the load balancer; Cloudflare
+  sees none of their request content. **Every other subdomain stays proxied**,
+  and the warning below applies to those verbatim.
 
-  > ⚠️ **Proxying is ON (orange cloud) and the origin is LOCKED to Cloudflare.
-  > Do not turn it off — doing so takes the site fully offline.**
+  > ⚠️ **For every subdomain EXCEPT the apex and `www`, proxying is ON (orange
+  > cloud) and the origin is LOCKED to Cloudflare. Do not turn it off — doing so
+  > takes that hostname fully offline.** This applied to the apex and `www` too
+  > until 2026-08-08; the paragraphs that follow were written before the
+  > cutover and are kept because the lock they describe is still live for
+  > `next`, `db`, `deploy`, `endorse`, `mnm`, `mylibrary`, `stg-mylibrary` and
+  > `uptime`.
   >
   > Verified 2026-07-27 against the OCI security list
   > (`Default Security List for hosting-vcn`): ports 80 and 443 accept traffic
@@ -31,7 +44,11 @@ TowardPCC is deployed as a Coolify application behind Coolify's Traefik proxy.
   > reachable only via the edge — so turning proxying off would break
   > certificate renewal as well as serving.
   >
-  > **Open issue:** `clientIp()` in `apps/web/lib/submissions.ts` assumes a
+  > **Open issue — RESOLVED 2026-07-29, kept for the reasoning.** The fix is
+  > `apps/web/lib/client-ip.ts` (`clientIp()` in `submissions.ts` now delegates
+  > to it), and the measurement that caught the first, wrong implementation is
+  > under "Client IP — SOLVED" in `edge-migration-ksa.md`. As written at the
+  > time: `clientIp()` in `apps/web/lib/submissions.ts` assumes a
   > single reverse proxy setting `x-real-ip` to the connecting client. Traefik
   > has no `forwardedHeaders.trustedIPs` configured, so it overwrites incoming
   > forwarded headers with its own view — which is a Cloudflare edge node.
@@ -52,12 +69,97 @@ TowardPCC is deployed as a Coolify application behind Coolify's Traefik proxy.
   > Cloudflare also injects its analytics beacon at the edge. It appears zero
   > times in origin HTML and the CSP blocks it, so no third-party script
   > executes and the privacy posture holds — but it logs a CSP violation per
-  > page load.
+  > page load. On the apex and `www` it no longer appears at all: Cloudflare has
+  > been out of their request path since 2026-08-08.
 
 > ⚠️ The host also runs other live applications, **including one with real
 > patient data**. Every TowardPCC change must be additive and scoped to its own
 > app/database. Never touch another project's containers, databases, or the
 > shared proxy config.
+
+## Before you touch production — read this first
+
+Moved here from the root `CLAUDE.md` on 2026-09-03, unchanged in substance, so
+that a session which never deploys does not pay for it on every turn. Each
+paragraph records a mistake that cost real time and the measurement that
+corrected it; the rules distilled from them are in the root file's "Production"
+section. Do not shorten these — the dates and numbers are what make the rules
+stick.
+
+- **Push-to-deploy WORKS. Merging is enough — do not deploy by hand.** The root
+  `CLAUDE.md` claimed the opposite until 2026-08-07 and the claim was false; the
+  correction matters because acting on it wasted a redundant build on every
+  single merge. Coolify's own queue shows every `main` push producing a
+  `is_webhook=true` deployment that finished with the right commit. **Builds
+  take 125–308 seconds** (measured across eight deploys), and Coolify does a
+  rolling update, so the OLD container keeps serving until the new one is
+  healthy. Checking the image tag thirty seconds after a merge shows the
+  previous commit and means nothing. **Wait ~5 minutes, then check.** Every
+  "dropped deploy" ever recorded was that mistake, followed by a manual deploy
+  of the same commit that then took credit.
+- **Merging N PRs back to back queues N builds, and every one of them checks out
+  the CURRENT HEAD, not the commit that triggered it.** So a batch of merges is
+  SAFE — production never serves an older commit partway through — but only the
+  last build does any new work, and `~5 minutes` becomes
+  `~5 minutes per queued build`. Measured twice on 2026-08-08: six merges
+  queued four deployments, and
+  the queue was observed rewriting a pending entry from `f63ce16` to the newer
+  `da8cbbc` before building it; two merges later queued two, both already
+  showing HEAD. **The wrong inference to draw is that a batch rolls production
+  backward** — this was nearly recorded, on the strength of the queue listing
+  alone, before the poll trace showed the rewrite. It does not.
+  `check:integrity` will read STALE for the whole drain, which is correct rather
+  than a failure; wait for the queue to empty before believing it.
+- **Prefer `pnpm check:integrity` over the tag check.** Since 2026-08-08 the
+  canary asserts the DEPLOYED COMMIT, not only page content: `/api/v1/health`
+  publishes `sha256(SOURCE_COMMIT)` truncated to 16 hex characters in its
+  `x-build-fingerprint` header (`apps/web/lib/build-fingerprint.ts`), and the
+  script compares it with the SHA it checked out. It is strictly better evidence
+  than the image tag, and measurably so — on its first real run it reported
+  production still serving the previous commit at a moment when `docker ps`
+  already showed the new tag. **The tag flips before the serving container
+  does**, which is the gap that produced every "dropped deploy" above. Run
+  `EXPECTED_COMMIT=$(git rev-parse HEAD) node scripts/check-integrity.mjs`.
+- **The tag check still works as a fallback — just not immediately.**
+  `sudo docker ps --filter name=gpsokvxzncr7ks1vzqz7wkr4 --format '{{.Image}}'`
+  against `origin/main`, once, after the build has had time. Coolify's `status`
+  field remains useless in both directions: it read `running:healthy` over a
+  stale container and `running:unhealthy` over one Docker and both probes called
+  healthy. Deploy by hand only when a deployment genuinely **failed** — one has,
+  on 2026-08-03, when a helper container vanished mid-build under two merges
+  three minutes apart. The API call is under "Deploying a change" below.
+- **THE APEX AND `www` ARE NO LONGER PROXIED — cut over 2026-08-08.** They
+  resolve to the OCI load balancer at `145.241.110.213`, which terminates TLS in
+  me-riyadh-1 and is publicly reachable on its own NSGs. Cloudflare is
+  authoritative DNS only and sees no request content. Re-proxying them would put
+  requests back through an edge outside the Kingdom while `/trust` says they
+  arrive directly, and would reinstate the injected script that caused TM-013 —
+  `scripts/check-residency.mjs` now alarms on exactly that, having been inverted
+  in the same change.
+- **Proxying stays ON for every OTHER subdomain**, and the orange-cloud warning
+  at the top of this file applies to them verbatim. `next`, `db`, `deploy`,
+  `endorse`, `mnm`, `mylibrary`, `stg-mylibrary` and `uptime` all point at the
+  host `145.241.105.239`, whose OCI security list accepts 80/443 only from
+  Cloudflare's edge ranges — so grey-clouding any of them takes it offline and
+  breaks certificate renewal. Several are co-tenant applications. That lock is
+  also what makes trusting `CF-Connecting-IP` safe — opening those ports means
+  revisiting `apps/web/lib/client-ip.ts` in the same change.
+
+## Access — what an agent can reach from the dev machine
+
+**Check what you can reach before calling something the founder's job.** SSH is
+`ssh -i ~/.ssh/oci_server ubuntu@145.241.105.239`, with passwordless sudo. The
+Coolify API token is `~/.coolify-token` **on the host**. The OCI CLI is
+`~/.local/bin/oci` **on this machine, not the server**, and the `oracle-oci`
+MCP is usually disconnected. The Cloudflare token (`~/.cloudflare-token` on the
+host) **can edit DNS** but is refused on zone settings and WAF — so DNS moves
+are yours to make, while Bot Fight Mode, JS Detections, WAF rules and Turnstile
+are genuinely founder-only. Branch protection 403s: a private repo needs GitHub
+Pro. Getting this wrong wastes the founder's time in both directions.
+
+The host runs an application holding real patient data. Every command you run
+there is scoped to TowardPCC's own containers and its own database — the
+`-d towardpcc` flag on every `psql` below is load-bearing, not decorative.
 
 ## Coolify application
 
@@ -400,12 +502,16 @@ keeping in a password manager is the `/admin` password.
   the envelope MAIL FROM, which for OCI Email Delivery's default return path is
   an Oracle-owned domain, so the apex record is never consulted — DKIM
   alignment is what earns the DMARC pass. See `email-delivery.md`.
-- **Cloudflare proxying is ON**, and the origin's OCI security list admits
-  80/443 only from Cloudflare's edge ranges. This line previously read
-  "proxying is off", contradicting the warning at the top of this same file and
-  very nearly causing an outage when someone acted on it. A direct HTTPS
-  request to the origin IP times out; turning the orange cloud off without
-  first widening the security list takes the site fully offline and breaks
+- **Cloudflare proxying is ON for every subdomain except the apex and `www`**,
+  and the origin's OCI security list admits 80/443 only from Cloudflare's edge
+  ranges. The apex and `www` left the proxy on 2026-08-08 by design — they
+  reach the load balancer on its own NSGs, not the host's security list, which
+  is why they could — and must not be put back (see "Before you touch
+  production"). For the rest, this line once read "proxying is off",
+  contradicting the warning at the top of this same file and very nearly
+  causing an outage when someone acted on it. A direct HTTPS request to the
+  host IP times out; turning the orange cloud off on any of those hostnames
+  without first widening the security list takes it fully offline and breaks
   ACME HTTP-01 renewal.
 - **Secondary on-call contact** still unnamed (bus-factor-1).
 

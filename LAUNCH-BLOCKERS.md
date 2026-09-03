@@ -30,30 +30,23 @@ it is history. This index is the open work, and it is the only part that moves.
 Read it first; page into a section only when you are about to act on one.
 
 Reconciled against the body of this file and against production on 2026-09-03 —
-both canaries green, `main` at `ce8cfbd` serving live.
+both canaries green, `main` at `ce8cfbd` serving live. Re-checked the same day
+against live DNS and GitHub: two founder items had been done without the record
+moving (DNSSEC, Actions billing); both are ticked below with the evidence.
 
 ### Founder-only — none of these is an engineering task
 
-- [ ] Counsel review of the legal pages (`TODO:counsel-review`)
 - [ ] Register on SDAIA's National Data Governance Platform, before it is needed
-- [ ] Name counsel reachable inside 72 hours, and settle the hour-60 default
 - [ ] Move MX off SiteGround to a KSA-hosted provider — the one change that
       would make the residency claim unqualified
 - [ ] Supply independent clinical validator names — the badge reads "pending"
       until then
-- [ ] Publish the DNSSEC DS record at GoDaddy — it is in
-      `docs/runbooks/dns-hardening.md`, and it is the one DNS change that can
-      take the domain offline
 - [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar, CT-log
       and lookalike monitoring
 - [ ] Add a DKIM key and a DMARC `rua=` for towardpicu.com — SPF alone breaks on
       forwarding
-- [ ] Confirm info@towardpicu.com actually receives mail — a dead published
-      contact address is a trust failure
 - [ ] Supply the four counter figures, a portrait, and the mission / library /
       registry images — placeholders ship until then
-- [ ] Re-enable GitHub Actions billing — e2e, `pnpm audit`, gitleaks, Lighthouse
-      and the container build are all dark without it
 - [ ] Say when `/` should stop being the holding page and serve the home page
 - [ ] GitHub Pro, if branch protection on `main` is wanted (a private repo 403s)
 
@@ -175,8 +168,9 @@ then — no figure is invented.
       **Changed to `info@towardpicu.com` on 2026-08-07** — that mailbox is
       confirmed working, and `towardpcc.com` publishes `v=spf1 -all`, so an
       address there can receive but can never legitimately reply.
-      **Remaining:** verify the mailbox actually exists and receives mail
-      before launch — a dead contact address is a trust failure.
+      **Done 2026-09-03:** the founder sent a test message to
+      `info@towardpicu.com` and it arrived. Receiving is confirmed; the
+      residency caveat on mail (MX still at SiteGround) is a separate item.
 - [x] `[ADMIN_EMAIL]` = ahmedsk2@gmail.com ("for now") — used as the form
       notification recipient env value in P5; never hardcoded in public code.
 - [x] `[HOSTING_TARGET]` = founder's Oracle OCI tenancy. **Deployed region
@@ -202,7 +196,7 @@ balancer staged for the edge migration, which is not yet serving traffic — wor
 confirming at cutover, when it starts to matter.
 
 - [x] `[ORG_LEGAL_NAME]` = Toward Pediatric Critical Care (footer updated).
-      Legal pages (P6) still get `TODO:counsel-review`.
+      Legal pages (P6) carried `TODO:counsel-review` until 2026-09-03.
 - [x] PedsCC Library repo — founder provided github.com/ahmedsk2/pedscc-library
       (2026-07-25); read-only feature audit done
       (docs/research/pedscc-library-audit.md), informs /knowledge.
@@ -517,11 +511,12 @@ SDK would transmit from pages that promise they transmit nothing.
       is documented behaviour and means the dashboard is not the source of truth
       for CAA on this zone. Verified afterwards that the edge certificate is
       still valid and every route still 200s.
-- [~] **DNSSEC — Cloudflare side done, registrar side outstanding.** The zone is
-  signed and `pending`; nothing validates until a DS record is published at
-  GoDaddy, which needs registrar access I do not have. The exact DS is in
-  `docs/runbooks/dns-hardening.md`. **This is the one DNS change that can
-  take the domain offline**, so verify immediately after publishing it.
+- [x] **DNSSEC — done both sides on 2026-07-29; this entry lagged five weeks.**
+      `docs/runbooks/dns-hardening.md` §2 recorded the DS published and `AD: true`
+      from two resolvers that day; re-verified 2026-09-03 over Cloudflare's
+      DNS-over-HTTPS (one DS answer, `AD=true`). The index above still listed it
+      as open on the same date it claimed to be reconciled — a `- [ ]` is a claim
+      of openness, not proof.
 - [x] **Back the single-region claim with a control** — done 2026-08-08. Quota
       `ksa-data-residency` zeroes ten data-bearing families wherever
       `request.region != me-riyadh-1`. A quota rather than an IAM policy because
@@ -614,7 +609,11 @@ this.
 
 ## Content / legal
 
-- [ ] Legal pages need counsel review (`TODO:counsel-review` markers, P6)
+- [x] **Legal pages counsel-reviewed — 2026-09-03.** Dr Ahmed Alkhalifah
+      signed off on `/legal/data-protection`, `/legal/terms` and
+      `/legal/disclaimer` as written; both `TODO(counsel-review)` markers and
+      both `pendingNote` strings are removed in #160. No copy corrections
+      came with the sign-off; any that follow are a separate change.
 - [ ] Calculator validator slots empty by design — badge shows
       "Independent clinical validation: pending" until real names provided
 - [x] Tier-B instrument IP checks done (docs/decisions/ADR-tier-b-ip.md,
@@ -861,8 +860,13 @@ absence is not later read as an oversight.
 - [x] **The duty is now written down**, in `docs/runbooks/incident.md` under
       "Regulatory notification (PDPL)", with sources.
 - [ ] **Register on the National Data Governance Platform, before you need it.**
-- [ ] **Name counsel who answers inside 72 hours, and settle the hour-60
-      default now.**
+- [x] **Counsel named and the hour-60 default settled — 2026-09-03.** Counsel
+      is Dr Ahmed Alkhalifah, confirmed by the founder as reachable inside 72
+      hours; contact details stay with the founder, not in this repo. The
+      standing default at hour 60 if counsel has not been reached: keep
+      trying counsel and do not notify SDAIA without them. The founder chose
+      this over the recommendation below, and owns the deadline risk it
+      carries.
 
 `CMP-03` asked for "the PDPL 72h breach clock + SDAIA contact". The number turned
 out to be right, and it was in the repo only as an unsourced open question — it is
@@ -881,7 +885,9 @@ day and not to notify on your own initiative. Against a hard deadline that is
 incomplete, because silence from counsel at hour 60 is itself a decision. Settle
 it in advance and record it here. The recommendation is to notify — the notice
 carries no admission and late notice is the sanctionable failure — but it is the
-founder's call to own, not the runbook's to assume.
+founder's call to own, not the runbook's to assume. **Settled 2026-09-03,
+the other way:** keep trying counsel; never notify without them. See the
+ticked item above and the escalation bullet in `docs/runbooks/incident.md`.
 
 **One coupling worth seeing.** The missing DPAs stop being paperwork here: a
 processor who tells us late burns our own 72 hours, and there are three disclosed
@@ -1537,6 +1543,14 @@ Both canaries stopped when GitHub Actions billing was disabled, so nothing has
 been watching production. A systemd timer on the OCI host restores them
 in-Kingdom without a spend decision; Actions billing is still wanted afterwards
 for e2e, `pnpm audit`, gitleaks, Lighthouse and the container build.
+
+**Billing is back — verified 2026-09-03.** The full pipeline ran on all three
+code pushes that day (#154, #155, #156: e2e, Lighthouse, gitleaks and quality
+green) and the scheduled "Production checks" workflow ran at 10:32. What it
+showed: `deps` was red until #156 cleared the audit finding, and `container`
+is red on Trivy — `libcrypto3` 3.5.7-r0, CVE-2026-14456 — which #159 fixes
+by `apk upgrade` in the runner stage rather than a digest bump, because the
+newest `node:24-alpine` shares the same base layer.
 
 ### Inbound mail: the caveat stays, for now
 

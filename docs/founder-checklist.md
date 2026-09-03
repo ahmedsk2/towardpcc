@@ -55,6 +55,11 @@ These four remain worth doing. None of them gates launch.
 
 ### 1. Counsel review of the legal pages
 
+> **Done 2026-09-03.** Dr Ahmed Alkhalifah signed off as written; both
+> markers and both `pendingNote` strings are removed in #160. Kept below
+> for the four questions, whose answers belong in `LAUNCH-BLOCKERS.md` if
+> counsel gave them.
+
 Two pages ship telling readers they are provisional. Markers at
 `apps/web/content/site.ts:777` (privacy policy) and `:810` (terms); each renders
 a visible `pendingNote`.
@@ -173,6 +178,12 @@ corrected.
 In priority order. The first one blocks everything else.
 
 ## 1. GitHub Actions billing — BLOCKING, and it is silent
+
+> **Resolved by 2026-09-03.** The full pipeline ran on all three code pushes
+> that day and the scheduled "Production checks" ran at 10:32, so billing is
+> back; `LAUNCH-BLOCKERS.md` ("Daily checks") carries the evidence and what
+> the first green runs then exposed. The section below is kept as written,
+> because the failure is silent and will look exactly like this if it recurs.
 
 CI stopped mid-session. Every job on every pull request now fails instantly with:
 

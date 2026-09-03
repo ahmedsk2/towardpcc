@@ -5,6 +5,11 @@ bedside, so the standing rule is: **every claim the site makes is either enforce
 by a check that runs on each release, or derived from data in this repo.** Hold
 your own work to that — including what you write in a PR description.
 
+Ordered by when you need it: every-session material first — invariants, gate,
+conventions, the traps that bite whenever you run anything — and the deploy,
+DNS and host rules last, with their dated reasons one hop away in
+`docs/runbooks/deploy-production.md`.
+
 Requirements live in PRD slices. `docs/prd/README.md` has the per-phase loading
 map — load ONLY the slice the current phase needs, never the whole PRD.
 
@@ -13,11 +18,18 @@ a score, `apps/web/CLAUDE.md` for UI, UX and the privacy invariants.
 
 ## Where truth lives
 
-- **Open work, known gaps, parked items** — `LAUNCH-BLOCKERS.md`
-- **Locked decisions** — `docs/decisions/` (10 ADRs). Several carry dated
+- **Open work, known gaps, parked items** — `LAUNCH-BLOCKERS.md`. The index at
+  the top is the open work and the only part that moves; everything below it is
+  the record. Page into a section only when you are about to act on it.
+- **Locked decisions** — `docs/decisions/` (11 ADRs). Several carry dated
   addenda and later numbered decisions that revise earlier ones; read to the END
   before citing one. `ADR-tier-b-ip.md` is the trap: its Findings table is stale
   and three addenda successively overturn each other.
+- **Production, deploys, the host, what you can reach from here** —
+  `docs/runbooks/deploy-production.md`: "Before you touch production" holds the
+  measured deploy forensics this file used to carry, "Access" the credentials
+  and what each is refused. The rules distilled from both are under
+  "Production" at the end of this file.
 - **History** — git.
 - `.taskmanager/taskmanager.db` is **stale** (last written 2026-07-28, well over
   a hundred commits back). Do not trust its phase data or task tree.
@@ -40,12 +52,14 @@ a score, `apps/web/CLAUDE.md` for UI, UX and the privacy invariants.
 2. **No calculator input reaches a server store.** `packages/db` exists only for
    the submission and admin surfaces. Client-side persistence is deliberate,
    disclosed on `/legal/data-protection`, and allow-listed: sessionStorage
-   carries `age`, `age_months`, `weight`, `weight_kg` and nothing else;
-   localStorage holds favourites. Widening either needs the allow-list amended.
-   **Live open question:** since the fragment fix, a reload no longer restores a
-   form. Persisting the remaining fields would fix that and is the obvious ask —
-   it is exactly the amendment this invariant governs, so it is a decision to
-   put to the founder, never a convenience to slip in alongside other work.
+   carries `age`, `age_months`, `weight`, `weight_kg` and nothing else
+   (`components/calculator/use-carried-values.ts`, enforced on write as well as
+   read); localStorage holds favourites. Widening either needs the allow-list
+   amended. **Live open question:** since the fragment fix, a reload no longer
+   restores a form. Persisting the remaining fields would fix that and is the
+   obvious ask — it is exactly the amendment this invariant governs, so it is a
+   decision to put to the founder, never a convenience to slip in alongside
+   other work.
 3. **Processing is KSA-first but NOT wholly in-Kingdom — and the site says so on
    purpose.** The request path came home on 2026-08-08: the apex and `www` now
    resolve to an OCI load balancer in me-riyadh-1 and Cloudflare is out of the
@@ -67,30 +81,13 @@ Runs the CI `quality` job verbatim, in order — typecheck → lint → format:c
 test → build → web bundle budget.
 
 Run it as `pnpm gate > "$TEMP/gate.log" 2>&1; echo $?` and read the log after.
-**Piping it hides the failure**: `pnpm gate | tail` reports the exit status of
-`tail`, so a run whose last line is `ELIFECYCLE Command failed with exit code 1`
-still looks like a pass, and has been reported as one.
-
-**When every changed path is markdown it runs `format:check` alone**, because
-nothing else can observe a markdown change — verified 2026-08-07, not assumed:
-no test reads a `.md` file at runtime (every `docs/` mention in a test is a
-comment), ESLint has no markdown coverage, and typecheck, build and the budget
-cannot see one. Any non-markdown path in the diff runs everything, so a mixed
-batch is never scoped down. `pnpm gate --full` forces the lot, `pnpm gate
---explain` prints the decision without running it, and **any uncertainty — no
-`origin/main`, a git error, an empty file list — runs the FULL gate.** Never
-fast-path on doubt; the fast path is the shortcut this gate was written to
-prevent, and it is only safe because it is bounded to a file type proven inert.
-
-**The opposite waste is real too: reaching for `--full` by reflex.** On a
-markdown-only change the full gate spends about three minutes — typecheck 48s,
-lint 38s, tests 18s, build 55s, measured 2026-08-17 — to check something no
-markdown file can affect. Plain `pnpm gate` decides for itself and is the
-default; `--full` is for when you want to override that decision, not for
-every run.
 
 Four traps it exists to remove:
 
+- **Piping it hides the failure.** `pnpm gate | tail` reports the exit status
+  of `tail`, so a run whose last line is
+  `ELIFECYCLE Command failed with exit code 1` still looks like a pass, and
+  has been reported as one.
 - **`pnpm test` does not typecheck.** Vitest never has. Running tests and lint
   while skipping typecheck is exactly how a type error reached `main` on
   2026-08-01. Run the whole gate, not the part that looks relevant.
@@ -103,6 +100,23 @@ Four traps it exists to remove:
   `@towardpcc/web`. Use the exact package name and you never have to think about
   it — `@towardpcc/{web,scoring-engine,ui,db}`.
 
+**When every changed path is markdown it runs `format:check` alone**, because
+nothing else can observe a markdown change — verified 2026-08-07, not assumed;
+the header comment of `scripts/gate.mjs` records what was checked and why the
+fast path is bounded to that one file type. Any non-markdown path in the diff
+runs everything, so a mixed batch is never scoped down. `pnpm gate --full`
+forces the lot, `pnpm gate --explain` prints the decision without running it,
+and **any uncertainty — no `origin/main`, a git error, an empty file list —
+runs the FULL gate.** Never fast-path on doubt; the fast path is only safe
+because it is bounded to a file type proven inert.
+
+**The opposite waste is real too: reaching for `--full` by reflex.** On a
+markdown-only change the full gate spends about three minutes — typecheck 48s,
+lint 38s, tests 18s, build 55s, measured 2026-08-17 — to check something no
+markdown file can affect. Plain `pnpm gate` decides for itself and is the
+default; `--full` is for when you want to override that decision, not for
+every run.
+
 Coverage is not uniform and the gate does not pretend otherwise: `pnpm -r test`
 reaches web, scoring-engine and ui only (db and config define no test script),
 and root `lint` runs `eslint .` first precisely so those two are still linted.
@@ -114,196 +128,10 @@ Lighthouse (warn-only) and the container build.
 
 **To run e2e yourself — and while GitHub Actions billing is off, someone has
 to — the command is `pnpm --filter @towardpcc/web test:e2e`.** A real run
-prints `Running 134 tests using 1 worker`; five specs skip unless
+prints `Running N tests using 1 worker` — 162 in 23 files on 2026-09-03, after
+this file had said 134 for weeks; read the line as proof something ran, never
+as a constant. Five tests, all in the two `admin-*` specs, skip unless
 `E2E_DATABASE_URL` points at a throwaway Postgres.
-
-**`npx <anything>` from the repo root runs NOTHING, and can report success for
-it.** Every test binary here belongs to a package rather than the root, so the
-invocation dies with `'playwright' is not recognized` — or `'vitest'`, or any
-other. That is not the interesting part. Run it as `npx playwright test > log
-2>&1; echo $?; tail log` and the trailing `tail` supplies the exit status, so a
-run that executed **nothing at all** reports **0**. Same shape as the
-`pnpm gate | tail` trap above. Read the line count or the `N passed` line, never
-the exit code alone.
-
-**A bash heredoc mangles regexes and paths, and the error names the wrong
-thing.** Writing a Python or Node script inline via `<<'PY'` collides with shell
-and language parsing often enough to be a tax: an escaped `\.` arrives as a bare
-`\.` and blows up the character class, a Windows `$TEMP` lands inside a string
-as an invalid `\U` escape, and a backtick opens a subshell. Every one fails with
-a syntax error pointing at a line you did not write. Five of them in one session
-on 2026-08-17 — including, twice, while writing this very paragraph.
-
-**Write the script to a file and run the file.** The scratchpad directory exists
-for exactly this, costs one extra command, and makes escaping the language's
-problem instead of the shell's.
-
-**It is not only heredocs — a BACKTICK inside `python -c "..."` opens a
-subshell too, and the text simply vanishes.** Twice more on 2026-09-03, both
-times in a code comment being written into a test: `` `else if` `` and
-`` `check()` `` were silently deleted, leaving "its branch is an —" and "so
-cannot reach them" in committed source. Nothing failed; the tests passed and the
-gap was only visible on re-reading the file. Same rule, same fix: write the
-script to a file.
-
-**A REVIEW SUBAGENT WILL EDIT THE REPO UNLESS YOU FORBID IT, and it may tidy up
-after itself so the change is nearly invisible.** On 2026-09-03 a code-review
-agent asked only to find defects added an attribute to `install-prompt.tsx` and
-a rule to `globals.css` to test a hypothesis, then reverted both — but left two
-`zz-*` probe files behind, and in the window between, a `grep` of `globals.css`
-returned a selector no human had written. Ten minutes went into working out
-where it came from.
-
-Two habits. Put the constraint in the prompt in as many words: no edits, no
-`git add`/`commit`/`checkout`, run throwaway code OUTSIDE the repo. And
-`git status --porcelain` before believing anything you read from the working
-tree while agents are running — the same discipline the `__probe_` incident
-(#137/#138) already earned.
-
-Same discipline for editing source: derive line boundaries from CONTENT, never
-from remembered line numbers. Hardcoded indices broke a JSX wrap twice on
-2026-08-17 — searching for the opening tag and matching its indent worked first
-try.
-
-**`pkill` DOES NOT KILL A NODE SERVER ON THIS MACHINE, and says nothing.** It
-exits cleanly and leaves the process listening, so the next thing you measure is
-the OLD build. This cost three wrong readings on 2026-08-17: two dev-server
-diagnoses against a stale process, and one FULL e2e run reporting 25 failures
-including `/admin` returning 500 — none real, all a server on port 3000 serving
-code from before the change. A stale server is worse than a crashed one, because
-a crash is visible and this is not.
-
-Kill by port, then confirm the port is dead before believing anything:
-
-```bash
-for pid in $(powershell.exe -NoProfile -Command "(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue).OwningProcess" | tr -d '\r'); do taskkill //PID "$pid" //F; done
-curl -sS -o /dev/null -w '%{http_code}\n' --max-time 4 http://localhost:3000/
-```
-
-`000` means dead. Then check the new server bound the port it was ASKED for:
-Next silently falls back to 3001 and Playwright falls back to a stale 3100 with
-`EADDRINUSE`, and in both cases the run continues against the wrong thing.
-
-This was written on 2026-08-08 as a fact about Playwright, and on 2026-08-09
-the identical failure arrived from `npx vitest` while probing a score — so the
-narrow version cost the second discovery. **It is a fact about the repo layout,
-not about any one tool.** Reach for `pnpm --filter @towardpcc/<pkg> exec <bin>`
-when you want a package's binary; `pnpm --filter` with a name that matches
-nothing still exits 0, so use the exact package name.
-
-## Production
-
-- **The host is shared with other live applications, one of which holds real
-  patient data.** Every change is additive and scoped to TowardPCC's own app and
-  database. Never touch another project's containers, databases, or the shared
-  proxy config.
-- **Production is a Coolify application** on OCI (me-riyadh-1) behind Coolify's
-  Traefik; Coolify builds its own image from `apps/web/Dockerfile`.
-  `docker-compose.prod.yml` and `docs/runbooks/deploy.md` describe a stack that
-  was designed first and **is not what runs** — editing them changes nothing in
-  production. `docs/runbooks/deploy-production.md` is the live setup.
-- **Push-to-deploy WORKS. Merging is enough — do not deploy by hand.** This file
-  claimed the opposite until 2026-08-07 and the claim was false; the correction
-  matters because acting on it wasted a redundant build on every single merge.
-  Coolify's own queue shows every `main` push producing a `is_webhook=true`
-  deployment that finished with the right commit. **Builds take 125–308 seconds**
-  (measured across eight deploys), and Coolify does a rolling update, so the OLD
-  container keeps serving until the new one is healthy. Checking the image tag
-  thirty seconds after a merge shows the previous commit and means nothing.
-  **Wait ~5 minutes, then check.** Every "dropped deploy" recorded here was that
-  mistake, followed by a manual deploy of the same commit that then took credit.
-- **Merging N PRs back to back queues N builds, and every one of them checks out
-  the CURRENT HEAD, not the commit that triggered it.** So a batch of merges is
-  SAFE — production never serves an older commit partway through — but only the
-  last build does any new work, and `~5 minutes` becomes `~5 minutes per queued
-build`. Measured twice on 2026-08-08: six merges queued four deployments, and
-  the queue was observed rewriting a pending entry from `f63ce16` to the newer
-  `da8cbbc` before building it; two merges later queued two, both already
-  showing HEAD. **The wrong inference to draw is that a batch rolls production
-  backward** — this file nearly recorded that, on the strength of the queue
-  listing alone, before the poll trace showed the rewrite. It does not.
-  `check:integrity` will read STALE for the whole drain, which is correct rather
-  than a failure; wait for the queue to empty before believing it.
-- **Prefer `pnpm check:integrity` over the tag check.** Since 2026-08-08 the
-  canary asserts the DEPLOYED COMMIT, not only page content: `/api/v1/health`
-  publishes a truncated `sha256(SOURCE_COMMIT)` and the script compares it with
-  the SHA it checked out. It is strictly better evidence than the image tag, and
-  measurably so — on its first real run it reported production still serving the
-  previous commit at a moment when `docker ps` already showed the new tag. **The
-  tag flips before the serving container does**, which is the gap that produced
-  every "dropped deploy" in this file. Run
-  `EXPECTED_COMMIT=$(git rev-parse HEAD) node scripts/check-integrity.mjs`.
-- **The tag check still works as a fallback — just not immediately.**
-  `sudo docker ps --filter name=gpsokvxzncr7ks1vzqz7wkr4 --format '{{.Image}}'`
-  against `origin/main`, once, after the build has had time. Coolify's `status`
-  field remains useless in both directions: it read `running:healthy` over a
-  stale container and `running:unhealthy` over one Docker and both probes called
-  healthy. Deploy by hand only when a deployment genuinely **failed** — one has,
-  on 2026-08-03, when a helper container vanished mid-build under two merges
-  three minutes apart. The API call is in `docs/runbooks/deploy-production.md`.
-- **THE APEX AND `www` ARE NO LONGER PROXIED — cut over 2026-08-08.** They
-  resolve to the OCI load balancer at `145.241.110.213`, which terminates TLS in
-  me-riyadh-1 and is publicly reachable on its own NSGs. Cloudflare is
-  authoritative DNS only and sees no request content. Re-proxying them would put
-  requests back through an edge outside the Kingdom while `/trust` says they
-  arrive directly, and would reinstate the injected script that caused TM-013 —
-  `check-residency.mjs` now alarms on exactly that, having been inverted in the
-  same change.
-- **Proxying stays ON for every OTHER subdomain**, and the old warning still
-  applies to them verbatim. `next`, `db`, `deploy`, `endorse`, `mnm`,
-  `mylibrary`, `stg-mylibrary` and `uptime` all point at the host
-  `145.241.105.239`, whose OCI security list accepts 80/443 only from
-  Cloudflare's edge ranges — so grey-clouding any of them takes it offline and
-  breaks certificate renewal. Several are co-tenant applications. That lock is
-  also what makes trusting
-  `CF-Connecting-IP` safe — opening those ports means revisiting
-  `apps/web/lib/client-ip.ts` in the same change.
-
-## Reach for these
-
-| About to…                         | Use                                                                         |
-| --------------------------------- | --------------------------------------------------------------------------- |
-| add or change any UI component    | `ui-ux-pro-max:ui-ux-pro-max`                                               |
-| build a net-new page              | `frontend-design`, then `ui-ux-pro-max` to review                           |
-| add or change a score             | `packages/scoring-engine/CLAUDE.md` + `superpowers:test-driven-development` |
-| edit a Dockerfile or compose file | agent `security-pan-check:container-security-scanner`                       |
-| edit the Prisma schema            | agent `security-pan-check:database-security-scanner`                        |
-| edit a CI workflow                | agent `security-pan-check:supplychain-cicd-scanner`                         |
-| chase a bug                       | `superpowers:systematic-debugging` — measure, don't infer                   |
-| shape a non-trivial change        | `superpowers:brainstorming` → `superpowers:writing-plans`                   |
-| execute a written plan            | `superpowers:subagent-driven-development`                                   |
-| open a PR                         | `/code-review`, then `superpowers:requesting-code-review`                   |
-
-## Environment
-
-- **Check what you can reach before calling something the founder's job.** SSH is
-  `ssh -i ~/.ssh/oci_server ubuntu@145.241.105.239`, with passwordless sudo. The
-  Coolify API token is `~/.coolify-token` **on the host**. The OCI CLI is
-  `~/.local/bin/oci` **on this machine, not the server**, and the `oracle-oci`
-  MCP is usually disconnected. The Cloudflare token (`~/.cloudflare-token` on the
-  host) **can edit DNS** but is refused on zone settings and WAF — so DNS moves
-  are yours to make, while Bot Fight Mode, JS Detections, WAF rules and Turnstile
-  are genuinely founder-only. Branch protection 403s: a private repo needs GitHub
-  Pro. Getting this wrong wastes the founder's time in both directions.
-- **Docker 29.6.2 is installed.** This file previously claimed otherwise and the
-  error cost two agents real work — verify before asserting an absence.
-- **The Browser pane's tab is usually HIDDEN, and a hidden document freezes CSS
-  transitions.** `getAnimations()` shows them `running` at `currentTime` 0 for
-  as long as the tab stays hidden, so `getComputedStyle` reports the START value
-  of any transitioning property. On 2026-09-03 that read the glass header as
-  fully opaque on production while a fresh div with the same class read alpha
-  0.85, and it cost most of a session before `document.visibilityState` was
-  checked. Front the tab with `tabs_select` before sampling a computed style,
-  or set `transition: none` on the element first — and treat a screenshot from
-  a hidden tab with the same suspicion.
-- `corepack enable` fails with EPERM; pnpm comes from `npm -g`, pinned 10.34.5.
-- No `sqlite3` CLI — use `node:sqlite`.
-- TypeScript `^5.9.3` and ESLint `^9.39.5` are **deliberate pins**. The
-  Dependabot PR that moves both to majors stays open on purpose.
-- `.npmrc` sets `minimum-release-age=4320` — a three-day supply-chain quarantine
-  on freshly published versions. When it blocks something you genuinely need,
-  add that one package to `minimumReleaseAgeExclude`, install, then remove the
-  exclusion. Never delete the setting to unblock a package.
 
 ## Conventions
 
@@ -370,3 +198,173 @@ build`. Measured twice on 2026-08-08: six merges queued four deployments, and
   markup it was written for, and a `- [ ]` inventory where seven entries had
   been done for weeks. When a check has been green forever, make it fail on
   purpose once before trusting it.
+
+## Reach for these
+
+| About to…                          | Use                                                                         |
+| ---------------------------------- | --------------------------------------------------------------------------- |
+| add or change any UI component     | `ui-ux-pro-max:ui-ux-pro-max`                                               |
+| build a net-new page               | `frontend-design`, then `ui-ux-pro-max` to review                           |
+| add or change a score              | `packages/scoring-engine/CLAUDE.md` + `superpowers:test-driven-development` |
+| edit a Dockerfile or compose file  | agent `security-pan-check:container-security-scanner`                       |
+| edit the Prisma schema             | agent `security-pan-check:database-security-scanner`                        |
+| edit a CI workflow                 | agent `security-pan-check:supplychain-cicd-scanner`                         |
+| chase a bug                        | `superpowers:systematic-debugging` — measure, don't infer                   |
+| shape a non-trivial change         | `superpowers:brainstorming` → `superpowers:writing-plans`                   |
+| execute a written plan             | `superpowers:subagent-driven-development`                                   |
+| open a PR                          | `/code-review`, then `superpowers:requesting-code-review`                   |
+| deploy, change DNS, touch the host | `docs/runbooks/deploy-production.md`, "Before you touch production" first   |
+
+## Traps that cost real time — read before you run anything
+
+Each was found by losing time to it and is recorded nowhere else. The rule is
+the heading; the story under it is what makes it stick, so it stays.
+
+### Writing a script: never inline it
+
+**A bash heredoc mangles regexes and paths, and the error names the wrong
+thing.** Writing a Python or Node script inline via `<<'PY'` collides with shell
+and language parsing often enough to be a tax: an escaped `\.` arrives as a bare
+`\.` and blows up the character class, a Windows `$TEMP` lands inside a string
+as an invalid `\U` escape, and a backtick opens a subshell. Every one fails with
+a syntax error pointing at a line you did not write. Five of them in one session
+on 2026-08-17 — including, twice, while writing this very paragraph.
+
+**Write the script to a file and run the file.** The scratchpad directory exists
+for exactly this, costs one extra command, and makes escaping the language's
+problem instead of the shell's.
+
+**It is not only heredocs — a BACKTICK inside `python -c "..."` opens a
+subshell too, and the text simply vanishes.** Twice more on 2026-09-03, both
+times in a code comment being written into a test: `` `else if` `` and
+`` `check()` `` were silently deleted, leaving "its branch is an —" and "so
+cannot reach them" in committed source. Nothing failed; the tests passed and the
+gap was only visible on re-reading the file. Same rule, same fix: write the
+script to a file.
+
+### Running a package binary: `npx` from the root runs nothing
+
+**`npx <anything>` from the repo root runs NOTHING, and can report success for
+it.** Every test binary here belongs to a package rather than the root, so the
+invocation dies with `'playwright' is not recognized` — or `'vitest'`, or any
+other. That is not the interesting part. Run it as `npx playwright test > log
+2>&1; echo $?; tail log` and the trailing `tail` supplies the exit status, so a
+run that executed **nothing at all** reports **0**. Same shape as the
+`pnpm gate | tail` trap above. Read the line count or the `N passed` line, never
+the exit code alone.
+
+This was written on 2026-08-08 as a fact about Playwright, and on 2026-08-09
+the identical failure arrived from `npx vitest` while probing a score — so the
+narrow version cost the second discovery. **It is a fact about the repo layout,
+not about any one tool.** Reach for `pnpm --filter @towardpcc/<pkg> exec <bin>`
+when you want a package's binary; `pnpm --filter` with a name that matches
+nothing still exits 0, so use the exact package name.
+
+### Running a server: `pkill` does not kill it
+
+**`pkill` DOES NOT KILL A NODE SERVER ON THIS MACHINE, and says nothing.** It
+exits cleanly and leaves the process listening, so the next thing you measure is
+the OLD build. This cost three wrong readings on 2026-08-17: two dev-server
+diagnoses against a stale process, and one FULL e2e run reporting 25 failures
+including `/admin` returning 500 — none real, all a server on port 3000 serving
+code from before the change. A stale server is worse than a crashed one, because
+a crash is visible and this is not.
+
+Kill by port, then confirm the port is dead before believing anything:
+
+```bash
+for pid in $(powershell.exe -NoProfile -Command "(Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue).OwningProcess" | tr -d '\r'); do taskkill //PID "$pid" //F; done
+curl -sS -o /dev/null -w '%{http_code}\n' --max-time 4 http://localhost:3000/
+```
+
+`000` means dead. Then check the new server bound the port it was ASKED for:
+Next silently falls back to 3001 and Playwright falls back to a stale 3100 with
+`EADDRINUSE`, and in both cases the run continues against the wrong thing.
+
+### Spawning an agent: it will edit the repo unless you forbid it
+
+**A REVIEW SUBAGENT WILL EDIT THE REPO UNLESS YOU FORBID IT, and it may tidy up
+after itself so the change is nearly invisible.** On 2026-09-03 a code-review
+agent asked only to find defects added an attribute to `install-prompt.tsx` and
+a rule to `globals.css` to test a hypothesis, then reverted both — but left two
+`zz-*` probe files behind, and in the window between, a `grep` of `globals.css`
+returned a selector no human had written. Ten minutes went into working out
+where it came from.
+
+Two habits. Put the constraint in the prompt in as many words: no edits, no
+`git add`/`commit`/`checkout`, no `ssh`, `docker exec` or `psql`, run throwaway
+code OUTSIDE the repo. And `git status --porcelain` before believing anything
+you read from the working tree while agents are running — the same discipline
+the `__probe_` incident (#137/#138) already earned.
+
+### Editing source: derive line boundaries from content
+
+Same discipline for editing source: derive line boundaries from CONTENT, never
+from remembered line numbers. Hardcoded indices broke a JSX wrap twice on
+2026-08-17 — searching for the opening tag and matching its indent worked first
+try. And a `cd` in the Bash tool persists into the next call: one into
+`apps/web` on 2026-09-03 made every relative path in the following four
+commands report "No such file" from a directory nobody meant to be in. Use
+absolute paths, or `cd` back in the same command.
+
+### Reading the Browser pane: a hidden tab freezes CSS transitions
+
+**The Browser pane's tab is usually HIDDEN, and a hidden document freezes CSS
+transitions.** `getAnimations()` shows them `running` at `currentTime` 0 for as
+long as the tab stays hidden, so `getComputedStyle` reports the START value of
+any transitioning property. On 2026-09-03 that read the glass header as fully
+opaque on production while a fresh div with the same class read alpha 0.85, and
+it cost most of a session before `document.visibilityState` was checked. Front
+the tab with `tabs_select` before sampling a computed style, or set
+`transition: none` on the element first — and treat a screenshot from a hidden
+tab with the same suspicion.
+
+## This machine
+
+- `corepack enable` fails with EPERM; pnpm comes from `npm -g`, pinned 10.34.5.
+- No `sqlite3` CLI — use `node:sqlite`.
+- **Docker 29.6.2 is installed.** This file previously claimed otherwise and the
+  error cost two agents real work — verify before asserting an absence.
+- TypeScript `^5.9.3` (pinned in each package's `package.json`) and ESLint
+  `^9.39.5` (root) are **deliberate pins**. Dependabot's PR #152, which moves
+  both to majors, stays open on purpose — `LAUNCH-BLOCKERS.md` points here for
+  that reason, so the pins stay recorded here.
+- `.npmrc` sets `minimum-release-age=4320` — a three-day supply-chain quarantine
+  on freshly published versions. The comment above that line in `.npmrc` says
+  why, and how to get past it for ONE package (add it to
+  `minimumReleaseAgeExclude`, install, remove the exclusion). Never delete the
+  setting to unblock a package.
+
+## Production — the rules; the reasons live in the runbook
+
+`docs/runbooks/deploy-production.md` is the live setup. Read its "Before you
+touch production" section — the dated measurements behind every rule below —
+and its "Access" section before a deploy, a DNS change, or any command on the
+host.
+
+- **The host is shared with other live applications, one of which holds real
+  patient data.** Every change is additive and scoped to TowardPCC's own app and
+  database. Never touch another project's containers, databases, or the shared
+  proxy config.
+- **Production is a Coolify application; merging to `main` deploys it. Do not
+  deploy by hand** — this file claimed the opposite until 2026-08-07, falsely.
+  Builds take 125–308 s and roll over, so **wait ~5 minutes, then run
+  `EXPECTED_COMMIT=$(git rev-parse HEAD) node scripts/check-integrity.mjs`**;
+  the image tag flips before the serving container does, and every "dropped
+  deploy" on record was an early tag check. A batch of merges is safe, but the
+  wait is ~5 minutes per queued build and the canary reads STALE until the
+  queue drains. `docker-compose.prod.yml` and `docs/runbooks/deploy.md` are not
+  what runs.
+- **DNS is not neutral in either direction.** The apex and `www` are DNS-only
+  since 2026-08-08 and must stay so: re-proxying them falsifies `/trust`,
+  reinstates the script behind TM-013, and trips `check-residency.mjs`. Every
+  other subdomain must stay proxied: the host accepts 80/443 only from
+  Cloudflare's ranges, so grey-clouding one takes it offline and breaks its
+  certificate renewal, and several are co-tenant applications. That lock is
+  what makes `CF-Connecting-IP` safe to trust — opening those ports means
+  revisiting `apps/web/lib/client-ip.ts` in the same change.
+- **Check what you can reach before calling something the founder's job.** SSH,
+  the Coolify API, the OCI CLI and Cloudflare DNS are reachable from here; only
+  Cloudflare zone settings and WAF are founder-only. Getting this wrong wastes
+  the founder's time in both directions. The paths, and what each token is
+  refused, are in the runbook's "Access" section.
