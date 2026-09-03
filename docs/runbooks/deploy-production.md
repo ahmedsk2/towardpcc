@@ -169,6 +169,36 @@ The host runs an application holding real patient data. Every command you run
 there is scoped to TowardPCC's own containers and its own database — the
 `-d towardpcc` flag on every `psql` below is load-bearing, not decorative.
 
+## Daily canaries on the host — how a check gets there
+
+Nothing in this repo described this until 2026-09-03; it lived only on the
+host. `towardpcc-canary.timer` runs `/opt/towardpcc-canary/run-canaries.sh`
+at 05:30 UTC daily. The script runs each `check-*.mjs` from that directory
+in a throwaway `node:22-alpine` container (`--network host`, user `nobody`,
+the directory mounted read-only) and fails the unit if any check fails.
+Today it runs `check-residency.mjs`, `check-integrity.mjs`,
+`check-ct-log.mjs` and `check-lookalikes.mjs`.
+
+**The scripts on the host are COPIES, not a checkout.** A change merged to
+`scripts/check-*.mjs` does nothing on the host until it is copied there, and
+a stale copy asserts yesterday's claims against today's site. Verified
+byte-identical on 2026-09-03; keep it so:
+
+```bash
+# from a checkout of main
+sha256sum scripts/check-*.mjs
+ssh -i ~/.ssh/oci_server ubuntu@145.241.105.239 'sudo sha256sum /opt/towardpcc-canary/*.mjs'
+# to update one
+scp -i ~/.ssh/oci_server scripts/check-lookalikes.mjs ubuntu@145.241.105.239:/tmp/
+ssh -i ~/.ssh/oci_server ubuntu@145.241.105.239 'sudo install -o root -g root -m 0644 /tmp/check-lookalikes.mjs /opt/towardpcc-canary/'
+# to add a new one, also add `run_one <name>.mjs` to run-canaries.sh, then
+sudo systemctl start towardpcc-canary.service && journalctl -u towardpcc-canary.service -n 20 --no-pager
+```
+
+The unit is TowardPCC's own; it touches no co-tenant. `check-integrity.mjs`
+there compares against `origin/main` — so a run during a deploy drain reads
+STALE, which is correct, not a failure (see above).
+
 ## Coolify application
 
 | Field                 | Value                                                   |
