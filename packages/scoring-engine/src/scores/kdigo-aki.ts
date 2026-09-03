@@ -66,7 +66,7 @@ export const kdigoAki = defineScore({
   id: "kdigo-aki",
   slug: "kdigo-aki",
   name: "KDIGO AKI staging (pediatric)",
-  version: "1.1.0",
+  version: "1.2.0",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -326,6 +326,13 @@ export const kdigoAki = defineScore({
       summary:
         "Reads a birthday entered in DAYS as that birthday. Age is stored in years and days convert at 365.25, so a sixth birthday of 2191 days became 5.9986 years and a tenth of 3652 days became 9.9986. Anything that floors or bands on whole years then read the child as a year younger. The conversion now snaps to a whole year when the day count is within one day of one, which is the largest the drift can be: 365.25 averages the leap cycle exactly, so a true birthday is always within 0.75 days of the integer. Ages entered in years or months were already exact and are unchanged, and an age more than a day from a birthday is untouched. Found 2026-09-03 by an independent recompute of every calculator from its published source. On this score an eighteenth birthday entered in days left KDIGO's under-18 estimated-GFR route to Stage 3 open on an adult.",
     },
+    {
+      version: "1.2.0",
+      date: "2026-09-03",
+      reason: "formula-correction",
+      summary:
+        "Stages a recorded urine output of zero exactly as it stages the anuria box. A five-year-old with 0 mL/kg/h sustained 12 hours or more returned Stage 2 flagged as a floor with the box unticked, and Stage 3 with it ticked — the same patient one stage apart on whether a second control was used, in what this score's own notes call the dangerous direction. Table 2's fourth row is anuria for 12 hours or more, and a rate of zero is anuria: there is no urine. The score already entailed anuria into the rows built on 0.5 mL/kg/h so that a patient described in words was not under-staged against one described in millilitres; this closes the other half. NO THRESHOLD IS INVENTED, which is the reason anuria remains a separate clinical flag: zero is not a cutoff KDIGO declined to give. Any positive rate is unchanged and still needs the box — 0.01 mL/kg/h is oliguria, not anuria. Founder decision of 2026-09-03, from an independent recompute of every calculator against its published source.",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -347,7 +354,21 @@ export const kdigoAki = defineScore({
     const baseline = values.scr_baseline?.value; // mg/dL (canonical)
     const uo = values.urine_output?.value; // mL/kg/h
     const duration = values.uo_duration?.value; // Table 2 band, or absent
-    const anuria = values.anuria?.value === true;
+    // A RECORDED ZERO IS ANURIA, not merely a rate below every cutoff.
+    //
+    // Until 2026-09-03 only the box counted, so a five-year-old with 0
+    // mL/kg/h for 12 hours or more staged 2 with the box unticked and 3
+    // with it ticked — the same patient, one stage apart, in what this
+    // score's own notes call the dangerous direction. The mirror of this is
+    // already argued below, where anuria is entailed into the < 0.5 rows so
+    // a patient is not under-staged for being described in words rather
+    // than millilitres; this closes the other half.
+    //
+    // It invents no threshold, which is the concern that kept anuria a
+    // separate flag: zero is not a cutoff KDIGO declined to give, it is the
+    // absence of urine. Any positive rate, however small, still needs the
+    // box — 0.01 mL/kg/h is oliguria, not anuria.
+    const anuria = values.anuria?.value === true || values.urine_output?.value === 0;
     const egfr = values.egfr?.value; // mL/min/1.73 m²
     const onRrt = values.rrt?.value === true;
 

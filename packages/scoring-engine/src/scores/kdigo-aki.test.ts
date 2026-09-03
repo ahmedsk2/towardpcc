@@ -23,6 +23,49 @@ const kdigo = {
 
 describeScore(kdigoAki, (ctx) => {
   /**
+   * THE SAME PATIENT STAGES THE SAME, DESCRIBED IN WORDS OR IN MILLILITRES.
+   *
+   * Until 2026-09-03 a urine output of 0 mL/kg/h for 12 hours or more staged 2
+   * with the anuria box unticked and 3 with it ticked. Table 2's fourth row is
+   * "anuria for >= 12 h = Stage 3", and a rate of zero is anuria: there is no
+   * urine. This file already argues the mirror — anuria is entailed into the
+   * < 0.5 rows so a patient is not under-staged for being described in words —
+   * and this is the other half of it.
+   *
+   * No threshold is invented, which was the reason anuria stayed a separate
+   * flag: zero is not a cutoff KDIGO declined to give.
+   */
+  it("stages a recorded zero exactly as it stages the anuria box", () => {
+    const stage = (v: Record<string, unknown>) => {
+      const out = kdigoAki.compute({ age: { value: 5, unit: "years" }, ...v } as never);
+      expect(out.ok).toBe(true);
+      if (!out.ok) throw new Error("rejected");
+      const get = (id: string) => out.result.values.find((x) => x.id === id)?.value;
+      return { stage: get("kdigo_stage"), floor: get("stage_is_floor") };
+    };
+    const uo = (value: number, duration: string) => ({
+      urine_output: { value, unit: "mL/kg/h" },
+      uo_duration: { value: duration },
+    });
+
+    // The case that was one stage apart on a tick box.
+    expect(stage(uo(0, "12h-or-more")).stage, "zero for >= 12 h is the anuria row").toBe(3);
+    expect(stage({ ...uo(0, "12h-or-more"), anuria: { value: true } }).stage).toBe(3);
+    // And it is settled now, not a floor.
+    expect(stage(uo(0, "12h-or-more")).floor).toBe(0);
+
+    // Zero also reaches the shorter anuria window, as the box does.
+    expect(stage(uo(0, "6-to-under-12h")).stage, "anuria 6 to < 12 h is Stage 1").toBe(1);
+
+    // ONLY zero. Any positive rate is oliguria and still needs the box: 0.01
+    // mL/kg/h is a measurement, not an absence.
+    expect(stage(uo(0.01, "12h-or-more")).stage, "0.01 is not anuria").toBe(2);
+    expect(stage(uo(0.2, "12h-or-more")).stage).toBe(2);
+    expect(stage(uo(0.4, "6-to-under-12h")).stage).toBe(1);
+    expect(stage(uo(0.6, "12h-or-more")).stage, "above every cutoff").toBe(0);
+  });
+
+  /**
    * KDIGO's estimated-GFR route to Stage 3 is for patients UNDER 18. An
    * eighteenth birthday entered in days divided to 17.9986 years, so the
    * paediatric branch stayed open on an adult. Found 2026-09-03.
@@ -944,7 +987,7 @@ describe("kdigo-aki records its settled absences as settled", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("1.1.0");
+    expect(kdigoAki.version).toBe("1.2.0");
   });
 });
 

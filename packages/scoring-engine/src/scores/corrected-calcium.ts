@@ -76,7 +76,7 @@ export const correctedCalcium = defineScore({
   changelog: [
     {
       version: "1.0.0",
-      date: "2026-08-10",
+      date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
     },
