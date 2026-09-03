@@ -438,3 +438,35 @@ body {
     padding-bottom: 0.2rem;
   }
 }
+
+/* TWO BOTTOM-ANCHORED JUMP AFFORDANCES IS ONE TOO MANY.
+   The calculator's result bar is fixed across the bottom below the `lg`
+   breakpoint; the back-to-top button is fixed at bottom-6 inline-end. At 375px
+   they intersect, and this FAB has already cost one round of tap-eating on the
+   unit toggles. While the bar is up it owns the bottom of the screen and offers
+   the jump itself, so the FAB stands down.
+   Bounded to the widths where the bar actually renders: from `lg` the bar is
+   `hidden` and the FAB behaves exactly as it always has. */
+@media (width < 64rem) {
+  :root[data-result-bar] [data-back-to-top] {
+    display: none;
+  }
+
+  /* CLEARANCE, and it has to be on the body rather than on the page wrapper.
+     The wrapper is inside `<main>` and the site footer is a SIBLING of main, so
+     padding there left the footer under the bar. Padding the body covers
+     everything the bar can overlap, and because it extends the bottom of the
+     document rather than displacing anything above it, adding it when the bar
+     appears shifts nothing the reader is looking at. */
+  :root[data-result-bar] body {
+    padding-block-end: 5rem;
+  }
+
+  /* AND SO A FOCUSED FIELD IS NEVER UNDER IT. Tabbing forward scrolls the next
+     control just into view, which for the last controls on a page means
+     directly beneath a fixed bar. `scroll-padding` is what tells the browser
+     where the usable viewport actually ends. */
+  :root[data-result-bar] {
+    scroll-padding-bottom: 5rem;
+  }
+}

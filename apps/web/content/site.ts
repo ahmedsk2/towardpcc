@@ -934,6 +934,7 @@ export const site = {
     // Detail page
     backToIndex: "All calculators",
     resultHeading: "Result",
+    jumpToResult: "Go to the full result",
     resultPlaceholder: "Enter values to compute.",
     // Shown once entry has STARTED but a result is still blocked. A sticky
     // rail that says "Enter values to compute." to a half-filled form is

@@ -522,9 +522,18 @@ export const phoenix = defineScore({
     // S/F is only valid at SpO₂ ≤ 97 — above that the ratio saturates and stops
     // discriminating, so it is treated as absent rather than as reassuring.
     const sf = fio2 === undefined || spo2 === undefined || spo2 > 97 ? RATIO_ABSENT : spo2 / fio2;
-    // Same hole as pSOFA: a filled SpO₂ above 97 becomes RATIO_ABSENT and
-    // contributes nothing, with no blank for the form's cue to notice.
-    const spo2Discarded = pao2 === undefined && spo2 !== undefined && spo2 > 97;
+    // Same hole as pSOFA, but NOT the same condition, and copying pSOFA's was
+    // a bug for two independent reasons.
+    //
+    // (1) A PaO₂ does NOT supersede the saturation here. `respiratory` above
+    //     ORs the two ratios per tier, so a discarded S/F can still cost a
+    //     tier that a perfectly good P/F does not supply — measured: FiO₂
+    //     0.5, PaO₂ 300, SpO₂ 99 gives P/F 600 and would have given S/F 198,
+    //     losing two tiers in silence.
+    // (2) With no FiO₂ there is no ratio to saturate. The value went unused
+    //     because FiO₂ is blank, and telling the reader about saturation
+    //     points them at the wrong field.
+    const spo2Discarded = fio2 !== undefined && spo2 !== undefined && spo2 > 97;
     const respiratory =
       imv * ((pf < 100 || sf < 148 ? 1 : 0) + (pf < 200 || sf < 220 ? 1 : 0)) +
       anySupport * (pf < 400 || sf < 292 ? 1 : 0);
@@ -578,7 +587,7 @@ export const phoenix = defineScore({
         id: "respiratory",
         label: defineText("phoenix.out.respiratory", "Respiratory component"),
         value: respiratory,
-        ...(spo2Discarded ? { notice: saturatingSpo2Notice() } : {}),
+        ...(spo2Discarded ? { notice: saturatingSpo2Notice(pao2 !== undefined) } : {}),
         unit: "",
         precision: 0,
       },

@@ -168,23 +168,25 @@ export function CompositionPanel({ rows }: { rows: readonly ComponentRow[] }) {
                 />
               </span>
             </dd>
-            {r.notice ? (
-              /**
-               * A SECOND `dd`, which `dl > div > (dt | dd)` permits, spanning
-               * both columns beneath the reserved bar strip. It cannot live
-               * inside the first `dd`: the bar is absolutely positioned against
-               * the row box and would sit on top of the text.
-               *
-               * `alert` rather than a muted footnote, because the whole reason
-               * this exists is that the quiet version — one sentence in the
-               * Limitations tab — was not read.
-               */
-              <dd className="col-span-2 m-0 mt-1 text-[12px] leading-snug text-alert-text">
-                {r.notice}
-              </dd>
-            ) : null}
           </div>
         ))}
+        {rows
+          .filter((r) => r.notice)
+          .map((r) => (
+            /**
+             * ITS OWN ROW, not a second `dd` in the value's row.
+             *
+             * The proportion bar is `absolute inset-x-0 bottom-0` against the
+             * row box, so anything added to that box pushes the bar down and
+             * away from the number it measures — measured at 1280x900, the
+             * Respiratory bar detached by 41px on the one row carrying a
+             * notice. `dl > div > dd` with no `dt` is valid, so the sentence
+             * gets a row of its own and the geometry above is untouched.
+             */
+            <div key={`${r.id}-notice`} className="-mt-1">
+              <dd className="m-0 text-[12px] leading-snug text-alert-text">{r.notice}</dd>
+            </div>
+          ))}
       </dl>
     </div>
   );

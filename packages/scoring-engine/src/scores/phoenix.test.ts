@@ -157,6 +157,44 @@ describeScore(phoenix, (ctx) => {
     expect(resp?.notice?.text.en).toMatch(/97/);
   });
 
+  /**
+   * THE CONDITION IS NOT pSOFA'S, and copying pSOFA's was a bug both ways.
+   * Caught by an adversarial review on 2026-09-03 and reproduced by direct
+   * computation before either case was changed.
+   */
+  it("still says so when a PaO₂ is present, because Phoenix ORs the two ratios", () => {
+    // P/F 600 passes every tier; S/F would have been 198 and taken two. pSOFA
+    // may treat a PaO₂ as superseding the SpO₂ — its branch is an else-if —
+    // but here the discarded value cost tiers the PaO₂ does not supply.
+    const out = phoenix.compute({
+      ...requiredBase,
+      resp_support: { value: "imv" },
+      fio2: { value: 0.5, unit: "fraction" },
+      pao2: { value: 300, unit: "mmHg" },
+      spo2: { value: 99, unit: "%" },
+    } as never);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    const resp = out.result.values.find((v) => v.id === "respiratory");
+    expect(resp?.notice, "a lost S/F term is lost whether or not a PaO₂ is present").toBeDefined();
+    // And it must not tell a reader to enter a PaO₂ they have already entered.
+    expect(resp?.notice?.text.en).not.toMatch(/Enter a PaO/i);
+  });
+
+  it("stays silent when FiO₂ is blank, where saturation is not the reason", () => {
+    // With no FiO₂ there is no ratio to saturate: the value went unused because
+    // FiO₂ is missing, and naming saturation points at the wrong field.
+    const out = phoenix.compute({
+      ...requiredBase,
+      resp_support: { value: "imv" },
+      spo2: { value: 99, unit: "%" },
+    } as never);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    const resp = out.result.values.find((v) => v.id === "respiratory");
+    expect(resp?.notice, "the blank FiO₂ is the reason, not the saturation").toBeUndefined();
+  });
+
   it("stays silent when the SpO₂ is usable", () => {
     const out = phoenix.compute({
       ...requiredBase,

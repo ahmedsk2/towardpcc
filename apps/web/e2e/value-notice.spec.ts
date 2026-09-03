@@ -51,10 +51,21 @@ test.describe("a discarded value says so", () => {
       /field-spo2-notice/,
     );
 
-    // And beside the number it explains, which is where the 0 is read.
-    const respiratoryRow = page.locator("dl > div").filter({ hasText: "Respiratory subscore" });
-    await expect(respiratoryRow).toContainText("0 of 4");
-    await expect(respiratoryRow).toContainText(/saturates/);
+    // And beside the number it explains, which is where the 0 is read. The
+    // sentence sits in its OWN row rather than inside the value's row: the
+    // proportion bar is absolutely positioned against the row box, so adding
+    // to that box detached the bar from the number it measures (41px, measured
+    // at 1280x900 before this was changed).
+    const panel = page.locator("#calc-result dl");
+    await expect(panel.locator("div").filter({ hasText: "Respiratory subscore" })).toContainText(
+      "0 of 4",
+    );
+    await expect(panel).toContainText(/saturates/);
+
+    // The result announcement carries it too. Components are deliberately kept
+    // out of that region, and a notice is the one exception — a listener who
+    // never hears it has only the misleading total.
+    await expect(page.locator("#calc-result [aria-live]")).toContainText(/saturates/);
   });
 
   test("it is silent for a usable SpO₂, and when a PaO₂ makes it moot", async ({ page }) => {
