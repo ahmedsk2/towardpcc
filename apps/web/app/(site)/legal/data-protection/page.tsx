@@ -1,3 +1,4 @@
+import { Callout } from "@towardpcc/ui";
 import { PageHero } from "@/components/page-hero";
 import { site } from "@/content/site";
 
@@ -101,6 +102,10 @@ export default function DataProtectionPage() {
             </a>
           </p>
         </section>
+
+        <Callout tone="note" className="mt-12 text-[13px]">
+          {dp.pendingNote.replace(/\s*<!--.*?-->\s*$/, "")}
+        </Callout>
       </div>
     </>
   );
