@@ -13,7 +13,6 @@ export default function TermsPage() {
       heading={site.terms.heading}
       lede={site.terms.lede}
       sections={site.terms.sections}
-      pendingNote={site.terms.pendingNote}
     />
   );
 }

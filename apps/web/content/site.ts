@@ -797,17 +797,13 @@ export const site = {
       "You can ask us what we hold about you, correct it, or have it deleted, at any time. Email us and we will act on it. Calculator use leaves nothing to delete.",
     contactLabel: "Email",
     contactEmail: "info@towardpicu.com",
-    // TODO(counsel-review): full privacy policy pending counsel review before
-    // launch — tracked in LAUNCH-BLOCKERS.md (kept out of the shipped copy).
-    pendingNote:
-      "This is a plain-language summary written for clinicians and IT departments, not the final legal privacy policy. The full policy receives a counsel review before public launch.",
   },
 
   terms: {
     title: "Terms of use",
     heading: "Terms of use",
     metaDescription: "The terms for using TowardPCC's clinical calculators and services.",
-    lede: "Plain-English terms for using TowardPCC. This is a summary pending a counsel review before launch.",
+    lede: "Plain-English terms for using TowardPCC.",
     sections: [
       {
         heading: "For qualified health professionals",
@@ -830,9 +826,6 @@ export const site = {
         body: "We may update these terms as the platform grows. Material changes will be reflected here with a revised date.",
       },
     ],
-    // TODO(counsel-review): terms pending counsel review before launch —
-    // tracked in LAUNCH-BLOCKERS.md (kept out of the shipped copy).
-    pendingNote: "Summary terms pending a counsel review before public launch.",
   },
 
   disclaimer: {
