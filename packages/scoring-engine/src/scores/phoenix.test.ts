@@ -136,6 +136,40 @@ describeScore(phoenix, (ctx) => {
   ctx.boundaryTest("age_months", "min", requiredBase);
   ctx.boundaryTest("age_months", "max", requiredBase);
 
+  /**
+   * Phoenix has the identical hole: `calculate` maps an SpO₂ above 97 to
+   * RATIO_ABSENT, so a filled field contributes nothing and the respiratory
+   * tier stays 0. Asserted here as well as in pSOFA because the two scores
+   * implement it separately, and a fix to one is not a fix to the other.
+   */
+  it("says so when an SpO₂ above 97 is accepted and then not used", () => {
+    const out = phoenix.compute({
+      ...requiredBase,
+      resp_support: { value: "imv" },
+      fio2: { value: 1.0, unit: "fraction" },
+      spo2: { value: 99, unit: "%" },
+    } as never);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    const resp = out.result.values.find((v) => v.id === "respiratory");
+    expect(resp?.notice, "an accepted-then-discarded value must say so").toBeDefined();
+    expect(resp?.notice?.about).toBe("spo2");
+    expect(resp?.notice?.text.en).toMatch(/97/);
+  });
+
+  it("stays silent when the SpO₂ is usable", () => {
+    const out = phoenix.compute({
+      ...requiredBase,
+      resp_support: { value: "imv" },
+      fio2: { value: 1.0, unit: "fraction" },
+      spo2: { value: 92, unit: "%" },
+    } as never);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    const resp = out.result.values.find((v) => v.id === "respiratory");
+    expect(resp?.notice, "92% is inside the S/F window").toBeUndefined();
+  });
+
   ctx.rejectsImplausible(
     "an age beyond the validated pediatric range",
     { age_months: { value: 300, unit: "months" }, suspected_infection: { value: true } },

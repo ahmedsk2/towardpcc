@@ -17,6 +17,12 @@ export interface ComponentRow {
   readonly max: string;
   /** 0–1 proportion of the component's own declared span. */
   readonly fill: number;
+  /**
+   * Why this component reads the way it does, when an ENTERED value did not
+   * reach it. Present only when the score emitted one for these values, so
+   * a row without it renders exactly as it always has.
+   */
+  readonly notice?: string;
 }
 
 export interface CompositionSplit {
@@ -76,6 +82,7 @@ export function splitComposition(
         value: v.value.toFixed(v.precision),
         max: c.max.toFixed(v.precision),
         fill,
+        ...(v.notice ? { notice: v.notice.text.en } : {}),
       },
     ];
   });
@@ -161,6 +168,21 @@ export function CompositionPanel({ rows }: { rows: readonly ComponentRow[] }) {
                 />
               </span>
             </dd>
+            {r.notice ? (
+              /**
+               * A SECOND `dd`, which `dl > div > (dt | dd)` permits, spanning
+               * both columns beneath the reserved bar strip. It cannot live
+               * inside the first `dd`: the bar is absolutely positioned against
+               * the row box and would sit on top of the text.
+               *
+               * `alert` rather than a muted footnote, because the whole reason
+               * this exists is that the quiet version — one sentence in the
+               * Limitations tab — was not read.
+               */
+              <dd className="col-span-2 m-0 mt-1 text-[12px] leading-snug text-alert-text">
+                {r.notice}
+              </dd>
+            ) : null}
           </div>
         ))}
       </dl>
