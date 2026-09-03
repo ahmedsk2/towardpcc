@@ -53,8 +53,8 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       `services-statistics.jpg`, pipeline job queued) and a `/data` registry
       image, which needs the pilot unit's written OK first
 - [ ] Say when `/` should stop being the holding page and serve the home page
-- [ ] Branch protection on `main` — free, the repo has been PUBLIC since
-      2026-07-24; needs the founder's go, and a license file for a public tree
+- [ ] A license file for the public tree — the founder's choice; without one the
+      code is visible but all rights reserved (branch protection itself is done)
 
 ### Engineering — open, each with a written reason it is still open
 
@@ -459,6 +459,18 @@ Order matters, and two of the four are done:
    DNS first.
 4. Move DNS, wait out the TTL, then narrow the old ingress **last**. Only then
    rewrite the public residency copy.
+
+### Branch protection — enabled 2026-09-03, free, because the repo is public
+
+Ruleset `22209862` on `main`, enforcement active, read back after creation:
+no deletion, no force-push, pull request required, and five required status
+checks — `quality`, `deps`, `gitleaks`, `e2e`, `container`. The last two are
+safe to require even though the docs-only path skips them: GitHub counts a job
+skipped by a job-level `if:` as a satisfied check (only workflow-level path
+filtering leaves a check pending), and this workflow skips at the job level.
+The repository-admin role bypasses, so the founder can still merge in an
+emergency; nothing else can. Motivation the same day: #160 merged with its
+container job red, and nothing was there to say no.
 
 ### Images and counters — three of five parts were already done, 2026-09-03
 
