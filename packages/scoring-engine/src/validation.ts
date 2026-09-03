@@ -86,9 +86,31 @@ export function runValidation(
         input.maxExclusive !== undefined && input.maxExclusive <= input.max
           ? input.maxExclusive
           : undefined;
+      /**
+       * A VALUE THAT IS THE BOUND IS ACCEPTED, WHATEVER UNIT IT ARRIVES IN.
+       *
+       * Height on body surface area accepts 30-220 cm. Entering 220 cm worked;
+       * entering 2.2 m did not, because `2.2 * 100` is 220.00000000000003 —
+       * while the field's own hint read "Accepted 0.3-2.2 m", since the hint
+       * converts the same bound the other way and `fromCanonical` then
+       * `toCanonical` is not the identity. The form told a clinician to enter a
+       * value and then refused it. Measured 2026-09-03.
+       *
+       * Same relative tolerance as the interpretation bands (1e-12): four
+       * orders above the residue, far below any difference a clinician draws.
+       *
+       * NOT applied to `maxExclusive`. That bound exists to reject its own
+       * value — both "under 18 years" scores use it so that exactly 216 months
+       * is refused — so widening it at all would defeat the only thing it does.
+       */
+      const atBound = (v: number, bound: number) =>
+        Math.abs(v - bound) <= 1e-12 * Math.max(1, Math.abs(bound));
       const aboveUpperBound =
-        exclusiveMax === undefined ? converted > input.max : converted >= exclusiveMax;
-      if (converted < input.min || aboveUpperBound) {
+        exclusiveMax === undefined
+          ? converted > input.max && !atBound(converted, input.max)
+          : converted >= exclusiveMax;
+      const belowLowerBound = converted < input.min && !atBound(converted, input.min);
+      if (belowLowerBound || aboveUpperBound) {
         const unitSuffix = input.unit.canonical ? ` ${input.unit.canonical}` : "";
         errors.push({
           inputId: input.id,
