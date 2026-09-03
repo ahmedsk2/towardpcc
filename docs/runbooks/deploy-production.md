@@ -110,6 +110,12 @@ stick.
   alone, before the poll trace showed the rewrite. It does not.
   `check:integrity` will read STALE for the whole drain, which is correct rather
   than a failure; wait for the queue to empty before believing it.
+  **Re-measured 2026-09-03: three merges in one minute took ~26 minutes to
+  land, not ~15.** A 25-minute poll gave up, `check:integrity` was read as
+  "a deploy failed silently", and `docker ps` a minute later showed the new
+  container up 48 seconds. Budget ~10 minutes per queued build — the host
+  builds other tenants' applications on the same queue — and read a STALE
+  result inside that window as "not yet", never as "failed".
 - **Prefer `pnpm check:integrity` over the tag check.** Since 2026-08-08 the
   canary asserts the DEPLOYED COMMIT, not only page content: `/api/v1/health`
   publishes `sha256(SOURCE_COMMIT)` truncated to 16 hex characters in its
