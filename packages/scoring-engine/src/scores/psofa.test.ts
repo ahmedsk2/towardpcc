@@ -592,6 +592,55 @@ describeScore(psofa, (ctx) => {
    * every one of the six organs at 4 at once, total 24 — so the attainment
    * assertion below pins each declared max from both sides.
    */
+  /**
+   * THE SILENT ZERO. `calculate` gates the S/F branch on `spo2 <= 97`, so an
+   * SpO₂ of 98 with no PaO₂ matches NEITHER branch and `respiratory` keeps its
+   * initial 0 — with the field filled, so the form's partial-entry cue, which
+   * watches for blanks, never fires. Found on 2026-09-03 by an audit of the
+   * condensing pass, which had removed the one sentence that said so.
+   *
+   * Both directions are asserted. Present-only would pass just as well against
+   * a notice hard-coded onto every result, which would be a caution wearing the
+   * wrong type and would train readers to ignore it.
+   */
+  it("says so when an SpO₂ above 97 is accepted and then not used", () => {
+    const out = psofa.compute({ ...normal, spo2: { value: 99, unit: "%" } } as never);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    const resp = out.result.values.find((v) => v.id === "respiratory");
+    expect(
+      resp?.value,
+      "the subscore is still 0 — the notice explains it, it does not change it",
+    ).toBe(0);
+    expect(resp?.notice, "an accepted-then-discarded value must say so").toBeDefined();
+    expect(resp?.notice?.about, "the notice points at the field to look at").toBe("spo2");
+    expect(resp?.notice?.text.en).toMatch(/97/);
+  });
+
+  it("stays silent when the SpO₂ is usable, or when a PaO₂ makes it moot", () => {
+    const usable = psofa.compute({ ...normal, spo2: { value: 95, unit: "%" } } as never);
+    expect(usable.ok).toBe(true);
+    if (usable.ok) {
+      const resp = usable.result.values.find((v) => v.id === "respiratory");
+      expect(
+        resp?.notice,
+        "95% is inside the S/F window, so there is nothing to explain",
+      ).toBeUndefined();
+    }
+    // A PaO₂ is preferred outright, so a saturating SpO₂ alongside it discards
+    // nothing: the P/F branch was going to win either way.
+    const withPao2 = psofa.compute({
+      ...normal,
+      spo2: { value: 99, unit: "%" },
+      pao2: { value: 90, unit: "mmHg" },
+    } as never);
+    expect(withPao2.ok).toBe(true);
+    if (withPao2.ok) {
+      const resp = withPao2.result.values.find((v) => v.id === "respiratory");
+      expect(resp?.notice, "P/F was used, so the SpO₂ cost nothing").toBeUndefined();
+    }
+  });
+
   it("declared components sum to the total and pin their maxima, low to high", () => {
     const vectors = [
       normal,

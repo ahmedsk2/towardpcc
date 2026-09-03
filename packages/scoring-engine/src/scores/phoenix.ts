@@ -1,5 +1,6 @@
 import { defineScore } from "../define-score";
 import { defineText } from "../i18n/text";
+import { saturatingSpo2Notice } from "../value-notices";
 import { ddimerMgLFeu, fibrinogenMgdl, lactateMmol } from "../units/concentration";
 import { fractionWithPercent, percent } from "../units/fraction";
 import { NO_UNIT } from "../units/types";
@@ -80,7 +81,7 @@ export const phoenix = defineScore({
   id: "phoenix",
   slug: "phoenix",
   name: "Phoenix Sepsis Score",
-  version: "1.0.0",
+  version: "1.1.0",
   status: "published",
   category: "sepsis",
   inputs: [
@@ -431,6 +432,13 @@ export const phoenix = defineScore({
       summary: "Initial published text.",
       reason: "initial-release",
     },
+    {
+      version: "1.1.0",
+      date: "2026-09-03",
+      reason: "clarification",
+      summary:
+        "Says so when an SpO₂ above 97% is entered with no PaO₂. The SpO₂:FiO₂ ratio saturates above 97%, so the value is accepted and then discarded and the respiratory subscore stays 0 — with the field FILLED, which the form's partial-entry cue cannot see, because it watches for blanks. The number is unchanged; what is new is that the result now says why it is 0 and names the field, beside the subscore and beside the input. Found on 2026-09-03 by an audit of the text-condensing pass, which had removed the one sentence that disclosed it.",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -514,6 +522,9 @@ export const phoenix = defineScore({
     // S/F is only valid at SpO₂ ≤ 97 — above that the ratio saturates and stops
     // discriminating, so it is treated as absent rather than as reassuring.
     const sf = fio2 === undefined || spo2 === undefined || spo2 > 97 ? RATIO_ABSENT : spo2 / fio2;
+    // Same hole as pSOFA: a filled SpO₂ above 97 becomes RATIO_ABSENT and
+    // contributes nothing, with no blank for the form's cue to notice.
+    const spo2Discarded = pao2 === undefined && spo2 !== undefined && spo2 > 97;
     const respiratory =
       imv * ((pf < 100 || sf < 148 ? 1 : 0) + (pf < 200 || sf < 220 ? 1 : 0)) +
       anySupport * (pf < 400 || sf < 292 ? 1 : 0);
@@ -567,6 +578,7 @@ export const phoenix = defineScore({
         id: "respiratory",
         label: defineText("phoenix.out.respiratory", "Respiratory component"),
         value: respiratory,
+        ...(spo2Discarded ? { notice: saturatingSpo2Notice() } : {}),
         unit: "",
         precision: 0,
       },

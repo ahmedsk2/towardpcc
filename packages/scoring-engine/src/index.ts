@@ -30,6 +30,7 @@ export type {
   ScoreStatus,
   ScoreSummary,
   ScoreValue,
+  ValueNotice,
   ShowWhen,
   ValidatorSlot,
   ValidatorSlots,

@@ -342,6 +342,27 @@ function CalculatorFormInner({
     setBlurred((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
   }, []);
 
+  /**
+   * Notices the score attached to its OWN outputs, indexed by the field each is
+   * about — so the sentence appears where the value was typed as well as beside
+   * the number it explains.
+   *
+   * Deliberately NOT gated on `blurred`, unlike `errorsById` above. An error
+   * says "what you typed is wrong", so it waits until the reader has finished
+   * typing; a notice says "what you typed was accepted and then not used",
+   * which is true the moment the value is complete and is the one thing the
+   * reader needs before moving on to the next of twenty fields.
+   */
+  const noticesById = useMemo(() => {
+    const m = new Map<string, string>();
+    if (outcome?.ok) {
+      for (const v of outcome.result.values) {
+        if (v.notice?.about) m.set(v.notice.about, v.notice.text.en);
+      }
+    }
+    return m;
+  }, [outcome]);
+
   const errorsById = useMemo(() => {
     const m = new Map<string, string>();
     if (outcome && !outcome.ok) {
@@ -696,6 +717,7 @@ function CalculatorFormInner({
                 input={input}
                 field={state[input.id] ?? { raw: "" }}
                 error={errorsById.get(input.id)}
+                notice={noticesById.get(input.id)}
                 onChange={(patch) => setField(input.id, patch)}
                 onCommit={() => markBlurred(input.id)}
                 missingAsNormal={Boolean(definition.missingAsNormal)}
@@ -882,6 +904,7 @@ function InputField({
   input,
   field,
   error,
+  notice,
   onChange,
   onCommit,
   missingAsNormal,
@@ -889,6 +912,8 @@ function InputField({
   input: ScoreInput;
   field: Field;
   error?: string | undefined;
+  /** The score accepted this value and then did not use it; see `noticesById`. */
+  notice?: string | undefined;
   onChange: (patch: { raw?: string; unit?: string }) => void;
   /** The user has finished with this field — see `blurred` above. */
   onCommit: () => void;
@@ -896,7 +921,10 @@ function InputField({
 }) {
   const id = `field-${input.id}`;
   const hasHint = Boolean(input.helpText) || input.type === "numeric";
-  const describedBy = error ? `${id}-error` : hasHint ? `${id}-help` : undefined;
+  const describedBy =
+    [error ? `${id}-error` : hasHint ? `${id}-help` : null, notice ? `${id}-notice` : null]
+      .filter(Boolean)
+      .join(" ") || undefined;
   const units = unitOptions(input);
 
   // The accepted range sits in the field itself rather than in a separate list
@@ -948,6 +976,22 @@ function InputField({
     input.type === "numeric"
       ? `${bound(input.min, "up")}–${bound(input.max, "down")}${selectedUnit ? ` ${selectedUnit}` : ""}`
       : null;
+
+  const noticeLine = notice ? (
+    <p
+      id={`${id}-notice`}
+      className="flex items-start gap-1.5 text-sm text-alert-text"
+      role="status"
+    >
+      <span
+        aria-hidden="true"
+        className="numeric mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-alert-bg text-[11px] font-medium"
+      >
+        !
+      </span>
+      {notice}
+    </p>
+  ) : null;
 
   const hint = error ? (
     <p id={`${id}-error`} className="flex items-start gap-1.5 text-sm text-alert-text" role="alert">
@@ -1026,6 +1070,7 @@ function InputField({
           ) : null}
         </div>
         {hint}
+        {noticeLine}
       </div>
     );
   }
@@ -1118,6 +1163,7 @@ function InputField({
       )}
 
       {hint}
+      {noticeLine}
     </fieldset>
   );
 }

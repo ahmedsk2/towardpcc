@@ -237,6 +237,94 @@ describe("registry §6.3 gate", () => {
 });
 
 /**
+ * Structural gates on `ValueNotice`.
+ *
+ * Same problem `showWhen` has: `notice.about` is a plain `string`, so a typo
+ * compiles, renders nothing next to any field, and looks exactly like a score
+ * that declares no notice at all. And a notice is only worth anything if it is
+ * CONDITIONAL — one attached to every result is a `caution` wearing the wrong
+ * type, and readers learn to skip it.
+ *
+ * Both directions are gated across the whole registry, and a third assertion
+ * requires that some score emits one somewhere, so a rename cannot leave these
+ * passing vacuously over an empty set.
+ */
+describe("value notices are structurally sound wherever they are emitted", () => {
+  /**
+   * `sweepInputs` supplies EVERY declared input, so a condition of the form
+   * "this optional input is ABSENT" is unreachable through it — and that is
+   * the shape every notice has, because a notice explains a value that an
+   * entered figure failed to reach. So each swept vector is also re-run with
+   * one optional input dropped. The saturating-SpO₂ notice needs an SpO₂ above
+   * 97 AND no PaO₂, which is exactly one perturbation plus one omission.
+   *
+   * Required inputs are never dropped: their absence is a rejection, not a
+   * result, and `compute` would return `ok: false` with nothing to inspect.
+   */
+  const noticeVectors = (s: ScoreDefinition): Record<string, unknown>[] => {
+    const optional = s.inputs.filter((i) => !i.required).map((i) => i.id);
+    return sweepInputs(s).flatMap((vector) => [
+      vector,
+      ...optional.map((id) => {
+        const dropped = { ...vector };
+        delete dropped[id];
+        return dropped;
+      }),
+    ]);
+  };
+
+  const emitted = registry.flatMap((s) =>
+    noticeVectors(s).flatMap((vector) => {
+      const outcome = s.compute(vector as never);
+      if (!outcome.ok) return [];
+      return outcome.result.values
+        .filter((v) => v.notice)
+        .map((v) => ({ s, valueId: v.id, notice: v.notice! }));
+    }),
+  );
+
+  it("some score emits a notice, or the two assertions below prove nothing", () => {
+    expect(emitted.length).toBeGreaterThan(0);
+  });
+
+  it("every notice.about names an input the same score declares", () => {
+    for (const { s, valueId, notice } of emitted) {
+      if (notice.about === undefined) continue;
+      const ids = s.inputs.map((i) => i.id);
+      expect(ids, `${s.slug}/${valueId}: notice.about names "${notice.about}"`).toContain(
+        notice.about,
+      );
+    }
+  });
+
+  it("every notice carries non-empty text", () => {
+    for (const { s, valueId, notice } of emitted) {
+      expect(
+        notice.text.en.trim().length,
+        `${s.slug}/${valueId}: empty notice text`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("no notice is unconditional — each score that emits one also has a vector without it", () => {
+    // A notice present on EVERY vector is not explaining these values; it is a
+    // score-level caution in the wrong field, and it would train readers to
+    // ignore the ones that do mean something.
+    const emitters = new Set(emitted.map((e) => e.s.slug));
+    for (const s of registry) {
+      if (!emitters.has(s.slug)) continue;
+      const clean = noticeVectors(s).some((vector) => {
+        const outcome = s.compute(vector as never);
+        return outcome.ok && outcome.result.values.every((v) => !v.notice);
+      });
+      expect(clean, `${s.slug}: every swept vector carries a notice — that is a caution`).toBe(
+        true,
+      );
+    }
+  });
+});
+
+/**
  * Structural gates on `showWhen`.
  *
  * `ScoreInput` is a non-generic union, so `showWhen.input` is a plain `string`

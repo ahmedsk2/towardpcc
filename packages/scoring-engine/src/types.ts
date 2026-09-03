@@ -171,6 +171,32 @@ export type InputValues<TInputs extends readonly ScoreInput[]> = {
   ]?: ValueForInput<I>;
 };
 
+/**
+ * Why a computed value is what it is, when an ENTERED value did not reach it.
+ *
+ * The case this exists for: pSOFA and Phoenix both accept an SpO₂ above 97 and
+ * then silently ignore it, because the S/F ratio saturates there. The field is
+ * FILLED, so the form's partial-entry cue — which watches for blanks — never
+ * fires, and the organ subscore stays 0 while the total reads lower than the
+ * child is. The standalone S/F calculator rejects the same value outright
+ * (`max: 97`), so the identical measurement was rejected in one calculator and
+ * quietly discarded in two others.
+ *
+ * A notice is NOT a validation error: the entry is legal and the rest of the
+ * score is sound, so refusing to compute would withhold five good organ
+ * subscores to complain about one. It is not a score-level `caution` either,
+ * because it is true only for the values in front of the reader right now.
+ *
+ * `about` names the input the reader should look at, which lets the form print
+ * the same sentence at the field AND beside the number, rather than in a
+ * Limitations tab nobody opens while entering values.
+ */
+export interface ValueNotice {
+  readonly text: LocalizedText;
+  /** An input id of the SAME score; the registry gate enforces that it resolves. */
+  readonly about?: string;
+}
+
 export interface ScoreValue {
   readonly id: string;
   readonly label: LocalizedText;
@@ -179,6 +205,12 @@ export interface ScoreValue {
   /** "" for dimensionless values and points. */
   readonly unit: string;
   readonly precision: number;
+  /**
+   * Emitted CONDITIONALLY, by `calculate`, only when the entered values make it
+   * true. A notice that is always present is a `caution` wearing the wrong
+   * type, and the registry gate fails it.
+   */
+  readonly notice?: ValueNotice;
 }
 
 export interface ScoreResult {
