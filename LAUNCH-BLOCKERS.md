@@ -72,12 +72,9 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       applied, so this is the smaller half of the gap
 - [ ] **Umami URL query/hash stripping** — deferred until analytics is actually
       integrated. If it ever is: page views only, never an event payload
-- [ ] **Admin "Save validators" reaches nothing public** — it writes
-      `CalculatorMeta.validatorSlots`, but the calculator page and `/validation`
-      read `score.validators` from the engine. Wire it or remove the form;
-      until then names go in the score files. Found 2026-09-03
-- [ ] **`/validation` metadata hard-codes "all 22"** while 25 scores are
-      published — derive the count from `listScores`. Found 2026-09-03
+- [ ] **`CalculatorMeta` is written by nothing and read by nothing** since
+      #164 made the admin Calculators screen read-only. Dropping the table is a
+      Prisma migration under the database review; until then it is dead weight
 - [ ] **The ~1-in-5 local e2e flake** — one face diagnosed and hardened (#99),
       never reproduced. Capture the reporter output before assuming it was that
 - [ ] **PR #152** — the dev-dependency group carrying the TypeScript 7 and
@@ -506,6 +503,14 @@ the two states.
 Second, smaller: the `/validation` page's `metadata.description` says "the
 current status of all 22" while 25 score files carry `status: "published"`.
 The table on the page is computed; the sentence above it is not. Derive it.
+
+**Both fixed in #164, and the finding grew on the way.** Nothing public reads
+`CalculatorMeta` at all — the publish toggle on the same admin screen wrote
+`published`, which the catalogue and the counts never consult either. Both
+actions are deleted; the list and detail screens now show the engine's status
+and validator slots read-only, with the note that a change is a pull request
+against the score definition. The `/validation` description now counts from
+`listScores`. The table stays in the schema until a migration drops it.
 
 ### Inbound mail is outside KSA
 
