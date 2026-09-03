@@ -30,7 +30,9 @@ it is history. This index is the open work, and it is the only part that moves.
 Read it first; page into a section only when you are about to act on one.
 
 Reconciled against the body of this file and against production on 2026-09-03 —
-both canaries green, `main` at `ce8cfbd` serving live.
+both canaries green, `main` at `ce8cfbd` serving live. Re-checked the same day
+against live DNS and GitHub: two founder items had been done without the record
+moving (DNSSEC, Actions billing); both are ticked below with the evidence.
 
 ### Founder-only — none of these is an engineering task
 
@@ -41,9 +43,6 @@ both canaries green, `main` at `ce8cfbd` serving live.
       would make the residency claim unqualified
 - [ ] Supply independent clinical validator names — the badge reads "pending"
       until then
-- [ ] Publish the DNSSEC DS record at GoDaddy — it is in
-      `docs/runbooks/dns-hardening.md`, and it is the one DNS change that can
-      take the domain offline
 - [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar, CT-log
       and lookalike monitoring
 - [ ] Add a DKIM key and a DMARC `rua=` for towardpicu.com — SPF alone breaks on
@@ -52,8 +51,6 @@ both canaries green, `main` at `ce8cfbd` serving live.
       contact address is a trust failure
 - [ ] Supply the four counter figures, a portrait, and the mission / library /
       registry images — placeholders ship until then
-- [ ] Re-enable GitHub Actions billing — e2e, `pnpm audit`, gitleaks, Lighthouse
-      and the container build are all dark without it
 - [ ] Say when `/` should stop being the holding page and serve the home page
 - [ ] GitHub Pro, if branch protection on `main` is wanted (a private repo 403s)
 
@@ -517,11 +514,12 @@ SDK would transmit from pages that promise they transmit nothing.
       is documented behaviour and means the dashboard is not the source of truth
       for CAA on this zone. Verified afterwards that the edge certificate is
       still valid and every route still 200s.
-- [~] **DNSSEC — Cloudflare side done, registrar side outstanding.** The zone is
-  signed and `pending`; nothing validates until a DS record is published at
-  GoDaddy, which needs registrar access I do not have. The exact DS is in
-  `docs/runbooks/dns-hardening.md`. **This is the one DNS change that can
-  take the domain offline**, so verify immediately after publishing it.
+- [x] **DNSSEC — done both sides on 2026-07-29; this entry lagged five weeks.**
+      `docs/runbooks/dns-hardening.md` §2 recorded the DS published and `AD: true`
+      from two resolvers that day; re-verified 2026-09-03 over Cloudflare's
+      DNS-over-HTTPS (one DS answer, `AD=true`). The index above still listed it
+      as open on the same date it claimed to be reconciled — a `- [ ]` is a claim
+      of openness, not proof.
 - [x] **Back the single-region claim with a control** — done 2026-08-08. Quota
       `ksa-data-residency` zeroes ten data-bearing families wherever
       `request.region != me-riyadh-1`. A quota rather than an IAM policy because
@@ -1537,6 +1535,14 @@ Both canaries stopped when GitHub Actions billing was disabled, so nothing has
 been watching production. A systemd timer on the OCI host restores them
 in-Kingdom without a spend decision; Actions billing is still wanted afterwards
 for e2e, `pnpm audit`, gitleaks, Lighthouse and the container build.
+
+**Billing is back — verified 2026-09-03.** The full pipeline ran on all three
+code pushes that day (#154, #155, #156: e2e, Lighthouse, gitleaks and quality
+green) and the scheduled "Production checks" workflow ran at 10:32. What it
+showed: `deps` was red until #156 cleared the audit finding, and `container`
+is red on Trivy — `libcrypto3` 3.5.7-r0, CVE-2026-14456 — which #159 fixes
+by `apk upgrade` in the runner stage rather than a digest bump, because the
+newest `node:24-alpine` shares the same base layer.
 
 ### Inbound mail: the caveat stays, for now
 

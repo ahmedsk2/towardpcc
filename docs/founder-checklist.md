@@ -174,6 +174,12 @@ In priority order. The first one blocks everything else.
 
 ## 1. GitHub Actions billing — BLOCKING, and it is silent
 
+> **Resolved by 2026-09-03.** The full pipeline ran on all three code pushes
+> that day and the scheduled "Production checks" ran at 10:32, so billing is
+> back; `LAUNCH-BLOCKERS.md` ("Daily checks") carries the evidence and what
+> the first green runs then exposed. The section below is kept as written,
+> because the failure is silent and will look exactly like this if it recurs.
+
 CI stopped mid-session. Every job on every pull request now fails instantly with:
 
 > The job was not started because recent account payments have failed or your
