@@ -110,7 +110,17 @@ ENV NODE_ENV=production
 # application depends on, and unfixable by changing our lockfile. Deleting npm
 # fixes them properly rather than suppressing them.
 RUN apk add --no-cache dumb-init \
-  && addgroup -S app && adduser -S app -G app \
+  # PINNED, both halves. The comments below reason about "uid=100, verified
+  # in the built image", but 100 was only what Alpine's system range handed
+  # out first — a base-image change could have moved it and quietly
+  # falsified them. Pinned, it fails the build loudly instead: a base that
+  # has claimed the id aborts this RUN with "uid in use".
+  #
+  # THE GID IS 101, NOT 100, AND THAT IS NOT A TYPO: gid 100 is `users` in
+  # this base image. It is pinned as well so the asymmetry cannot be tidied
+  # away later — `USER 100:100` would SILENTLY run with primary group
+  # `users` instead of `app`, which is not the group the tree is chowned to.
+  && addgroup -S -g 101 app && adduser -S -u 100 app -G app \
   && rm -rf /usr/local/lib/node_modules/npm \
     /usr/local/bin/npm /usr/local/bin/npx \
     /usr/local/lib/node_modules/corepack /usr/local/bin/corepack
@@ -138,10 +148,33 @@ COPY --from=build --chown=app:app /repo/apps/web/public ./apps/web/public
 # it fine and cannot alter it. Verified in a root-owned build: the purge ran as
 # uid 100 while both the script and pg were read-only to it.
 COPY --from=build /purge ./purge
-USER app
+# Numeric, and measured equivalent to `USER app`: both give
+# uid=100(app) gid=101(app). NOT because it avoids needing /etc/passwd —
+# that is backwards. The runtime resolves 100 against the IMAGE's passwd
+# entry `app:x:100:101`, which is exactly what supplies gid 101; without
+# that entry this would fall back to gid 0. The numeric form is MORE
+# dependent on it, not less. It is kept because it asserts non-root in a
+# form an admission controller can verify (Kubernetes `runAsNonRoot`
+# refuses a username it cannot prove), which is free and forward-looking.
+# It is NOT what was failing CI: DL3066 is severity `info` and the job
+# runs `failure-threshold: warning`, so only DL3025 below was red.
+USER 100
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1
+# Exec form, so no shell is spawned per probe (hadolint DL3025, the one
+# finding that was actually failing this job). `wget` is a real binary here
+# and Docker treats any non-zero exit as failure, so the `|| exit 1` this
+# carried normalised nothing. Discarding the body costs no diagnostic
+# signal either: the endpoint returns a constant `{"status":"ok"}` and the
+# build fingerprint travels in a HEADER, which `-qO-` never printed.
+#
+# --start-period MATCHES docker-compose.yaml's 40s. Without it, probes
+# counted against `retries` from the first second, and in build-pack mode
+# this is the healthcheck Coolify actually uses — so a slow cold start
+# could delay or block a rolling cutover. The endpoint differs from the
+# compose file's `/api/v1/ready` on purpose: this one is liveness, so a
+# database outage cannot turn into a restart loop.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD ["wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/v1/health"]
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "apps/web/server.js"]
