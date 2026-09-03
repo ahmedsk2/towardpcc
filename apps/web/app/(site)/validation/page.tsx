@@ -23,10 +23,15 @@ import { site } from "@/content/site";
  * Prisma migration against production for a flow that will run a handful of
  * times; /contact already reaches the same inbox.
  */
+/**
+ * Counted, not typed. This description said "all 22" while 25 scores were
+ * published — the table below was computed and the sentence above it was not.
+ */
+const publishedCount = listScores({ status: "published" }).length;
+
 export const metadata: Metadata = {
   title: "Clinical validation",
-  description:
-    "How TowardPCC scores are reviewed, the current status of all 22, and how to volunteer as a validator.",
+  description: `How TowardPCC scores are reviewed, the current status of all ${publishedCount}, and how to volunteer as a validator.`,
 };
 
 const c = site.calculators;
