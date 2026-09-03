@@ -36,19 +36,25 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
 
 ### Founder-only — none of these is an engineering task
 
+- [ ] Counsel review of the legal pages — reopened 2026-09-03; the pages say
+      "pending counsel review" again
+- [ ] Name counsel reachable inside 72 hours, and settle the hour-60 default —
+      the founder is the interim contact; the default is NOT settled
 - [ ] Register on SDAIA's National Data Governance Platform, before it is needed
 - [ ] Move MX off SiteGround to a KSA-hosted provider — the one change that
       would make the residency claim unqualified
 - [ ] Supply independent clinical validator names — the badge reads "pending"
       until then
-- [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar, CT-log
-      and lookalike monitoring
+- [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar, and
+      lookalike monitoring (CT-log monitoring is done — daily canary)
 - [ ] Add a DKIM key and a DMARC `rua=` for towardpicu.com — SPF alone breaks on
       forwarding
-- [ ] Supply the four counter figures, a portrait, and the mission / library /
-      registry images — placeholders ship until then
+- [ ] Two images: the `/services` photo (Envato PQBLD6T, saved as
+      `services-statistics.jpg`, pipeline job queued) and a `/data` registry
+      image, which needs the pilot unit's written OK first
 - [ ] Say when `/` should stop being the holding page and serve the home page
-- [ ] GitHub Pro, if branch protection on `main` is wanted (a private repo 403s)
+- [ ] A license file for the public tree — the founder's choice; without one the
+      code is visible but all rights reserved (branch protection itself is done)
 
 ### Engineering — open, each with a written reason it is still open
 
@@ -66,6 +72,12 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
       applied, so this is the smaller half of the gap
 - [ ] **Umami URL query/hash stripping** — deferred until analytics is actually
       integrated. If it ever is: page views only, never an event payload
+- [ ] **Admin "Save validators" reaches nothing public** — it writes
+      `CalculatorMeta.validatorSlots`, but the calculator page and `/validation`
+      read `score.validators` from the engine. Wire it or remove the form;
+      until then names go in the score files. Found 2026-09-03
+- [ ] **`/validation` metadata hard-codes "all 22"** while 25 scores are
+      published — derive the count from `listScores`. Found 2026-09-03
 - [ ] **The ~1-in-5 local e2e flake** — one face diagnosed and hardened (#99),
       never reproduced. Capture the reporter output before assuming it was that
 - [ ] **PR #152** — the dev-dependency group carrying the TypeScript 7 and
@@ -234,7 +246,8 @@ confirming at cutover, when it starts to matter.
       rate-limited / admin-login outcomes. Error telemetry (Sentry/GlitchTip
       DSN) is still a deploy-time config (P8).
 - [x] GitHub remote — approved by founder 2026-07-24; created during P0
-      (private, https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
+      (PUBLIC since creation on 2026-07-24 — the word "private" stood here
+      until 2026-09-03; https://github.com/ahmedsk2/towardpcc). Note: `corepack enable`
       fails without admin on this machine (EPERM in Program Files); pnpm is
       installed via `npm i -g pnpm@10.34.5`, documented in README.
 
@@ -327,7 +340,10 @@ now stands, which is true and tested.
       records**, so any CA in the world may issue for this domain. Also still
       open and not verifiable from the repo: registry lock proper (no `server*`
       status codes), org-owned auto-renew payment, a two-owner renewal
-      calendar, CT-log and lookalike monitoring, defensive registrations.
+      calendar, lookalike monitoring, defensive registrations. **CT-log
+      monitoring is done** — verified 2026-09-03: `scripts/check-ct-log.mjs`
+      runs in the daily `towardpcc-canary.timer` on the host alongside the
+      residency and integrity canaries, and passed that morning.
 
 ### SMTP relay (TM-008) — needs one credential
 
@@ -444,6 +460,53 @@ Order matters, and two of the four are done:
 4. Move DNS, wait out the TTL, then narrow the old ingress **last**. Only then
    rewrite the public residency copy.
 
+### Branch protection — enabled 2026-09-03, free, because the repo is public
+
+Ruleset `22209862` on `main`, enforcement active, read back after creation:
+no deletion, no force-push, pull request required, and five required status
+checks — `quality`, `deps`, `gitleaks`, `e2e`, `container`. The last two are
+safe to require even though the docs-only path skips them: GitHub counts a job
+skipped by a job-level `if:` as a satisfied check (only workflow-level path
+filtering leaves a check pending), and this workflow skips at the job level.
+The repository-admin role bypasses, so the founder can still merge in an
+emergency; nothing else can. Motivation the same day: #160 merged with its
+container job red, and nothing was there to say no.
+
+### Images and counters — three of five parts were already done, 2026-09-03
+
+The index line read "four counter figures, a portrait, and the mission /
+library / registry images". Checked against the code: the four counters on
+`/` are present and derived — 25 referenced calculators and the citation total
+are counted from the registry, 64,388 library pages, 100% engine coverage
+enforced in CI — with the comment above them recording why nothing there is
+typed. The mission split carries `care-nurse-smiling.jpg` and
+`care-resting.jpg`; `/knowledge` carries `library-screenshot.jpg`; the portrait
+was declined on 2026-08-01 and the brand waveform holds that section. What is
+open: the `/services` replacement (`services-statistics.jpg`, job in
+`prepare-images.mjs` printing `SKIP` until the file exists) and the `/data`
+registry image, pulled 2026-08-07 for showing real dated admissions and not
+to be replaced until the pilot unit approves one in writing.
+
+### Validator slots — two findings, 2026-09-03
+
+Working the validators item against the code found the path the PRD planned
+for names is not the path the site reads. `/admin/calculators/[slug]` has a
+"Save validators" form that writes `CalculatorMeta.validatorSlots` (JSON) and
+audits the change — but `app/(site)/calculators/[slug]/page.tsx` renders
+`<ValidationBadge validators={score.validators} />` from `getScore(slug)`, and
+`/validation` builds its table from `listScores` the same way. Neither touches
+Prisma. So a name saved in `/admin` changes nothing a visitor sees, and the
+only real path today is the per-score `validators` field in
+`packages/scoring-engine/src/scores/*.ts` — a scoring-engine change, its own
+PR, with the review date per score. Decide whether to wire the column into the
+page (the calculator pages are prerendered, so that means revalidation) or
+remove the form; a form that looks like it works and does not is the worse of
+the two states.
+
+Second, smaller: the `/validation` page's `metadata.description` says "the
+current status of all 22" while 25 score files carry `status: "published"`.
+The table on the page is computed; the sentence above it is not. Derive it.
+
 ### Inbound mail is outside KSA
 
 - [ ] Move MX off SiteGround to a KSA-hosted mail provider.
@@ -457,6 +520,17 @@ Microsoft 365 and Google Workspace are both ruled out: neither offers a Saudi
 data region at any price. Zoho has a real Saudi datacentre; self-hosting inbound
 on the existing OCI instance is also viable, since receiving needs no sending
 reputation.
+
+**Put to the founder 2026-09-03, with the trade-off stated; he chose to stay on
+SiteGround for now.** Two facts from that pass worth keeping: Zoho's Saudi
+datacentres (Riyadh primary, Jeddah secondary) were re-verified as operational
+and PDPL-aligned; and BOTH directions leave today — inbound MX for both domains
+and the outbound relay are SiteGround — so moving inbound alone would not make
+the claim unqualified. Self-hosting inbound was recommended against: a mail
+server on the host that runs a patient-data application, port 25 opened on its
+security list, and outbound still leaving. The caveat stays on `/trust` and
+`/legal/data-protection`, and `privacy-claims.test.ts` keeps refusing an
+absolute claim.
 
 ### Monitoring (taskmanager 9.3)
 
@@ -609,13 +683,17 @@ this.
 
 ## Content / legal
 
-- [x] **Legal pages counsel-reviewed — 2026-09-03.** Dr Ahmed Alkhalifah
-      signed off on `/legal/data-protection`, `/legal/terms` and
-      `/legal/disclaimer` as written; both `TODO(counsel-review)` markers and
-      both `pendingNote` strings are removed in #160. No copy corrections
-      came with the sign-off; any that follow are a separate change.
+- [ ] **Legal pages need counsel review — reopened 2026-09-03 the same day it
+      was ticked.** The tick recorded "Dr Ahmed Alkhalifah signed off"; that is
+      the founder's own name, given in answer to a question that asked for
+      counsel, and no lawyer has reviewed the pages. #160 had removed the
+      "pending counsel review" notes on that basis; the revert restores them.
+      Lesson: check a name against the founder entry in `content/site.ts`
+      before recording it as a third party.
 - [ ] Calculator validator slots empty by design — badge shows
-      "Independent clinical validation: pending" until real names provided
+      "Independent clinical validation: pending" until real names provided.
+      **Checked 2026-09-03:** validators not yet recruited, so nothing can be
+      entered honestly; see "Validator slots — two findings" below
 - [x] Tier-B instrument IP checks done (docs/decisions/ADR-tier-b-ip.md,
       2026-07-25): 7 of 8 stay unbuilt in v1 — 5 need permission (COMFORT-B,
       CAPD, SOS-PD, FLACC, Bedside PEWS), 3 need legal review. To build any,
@@ -860,13 +938,13 @@ absence is not later read as an oversight.
 - [x] **The duty is now written down**, in `docs/runbooks/incident.md` under
       "Regulatory notification (PDPL)", with sources.
 - [ ] **Register on the National Data Governance Platform, before you need it.**
-- [x] **Counsel named and the hour-60 default settled — 2026-09-03.** Counsel
-      is Dr Ahmed Alkhalifah, confirmed by the founder as reachable inside 72
-      hours; contact details stay with the founder, not in this repo. The
-      standing default at hour 60 if counsel has not been reached: keep
-      trying counsel and do not notify SDAIA without them. The founder chose
-      this over the recommendation below, and owns the deadline risk it
-      carries.
+- [ ] **Counsel not yet named; hour-60 default NOT settled — corrected
+      2026-09-03.** An earlier entry that day recorded the founder's own name
+      as counsel, and a default of "keep trying counsel; never notify without
+      them" taken on the assumption that counsel existed. With no counsel that
+      default means never notify, so it is withdrawn rather than kept. Until
+      counsel is named: the founder is the contact; the decision below is
+      still open and is his to make, with the recommendation standing.
 
 `CMP-03` asked for "the PDPL 72h breach clock + SDAIA contact". The number turned
 out to be right, and it was in the repo only as an unsourced open question — it is
@@ -885,9 +963,9 @@ day and not to notify on your own initiative. Against a hard deadline that is
 incomplete, because silence from counsel at hour 60 is itself a decision. Settle
 it in advance and record it here. The recommendation is to notify — the notice
 carries no admission and late notice is the sanctionable failure — but it is the
-founder's call to own, not the runbook's to assume. **Settled 2026-09-03,
-the other way:** keep trying counsel; never notify without them. See the
-ticked item above and the escalation bullet in `docs/runbooks/incident.md`.
+founder's call to own, not the runbook's to assume. **Not settled.** A
+2026-09-03 entry recorded it as settled the other way, under a
+misidentification of counsel; withdrawn the same day — see the item above.
 
 **One coupling worth seeing.** The missing DPAs stop being paperwork here: a
 processor who tells us late burns our own 72 hours, and there are three disclosed

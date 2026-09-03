@@ -272,9 +272,9 @@ applications.
 
 ## Content & compliance — before public launch
 
-- [x] **Legal pages counsel-reviewed** — done 2026-09-03, markers removed in
-      #160. As written before that: the text is honest but has not had a
-      lawyer's pass, and
+- [ ] **Legal pages counsel-reviewed** — ticked 2026-09-03 in error and
+      reopened the same day (#160 reverted). The text is honest but has not
+      had a lawyer's pass, and
       ADR-0003's own "revisit if" clause flags that counsel may read PDPL's
       treatment of transit-only processing differently than engineering did.
 - [x] **PWA raster PNG icons** — 192/512 plus maskable, generated with

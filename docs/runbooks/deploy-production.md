@@ -110,6 +110,12 @@ stick.
   alone, before the poll trace showed the rewrite. It does not.
   `check:integrity` will read STALE for the whole drain, which is correct rather
   than a failure; wait for the queue to empty before believing it.
+  **Re-measured 2026-09-03: three merges in one minute took ~26 minutes to
+  land, not ~15.** A 25-minute poll gave up, `check:integrity` was read as
+  "a deploy failed silently", and `docker ps` a minute later showed the new
+  container up 48 seconds. Budget ~10 minutes per queued build — the host
+  builds other tenants' applications on the same queue — and read a STALE
+  result inside that window as "not yet", never as "failed".
 - **Prefer `pnpm check:integrity` over the tag check.** Since 2026-08-08 the
   canary asserts the DEPLOYED COMMIT, not only page content: `/api/v1/health`
   publishes `sha256(SOURCE_COMMIT)` truncated to 16 hex characters in its
@@ -154,8 +160,10 @@ Coolify API token is `~/.coolify-token` **on the host**. The OCI CLI is
 MCP is usually disconnected. The Cloudflare token (`~/.cloudflare-token` on the
 host) **can edit DNS** but is refused on zone settings and WAF — so DNS moves
 are yours to make, while Bot Fight Mode, JS Detections, WAF rules and Turnstile
-are genuinely founder-only. Branch protection 403s: a private repo needs GitHub
-Pro. Getting this wrong wastes the founder's time in both directions.
+are genuinely founder-only. **The repository is PUBLIC and has been since it was
+created on 2026-07-24** (GitHub's `PublicEvent`); the line that stood here —
+"a private repo needs GitHub Pro" — was wrong, and branch protection is free.
+Getting this wrong wastes the founder's time in both directions.
 
 The host runs an application holding real patient data. Every command you run
 there is scoped to TowardPCC's own containers and its own database — the
