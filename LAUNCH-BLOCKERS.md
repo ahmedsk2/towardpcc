@@ -511,6 +511,13 @@ while the caption named the selected unit's (one function now builds both,
 cut-points sit in a source table the audit could not reach and are unverified
 by it, not wrong — the site's own tests assert them against the cited paper.
 
+A same-day follow-up re-audit confirmed both fixes live with zero mismatches
+across 40+ cases and seven calculators, and its one open item — an exclusive
+bound my brief had placed on the wrong calculator — led to a third fix: the
+caption over PELOD-2's and Phoenix's age fields promised "0–216 months" while
+216 is refused; it now reads "0 to under 216 months" (#177). The review doc
+carries the detail.
+
 ### Images and counters — three of five parts were already done, 2026-09-03
 
 The index line read "four counter figures, a portrait, and the mission /
