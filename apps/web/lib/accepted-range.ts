@@ -57,25 +57,47 @@ import { roundInward } from "./round-inward";
 export function acceptedBounds(
   input: ScoreInput,
   selectedUnit: string,
-): { low: number; high: number } | null {
+): { low: number; high: number; highExclusive: boolean } | null {
   if (input.type !== "numeric") return null;
   const convert = (v: number): number | null => fromCanonical(input.unit, v, selectedUnit);
   const bound = (v: number, direction: "up" | "down"): number => {
     const converted = convert(v);
     return converted === null ? v : roundInward(converted, direction);
   };
+  /**
+   * AN EXCLUSIVE CEILING IS NOT A VALUE THE FIELD TAKES. PELOD-2 and Phoenix
+   * declare age as `max: 216, maxExclusive: 216` months — "under 18 years",
+   * and 216 itself is refused. The caption printed `max` and read "Accepted
+   * 0–216 months" over a field that refuses 216: the one number the hint
+   * promised was the one value validation rejects, which is the contract
+   * this whole function exists to keep. Found by the 2026-09-05 follow-up
+   * audit, which went looking for the exclusive wording on the wrong
+   * calculator and, in doing so, showed the caption never carried it at all.
+   *
+   * Same rule as validation.ts: `maxExclusive` binds only when it is at or
+   * below `max`; above it, `max` already rejects everything it would.
+   */
+  const exclusive = input.maxExclusive !== undefined && input.maxExclusive <= input.max;
+  const ceiling = exclusive ? (input.maxExclusive as number) : input.max;
   const lo = convert(input.min);
-  const hi = convert(input.max);
+  const hi = convert(ceiling);
   const reversed = lo !== null && hi !== null && lo > hi;
-  const low = reversed ? bound(input.max, "up") : bound(input.min, "up");
-  const high = reversed ? bound(input.min, "down") : bound(input.max, "down");
-  return { low, high };
+  const low = reversed ? bound(ceiling, "up") : bound(input.min, "up");
+  const high = reversed ? bound(input.min, "down") : bound(ceiling, "down");
+  // A reversing conversion of an exclusive ceiling would put the excluded
+  // value at the LOW end; nothing in the registry does that, and printing it
+  // as inclusive would be wrong, so say so loudly rather than guess.
+  if (exclusive && reversed)
+    throw new Error(`${input.id}: exclusive ceiling under a reversing unit`);
+  return { low, high, highExclusive: exclusive };
 }
 
-/** The caption's form: "21–100 %". */
+/** The caption's form: "21–100 %", or "0 to under 216 months" for an exclusive ceiling. */
 export function acceptedRange(input: ScoreInput, selectedUnit: string): string | null {
   const b = acceptedBounds(input, selectedUnit);
-  return b ? `${b.low}–${b.high}${selectedUnit ? ` ${selectedUnit}` : ""}` : null;
+  if (!b) return null;
+  const unit = selectedUnit ? ` ${selectedUnit}` : "";
+  return b.highExclusive ? `${b.low} to under ${b.high}${unit}` : `${b.low}–${b.high}${unit}`;
 }
 
 /**
