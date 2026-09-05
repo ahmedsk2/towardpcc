@@ -56,4 +56,37 @@ test.describe("out-of-range input", () => {
     expect(describedBy, "the error must be linked, not just present").toBeTruthy();
     await expect(page.locator(`#${describedBy}`)).toHaveAttribute("role", "alert");
   });
+
+  /**
+   * Found by an external arithmetic audit on 2026-09-05, identically on four
+   * calculators: with FiO₂ switched to %, 15 was correctly refused, but the
+   * message still read "between 0.21 and 1 fraction" while the caption under
+   * the same field read "Accepted 21–100 %". Two strings for one bound. The
+   * refusal now uses the caption's converted range — in the field and in the
+   * rail's screen-reader message.
+   */
+  test("an out-of-range message names the range in the unit on screen", async ({ page }) => {
+    await page.goto("/calculators/sf-ratio", { waitUntil: "networkidle" });
+    await page.locator("#field-spo2").fill("90");
+    await page.getByLabel("Fraction of inspired oxygen (FiO₂) Unit").selectOption("%");
+    const fio2 = page.locator("#field-fio2");
+    await fio2.fill("15");
+    await fio2.blur();
+
+    const error = page.locator("#field-fio2-error");
+    await expect(error).toContainText("must be between 21 and 100 %");
+    await expect(error).not.toContainText("fraction");
+
+    const rail = page.getByText(/Waiting on/).locator("xpath=..");
+    await expect(rail).toContainText("must be between 21 and 100 %");
+  });
+
+  test("a field in its canonical unit keeps the engine's own wording", async ({ page }) => {
+    // The other direction: nothing is rewritten when there is nothing to convert.
+    await page.goto(CALC, { waitUntil: "networkidle" });
+    const glucose = page.locator("#field-glucose");
+    await glucose.fill("5000");
+    await glucose.blur();
+    await expect(page.locator("#field-glucose-error")).toContainText("mg/dL");
+  });
 });
