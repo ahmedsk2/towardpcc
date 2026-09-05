@@ -87,3 +87,29 @@ Arithmetic fidelity to the cited formulas across 510 cases, with both defects
 found being a documentation gap and a wording gap — neither a wrong number.
 It belongs in front of the two independent clinical validators when they are
 recruited, as the thing they do not need to redo.
+
+## Follow-up re-audit, same day — both fixes confirmed live, one new finding
+
+Run from a second prompt after #174 and #175 deployed. 40+ cases across seven
+calculators, zero mismatches. Section 1 worked the ethanol rule on every side
+of its boundaries (raw gap −40.6, +0.4, ±0.5 around zero, +4.5 with both
+residuals negative, asymmetric residual signs, ethanol 0) and found the label
+matches the corrected sentence in every case, keyed off the unrounded raw gap.
+Section 2 checked nine (field, alternate-unit) pairs three passes each —
+caption and refusal state the same bounds, the bounds are accepted, the
+reversed R-R range prints ascending, the rail's hidden text matches. Section 3
+found no regression on the four touched calculators or three untouched ones,
+and re-derived the PIM3 logit to four decimals.
+
+**The one open item was mine, and it found something.** The brief sent the
+auditor to `apls-weight` for the "at least … and less than …" exclusive-bound
+wording; that field is 0–12 years inclusive and never had it. The exclusive
+ceilings are the age fields on `pelod2` and `phoenix` (`max: 216,
+`maxExclusive: 216` months, months only). Checking those showed the caption
+and placeholder read "0–216 months" over a field that refuses 216 — the one
+number the hint promised was the one value validation rejects, a
+pre-existing breach of the caption's own "understate, never overstate"
+contract. Fixed in #177: the caption reads "0 to under 216 months"; refusals
+unchanged. The unit test that had covered the exclusive case returned early
+when it found no such input on the named score — it now asserts on the real
+one.
