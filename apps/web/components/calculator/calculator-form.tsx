@@ -8,15 +8,10 @@ import type {
   ScoreDefinition,
   ScoreInput,
 } from "@towardpcc/scoring-engine";
-import {
-  fromCanonical,
-  getScore,
-  matchInterpretationBand,
-  visibleInputs,
-} from "@towardpcc/scoring-engine";
+import { getScore, matchInterpretationBand, visibleInputs } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
-import { roundInward } from "@/lib/round-inward";
+import { acceptedRange, displayInputError } from "@/lib/accepted-range";
 import { CompositionPanel, DerivedPanel, splitComposition } from "./composition-panel";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
@@ -364,12 +359,12 @@ function CalculatorFormInner({
   }, [outcome]);
 
   const errorsById = useMemo(() => {
-    const m = new Map<string, string>();
+    const m = new Map<string, { message: string; code: string }>();
     if (outcome && !outcome.ok) {
       for (const e of outcome.errors) {
         // Not yet reached is not yet wrong.
         if (!blurred.has(e.inputId)) continue;
-        m.set(e.inputId, e.message);
+        m.set(e.inputId, { message: e.message, code: e.code });
       }
     }
     return m;
@@ -391,11 +386,19 @@ function CalculatorFormInner({
     const byId = new Map(inputs.map((i) => [i.id, i]));
     return outcome.errors.flatMap((e) => {
       const input = byId.get(e.inputId);
-      return input
-        ? [{ id: input.id, label: input.label.en, message: e.message, code: e.code }]
-        : [];
+      if (!input) return [];
+      const selectedUnit =
+        input.type === "numeric" ? (state[input.id]?.unit ?? input.unit.canonical) : "";
+      return [
+        {
+          id: input.id,
+          label: input.label.en,
+          message: displayInputError(input, selectedUnit, e),
+          code: e.code,
+        },
+      ];
     });
-  }, [outcome, inputs]);
+  }, [outcome, inputs, state]);
 
   /**
    * How much of a composite has actually been filled in.
@@ -720,7 +723,8 @@ function CalculatorFormInner({
                 key={input.id}
                 input={input}
                 field={state[input.id] ?? { raw: "" }}
-                error={errorsById.get(input.id)}
+                error={errorsById.get(input.id)?.message}
+                errorCode={errorsById.get(input.id)?.code}
                 notice={noticesById.get(input.id)}
                 onChange={(patch) => setField(input.id, patch)}
                 onCommit={() => markBlurred(input.id)}
@@ -908,6 +912,7 @@ function InputField({
   input,
   field,
   error,
+  errorCode,
   notice,
   onChange,
   onCommit,
@@ -916,6 +921,7 @@ function InputField({
   input: ScoreInput;
   field: Field;
   error?: string | undefined;
+  errorCode?: string | undefined;
   /** The score accepted this value and then did not use it; see `noticesById`. */
   notice?: string | undefined;
   onChange: (patch: { raw?: string; unit?: string }) => void;
@@ -937,73 +943,17 @@ function InputField({
   // plausibility bounds that REJECT rather than compute — for a pediatric tool
   // a mistyped weight changes a dose — so the wording says accepted, not
   // typical, and the value is never silently clamped.
-  /**
-   * THE BOUND, IN THE UNIT ON SCREEN.
-   *
-   * `min` and `max` are declared canonically and were printed verbatim under
-   * the canonical name — so selecting `milliunits/kg/min` on VIS vasopressin
-   * left the field reading "Accepted 0–0.01 units/kg/min" while the box beside
-   * it expected milliunits. A clinician obeying that hint enters a thousandth
-   * of the intended dose, and it is ACCEPTED, because validation converts from
-   * the selected unit and 0.005 milliunits is legitimately inside 0–0.01 units.
-   * Nothing anywhere would have flagged it. That field's own source comment
-   * calls the pairing "a documented 1000x error trap".
-   *
-   * Converted, then rounded to the precision the bound actually carries —
-   * `fromCanonical` on 0.01 units gives 10.000000000000002 milliunits, and a
-   * plausibility bound printed to sixteen digits reads like a bug.
-   *
-   * ROUNDING GOES INWARD, AND THAT DIRECTION IS THE WHOLE POINT. Corrected
-   * calcium declares 2.0–10.0 mg/dL, which converts to 0.998004–4.99002 mmol/L
-   * and used to print at exactly that width. The obvious tidy-up is "1.0–5.0",
-   * and it is wrong: 5.0 mmol/L is ABOVE the real ceiling, so the hint would
-   * promise a value validation then rejects — the field would be telling the
-   * clinician to enter something it refuses. So the lower bound rounds UP and
-   * the upper bound rounds DOWN. The printed range is always a subset of the
-   * accepted one, never a superset, and a hint can only ever understate what
-   * the field takes.
-   *
-   * Precision is whichever of 3 decimal places or 3 significant figures keeps
-   * MORE of the value, because neither alone survives the full spread of bounds
-   * in the registry: 3 dp alone flattens a 0.0001 ceiling to 0, and 3 sig figs
-   * alone drags a 1234 ceiling down to 1230. Taking the tighter-to-true of the
-   * two handles both, and still collapses 10.000000000000002 to 10.
-   */
+  // The accepted range in the unit on screen — converted and rounded INWARD.
+  // The reasoning, the reversing-unit case and the 1000x vasopressin trap
+  // live with the code in `@/lib/accepted-range`, which the error below and
+  // the rail's message share, so a refusal can never name a different range
+  // from the caption.
   const selectedUnit = input.type === "numeric" ? (field.unit ?? input.unit.canonical) : "";
-  const bound = (v: number, direction: "up" | "down") => {
-    if (input.type !== "numeric") return v;
-    const converted = fromCanonical(input.unit, v, selectedUnit);
-    if (converted === null) return v;
-    return roundInward(converted, direction);
-  };
-  /** The same conversion, unrounded, so the two ends can be ordered first. */
-  const convertBound = (v: number): number | null =>
-    input.type === "numeric" ? fromCanonical(input.unit, v, selectedUnit) : null;
-  /**
-   * ORDER-REVERSING UNITS EXIST, and one ships. QTc's R-R alternates are
-   * reciprocal (RR_ms = 60000 / bpm), so the canonical MINIMUM of 30 bpm
-   * converts to the R-R MAXIMUM of 2000 ms. Printed in declaration order that
-   * reads "Accepted 2000-240 ms".
-   *
-   * Both halves have to flip together. Which value is the lower BOUND decides
-   * which end of the printed range it belongs at, and it also decides which way
-   * `roundInward` must round — under a reversing conversion the canonical lower
-   * bound becomes the displayed upper one, so rounding it "up" would round it
-   * OUTWARD and break the subset contract roundInward exists to keep.
-   *
-   * Detected by comparing the two converted bounds rather than by asking the
-   * unit whether it reverses: a conversion is a pair of functions, and the
-   * comparison is the only thing that cannot go stale against a new one.
-   */
-  const range = (() => {
-    if (input.type !== "numeric") return null;
-    const lo = convertBound(input.min);
-    const hi = convertBound(input.max);
-    const reversed = lo !== null && hi !== null && lo > hi;
-    const low = reversed ? bound(input.max, "up") : bound(input.min, "up");
-    const high = reversed ? bound(input.min, "down") : bound(input.max, "down");
-    return `${low}–${high}${selectedUnit ? ` ${selectedUnit}` : ""}`;
-  })();
+  const range = acceptedRange(input, selectedUnit);
+  const shownError =
+    error !== undefined && errorCode !== undefined
+      ? displayInputError(input, selectedUnit, { code: errorCode, message: error })
+      : error;
 
   const noticeLine = notice ? (
     <p
@@ -1033,7 +983,7 @@ function InputField({
       >
         !
       </span>
-      {error}
+      {shownError}
     </p>
   ) : hasHint ? (
     <p id={`${id}-help`} className="text-sm text-ink-muted">
