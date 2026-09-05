@@ -89,4 +89,24 @@ test.describe("out-of-range input", () => {
     await glucose.blur();
     await expect(page.locator("#field-glucose-error")).toContainText("mg/dL");
   });
+
+  /**
+   * An exclusive ceiling is not a value the field takes. PELOD-2's age is
+   * max 216 / maxExclusive 216 months; the caption used to promise "0–216"
+   * over a field that refuses 216. Found by the 2026-09-05 follow-up audit.
+   */
+  test("a caption over an exclusive ceiling says the ceiling is excluded", async ({ page }) => {
+    await page.goto("/calculators/pelod2", { waitUntil: "networkidle" });
+    const age = page.locator("#field-age_months");
+    await expect(age).toHaveAttribute("placeholder", "0 to under 216 months");
+    await expect(page.getByText("Accepted 0 to under 216 months")).toBeVisible();
+
+    await age.fill("216");
+    await age.blur();
+    await expect(page.locator("#field-age_months-error")).toContainText("less than 216 months");
+
+    await age.fill("215.5");
+    await age.blur();
+    await expect(page.locator("#field-age_months-error")).toHaveCount(0);
+  });
 });

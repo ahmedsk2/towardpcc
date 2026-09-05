@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getScore, type ScoreInput } from "@towardpcc/scoring-engine";
-import { acceptedRange, displayInputError } from "./accepted-range";
+import { acceptedBounds, acceptedRange, displayInputError } from "./accepted-range";
 
 /**
  * Real registry inputs, not fixtures: the point of these bounds is what a
@@ -73,14 +73,40 @@ describe("displayInputError", () => {
     expect(displayInputError(fio2, "%", missing)).toBe(missing.message);
   });
 
-  it("leaves an exclusive-upper-bound input alone, whose engine wording is exact", () => {
-    const withExclusive = getScore("apls-weight")?.inputs.find(
-      (i) => i.type === "numeric" && i.maxExclusive !== undefined,
-    );
-    if (!withExclusive || withExclusive.type !== "numeric") return; // no such input: nothing to pin
-    const alt = withExclusive.unit.alternates?.[0]?.unit;
-    if (!alt) return;
-    const msg = { code: "out-of-range", message: "engine wording" };
-    expect(displayInputError(withExclusive, alt, msg)).toBe("engine wording");
+  it("leaves an exclusive-upper-bound input's refusal alone, whose engine wording is exact", () => {
+    // PELOD-2 and Phoenix declare age as max 216 / maxExclusive 216 months. The
+    // engine says "at least 0 and less than 216 months", which is exact, and
+    // neither field offers an alternate unit. Asserted on the real input so this
+    // cannot pass by finding nothing.
+    const age = input("pelod2", "age_months");
+    if (age.type !== "numeric") throw new Error("age_months is numeric");
+    expect(age.maxExclusive).toBe(216);
+    const msg = {
+      code: "out-of-range",
+      message: "Patient age must be at least 0 and less than 216 months.",
+    };
+    expect(displayInputError(age, "months", msg)).toBe(msg.message);
+  });
+});
+
+describe("acceptedRange with an exclusive ceiling", () => {
+  it("says the ceiling is excluded instead of promising it", () => {
+    // The caption used to read "0–216 months" over a field that refuses 216 —
+    // the one number it promised was the one value validation rejects.
+    expect(acceptedRange(input("pelod2", "age_months"), "months")).toBe("0 to under 216 months");
+    expect(acceptedRange(input("phoenix", "age_months"), "months")).toBe("0 to under 216 months");
+  });
+
+  it("reports the exclusive flag on the bounds", () => {
+    expect(acceptedBounds(input("pelod2", "age_months"), "months")).toEqual({
+      low: 0,
+      high: 216,
+      highExclusive: true,
+    });
+    expect(acceptedBounds(input("sf-ratio", "fio2"), "%")).toEqual({
+      low: 21,
+      high: 100,
+      highExclusive: false,
+    });
   });
 });
