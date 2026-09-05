@@ -44,7 +44,8 @@ moving (DNSSEC, Actions billing); both are ticked below with the evidence.
 - [ ] Move MX off SiteGround to a KSA-hosted provider — the one change that
       would make the residency claim unqualified
 - [ ] Supply independent clinical validator names — the badge reads "pending"
-      until then
+      until then. Hand them `docs/reviews/2026-09-05-calculator-arithmetic-audit.md`
+      first: 510 cases, arithmetic verified, so they need not redo that part
 - [ ] Registry lock, org-owned auto-renew, a two-owner renewal calendar (CT-log
       and lookalike monitoring are done — daily canaries)
 - [ ] Add a DKIM key and a DMARC `rua=` for towardpicu.com — SPF alone breaks on
@@ -494,6 +495,21 @@ filtering leaves a check pending), and this workflow skips at the job level.
 The repository-admin role bypasses, so the founder can still merge in an
 emergency; nothing else can. Motivation the same day: #160 merged with its
 container job red, and nothing was there to say no.
+
+### Arithmetic audit of all 25 calculators — 2026-09-05
+
+External, run by the founder in Claude in Chrome from a prompt written for it:
+510 synthetic cases across all 25 calculators, three passes each, adjudicated
+against the primary paper where they disagreed. Full report:
+`docs/reviews/2026-09-05-calculator-arithmetic-audit.md`. Two findings, both
+reproduced here before anything changed, neither a wrong number: the serum
+osmolality page's rule for the "accounted for by ethanol" label omitted the
+raw-gap precondition the code enforces on purpose (text made true, case
+pinned, #174), and out-of-range refusals named the canonical unit's range
+while the caption named the selected unit's (one function now builds both,
+#175). Residual: four PRISM IV coefficients and four PRISM III blood-gas
+cut-points sit in a source table the audit could not reach and are unverified
+by it, not wrong — the site's own tests assert them against the cited paper.
 
 ### Images and counters — three of five parts were already done, 2026-09-03
 
