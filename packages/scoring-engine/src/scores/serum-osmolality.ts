@@ -170,7 +170,7 @@ export const serumOsmolality = defineScore({
       label: defineText("osm.gap.explained", "Accounted for by the measured ethanol"),
       description: defineText(
         "osm.gap.explained.desc",
-        "The entered ethanol accounts for more than the whole measured-minus-calculated difference: with the ethanol term added, the residual gap is negative under BOTH published divisors (÷3.7 empiric and ÷4.6 ideal). The raw gap is shown for reference and is not read against the 10 mOsm/kg limit, which applies to a gap the ethanol term has not already absorbed. A negative residual is ordinary biological variation, measurement imprecision, or a formula artefact — the measured normal gap centres near −2, not 0 (Hoffman 1993). This does not exclude a co-ingested toxic alcohol; it says only that no unmeasured osmole is needed to explain this pair of numbers (Lynd 2008).",
+        "The entered ethanol accounts for more than the whole measured-minus-calculated difference: that difference was zero or positive before the ethanol term, and with the term added the residual gap is negative under BOTH published divisors (÷3.7 empiric and ÷4.6 ideal). A gap that was already negative is never labelled this way — there was nothing for the ethanol to account for. The raw gap is shown for reference and is not read against the 10 mOsm/kg limit, which applies to a gap the ethanol term has not already absorbed. A negative residual is ordinary biological variation, measurement imprecision, or a formula artefact — the measured normal gap centres near −2, not 0 (Hoffman 1993). This does not exclude a co-ingested toxic alcohol; it says only that no unmeasured osmole is needed to explain this pair of numbers (Lynd 2008).",
       ),
     },
   ],
@@ -288,7 +288,7 @@ export const serumOsmolality = defineScore({
   ],
   formula: defineText(
     "osm.formula",
-    "Calculated osmolality (Smithline–Gardner, the form Choy recommends and guidelines endorse) = 2 × sodium + glucose ÷ 18 + blood urea nitrogen ÷ 2.8 with mg/dL inputs, equivalently 2 × sodium + glucose + urea with every analyte in mmol/L. Osmolar gap = measured − calculated, and a normal gap is conventionally < 10 mOsm/kg. When a measured ethanol is entered the ethanol term is shown both ways, ÷ 3.7 (Purssell empiric) and ÷ 4.6 (ideal molar mass), and the abnormal-gap flag is suppressed only when the residual is negative under both divisors. BUN is not urea, the two differ by a factor of 2.8, and glucose and BUN must be in mg/dL for the divisors to apply.",
+    "Calculated osmolality (Smithline–Gardner, the form Choy recommends and guidelines endorse) = 2 × sodium + glucose ÷ 18 + blood urea nitrogen ÷ 2.8 with mg/dL inputs, equivalently 2 × sodium + glucose + urea with every analyte in mmol/L. Osmolar gap = measured − calculated, and a normal gap is conventionally < 10 mOsm/kg. When a measured ethanol is entered the ethanol term is shown both ways, ÷ 3.7 (Purssell empiric) and ÷ 4.6 (ideal molar mass), and the abnormal-gap flag is replaced by “Accounted for by the measured ethanol” only when the raw gap was not negative to begin with and the residual is negative under both divisors. A negative raw gap needs no ethanol to explain it, so it keeps its ordinary band whatever the ethanol reading. BUN is not urea, the two differ by a factor of 2.8, and glucose and BUN must be in mg/dL for the divisors to apply.",
   ),
   notes: defineText(
     "osm.notes",

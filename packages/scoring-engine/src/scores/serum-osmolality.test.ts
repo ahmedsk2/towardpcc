@@ -253,6 +253,42 @@ describeScore(serumOsmolality, (ctx) => {
     expect(gap?.value).toBeCloseTo(-2, 6);
   });
 
+  // The 2026-09-05 arithmetic audit read the page's rule as "both residuals
+  // negative" and found this case did not carry the label. It must not: the
+  // raw gap is -40.6, so there is nothing for 50 mg/dL of ethanol to account
+  // for, and the page now says so. The contrast case one row down has the
+  // same ethanol and a raw gap of +0.4, and IS accounted for.
+  it("does not label a negative raw gap as accounted for by ethanol (audit case)", () => {
+    const outcome = serumOsmolality.compute({
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 100, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      osm_measured: { value: 250, unit: "mOsm/kg" }, // calculated 290.56 → raw gap -40.6
+      ethanol: { value: 50, unit: "mg/dL" }, // residuals -54.1 and -51.4, both negative
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const ids = outcome.result.values.map((v) => v.id);
+    expect(ids).toContain("osm_gap");
+    expect(ids).not.toContain("osm_gap_ethanol_explained");
+    const gap = outcome.result.values.find((v) => v.id === "osm_gap");
+    expect(gap?.value).toBeCloseTo(250 - (280 + 100 / 18 + 14 / 2.8), 6);
+  });
+
+  it("labels a non-negative raw gap as accounted for when both residuals are negative (audit contrast)", () => {
+    const outcome = serumOsmolality.compute({
+      na: { value: 140, unit: "mmol/L" },
+      glucose: { value: 100, unit: "mg/dL" },
+      bun: { value: 14, unit: "mg/dL" },
+      osm_measured: { value: 291, unit: "mOsm/kg" }, // raw gap +0.44
+      ethanol: { value: 50, unit: "mg/dL" }, // residuals -13.1 and -10.4
+    });
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const ids = outcome.result.values.map((v) => v.id);
+    expect(ids).toContain("osm_gap_ethanol_explained");
+  });
+
   // Boundary coverage for every numeric input (required and optional). The base
   // panel is valid so each edge isolates the input under test.
   const base = {
