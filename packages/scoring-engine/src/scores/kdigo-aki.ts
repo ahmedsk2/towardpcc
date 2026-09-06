@@ -66,7 +66,11 @@ export const kdigoAki = defineScore({
   id: "kdigo-aki",
   slug: "kdigo-aki",
   name: "KDIGO AKI staging (pediatric)",
-  version: "1.2.0",
+  tagline: defineText(
+    "kdigo.tagline",
+    "Acute kidney injury stage from creatinine and urine output",
+  ),
+  version: "1.2.1",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -124,7 +128,7 @@ export const kdigoAki = defineScore({
       max: 15,
       helpText: defineText(
         "kdigo.scr.help",
-        "The current measured serum creatinine. Accepts mg/dL or µmol/L. Drives the ×-baseline ratio and the ≥ 4.0 mg/dL Stage-3 threshold. That threshold is not read on its own: KDIGO requires the AKI definition (a rise of ≥ 0.3 mg/dL, or ≥ 1.5× baseline) to be met first, so a value of 4.0 or above entered without a baseline is reported as Stage 3 but flagged as not settled — a chronically high creatinine that never rose is not Stage 3 AKI.",
+        "The current measured serum creatinine, in mg/dL or µmol/L. Drives the ×-baseline ratio and the ≥ 4.0 mg/dL Stage-3 threshold. That threshold needs the AKI definition met first (a rise of ≥ 0.3 mg/dL, or ≥ 1.5× baseline): 4.0 or above without a baseline is reported as Stage 3 but flagged as not settled, because a chronically high creatinine that never rose is not AKI.",
       ),
     },
     {
@@ -139,7 +143,7 @@ export const kdigoAki = defineScore({
       max: 15,
       helpText: defineText(
         "kdigo.scr_baseline.help",
-        "The patient's baseline creatinine (known outpatient value, or a dynamic 7-day baseline). Needed for the ×-baseline ratio, for the ≥ 0.3 mg/dL rise, and to settle the ≥ 4.0 mg/dL Stage-3 route — without it a high creatinine cannot be told apart from a chronically high one. Accepts mg/dL or µmol/L. WITH NO PRIOR VALUE ON FILE, the surrogate the PAEDIATRIC evidence supports is the LOWEST creatinine measured during this admission — in 710 children aged 1 month to 18 years it detected AKI with sensitivity 87.8% and specificity 71.0% (Lee 2022, DOI 10.23876/j.krcp.21.120). Do not use KDIGO's own appendix suggestion of back-calculating from an assumed GFR of 75 mL/min/1.73 m²: in those same children it was 31.5% sensitive and put AKI incidence at 19.1% against a true 58.7%, missing roughly two thirds of it. Under-staging is the dangerous direction in a PICU, and adult reports that back-calculation OVER-estimates AKI do not transfer — in children it under-estimates severely. Whatever is entered, it is a surrogate, and the stage it produces should be read as such.",
+        "Baseline creatinine (a known outpatient value or a 7-day dynamic baseline), in mg/dL or µmol/L. Needed for the ×-baseline ratio, the ≥ 0.3 mg/dL rise, and to settle the ≥ 4.0 mg/dL Stage-3 route. Without one, use the lowest creatinine of this admission (Lee 2022). Do not back-calculate from an assumed GFR of 75: in children it missed two thirds of AKI. Any surrogate stages as a surrogate.",
       ),
     },
     {
@@ -183,7 +187,7 @@ export const kdigoAki = defineScore({
       ],
       helpText: defineText(
         "kdigo.uo_duration.help",
-        "The KDIGO Table 2 window, as bands rather than free-typed hours — the bands are what the table states, and an hours box invites false precision about a figure read off a nursing chart. The boundaries are the guideline's own: 6 hours to under 12 is a different row from 12 or more. Pick '24 hours or more' when the window has reached 24 hours; '12 hours or more' asserts only 12, so it leaves the 24-hour Stage-3 row open — and where that open row could actually raise the stage (a rate below 0.3 mL/kg/h) the result is reported as a lower bound. Where it could not, the result is settled and no bound is shown.",
+        "Bands, not free-typed hours: the KDIGO Table 2 rows, with the guideline's own boundaries — 6 to under 12 hours is a different row from 12 or more. Pick '24 hours or more' once the window has reached 24 hours. '12 hours or more' leaves the 24-hour Stage-3 row open; where that could raise the stage (a rate below 0.3 mL/kg/h) the result is reported as a lower bound.",
       ),
     },
     {
@@ -193,7 +197,7 @@ export const kdigoAki = defineScore({
       type: "boolean",
       helpText: defineText(
         "kdigo.anuria.help",
-        "Anuria is a row of its own in Table 2 — anuria for 12 hours or more is Stage 3, whatever the rate rows say. Enter it as the clinical finding it is: KDIGO defines no millilitre figure for anuria and nephrology has no agreed one either, so no rate is invented for it here. What it does establish without any number is that the output is below every positive cutoff: there is no urine, so anuria is necessarily under 0.5 mL/kg/h and satisfies the rows built on that threshold too — anuria for 6 hours to under 12 hours is Stage 1. Enter the measured rate as well if you have one; it can only make the answer more specific.",
+        "Anuria has its own row in Table 2: anuria for 12 hours or more is Stage 3 whatever the rate rows say. A clinical finding: KDIGO defines no millilitre figure for it and none is invented here. With no urine the output is below every positive cutoff, so anuria for 6 to under 12 hours is Stage 1. Enter a measured rate too if you have one.",
       ),
     },
     {
@@ -333,6 +337,13 @@ export const kdigoAki = defineScore({
       summary:
         "Stages a recorded urine output of zero exactly as it stages the anuria box. A five-year-old with 0 mL/kg/h sustained 12 hours or more returned Stage 2 flagged as a floor with the box unticked, and Stage 3 with it ticked — the same patient one stage apart on whether a second control was used, in what this score's own notes call the dangerous direction. Table 2's fourth row is anuria for 12 hours or more, and a rate of zero is anuria: there is no urine. The score already entailed anuria into the rows built on 0.5 mL/kg/h so that a patient described in words was not under-staged against one described in millilitres; this closes the other half. NO THRESHOLD IS INVENTED, which is the reason anuria remains a separate clinical flag: zero is not a cutoff KDIGO declined to give. Any positive rate is unchanged and still needs the box — 0.01 mL/kg/h is oliguria, not anuria. Founder decision of 2026-09-03, from an independent recompute of every calculator against its published source.",
     },
+    {
+      version: "1.2.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card and shortened field guidance to fit an info toggle. No rule, threshold or reference changed.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -345,7 +356,7 @@ export const kdigoAki = defineScore({
   ),
   notes: defineText(
     "kdigo.notes",
-    "Stage 0 means the KDIGO definition is not met on the criteria entered, which is not proof that AKI is absent. Higher stage associates with mortality and renal replacement therapy in the outcome literature, but the staging is a classification, not a treatment threshold. BASELINE CREATININE IS THE HARDEST INPUT. With no prior value, enter the LOWEST creatinine of this admission: in 710 critically ill children with true baselines it detected AKI with sensitivity 87.8% and specificity 71.0% (Lee 2022, 7-day window). Do not back-calculate from an assumed GFR of 75, which is KDIGO’s own appendix suggestion: in the same children it was 31.5% sensitive and missed roughly two thirds of the AKI. The direction reverses between adults and children, so adult reassurance that back-calculation over-diagnoses must not be carried across, and under-staging is the dangerous direction in a PICU. Record which window the entered value came from. KDIGO defines the ≥ 0.3 mg/dL rise as a rise WITHIN 48 HOURS; this calculator applies it as current minus the baseline you enter, with no window, so a baseline from weeks or months back can produce Stage 1 from a rise that was never acute. There is no paediatric modification of the urine-output thresholds. pRIFLE is a separate instrument and is neither reproduced nor blended in here. The bedside Schwartz equation (0.413 × height in cm ÷ serum creatinine in mg/dL) behind the eGFR branch was validated at roughly 1 to 16 years, so do not extrapolate it to neonates. KDIGO does not state which weight indexes the mL/kg/h [NEEDS SOURCE], nor is there a KDIGO-endorsed paediatric baseline rule [NEEDS SOURCE]. Conversion uses 1 mg/dL = 88.42 µmol/L with two-decimal rounding so KDIGO’s printed SI equivalents stage as intended (353.6 µmol/L resolves to 4.00 mg/dL).",
+    "Stage 0 means the KDIGO definition is not met on the criteria entered, which is not proof that AKI is absent. Higher stage associates with mortality and renal replacement therapy in the outcome literature, but the staging is a classification, not a treatment threshold. BASELINE CREATININE IS THE HARDEST INPUT. With no prior value, enter the LOWEST creatinine of this admission: in 710 critically ill children with true baselines it detected AKI with sensitivity 87.8% and specificity 71.0% (Lee 2022, 7-day window). Lee 2022 is DOI 10.23876/j.krcp.21.120. Do not back-calculate from an assumed GFR of 75, which is KDIGO’s own appendix suggestion: in the same children it was 31.5% sensitive, missed roughly two thirds of the AKI, and put AKI incidence at 19.1% against a true 58.7%. The direction reverses between adults and children, so adult reassurance that back-calculation over-diagnoses must not be carried across, and under-staging is the dangerous direction in a PICU. Record which window the entered value came from. KDIGO defines the ≥ 0.3 mg/dL rise as a rise WITHIN 48 HOURS; this calculator applies it as current minus the baseline you enter, with no window, so a baseline from weeks or months back can produce Stage 1 from a rise that was never acute. There is no paediatric modification of the urine-output thresholds. pRIFLE is a separate instrument and is neither reproduced nor blended in here. The bedside Schwartz equation (0.413 × height in cm ÷ serum creatinine in mg/dL) behind the eGFR branch was validated at roughly 1 to 16 years, so do not extrapolate it to neonates. KDIGO does not state which weight indexes the mL/kg/h [NEEDS SOURCE], nor is there a KDIGO-endorsed paediatric baseline rule [NEEDS SOURCE]. Conversion uses 1 mg/dL = 88.42 µmol/L with two-decimal rounding so KDIGO’s printed SI equivalents stage as intended (353.6 µmol/L resolves to 4.00 mg/dL). The urine-output duration is entered as the Table 2 bands rather than free hours because an hours box invites false precision about a figure read off a nursing chart.",
   ),
   calculate: (values) => {
     const ageYears = values.age.value; // years (canonical), required

@@ -18,6 +18,7 @@ describe("registry", () => {
         id: "fixture-ratio",
         slug: "fixture-ratio",
         name: "Engine test fixture (arithmetic ratio)",
+        tagline: { key: "fixture.tagline", en: "Internal engine fixture, never displayed" },
         version: "1.0.0",
         status: "draft",
         category: "general",

@@ -36,7 +36,11 @@ export const idealBodyWeight = defineScore({
   id: "ideal-body-weight",
   slug: "ideal-body-weight",
   name: "Ideal body weight (pediatric)",
-  version: "1.0.0",
+  tagline: defineText(
+    "ibw.tagline",
+    "Ideal body weight from height, by four published methods side by side",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "general",
   inputs: [
@@ -116,6 +120,13 @@ export const idealBodyWeight = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

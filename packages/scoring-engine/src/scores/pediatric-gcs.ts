@@ -25,7 +25,8 @@ export const pediatricGcs = defineScore({
   id: "pediatric-gcs",
   slug: "pediatric-gcs",
   name: "Pediatric Glasgow Coma Scale (pGCS)",
-  version: "1.0.0",
+  tagline: defineText("pgcs.tagline", "Age-adapted Glasgow Coma Scale for infants and children"),
+  version: "1.0.1",
   status: "published",
   category: "general",
   inputs: [
@@ -227,6 +228,13 @@ export const pediatricGcs = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

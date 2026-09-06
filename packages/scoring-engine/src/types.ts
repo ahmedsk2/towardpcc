@@ -394,6 +394,13 @@ export interface ScoreDefinition<TInputs extends readonly ScoreInput[] = readonl
   readonly id: string;
   readonly slug: string;
   readonly name: string;
+  /**
+   * One line saying what the score is FOR, shown under the name on the
+   * catalogue card and in search. 20–90 characters, no trailing full stop
+   * (registry-text.test.ts). Founder-reviewed copy, like every other
+   * user-visible string here.
+   */
+  readonly tagline: LocalizedText;
   readonly version: string;
   readonly status: ScoreStatus;
   readonly category: ScoreCategory;
@@ -484,6 +491,7 @@ export interface ScoreSummary {
   readonly id: string;
   readonly slug: string;
   readonly name: string;
+  readonly tagline: LocalizedText;
   readonly version: string;
   readonly status: ScoreStatus;
   readonly category: ScoreCategory;

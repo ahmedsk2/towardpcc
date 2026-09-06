@@ -42,7 +42,11 @@ export const pim3 = defineScore({
   id: "pim3",
   slug: "pim3",
   name: "Paediatric Index of Mortality 3 (PIM3)",
-  version: "1.0.0",
+  tagline: defineText(
+    "pim3.tagline",
+    "Predicted PICU mortality from data at first contact, for unit benchmarking",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "mortality-severity",
   inputs: [
@@ -65,7 +69,7 @@ export const pim3 = defineScore({
       type: "boolean",
       helpText: defineText(
         "pim3.vent.help",
-        "Yes if the child received any of these at any point in the first hour in ICU: invasive ventilation, CPAP by mask or nasal prongs, BiPAP, or negative-pressure ventilation (Straney 2013, Appendix 1, p680). A tracheostomy with unassisted spontaneous breathing is no — that is the ANZPIC Registry's data-entry convention (PIM2 & PIM3 for the ANZPIC Registry — Information Booklet, version January 2019), not a rule stated in the paper, which lists only what the criterion includes.",
+        "Yes if the child received any of these at any point in the first hour in ICU: invasive ventilation, CPAP by mask or nasal prongs, BiPAP, or negative-pressure ventilation (Straney 2013, Appendix 1). A tracheostomy with unassisted spontaneous breathing is No — the ANZPIC Registry's data-entry convention (Information Booklet, January 2019), not a rule stated in the paper.",
       ),
     },
     {
@@ -87,7 +91,7 @@ export const pim3 = defineScore({
       type: "categorical",
       helpText: defineText(
         "pim3.recovery.help",
-        "Choose a category only when recovering from the procedure IS the reason for the ICU admission. Radiology procedures and cardiac catheterisation count. Coming from theatre is not enough on its own — a child admitted after insertion of an ICP monitor is admitted for the head injury, not for the procedure (Straney 2013, Appendix 1, p680). The categories are mutually exclusive; a post-procedure admission may also carry a risk diagnosis below.",
+        "Choose a category only when recovering from the procedure is the reason for the ICU admission. Radiology procedures and cardiac catheterisation count. Coming from theatre is not enough on its own — a child admitted after ICP-monitor insertion is admitted for the head injury (Straney 2013, Appendix 1). The categories are mutually exclusive; a post-procedure admission may also carry a risk diagnosis below.",
       ),
       options: [
         {
@@ -122,7 +126,7 @@ export const pim3 = defineScore({
       group: defineText("pim3.group.diagnosis", "Risk diagnosis (main reason for admission)"),
       helpText: defineText(
         "pim3.vhr.help",
-        "The list is complete as published — five conditions (Straney 2013, Appendix 1, p680). Record one only when it is the MAIN reason for the ICU admission; if you are unsure, record none. Cardiac arrest counts whether it happened inside or outside hospital and needs a documented absent pulse or chest compressions — a past arrest does not count. Leukaemia or lymphoma counts only when the admission is about the malignancy or its treatment. Liver failure may be acute or chronic. THE TWO CUSTODIAN REGISTRIES CODE THE POST-TRANSPLANT CASE OPPOSITELY, and this is not resolvable by reading the paper harder: ANZPICR (Jan 2019) says do NOT include patients admitted for recovery following a liver transplant done for acute or chronic liver failure, and flags that this differs from PIM2; PICANet (v5.4, Nov 2020) says DO include them. ANZICS PSG and PICANet jointly supplied the derivation data, so the disagreement is downstream of Straney 2013 and live in practice. This score follows ANZPICR — the stricter reading, and the custodian of the ratio the model was built to produce — so a planned post-transplant admission is excluded here. Both registries agree that a readmission whose main reason is failure OF THE GRAFT does qualify. If a condition from a lower tier also applies, still record it there: the model applies the highest tier only.",
+        "Complete as published (Straney 2013). Record one only when it is the main reason for admission; if unsure, none. Cardiac arrest, in or out of hospital, needs a documented absent pulse or chest compressions; a past arrest does not count. Leukaemia or lymphoma counts only when the admission concerns the malignancy or its treatment. Liver failure may be acute or chronic; planned post-transplant recovery is excluded and graft-failure readmission qualifies.",
       ),
       options: [
         { value: NONE, label: defineText("pim3.vhr.none", "None of these") },
@@ -156,7 +160,7 @@ export const pim3 = defineScore({
       group: defineText("pim3.group.diagnosis", "Risk diagnosis (main reason for admission)"),
       helpText: defineText(
         "pim3.hr.help",
-        "The list is complete as published — five conditions (Straney 2013, Appendix 1, p680). Record one only when it is the MAIN reason for the ICU admission; if you are unsure, record none. Cerebral haemorrhage must be spontaneous (aneurysm or arteriovenous malformation): traumatic bleeds are excluded, as are intracranial bleeds outside the brain itself such as a subdural. Hypoplastic left heart syndrome counts at any age, but only where a Norwood or equivalent operation was needed in the newborn period to keep the child alive. Neurodegenerative disorder needs a progressive loss of milestones, or a diagnosis in which that loss is certain, and does not need a name. A very high-risk diagnosis, if also present, takes precedence over this one.",
+        "Complete as published (Straney 2013). Record one only when it is the main reason for admission; if unsure, none. Cerebral haemorrhage must be spontaneous (aneurysm or arteriovenous malformation): traumatic and extracerebral bleeds are excluded. Hypoplastic left heart counts only where a Norwood or equivalent was needed as a newborn. Neurodegenerative disorder needs progressive loss of milestones, or a diagnosis in which that loss is certain. Very high-risk takes precedence.",
       ),
       options: [
         { value: NONE, label: defineText("pim3.hr.none", "None of these") },
@@ -190,7 +194,7 @@ export const pim3 = defineScore({
       group: defineText("pim3.group.diagnosis", "Risk diagnosis (main reason for admission)"),
       helpText: defineText(
         "pim3.lr.help",
-        "The list is complete as published — six conditions (Straney 2013, Appendix 1, p680). Record one only when it is the MAIN reason for the ICU admission; if you are unsure, record none. Bronchiolitis covers a child presenting with either respiratory distress or central apnoea where the clinical diagnosis is bronchiolitis. Obstructive sleep apnoea covers admission after adenoidectomy or tonsillectomy when the apnoea is the main reason — record the procedure recovery above as well, since such a case carries both terms. Seizure disorder covers status epilepticus, epilepsy, a febrile convulsion or another epileptic syndrome where the admission is to control the seizures or to recover from them or their treatment. A very high-risk or high-risk diagnosis, if also present, takes precedence over this one.",
+        "Complete as published (Straney 2013). Record one only when it is the main reason for admission; if unsure, none. Bronchiolitis: respiratory distress or central apnoea with that clinical diagnosis. Obstructive sleep apnoea: admission after adenoidectomy or tonsillectomy for the apnoea — record the procedure recovery above too. Seizure disorder: status epilepticus, epilepsy, febrile convulsion or another epileptic syndrome, admitted to control or recover from seizures. A higher-risk diagnosis takes precedence.",
       ),
       options: [
         { value: NONE, label: defineText("pim3.lr.none", "None of these") },
@@ -224,7 +228,7 @@ export const pim3 = defineScore({
       max: 300,
       helpText: defineText(
         "pim3.sbp.help",
-        "First systolic BP from first ICU-team contact to one hour after ICU arrival — the first value in that window, not the worst. Three coded entries carry weight and are not measurements: leave blank if unknown (the model substitutes 120), enter 0 if the child was in cardiac arrest at admission, and enter 30 if shocked with a blood pressure that could not be measured (Straney 2013, Appendix 1, p680).",
+        "First systolic BP from first ICU-team contact to one hour after ICU arrival — the first value in that window, not the worst. Three coded entries are not measurements: leave blank if unknown (the model substitutes 120); enter 0 if in cardiac arrest at admission; enter 30 if shocked with a blood pressure that could not be measured (Straney 2013, Appendix 1).",
       ),
     },
     {
@@ -367,6 +371,13 @@ export const pim3 = defineScore({
       summary: "Initial published text.",
       reason: "initial-release",
     },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card and shortened field guidance to fit an info toggle. No rule, threshold or reference changed.",
+      reason: "clarification",
+    },
   ],
   ipStatus: {
     kind: "freely-reproducible",
@@ -388,7 +399,7 @@ export const pim3 = defineScore({
   notes: defineText(
     "pim3.notes",
     "PIM3 estimates hospital-mortality probability from data at first ICU contact, for unit-level case-mix and SMR benchmarking. The derivation paper states the limit itself: “These models are not intended for prognostic use on individual patients” (Straney 2013). " +
-      "MEASUREMENT WINDOW AND CODING. Use the FIRST value of each variable from first face-to-face ICU-team contact to 1 hour after ICU arrival, not the worst. Pupils count only when both are larger than 3 mm and fixed to bright light; a drug, toxin or direct eye-injury explanation does not count. Ventilated in the first hour covers invasive ventilation, mask or nasal CPAP, BiPAP and negative-pressure ventilation. A tracheostomy breathing spontaneously without support is no, which is an ANZPIC Registry data-entry convention (January 2019 booklet) rather than a rule in the paper, and the paper is silent on the case. Elective means the admission could have been deferred by more than 6 hours without harm. Each of the three diagnosis-tier lists is complete as published and applies to the main reason for admission; if you are unsure, record none. " +
+      "MEASUREMENT WINDOW AND CODING. Use the FIRST value of each variable from first face-to-face ICU-team contact to 1 hour after ICU arrival, not the worst. Pupils count only when both are larger than 3 mm and fixed to bright light; a drug, toxin or direct eye-injury explanation does not count. Ventilated in the first hour covers invasive ventilation, mask or nasal CPAP, BiPAP and negative-pressure ventilation. A tracheostomy breathing spontaneously without support is no, which is an ANZPIC Registry data-entry convention (January 2019 booklet) rather than a rule in the paper, and the paper is silent on the case. Elective means the admission could have been deferred by more than 6 hours without harm. Each of the three diagnosis-tier lists is complete as published and applies to the main reason for admission; if you are unsure, record none. Where a condition from more than one tier applies, the model applies the highest tier only. " +
       "POST-LIVER-TRANSPLANT ADMISSIONS ARE CODED OPPOSITELY BY THE TWO CUSTODIAN REGISTRIES. ANZPICR excludes planned post-transplant recovery from liver failure; PICANet includes it. This score follows ANZPICR, the stricter reading. Both agree that a readmission for graft failure qualifies. " +
       "AGE. Read the model as applying to children younger than 16. The paper CONTRADICTS itself here, its abstract saying younger than 18 and its inclusion criteria younger than 16, and the contradiction is in the source rather than resolved here. " +
       "CALIBRATION TRAVELS FAR WORSE THAN DISCRIMINATION. Italy AUC 0.88 with SMR 0.98; Argentina 0.83 with SMR 1.3; South Africa 0.81 with SMR 1.28, its highest SMR of 6.67 falling in the LOWEST-risk decile. The Gulf has its own evidence. Dubai (n = 583): AUC 0.78 with an overall SMR of 0.53, yet SMR 2.1 in SEPSIS, an under-prediction inside an over-predicting unit, and that sepsis signal is the finding that survives its own paper. Riyadh (n = 3,396): sufficient discrimination, poor calibration, worst in infants under 12 months. Newborns are systematically over-predicted, sitting below the SBP nadir, and haemato-oncology admissions are under-predicted, observed mortality 18.73% against 7.13% predicted. Recalibrate and monitor locally before comparative use. " +

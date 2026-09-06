@@ -109,7 +109,11 @@ export const burnResuscitation = defineScore({
   id: "burn-resuscitation",
   slug: "burn-resuscitation",
   name: "Pediatric burn fluid resuscitation (Parkland / modified Brooke)",
-  version: "1.0.0",
+  tagline: defineText(
+    "burn.tagline",
+    "24-hour crystalloid volume and hourly rates after a burn, from weight and %TBSA",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -312,6 +316,13 @@ export const burnResuscitation = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

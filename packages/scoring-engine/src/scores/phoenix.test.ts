@@ -1192,10 +1192,10 @@ describeScore(phoenix, (ctx) => {
     // High flow is decided at the field, so it belongs on the field too.
     const help = (id: string) => phoenix.inputs.find((i) => i.id === id)?.helpText?.en ?? "";
     expect(help("resp_support"), "high flow is the case the reader is deciding").toContain(
-      "High-flow nasal cannula counts as support here",
+      "High-flow nasal cannula counts as support",
     );
     expect(help("resp_support"), "and the FiO₂ contradiction belongs where it is entered").toMatch(
-      /entering an FiO₂ above 0\.21 alongside 'no respiratory support' is contradictory/,
+      /an FiO₂ above 0\.21 with 'no respiratory support' is contradictory/,
     );
     // The option label itself must name high flow — a reader picking from three
     // options should not have to open the help text to learn it belongs there.

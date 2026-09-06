@@ -19,7 +19,11 @@ export const bsaMosteller = defineScore({
   id: "bsa-mosteller",
   slug: "bsa-mosteller",
   name: "Body surface area (Mosteller)",
-  version: "1.0.0",
+  tagline: defineText(
+    "bsa.tagline",
+    "Body surface area from height and weight, for mg/m² dosing and cardiac index",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "general",
   inputs: [
@@ -91,6 +95,13 @@ export const bsaMosteller = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

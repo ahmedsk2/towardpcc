@@ -23,7 +23,11 @@ export const vis = defineScore({
   id: "vis",
   slug: "vis",
   name: "Vasoactive-Inotropic Score (VIS)",
-  version: "1.0.0",
+  tagline: defineText(
+    "vis.tagline",
+    "Vasoactive and inotropic support summed into one number, six drugs",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "fluids-resuscitation",
   inputs: [
@@ -180,6 +184,13 @@ export const vis = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

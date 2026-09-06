@@ -128,7 +128,11 @@ export const pelod2 = defineScore({
   id: "pelod2",
   slug: "pelod2",
   name: "PELOD-2 (Pediatric Logistic Organ Dysfunction-2)",
-  version: "1.0.0",
+  tagline: defineText(
+    "pelod2.tagline",
+    "Organ dysfunction severity across five systems, with predicted in-hospital mortality",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -345,6 +349,13 @@ export const pelod2 = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

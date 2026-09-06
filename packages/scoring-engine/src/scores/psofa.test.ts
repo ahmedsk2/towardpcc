@@ -840,7 +840,7 @@ describeScore(psofa, (ctx) => {
       "Invasive or non-invasive support both count",
     );
     expect(help("resp_support"), "and that this is our reading of an undefined term").toContain(
-      "this calculator's reading rather than the paper's",
+      "this calculator's reading, not the paper's",
     );
     expect(help("resp_support"), "the field must not re-narrow the gate either").not.toMatch(
       /mechanical[ -]ventilation/i,

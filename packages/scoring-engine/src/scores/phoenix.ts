@@ -81,7 +81,11 @@ export const phoenix = defineScore({
   id: "phoenix",
   slug: "phoenix",
   name: "Phoenix Sepsis Score",
-  version: "1.1.0",
+  tagline: defineText(
+    "phoenix.tagline",
+    "The 2024 sepsis criteria for children, scored across four organ systems",
+  ),
+  version: "1.1.1",
   status: "published",
   category: "sepsis",
   inputs: [
@@ -150,7 +154,7 @@ export const phoenix = defineScore({
       ],
       helpText: defineText(
         "phoenix.resp_support.help",
-        "The 1-point tier needs any support; the 2- and 3-point tiers need invasive mechanical ventilation. A low ratio with no support scores 0. High-flow nasal cannula counts as support here — Phoenix includes it explicitly — while PICANet and ANZPIC both exclude high flow from the ventilation field they collect, so the same child reads as supported on this score and as not ventilated in either registry. Answer from what the child is actually on: entering an FiO₂ above 0.21 alongside 'no respiratory support' is contradictory, and the task force's own extraction code would treat that FiO₂ as support where this calculator takes the answer given.",
+        "The 1-point tier needs any support; the 2- and 3-point tiers need invasive mechanical ventilation. A low ratio with no support scores 0. High-flow nasal cannula counts as support — Phoenix includes it explicitly, although PICANet and ANZPIC exclude it from their ventilation field. Answer from what the child is actually on: an FiO₂ above 0.21 with 'no respiratory support' is contradictory, and this calculator takes the answer given.",
       ),
     },
     {
@@ -438,6 +442,13 @@ export const phoenix = defineScore({
       reason: "clarification",
       summary:
         "Says so when an SpO₂ above 97% is entered with no PaO₂. The SpO₂:FiO₂ ratio saturates above 97%, so the value is accepted and then discarded and the respiratory subscore stays 0 — with the field FILLED, which the form's partial-entry cue cannot see, because it watches for blanks. The number is unchanged; what is new is that the result now says why it is 0 and names the field, beside the subscore and beside the input. Found on 2026-09-03 by an audit of the text-condensing pass, which had removed the one sentence that disclosed it.",
+    },
+    {
+      version: "1.1.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card and shortened field guidance to fit an info toggle. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

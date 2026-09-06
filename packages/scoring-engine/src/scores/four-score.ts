@@ -43,7 +43,11 @@ export const fourScore = defineScore({
   id: "four-score",
   slug: "four-score",
   name: "FOUR score (Full Outline of UnResponsiveness)",
-  version: "1.1.0",
+  tagline: defineText(
+    "four.tagline",
+    "Coma assessment that stays complete in an intubated patient",
+  ),
+  version: "1.1.1",
   status: "published",
   category: "general",
   inputs: [
@@ -183,7 +187,7 @@ export const fourScore = defineScore({
       type: "categorical",
       helpText: defineText(
         "four.respiration.help",
-        "THE SPLIT IS INTUBATION, NOT VENTILATOR SUPPORT. The top three levels describe the breathing pattern of a patient who is not intubated — including one on mask CPAP, BiPAP or high-flow, all of which still score on rhythm alone. The bottom two describe how an intubated patient interacts with the set rate. An intubated patient therefore cannot score above 1 here, capping their total at 13.",
+        "The split is intubation, not ventilator support. The top three levels describe an unintubated patient's breathing pattern — including on mask CPAP, BiPAP or high-flow, which still score on rhythm alone. The bottom two describe how an intubated patient interacts with the set rate, so an intubated patient cannot score above 1, capping the total at 13.",
       ),
       options: [
         {
@@ -318,6 +322,13 @@ export const fourScore = defineScore({
       reason: "formula-correction",
       summary:
         "Corrects three option labels that had drifted from the published instrument, each worth points on a scale where low is worse. RESPIRATION now splits on INTUBATION rather than on ventilator support, which is what the source splits on: a child on mask CPAP, BiPAP or high-flow is not intubated and is scored on breathing rhythm alone, where the old wording sent them to level 1 and cost up to three points. The mirror ran the other way, letting an intubated patient on a T-piece reach 16 where the instrument allows 13. MOTOR level 2 now covers any flexion response to pain, pulling away from it as well as the decorticate pattern; this scale collapses what the Glasgow Coma Scale separates, and naming only decorticate flexion left a child who withdraws without localising matching no level, so raters reached for level 3 and scored a point high. EYE level 4 now counts eyes OPENED by the examiner, not only eyes already open, so lids held shut by periorbital swelling no longer put the top level out of reach. Every label remains this project own paraphrase rather than the source descriptors. Found 2026-09-03 by an independent recompute of every calculator against its published source.",
+    },
+    {
+      version: "1.1.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card and shortened field guidance to fit an info toggle. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

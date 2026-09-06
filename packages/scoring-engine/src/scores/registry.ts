@@ -72,10 +72,11 @@ export function listScores(
         (filter?.category === undefined || s.category === filter.category) &&
         (filter?.status === undefined || s.status === filter.status),
     )
-    .map(({ id, slug, name, version, status, category }) => ({
+    .map(({ id, slug, name, tagline, version, status, category }) => ({
       id,
       slug,
       name,
+      tagline,
       version,
       status,
       category,

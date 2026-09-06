@@ -210,7 +210,11 @@ export const prism = defineScore({
   id: "prism",
   slug: "prism",
   name: "Pediatric Risk of Mortality (PRISM III and PRISM IV)",
-  version: "1.0.0",
+  tagline: defineText(
+    "prism.tagline",
+    "Physiologic severity in the first hours of PICU care, with PRISM IV mortality",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "mortality-severity",
   // Every laboratory component is optional and a blank one scores zero, so a
@@ -291,7 +295,7 @@ export const prism = defineScore({
       ],
       helpText: defineText(
         "prism.window.help",
-        'CHOOSE BY THE DATA YOU HAVE, NOT BY THE OUTPUT YOU WANT. The two options are two models with two different collection periods, and each is only valid on the data it was built for. Scoring a 12-hour dataset as PRISM IV does not give you a probability for that patient; it gives you a probability computed from variables gathered over the wrong period. WHAT TO COLLECT, AND OVER WHAT PERIOD — this is the part that changes your answer. Enter the single most abnormal value reached inside the period for each variable: the lowest, the highest, or both where a row asks for both. PRISM IV — FIRST 4 HOURS: physiologic variables from the first 4 hours of PICU care ONLY, and laboratory variables from 2 hours BEFORE PICU admission through the first 4 hours. The two halves have different windows and the laboratory one starts before the child arrives — a gas or a chemistry drawn in the referring unit two hours out counts, while a blood pressure from the same moment does not. That split is the authors’ own (Pollack 2013, the ideal-time-interval study) and is exactly how their CPCCRN calculator states it. PRISM III — FIRST 12 OR 24 HOURS: the most abnormal value for each variable within the period you collected, whether that was the first 12 hours of PICU care or the first 24. THE 12- AND 24-HOUR COLLECTIONS ARE ONE OPTION HERE, and it is worth knowing why rather than assuming a field was lost. The SCORE is computed identically for both — same seventeen variables, same age bands, same cut-points — so no choice you could make between them would change a number on this page. What the published literature separates as PRISM III-12 and PRISM III-24 are two MORTALITY MODELS, with different coefficients and different calibration, and this platform ships neither: those equations are not in the source article and are separately licensed. Offering a choice whose only consequence has been removed would suggest the choice still does something. BUT THE PERIOD YOU COLLECTED STILL MATTERS TO HOW THE NUMBER READS. A longer period usually produces a HIGHER score, because it catches more extreme values, never because the arithmetic differs — so a PRISM III collected over 24 hours and one collected over 12 are not directly comparable, and a series should hold the period constant. Record which you used alongside the score if that comparison matters to you. WHAT THE CHOICE DECIDES is whether a mortality estimate can be shown. PRISM IV’s equation is published in full and is shown here, and it produces a probability only once all four admission-context questions have been answered — leave any of them blank and the score still appears while the probability is withheld, because a blank is not an answer of "no". PRISM III gives the score and its two subscores and no probability, because its mortality equations are not published in the source article and are separately licensed. The four admission-context questions belong to PRISM IV alone, so they are asked ONLY when PRISM IV is selected and are not shown at all under PRISM III — they are not hidden answers being ignored, they are questions with no destination there.',
+        "Choose by the data collected, not the output wanted; enter each variable's most abnormal value in the period. PRISM IV: physiology from the first 4 PICU hours; labs from 2 hours before admission to 4 hours after (Pollack 2013). PRISM III: the first 12 or 24 hours, scored identically; a longer period scores higher, so keep one per series. PRISM IV alone gives a probability, after its four admission questions.",
       ),
     },
     {
@@ -505,7 +509,7 @@ export const prism = defineScore({
       max: 25,
       helpText: defineText(
         "prism.creat.help",
-        "Age-banded; infant and child share one cutoff. Scores 2 above 0.85 mg/dL (neonate), 0.9 (infant and child) or 1.3 (adolescent) — approximately 75, 80 and 115 µmol/L. The comparison is made in mg/dL after conversion, and a value entered in µmol/L is rounded to 2 decimal places on the way, so a µmol reading sitting exactly on a cutoff (115 µmol/L becomes 1.30 mg/dL) does not score, while 1.301 mg/dL entered directly does. The published SI columns are themselves rounded, so treat either unit as a knife-edge at the boundary rather than as an exact equivalence.",
+        "Age-banded; infant and child share one cutoff. Scores 2 above 0.85 mg/dL (neonate), 0.9 (infant and child) or 1.3 (adolescent) — about 75, 80 and 115 µmol/L. The comparison is made in mg/dL after conversion, rounded to 2 decimal places, so 115 µmol/L (1.30 mg/dL) does not score while 1.301 mg/dL entered directly does. Treat either unit as a knife-edge at the boundary.",
       ),
     },
     {
@@ -968,7 +972,8 @@ export const prism = defineScore({
     "PRISM is a case-mix and benchmarking instrument for groups of patients, not a bedside prognosis for the child in front of you. " +
       "PRISM III shows no probability because Pollack 1996 prints the full score sheet and no regression coefficients, and the author note reserves the mortality equations for research use. The authors’ own network (CPCCRN) ships a score-only PRISM III calculator, which this implementation matches. PRISM IV’s coefficients, by contrast, were published with the stated objective of placing the algorithm in the public domain (Pollack 2016). " +
       "Regional calibration. In the largest Saudi cohort (Riyadh, n = 4,019 admissions) PRISM III under-predicted death: SMR 2.61 overall, 3.96 in infants of 12 months and under, and 1.52 after excluding DNR patients, with AUC 0.81. Discrimination travels between populations; calibration frequently does not. Use the score for severity and case-mix description, and treat any PRISM mortality probability as uncalibrated for this region until it has been locally recalibrated. These evaluations cover PRISM III, not PRISM IV. " +
-      "Known source defects, handled explicitly. The patent’s neonate heart-rate band appears to carry an OCR error, printing 215-255 against a >225 cutoff; 215 to 225 is used here, following an independent reproduction. The glucose row prints 200 mg/dL and 11.0 mmol/L as if equivalent, and the mg/dL limb is authoritative: 200 mg/dL is 11.1 mmol/L. [NEEDS SOURCE]: no published worked example exists for either model, so the test fixtures were constructed from the threshold table, and round-trip reconciliation against the CPCCRN calculators is pending.",
+      "Known source defects, handled explicitly. The patent’s neonate heart-rate band appears to carry an OCR error, printing 215-255 against a >225 cutoff; 215 to 225 is used here, following an independent reproduction. The glucose row prints 200 mg/dL and 11.0 mmol/L as if equivalent, and the mg/dL limb is authoritative: 200 mg/dL is 11.1 mmol/L. [NEEDS SOURCE]: no published worked example exists for either model, so the test fixtures were constructed from the threshold table, and round-trip reconciliation against the CPCCRN calculators is pending. " +
+      "The PRISM IV laboratory window starts 2 hours before PICU admission while its physiologic window starts at admission, so a referring-unit gas or chemistry from two hours out counts and a blood pressure from that same moment does not (Pollack 2013). The 12- and 24-hour collections are one option because PRISM III scores identically for both; the two separately calibrated PRISM III mortality models are not in the source article and are separately licensed. A longer collection usually yields a higher score, so a series should hold the period constant and record which was used. The PRISM IV probability is withheld while any of its four admission-context questions is blank, because a blank is not an answer of “no”, and those four questions are shown only under PRISM IV.",
   ),
   references: [
     {
@@ -1036,6 +1041,13 @@ export const prism = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card and shortened field guidance to fit an info toggle. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
 });

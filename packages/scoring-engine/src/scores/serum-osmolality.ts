@@ -47,7 +47,11 @@ export const serumOsmolality = defineScore({
   id: "serum-osmolality",
   slug: "serum-osmolality",
   name: "Serum osmolality (calculated) and osmolar gap",
-  version: "1.0.0",
+  tagline: defineText(
+    "osm.tagline",
+    "Calculated osmolality and the osmolar gap, with ethanol accounted for",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -262,6 +266,13 @@ export const serumOsmolality = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

@@ -161,7 +161,11 @@ export const psofa = defineScore({
   id: "psofa",
   slug: "psofa",
   name: "pSOFA (Pediatric SOFA)",
-  version: "1.1.0",
+  tagline: defineText(
+    "psofa.tagline",
+    "Sequential organ failure assessment adapted for children, six organ subscores",
+  ),
+  version: "1.1.1",
   status: "published",
   category: "organ-dysfunction",
   inputs: [
@@ -264,7 +268,7 @@ export const psofa = defineScore({
       type: "boolean",
       helpText: defineText(
         "psofa.resp_support.help",
-        "Invasive or non-invasive support both count here. Table 1 gates respiratory subscores 3–4 on being on respiratory support and never says what counts as support, so treating non-invasive support as sufficient is this calculator's reading rather than the paper's. Without support the respiratory subscore is capped at 2. High-flow nasal cannula falls inside that broad reading and counts here — worth knowing because the major paediatric registries go the other way: PICANet and ANZPIC both exclude high flow from the ventilation field they collect, so the same child counts as supported on this score and as not ventilated in either registry.",
+        "Invasive or non-invasive support both count. Table 1 gates respiratory subscores 3–4 on being on respiratory support without defining it, so counting non-invasive support is this calculator's reading, not the paper's. Without support the respiratory subscore is capped at 2. High-flow nasal cannula counts here, although PICANet and ANZPIC exclude it from their ventilation field, so the same child reads as supported here and not ventilated there.",
       ),
     },
     {
@@ -487,6 +491,13 @@ export const psofa = defineScore({
       reason: "clarification",
       summary:
         "Says so when an SpO₂ above 97% is entered with no PaO₂. The SpO₂:FiO₂ ratio saturates above 97%, so the value is accepted and then discarded and the respiratory subscore stays 0 — with the field FILLED, which the form's partial-entry cue cannot see, because it watches for blanks. The number is unchanged; what is new is that the result now says why it is 0 and names the field, beside the subscore and beside the input. Found on 2026-09-03 by an audit of the text-condensing pass, which had removed the one sentence that disclosed it.",
+    },
+    {
+      version: "1.1.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card and shortened field guidance to fit an info toggle. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

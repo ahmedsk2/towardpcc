@@ -33,7 +33,11 @@ export const anionGap = defineScore({
   id: "anion-gap",
   slug: "anion-gap",
   name: "Anion gap (with albumin correction)",
-  version: "1.0.0",
+  tagline: defineText(
+    "ag.tagline",
+    "Anion gap from electrolytes, with an albumin-corrected value for hypoalbuminaemia",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -146,6 +150,13 @@ export const anionGap = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {
