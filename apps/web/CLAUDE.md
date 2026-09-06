@@ -124,6 +124,21 @@ retry button has no focus outline at all; and browser-metadata values
 - **One focus idiom only** — `outline-2`, `outline-offset-2`, `outline-accent`,
   all under `focus-visible:` (accent-bright on dark surfaces). There is
   deliberately no ring token, so no second idiom can appear.
+- **Every button and button-shaped link takes `buttonClasses()` from
+  `@towardpcc/ui`** — pill in every variant, primary on `--gradient-cta`.
+  `content/button-idiom.test.ts` scans `app/` and `components/` for a
+  hand-rolled primary fill and fails the suite on one; its single named
+  exception is the catalogue's selected filter chip. `cn` is a plain join, so
+  a className passed in ADDS and never overrides — for a display or breakpoint
+  change wrap the element (the header CTA rendered on phones and every page
+  scrolled 126px sideways at 320px until it did, 2026-09-06).
+- **Field guidance is rendered by `components/calculator/field-help.tsx`** and
+  must stay the input's `aria-describedby` target while visually collapsed: a
+  screen reader hears the full text; a sighted reader hovers or pins the ⓘ.
+  The label row is the tooltip's positioning context and the pinned copy is a
+  full-width wrapping sibling — measured at 375px, not assumed. The accepted
+  range lives in the placeholder while a field is empty and as a caption once
+  a value is present or rejected.
 - Contrast is a CI gate: `tokens.test.ts` parses the shipped CSS and fails if
   body ink drops below 7:1 on page/raised, or any listed pairing below 4.5:1.
 

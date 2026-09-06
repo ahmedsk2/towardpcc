@@ -337,3 +337,30 @@ so ordering is asserted separately from banding, on each surface.
 the tier.** That is what having three of them buys. Knockout borders on dark
 bands are the exception and use `ring-`, which is a box-shadow: it paints
 outside the box and takes part in no layout.
+
+## Part 6 — one button family, status as text (2026-09-06)
+
+- Status: **accepted** — the founder chose "pill everywhere, with a colour
+  gradient and a hover effect" on the 2026-09-06 proposal board, and the marks
+  that read as generated went on the design lead's judgement.
+- Spec: `docs/superpowers/specs/2026-09-06-design-revision-design.md`; plan:
+  `docs/superpowers/plans/2026-09-06-design-revision-plan.md`.
+
+Buttons are one family, pill shaped, from `packages/ui/src/button.tsx`
+(`buttonClasses()`), and the primary fill is `--gradient-cta`, bounded to the
+contrast-cleared crimsons (accent → accent-deep; white text 5.36:1 and 9.05:1).
+`--gradient-accent` (crimson → coral) is a surface gradient and never a button
+fill: white on coral is 2.55:1. `apps/web/content/button-idiom.test.ts` fails
+the suite if the primary recipe is hand-rolled anywhere under `app/` or
+`components/`; its one named exception is the catalogue's selected filter chip,
+a toggle. `cn` is a plain join, so a className passed to `buttonClasses()` adds
+and never overrides — a display or breakpoint change goes on a wrapper.
+
+Status is stated as text where it qualifies a public claim ("Piloting") and
+never as a pill with a dot. The hero status pill, the stat trio, the four
+icon-chip feature cards and the "25 LIVE" catalogue chips were removed in the
+same revision; the figures they carried remain in the counter band, derived
+from the registry. Field guidance on the calculator page sits behind an ⓘ
+(motion.md revision 5) and every help text is capped at 70 words by
+`packages/scoring-engine/src/scores/registry-text.test.ts`, which also holds
+each score's one-line `tagline`.
