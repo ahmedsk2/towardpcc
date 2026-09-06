@@ -108,7 +108,7 @@ test.describe("TM-001 calculator privacy invariant (runtime)", () => {
     await page.locator("#field-cl").fill("101");
     await page.locator("#field-hco3").fill("22");
 
-    await page.getByRole("button", { name: /copy link with these values/i }).click();
+    await page.getByRole("button", { name: /^copy link$/i }).click();
 
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     expect(copied).toContain("/calculators/anion-gap#");
