@@ -1,56 +1,59 @@
 export interface FormulaLine {
-  /** The clause label, e.g. "Neurologic"; undefined for the lead-in sentence. */
+  /** The clause label, e.g. "Neurologic"; undefined for the lead-in and closing lines. */
   readonly label?: string;
   readonly text: string;
 }
 
 /**
- * Lays out a formula paragraph as labelled lines when the prose itself
- * carries clause labels — "Neurologic: …", "Cardiovascular: …" — and leaves
- * it alone otherwise. It never changes a word: the test reassembles the
- * lines and compares them to the source. A label is a run of 2–28 letters,
- * digits, spaces, slashes or subscripts starting with a capital, at the start
- * of a sentence, followed by a colon and a space.
+ * WHICH FORMULAS ARE LAID OUT AS LABELLED LINES, decided per score by reading
+ * the prose — not by a heuristic. The first cut split any formula carrying two
+ * or more "Label: " clauses, and a review caught what that does to text after
+ * the LAST label: PELOD-2's closing sentence about its second output sat under
+ * "Haematologic" as if it were part of that system. The words were unchanged;
+ * the attribution was wrong, and on a formula panel attribution is the point.
+ *
+ * So each listed score says where its labelled zone ends. `closingFrom` is the
+ * start of the sentence that belongs to the whole formula again; everything
+ * from it renders as an unlabelled closing line. A score not listed here keeps
+ * its paragraph, whatever its prose looks like.
  */
+const LISTED: Readonly<Record<string, { readonly closingFrom?: string }>> = {
+  pelod2: { closingFrom: "A second output" },
+  "kdigo-aki": {},
+};
+
+/** A clause label: a capitalised run of up to 28 characters at the start of a sentence, then ": ". */
 const LABEL = /(?:^|(?<=[.;] ))([A-Z][A-Za-z0-9₀-₉/ –-]{1,27}): /g;
 
-export function formulaLines(text: string): FormulaLine[] | null {
-  const matches = [...text.matchAll(LABEL)];
+/**
+ * Lays out a listed score's formula as a lead-in, labelled lines and an
+ * optional closing line. It never changes a word — the test reassembles the
+ * lines and compares them to the source. Returns null for a score that is not
+ * listed, or whose prose no longer carries two labels (so a rewrite of the
+ * text cannot silently produce a one-line "list").
+ */
+export function formulaLines(slug: string, text: string): FormulaLine[] | null {
+  const entry = LISTED[slug];
+  if (!entry) return null;
+
+  const closingAt = entry.closingFrom ? text.indexOf(entry.closingFrom) : -1;
+  if (entry.closingFrom && closingAt < 0) {
+    throw new Error(`${slug}: formula no longer contains "${entry.closingFrom}"`);
+  }
+  const body = closingAt >= 0 ? text.slice(0, closingAt) : text;
+  const closing = closingAt >= 0 ? text.slice(closingAt).trim() : "";
+
+  const matches = [...body.matchAll(LABEL)];
   if (matches.length < 2) return null;
+
   const lines: FormulaLine[] = [];
-  let cursor = 0;
-  for (const m of matches) {
-    const start = m.index ?? 0;
-    const before = text.slice(cursor, start).trim();
-    if (before) {
-      if (lines.length === 0) lines.push({ text: before });
-      else
-        lines[lines.length - 1] = {
-          ...lines[lines.length - 1]!,
-          text: `${lines[lines.length - 1]!.text} ${before}`.trim(),
-        };
-    }
-    cursor = start + m[0].length;
-    lines.push({ label: m[1]!, text: "" });
-  }
-  const tail = text.slice(cursor).trim();
-  if (tail)
-    lines[lines.length - 1] = {
-      ...lines[lines.length - 1]!,
-      text: `${lines[lines.length - 1]!.text} ${tail}`.trim(),
-    };
-  // Fill each labelled line's text with what sits between it and the next label.
-  let idx = 0;
-  const out: FormulaLine[] = [];
-  for (const line of lines) {
-    if (line.label === undefined) {
-      out.push(line);
-      continue;
-    }
-    const start = (matches[idx]!.index ?? 0) + matches[idx]![0].length;
-    const end = idx + 1 < matches.length ? (matches[idx + 1]!.index ?? text.length) : text.length;
-    out.push({ label: line.label, text: text.slice(start, end).trim() });
-    idx++;
-  }
-  return out;
+  const lead = body.slice(0, matches[0]!.index ?? 0).trim();
+  if (lead) lines.push({ text: lead });
+  matches.forEach((m, i) => {
+    const start = (m.index ?? 0) + m[0].length;
+    const end = i + 1 < matches.length ? (matches[i + 1]!.index ?? body.length) : body.length;
+    lines.push({ label: m[1]!, text: body.slice(start, end).trim() });
+  });
+  if (closing) lines.push({ text: closing });
+  return lines;
 }

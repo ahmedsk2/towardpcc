@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect } from "react";
 import { cn } from "@towardpcc/ui";
 
 /**
@@ -19,46 +19,39 @@ import { cn } from "@towardpcc/ui";
  *   has a designed path rather than relying on the hover variant firing on
  *   touch. Escape, a second click, or pinning another field unpins it.
  *
- * The pinned state is component state, never the URL. Print keeps it hidden:
- * a printed record wants the chosen values, not the guidance.
+ * CONTROLLED, NOT SELF-OWNED. Which field is pinned is form state
+ * (`pinnedHelp` in calculator-form.tsx), passed down as `pinned`, so "one at a
+ * time" is a fact about one piece of state rather than a protocol between
+ * siblings — the first cut coordinated fields through a document-level event,
+ * which a review pointed out could leave two fields pinned when two pins
+ * landed in one tick, and would cross between two forms on one page. Never
+ * the URL. Print keeps the guidance hidden: a printed record wants the chosen
+ * values, not the guidance.
  */
 export function FieldHelp({
   helpId,
   label,
   text,
+  pinned,
+  onPinChange,
   className,
 }: {
   /** The id the input's aria-describedby already points at. */
   helpId: string;
   label: string;
   text: string;
+  pinned: boolean;
+  onPinChange: (pinned: boolean) => void;
   className?: string | undefined;
 }) {
-  const [pinned, setPinned] = useState(false);
-  const buttonId = useId();
-
   useEffect(() => {
     if (!pinned) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPinned(false);
-    };
-    // One pinned help at a time: another field's pin announces itself here.
-    const onPin = (e: Event) => {
-      if ((e as CustomEvent<string>).detail !== helpId) setPinned(false);
+      if (e.key === "Escape") onPinChange(false);
     };
     document.addEventListener("keydown", onKey);
-    document.addEventListener("tpcc:help-pinned", onPin);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("tpcc:help-pinned", onPin);
-    };
-  }, [pinned, helpId]);
-
-  const pin = () => {
-    const next = !pinned;
-    setPinned(next);
-    if (next) document.dispatchEvent(new CustomEvent("tpcc:help-pinned", { detail: helpId }));
-  };
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pinned, onPinChange]);
 
   /**
    * TWO SIBLINGS, NOT ONE WRAPPER — and the ROW is the positioning context.
@@ -80,8 +73,7 @@ export function FieldHelp({
       <span className={cn("group/help inline-flex", className)} data-print="hide">
         <button
           type="button"
-          id={buttonId}
-          onClick={pin}
+          onClick={() => onPinChange(!pinned)}
           aria-expanded={pinned}
           aria-controls={helpId}
           aria-label={`About ${label}`}

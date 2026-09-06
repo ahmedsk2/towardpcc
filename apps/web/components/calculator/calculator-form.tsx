@@ -261,6 +261,9 @@ function CalculatorFormInner({
   const declared = definition.inputs;
   const [state, setState] = useState<FieldState>(() => initialState(declared));
   const [copied, setCopied] = useState(false);
+  // Which field's guidance is pinned open, if any — one at a time, owned here
+  // rather than coordinated between fields, so it is form state like the rest.
+  const [pinnedHelp, setPinnedHelp] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
 
   // Hydrate once on mount from the fragment the inline script in `layout.tsx`
@@ -590,6 +593,7 @@ function CalculatorFormInner({
   const clearAll = useCallback(() => {
     setState(initialState(declared));
     setBlurred(new Set());
+    setPinnedHelp(null);
     setCopied(false);
     setLinkCopied(false);
     dismissCarried();
@@ -736,6 +740,8 @@ function CalculatorFormInner({
                 onChange={(patch) => setField(input.id, patch)}
                 onCommit={() => markBlurred(input.id)}
                 missingAsNormal={Boolean(definition.missingAsNormal)}
+                helpPinned={pinnedHelp === input.id}
+                onPinHelp={(on) => setPinnedHelp(on ? input.id : null)}
               />
             ))}
           </fieldset>
@@ -928,6 +934,8 @@ function InputField({
   onChange,
   onCommit,
   missingAsNormal,
+  helpPinned,
+  onPinHelp,
 }: {
   input: ScoreInput;
   field: Field;
@@ -939,14 +947,14 @@ function InputField({
   /** The user has finished with this field — see `blurred` above. */
   onCommit: () => void;
   missingAsNormal: boolean;
+  /** Whether this field's guidance is the one pinned open; the form owns it. */
+  helpPinned: boolean;
+  onPinHelp: (on: boolean) => void;
 }) {
   const id = `field-${input.id}`;
   const help = input.helpText?.en;
   const helpId = `${id}-help`;
-  const describedBy =
-    [error ? `${id}-error` : help ? helpId : null, notice ? `${id}-notice` : null]
-      .filter(Boolean)
-      .join(" ") || undefined;
+  const rangeId = `${id}-range`;
   const units = unitOptions(input);
 
   // The accepted range sits in the field itself rather than in a separate list
@@ -973,6 +981,21 @@ function InputField({
   // always-visible sentence under every empty field is gone (2026-09-06).
   const showCaption = range !== null && (field.raw !== "" || Boolean(error));
 
+  // THE DESCRIPTION IS EVERYTHING A SIGHTED READER CAN SEE ABOUT THIS FIELD:
+  // the error when there is one, else the guidance (hidden until asked for,
+  // but aria-describedby reads hidden nodes); the accepted-range caption while
+  // it is on screen; and any notice. The caption used to share the guidance
+  // paragraph and fell out of the description when the two were split — a
+  // review caught the regression before it shipped.
+  const describedBy =
+    [
+      error ? `${id}-error` : help ? helpId : null,
+      showCaption ? rangeId : null,
+      notice ? `${id}-notice` : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   // `relative`: FieldHelp anchors its tooltip to this row, and drops its
   // pinned copy into it as a full-width wrapping item. See field-help.tsx.
   const labelRow = (text: React.ReactNode, htmlFor?: string) => (
@@ -984,12 +1007,25 @@ function InputField({
       ) : (
         <span className="text-sm font-medium text-ink-strong">{text}</span>
       )}
-      {help ? <FieldHelp helpId={helpId} label={input.label.en} text={help} /> : null}
+      {help ? (
+        <FieldHelp
+          helpId={helpId}
+          label={input.label.en}
+          text={help}
+          pinned={helpPinned}
+          onPinChange={onPinHelp}
+        />
+      ) : null}
     </span>
   );
 
+  // Full `ink-muted`, no opacity modifier: `/85` composited to 4.22:1 at this
+  // size on the page ground, under the 4.5:1 AA needs, and this is the line
+  // that tells a clinician why a value was rejected. Plain ink-muted is 5.92:1.
   const caption = showCaption ? (
-    <p className="numeric text-[12px] text-ink-muted">Accepted {range}</p>
+    <p id={rangeId} className="numeric text-[12px] text-ink-muted">
+      Accepted {range}
+    </p>
   ) : null;
 
   const noticeLine = notice ? (
@@ -1142,7 +1178,15 @@ function InputField({
             </span>
           )}
         </span>
-        {help ? <FieldHelp helpId={helpId} label={input.label.en} text={help} /> : null}
+        {help ? (
+          <FieldHelp
+            helpId={helpId}
+            label={input.label.en}
+            text={help}
+            pinned={helpPinned}
+            onPinChange={onPinHelp}
+          />
+        ) : null}
       </legend>
 
       <div className={horizontal ? "grid max-w-sm grid-cols-2 gap-2" : "flex flex-col gap-2"}>

@@ -93,25 +93,29 @@ export default async function CalculatorDetailPage({
       label: c.formulaHeading,
       content: (() => {
         const text = score.formula?.en ?? "";
-        const lines = formulaLines(text);
+        const lines = formulaLines(score.slug, text);
         if (!lines) return <p className="max-w-[58ch] leading-relaxed text-ink-body">{text}</p>;
+        // Unlabelled lines are paragraphs OUTSIDE the <dl>: a `dl` may wrap
+        // its pairs in <div>s, but every such div must hold a dt and a dd, so
+        // the lead-in and the closing sentence cannot live inside it.
+        const labelled = lines.filter((l) => l.label);
+        const lead = lines[0]?.label ? null : lines[0];
+        const closing = lines.length > 1 && !lines.at(-1)?.label ? lines.at(-1) : null;
         return (
-          <dl className="grid max-w-[64ch] grid-cols-[minmax(6ch,max-content)_1fr] gap-x-4 gap-y-2 text-[15px] leading-relaxed">
-            {lines.map((l, i) =>
-              l.label ? (
-                <div key={i} className="contents">
+          <div className="flex max-w-[64ch] flex-col gap-3 text-[15px] leading-relaxed text-ink-body">
+            {lead ? <p>{lead.text}</p> : null}
+            <dl className="grid grid-cols-[minmax(6ch,max-content)_1fr] gap-x-4 gap-y-2">
+              {labelled.map((l) => (
+                <div key={l.label} className="contents">
                   <dt className="pt-0.5 font-numeric text-[12px] font-semibold tracking-[0.02em] text-accent-deep">
                     {l.label}
                   </dt>
-                  <dd className="m-0 text-ink-body">{l.text}</dd>
+                  <dd className="m-0">{l.text}</dd>
                 </div>
-              ) : (
-                <div key={i} className="col-span-2 text-ink-body">
-                  {l.text}
-                </div>
-              ),
-            )}
-          </dl>
+              ))}
+            </dl>
+            {closing ? <p>{closing.text}</p> : null}
+          </div>
         );
       })(),
     },
@@ -241,26 +245,24 @@ export default async function CalculatorDetailPage({
                 Other {c.categoryLabels[score.category].toLowerCase()} scores
               </h2>
               <ul className="mt-4 grid list-none gap-3 sm:grid-cols-2">
-                {related.map((r) => {
-                  return (
-                    <li key={r.slug}>
-                      <Link
-                        href={`/calculators/${r.slug}`}
-                        className="group flex h-full flex-col gap-1.5 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate,box-shadow] duration-[var(--motion-duration-enter)] ease-[var(--motion-ease)] hover:border-border-strong hover:shadow-xl focus-visible:border-border-strong focus-visible:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:hover:-translate-y-1 motion-reduce:transition-none"
-                      >
-                        <span className="font-display text-[15px] font-medium text-ink-strong">
-                          {shortName(r.name)}
-                        </span>
-                        {/* What the sibling is FOR, in the same one line the
+                {related.map((r) => (
+                  <li key={r.slug}>
+                    <Link
+                      href={`/calculators/${r.slug}`}
+                      className="group flex h-full flex-col gap-1.5 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate,box-shadow] duration-[var(--motion-duration-enter)] ease-[var(--motion-ease)] hover:border-border-strong hover:shadow-xl focus-visible:border-border-strong focus-visible:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:hover:-translate-y-1 motion-reduce:transition-none"
+                    >
+                      <span className="font-display text-[15px] font-medium text-ink-strong">
+                        {shortName(r.name)}
+                      </span>
+                      {/* What the sibling is FOR, in the same one line the
                             catalogue card carries, so stepping sideways is a
                             choice rather than a guess. */}
-                        <span className="text-[13px] leading-snug text-ink-muted">
-                          {r.tagline.en}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
+                      <span className="text-[13px] leading-snug text-ink-muted">
+                        {r.tagline.en}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </section>
           ) : null}

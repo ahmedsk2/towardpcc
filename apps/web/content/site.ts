@@ -1011,6 +1011,9 @@ export const site = {
     copyLinkTitle: "Builds a link carrying these values, only when you press it",
     // Validation badge (PRD §6.4 — honest pending state)
     validationPending: "Independent clinical validation: pending",
+    // The same fact in the meta line above the form, where the long form
+    // would run the line to a second row on a phone.
+    validationPendingShort: "Validation pending",
     validationPendingDetail:
       "Two independent clinical validators will be named here once review is complete.",
     validatedByPrefix: "Validated by",

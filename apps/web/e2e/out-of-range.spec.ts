@@ -52,9 +52,16 @@ test.describe("out-of-range input", () => {
     await glucose.fill("5000");
     await glucose.blur();
     await expect(glucose).toHaveAttribute("aria-invalid", "true");
-    const describedBy = await glucose.getAttribute("aria-describedby");
-    expect(describedBy, "the error must be linked, not just present").toBeTruthy();
-    await expect(page.locator(`#${describedBy}`)).toHaveAttribute("role", "alert");
+    // A space-separated list since 2026-09-07: the error AND the accepted-range
+    // caption, which is on screen whenever a value has been rejected.
+    const describedBy = (await glucose.getAttribute("aria-describedby")) ?? "";
+    const ids = describedBy.split(/\s+/).filter(Boolean);
+    const errorId = ids.find((id) => id.endsWith("-error"));
+    expect(errorId, "the error must be linked, not just present").toBeTruthy();
+    await expect(page.locator(`#${errorId}`)).toHaveAttribute("role", "alert");
+    expect(ids, "the range caption is part of the description too").toContain(
+      "field-glucose-range",
+    );
   });
 
   /**

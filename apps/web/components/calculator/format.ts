@@ -10,6 +10,23 @@ import type { InterpretationBand } from "@towardpcc/scoring-engine";
  * component.
  */
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * `2026-09-03` → `3 Sep 2026`: a date a person reads, built by hand so it is
+ * the same string on every server and never "6 Sept 2026" (en-GB's short
+ * September) or "Sep 6, 2026" (en-US's order). Anything that is not an ISO
+ * date comes back unchanged rather than as "NaN Jan": the changelog gate
+ * checks ordering, not format, so this cannot assume its input.
+ */
+export function humanDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const month = MONTHS[Number(m[2]) - 1];
+  if (!month) return iso;
+  return `${Number(m[3])} ${month} ${m[1]}`;
+}
+
 /**
  * Renders a band's numeric range exactly as the engine evaluates it.
  *

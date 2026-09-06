@@ -1,18 +1,9 @@
 import type { InterpretationBand, IpStatus, ScoreDefinition } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
-import { formatBand } from "./format";
+import { formatBand, humanDate } from "./format";
 
 const c = site.calculators;
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** `2026-09-03` → `3 Sep 2026`. Changelog dates are ISO by the engine's gate. */
-function humanDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const month = MONTHS[(m ?? 1) - 1] ?? "";
-  return `${d ?? ""} ${month} ${y ?? ""}`.trim();
-}
 
 /**
  * Metadata chips beside the heading: what this is, which version, when it was
@@ -37,7 +28,7 @@ export function TrustStrip({ score }: { score: ScoreDefinition }) {
     ...(reviewed ? [{ key: "Reviewed", value: `Reviewed ${reviewed}` }] : []),
     {
       key: "Validation",
-      value: validated ? c.validatedByPrefix.replace(/[:\s]+$/, "") : "Validation pending",
+      value: validated ? c.validatedByPrefix.replace(/[:\s]+$/, "") : c.validationPendingShort,
       className: validated ? "text-success-text" : undefined,
     },
   ];

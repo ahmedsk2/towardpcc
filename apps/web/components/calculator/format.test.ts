@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { getScore, listScores } from "@towardpcc/scoring-engine";
-import { formatBand, shortCite } from "./format";
+import { formatBand, humanDate, shortCite } from "./format";
+
+describe("humanDate", () => {
+  it("renders an ISO date as day, short month, year", () => {
+    expect(humanDate("2026-09-03")).toBe("3 Sep 2026");
+    expect(humanDate("2026-12-25")).toBe("25 Dec 2026");
+  });
+
+  it("returns anything that is not an ISO date unchanged", () => {
+    expect(humanDate("2026-13-01")).toBe("2026-13-01");
+    expect(humanDate("Sept 2026")).toBe("Sept 2026");
+    expect(humanDate("")).toBe("");
+  });
+});
 
 /**
  * The provenance line beside every result.
