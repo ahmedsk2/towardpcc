@@ -106,3 +106,15 @@ every addition here is CSS keyframes and transitions plus, at most, the existing
 one-shot `IntersectionObserver`. This is a constraint that happens to be the
 right answer anyway: the templates that prompted this ship ~180 KB of GSAP, AOS
 and jQuery to move a card 5px.
+
+---
+
+## Revision 5 — 2026-09-06: field-guidance tooltips
+
+Field help on the calculator page moved behind an ⓘ toggle
+(`components/calculator/field-help.tsx`). The tooltip it opens is chrome around
+the input, not the input: a 150 ms opacity/translate entry is permitted on it
+under the dial-3 regime, static under reduced motion. The calm boundary is
+otherwise unchanged and restated: a calculator's inputs, its computed number,
+the band scale and the composition bars get nothing beyond the 150 ms colour
+transition. The number may not move.

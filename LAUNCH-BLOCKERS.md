@@ -518,6 +518,36 @@ caption over PELOD-2's and Phoenix's age fields promised "0–216 months" while
 216 is refused; it now reads "0 to under 216 months" (#177). The review doc
 carries the detail.
 
+### Design revision — buttons, marks, catalogue, calculator text diet, 2026-09-06/07
+
+- [x] Executed in five PRs on the founder's four answers; spec and plan under
+      `docs/superpowers/`.
+
+The founder asked for a revision that keeps the palette, focuses on buttons,
+hover and motion, makes the catalogue look like a card toolkit, cuts the text
+inside calculators, and removes the marks that read as agent-generated. His
+answers on the proposal board: pill buttons on a gradient with a hover; all
+field help behind an ⓘ, condensed where too long; taglines drafted for his
+review; the marks on the design lead's judgement.
+
+Shipped: #180 one pill button family with `--gradient-cta`, the hero status
+pill, stat trio and feature strip removed, status as text, a guard on the
+primary fill; #179 a founder-approved `tagline` per score and sixteen help texts
+condensed to 70 words or fewer with a registry test holding both; #181 the
+catalogue as cards with the search in the hero; #182 the calculator page with
+field guidance behind an ⓘ, the accepted range as placeholder-then-caption, a
+one-line instrument row, a segmented reference strip and the formula as a
+labelled list; this PR the record. Standing changes: motion.md revision 5 and
+ADR-design-direction Part 6.
+
+Two things the reviews caught before merge, recorded so they stay caught: the
+header CTA rendered on phones because `cn` is a plain join (`hidden` could not
+beat the family's `inline-flex`; 126px of sideways scroll on every page at
+320px, fixed on a wrapper), and the ⓘ tooltip anchored to its button ran off a
+phone's edge and added 169px of overflow at rest (fixed by anchoring to the
+label row). Not done, by decision: the parked home page stays parked; no dark
+theme; no formula, threshold, reference or band changed.
+
 ### Images and counters — three of five parts were already done, 2026-09-03
 
 The index line read "four counter figures, a portrait, and the mission /
