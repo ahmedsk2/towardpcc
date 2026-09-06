@@ -14,8 +14,10 @@ import { fileURLToPath } from "node:url";
  */
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DIRS = ["app", "components"].map((d) => join(ROOT, d));
+// Both alternatives require whitespace or a quote right after `bg-accent`, so
+// `bg-accent-tint` and `bg-accent-deep` beside on-accent ink never match.
 const RECIPE =
-  /bg-accent(?:\s+[^"'`]*)?\s+text-ink-on-accent|text-ink-on-accent(?:\s+[^"'`]*)?\s+bg-accent\b/;
+  /bg-accent(?:\s+[^"'`]*)?\s+text-ink-on-accent|text-ink-on-accent(?:\s+[^"'`]*)?\s+bg-accent(?=[\s"'`])/;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -27,6 +29,13 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe("button idiom", () => {
+  // The same sanity check countup-scope.test.ts carries: a guard that walks
+  // an empty or wrong directory passes vacuously, and this one would then be
+  // enforcing nothing while looking green.
+  it("finds the app source", () => {
+    expect(DIRS.flatMap((d) => walk(d)).length).toBeGreaterThan(30);
+  });
+
   it("never hand-rolls the primary fill outside the ui package", () => {
     // `DIRS.flatMap(walk)` would pass flatMap's index as walk's `out` param,
     // clobbering the accumulator default — call it with one argument instead.

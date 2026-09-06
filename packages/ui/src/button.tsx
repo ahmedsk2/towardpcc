@@ -59,8 +59,11 @@ const variants: Record<ButtonVariant, string> = {
     "focus-visible:outline-accent",
   // No border, no fill at rest. The tint on hover is 1.29:1 against white,
   // visible; the ink is already accent-deep (9.05:1) so it needs no change.
+  // No lift and no glow on quiet or icon: a text action and a single glyph
+  // are subordinate controls, and lifting them would rank them with the CTA.
   quiet: "text-accent-deep hover:bg-accent-tint focus-visible:outline-accent",
-  // A 44px circle for a single glyph. Callers pass an aria-label.
+  // A 44px circle for a single glyph; give it an accessible name (aria-label
+  // or an sr-only span).
   icon:
     "border border-border-strong bg-surface-raised text-ink-muted " +
     "hover:border-accent hover:text-accent focus-visible:outline-accent",
@@ -106,7 +109,8 @@ export function buttonClasses(opts?: {
 
 /**
  * The travelling arrow for a primary or on-dark CTA. Sits inside the button
- * and moves 3px on hover via the `group/btn` on the base classes.
+ * and moves 2px on hover (`translate-x-0.5`, the same step the nav's "All"
+ * arrow already uses) via the `group/btn` on the base classes.
  */
 export const buttonArrowClasses =
   "size-3.5 transition-[translate] duration-150 ease-[var(--motion-ease)] " +
