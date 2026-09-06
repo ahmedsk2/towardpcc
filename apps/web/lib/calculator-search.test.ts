@@ -51,6 +51,10 @@ describe("calculator search", () => {
     expect(new Set(slugs("mortality").slice(0, 2))).toEqual(new Set(["pim3", "prism"]));
   });
 
+  it("finds PELOD-2 by 'in-hospital mortality', which appears only in its tagline", () => {
+    expect(slugs("in-hospital mortality")).toContain("pelod2");
+  });
+
   it("does not let a two-letter query match by substring", () => {
     // "oi" must reach the Oxygenation Index by prefix and nothing by accident.
     const r = slugs("oi");

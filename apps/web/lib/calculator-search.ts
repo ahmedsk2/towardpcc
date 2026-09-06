@@ -128,7 +128,8 @@ export function matchScores<T extends ScoreSummary>(
     (s) =>
       !seen.has(s.slug) &&
       ((ALIASES[s.slug] ?? []).some((a) => aliasHit(a, q)) ||
-        categoryLabels[s.category].toLowerCase().includes(q)),
+        categoryLabels[s.category].toLowerCase().includes(q) ||
+        (q.length >= 3 && s.tagline.en.toLowerCase().includes(q))),
   );
   return [...direct.sort(byName), ...indirect.sort(byName)];
 }

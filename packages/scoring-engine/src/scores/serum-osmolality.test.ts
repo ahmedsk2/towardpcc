@@ -498,8 +498,8 @@ describeScore(serumOsmolality, (ctx) => {
 
   it("pins the published version to the newest changelog entry", () => {
     const latest = serumOsmolality.changelog[serumOsmolality.changelog.length - 1];
-    expect(latest?.version).toBe("1.0.0");
-    expect(serumOsmolality.version).toBe("1.0.0");
+    expect(latest?.version).toBe("1.0.1");
+    expect(serumOsmolality.version).toBe("1.0.1");
     expect(serumOsmolality.version).toBe(latest?.version);
   });
 });

@@ -48,7 +48,11 @@ export const fluidBalance = defineScore({
   id: "fluid-balance",
   slug: "fluid-balance",
   name: "Percent cumulative fluid balance (fluid overload %)",
-  version: "1.0.0",
+  tagline: defineText(
+    "fb.tagline",
+    "Cumulative fluid balance as a percentage of weight, in both published forms",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "fluids-resuscitation",
   /**
@@ -85,7 +89,7 @@ export const fluidBalance = defineScore({
       max: 150,
       helpText: defineText(
         "fb.anchor.help",
-        "The reference weight both forms are measured against — most commonly the ICU admission weight, which is what the published outcome literature used. In NEONATES the common anchor is instead the birthweight during the first two postnatal weeks (ADQI). Accepts kilograms, pounds, or grams. ADQI names the choice of anchor weight an unresolved knowledge gap with no gold standard: it is the denominator, so it scales the whole result. Record which anchor you used.",
+        "The reference weight both forms divide by — usually the ICU admission weight, as in the outcome literature; in neonates, the birthweight during the first two postnatal weeks (ADQI). Accepts kilograms, pounds or grams. ADQI calls the choice of anchor an unresolved gap with no gold standard; it scales the whole result, so record which anchor you used.",
       ),
     },
     {
@@ -199,6 +203,13 @@ export const fluidBalance = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card and shortened field guidance to fit an info toggle. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

@@ -471,6 +471,6 @@ describe("pelod2 ships no interpretation bands, by decision rather than backlog"
   it("declares the version its newest changelog entry describes", () => {
     const newest = pelod2.changelog[pelod2.changelog.length - 1];
     expect(pelod2.version).toBe(newest?.version);
-    expect(pelod2.version).toBe("1.0.0");
+    expect(pelod2.version).toBe("1.0.1");
   });
 });

@@ -738,7 +738,7 @@ describe("pim3 version tracks its user-visible text", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = pim3.changelog[pim3.changelog.length - 1];
     expect(pim3.version).toBe(newest?.version);
-    expect(pim3.version).toBe("1.0.0");
+    expect(pim3.version).toBe("1.0.1");
   });
 
   it("keeps InputValues in step with the declared inputs", () => {

@@ -25,32 +25,32 @@ Shown only when the entered values make them true, beside the number they explai
 
 | Calculator | Version | Inputs | Strings | Em dashes | Caps runs |
 | --- | --- | ---: | ---: | ---: | ---: |
-| [Pediatric Risk of Mortality (PRISM III and PRISM IV)](#prism) | 1.0.0 | 26 | 94 | 18 | 45 |
-| [Paediatric Index of Mortality 3 (PIM3)](#pim3) | 1.0.0 | 11 | 60 | 16 | 10 |
-| [KDIGO AKI staging (pediatric)](#kdigo-aki) | 1.2.0 | 8 | 31 | 16 | 8 |
-| [Serum osmolality (calculated) and osmolar gap](#serum-osmolality) | 1.0.0 | 5 | 22 | 12 | 5 |
-| [Pediatric burn fluid resuscitation (Parkland / modified Brooke)](#burn-resuscitation) | 1.0.0 | 4 | 12 | 3 | 12 |
-| [FOUR score (Full Outline of UnResponsiveness)](#four-score) | 1.1.0 | 4 | 33 | 8 | 6 |
-| [Phoenix Sepsis Score](#phoenix) | 1.1.0 | 15 | 56 | 7 | 4 |
-| [Percent cumulative fluid balance (fluid overload %)](#fluid-balance) | 1.0.0 | 4 | 13 | 2 | 2 |
-| [Corrected QT interval (QTc — Bazett & Fridericia)](#qtc) | 1.0.0 | 2 | 15 | 2 | 0 |
-| [Oxygen Saturation Index (OSI)](#oxygen-saturation-index) | 1.1.0 | 3 | 15 | 2 | 0 |
-| [Pediatric Glasgow Coma Scale (pGCS)](#pediatric-gcs) | 1.0.0 | 3 | 30 | 1 | 1 |
-| [pSOFA (Pediatric SOFA)](#psofa) | 1.1.0 | 14 | 49 | 2 | 0 |
-| [Corrected sodium for hyperglycemia](#corrected-sodium) | 1.0.0 | 2 | 7 | 0 | 1 |
-| [ETT size and depth (pediatric)](#ett-size) | 1.1.0 | 1 | 5 | 0 | 1 |
-| [PELOD-2 (Pediatric Logistic Organ Dysfunction-2)](#pelod2) | 1.0.0 | 11 | 39 | 0 | 1 |
-| [SpO₂/FiO₂ ratio (S/F)](#sf-ratio) | 1.0.0 | 2 | 13 | 0 | 1 |
-| [Anion gap (with albumin correction)](#anion-gap) | 1.0.0 | 5 | 13 | 0 | 0 |
-| [APLS age-based weight estimate (pediatric)](#apls-weight) | 1.1.0 | 1 | 5 | 0 | 0 |
-| [Body surface area (Mosteller)](#bsa-mosteller) | 1.0.0 | 2 | 7 | 0 | 0 |
-| [Corrected calcium for albumin](#corrected-calcium) | 1.0.0 | 2 | 7 | 0 | 0 |
-| [Holliday-Segar maintenance fluids](#holliday-segar) | 1.0.0 | 1 | 6 | 0 | 0 |
-| [Ideal body weight (pediatric)](#ideal-body-weight) | 1.0.0 | 2 | 9 | 0 | 0 |
-| [Oxygenation Index (OI)](#oxygenation-index) | 1.1.0 | 3 | 15 | 0 | 0 |
-| [PaO₂/FiO₂ ratio (P/F)](#pf-ratio) | 1.1.0 | 2 | 15 | 0 | 0 |
-| [Vasoactive-Inotropic Score (VIS)](#vis) | 1.0.0 | 6 | 15 | 0 | 0 |
-| **Total** | | | **586** | **89** | **97** |
+| [Pediatric Risk of Mortality (PRISM III and PRISM IV)](#prism) | 1.0.1 | 26 | 94 | 9 | 35 |
+| [Serum osmolality (calculated) and osmolar gap](#serum-osmolality) | 1.0.1 | 5 | 22 | 13 | 5 |
+| [KDIGO AKI staging (pediatric)](#kdigo-aki) | 1.2.1 | 8 | 31 | 9 | 7 |
+| [Paediatric Index of Mortality 3 (PIM3)](#pim3) | 1.0.1 | 11 | 60 | 9 | 7 |
+| [Pediatric burn fluid resuscitation (Parkland / modified Brooke)](#burn-resuscitation) | 1.0.1 | 4 | 12 | 3 | 12 |
+| [FOUR score (Full Outline of UnResponsiveness)](#four-score) | 1.1.1 | 4 | 33 | 8 | 5 |
+| [Phoenix Sepsis Score](#phoenix) | 1.1.1 | 15 | 56 | 6 | 4 |
+| [Percent cumulative fluid balance (fluid overload %)](#fluid-balance) | 1.0.1 | 4 | 13 | 2 | 2 |
+| [Corrected QT interval (QTc — Bazett & Fridericia)](#qtc) | 1.0.1 | 2 | 15 | 2 | 0 |
+| [Oxygen Saturation Index (OSI)](#oxygen-saturation-index) | 1.1.1 | 3 | 15 | 2 | 0 |
+| [Pediatric Glasgow Coma Scale (pGCS)](#pediatric-gcs) | 1.0.1 | 3 | 30 | 1 | 1 |
+| [Corrected sodium for hyperglycemia](#corrected-sodium) | 1.0.1 | 2 | 7 | 0 | 1 |
+| [ETT size and depth (pediatric)](#ett-size) | 1.1.1 | 1 | 5 | 0 | 1 |
+| [PELOD-2 (Pediatric Logistic Organ Dysfunction-2)](#pelod2) | 1.0.1 | 11 | 39 | 0 | 1 |
+| [pSOFA (Pediatric SOFA)](#psofa) | 1.1.1 | 14 | 49 | 1 | 0 |
+| [SpO₂/FiO₂ ratio (S/F)](#sf-ratio) | 1.0.1 | 2 | 13 | 0 | 1 |
+| [Anion gap (with albumin correction)](#anion-gap) | 1.0.1 | 5 | 13 | 0 | 0 |
+| [APLS age-based weight estimate (pediatric)](#apls-weight) | 1.1.1 | 1 | 5 | 0 | 0 |
+| [Body surface area (Mosteller)](#bsa-mosteller) | 1.0.1 | 2 | 7 | 0 | 0 |
+| [Corrected calcium for albumin](#corrected-calcium) | 1.0.1 | 2 | 7 | 0 | 0 |
+| [Holliday-Segar maintenance fluids](#holliday-segar) | 1.0.1 | 1 | 6 | 0 | 0 |
+| [Ideal body weight (pediatric)](#ideal-body-weight) | 1.0.1 | 2 | 9 | 0 | 0 |
+| [Oxygenation Index (OI)](#oxygenation-index) | 1.1.1 | 3 | 15 | 0 | 0 |
+| [PaO₂/FiO₂ ratio (P/F)](#pf-ratio) | 1.1.1 | 2 | 15 | 0 | 0 |
+| [Vasoactive-Inotropic Score (VIS)](#vis) | 1.0.1 | 6 | 15 | 0 | 0 |
+| **Total** | | | **586** | **65** | **82** |
 
 ---
 
@@ -58,7 +58,7 @@ Shown only when the entered values make them true, beside the number they explai
 
 <a id="anion-gap"></a>
 
-`anion-gap` · v1.0.0 · published · renal-metabolic
+`anion-gap` · v1.0.1 · published · renal-metabolic
 
 ### Inputs
 
@@ -102,7 +102,7 @@ No interpretation bands are emitted. Reference intervals are strongly method-dep
 
 <a id="apls-weight"></a>
 
-`apls-weight` · v1.1.0 · published · general
+`apls-weight` · v1.1.1 · published · general
 
 ### Inputs
 
@@ -142,7 +142,7 @@ A population point estimate for use only when weighing is impossible. A measured
 
 <a id="bsa-mosteller"></a>
 
-`bsa-mosteller` · v1.0.0 · published · general
+`bsa-mosteller` · v1.0.1 · published · general
 
 ### Inputs
 
@@ -184,7 +184,7 @@ BSA is a body-size scalar consumed by downstream calculations such as mg/m² dos
 
 <a id="corrected-calcium"></a>
 
-`corrected-calcium` · v1.0.0 · published · renal-metabolic
+`corrected-calcium` · v1.0.1 · published · renal-metabolic
 
 ### Inputs
 
@@ -221,7 +221,7 @@ No bands: read the result against the age-specific paediatric total-calcium refe
 
 <a id="qtc"></a>
 
-`qtc` · v1.0.0 · published · general
+`qtc` · v1.0.1 · published · general
 
 ### Inputs
 
@@ -265,7 +265,7 @@ The bands are applied to the Bazett value only, because the pediatric thresholds
 
 <a id="corrected-sodium"></a>
 
-`corrected-sodium` · v1.0.0 · published · renal-metabolic
+`corrected-sodium` · v1.0.1 · published · renal-metabolic
 
 ### Inputs
 
@@ -302,7 +302,7 @@ A corrected lab value read against the ordinary sodium reference frame, so there
 
 <a id="ett-size"></a>
 
-`ett-size` · v1.1.0 · published · airway-equipment
+`ett-size` · v1.1.1 · published · airway-equipment
 
 ### Inputs
 
@@ -344,7 +344,7 @@ Scope is age 1 to 12 years, with the lower bound enforced: below 1 year these fo
 
 <a id="four-score"></a>
 
-`four-score` · v1.1.0 · published · general · interpretation not-applicable
+`four-score` · v1.1.1 · published · general · interpretation not-applicable
 
 ### Inputs
 
@@ -375,7 +375,7 @@ Scope is age 1 to 12 years, with the lower bound enforced: below 1 year these fo
   - _Not intubated, and breathing in an irregular rhythm (2)_
   - _Intubated, and triggering breaths above the ventilator's set rate (1)_
   - _Intubated with no breaths beyond the set rate, or apnoeic (0)_
-  - Help: THE SPLIT IS INTUBATION, NOT VENTILATOR SUPPORT. The top three levels describe the breathing pattern of a patient who is not intubated — including one on mask CPAP, BiPAP or high-flow, all of which still score on rhythm alone. The bottom two describe how an intubated patient interacts with the set rate. An intubated patient therefore cannot score above 1 here, capping their total at 13.
+  - Help: The split is intubation, not ventilator support. The top three levels describe an unintubated patient's breathing pattern — including on mask CPAP, BiPAP or high-flow, which still score on rhythm alone. The bottom two describe how an intubated patient interacts with the set rate, so an intubated patient cannot score above 1, capping the total at 13.
 
 ### Composition
 
@@ -433,7 +433,7 @@ STRUCTURAL CEILINGS, BUILT INTO THE INSTRUMENT. An INTUBATED patient can score a
 
 <a id="holliday-segar"></a>
 
-`holliday-segar` · v1.0.0 · published · fluids-resuscitation · interpretation not-applicable
+`holliday-segar` · v1.0.1 · published · fluids-resuscitation · interpretation not-applicable
 
 ### Inputs
 
@@ -493,7 +493,7 @@ Weight is accepted from 4 to 150 kg, and below 4 kg the score refuses to compute
 
 <a id="ideal-body-weight"></a>
 
-`ideal-body-weight` · v1.0.0 · published · general
+`ideal-body-weight` · v1.0.1 · published · general
 
 ### Inputs
 
@@ -539,16 +539,16 @@ The methods disagree by ≥ 10 kg in some children and change prescribed tidal v
 
 <a id="kdigo-aki"></a>
 
-`kdigo-aki` · v1.2.0 · published · renal-metabolic
+`kdigo-aki` · v1.2.1 · published · renal-metabolic
 
 ### Inputs
 
 - **Age** — numeric, years / months / days, accepts 0 to 120, required
   - Help: Patient age (accepts years, months or days). KDIGO's estimated-GFR < 35 mL/min/1.73 m² route to Stage 3 applies only to patients under 18 years, so the age is what keeps that branch off an adult. Nothing else in the staging is age-dependent — the urine-output thresholds are identical for children and adults.
 - **Current serum creatinine** — numeric, mg/dL / µmol/L, accepts 0.1 to 15, optional
-  - Help: The current measured serum creatinine. Accepts mg/dL or µmol/L. Drives the ×-baseline ratio and the ≥ 4.0 mg/dL Stage-3 threshold. That threshold is not read on its own: KDIGO requires the AKI definition (a rise of ≥ 0.3 mg/dL, or ≥ 1.5× baseline) to be met first, so a value of 4.0 or above entered without a baseline is reported as Stage 3 but flagged as not settled — a chronically high creatinine that never rose is not Stage 3 AKI.
+  - Help: The current measured serum creatinine, in mg/dL or µmol/L. Drives the ×-baseline ratio and the ≥ 4.0 mg/dL Stage-3 threshold. That threshold needs the AKI definition met first (a rise of ≥ 0.3 mg/dL, or ≥ 1.5× baseline): 4.0 or above without a baseline is reported as Stage 3 but flagged as not settled, because a chronically high creatinine that never rose is not AKI.
 - **Baseline serum creatinine** — numeric, mg/dL / µmol/L, accepts 0.1 to 15, optional
-  - Help: The patient's baseline creatinine (known outpatient value, or a dynamic 7-day baseline). Needed for the ×-baseline ratio, for the ≥ 0.3 mg/dL rise, and to settle the ≥ 4.0 mg/dL Stage-3 route — without it a high creatinine cannot be told apart from a chronically high one. Accepts mg/dL or µmol/L. WITH NO PRIOR VALUE ON FILE, the surrogate the PAEDIATRIC evidence supports is the LOWEST creatinine measured during this admission — in 710 children aged 1 month to 18 years it detected AKI with sensitivity 87.8% and specificity 71.0% (Lee 2022, DOI 10.23876/j.krcp.21.120). Do not use KDIGO's own appendix suggestion of back-calculating from an assumed GFR of 75 mL/min/1.73 m²: in those same children it was 31.5% sensitive and put AKI incidence at 19.1% against a true 58.7%, missing roughly two thirds of it. Under-staging is the dangerous direction in a PICU, and adult reports that back-calculation OVER-estimates AKI do not transfer — in children it under-estimates severely. Whatever is entered, it is a surrogate, and the stage it produces should be read as such.
+  - Help: Baseline creatinine (a known outpatient value or a 7-day dynamic baseline), in mg/dL or µmol/L. Needed for the ×-baseline ratio, the ≥ 0.3 mg/dL rise, and to settle the ≥ 4.0 mg/dL Stage-3 route. Without one, use the lowest creatinine of this admission (Lee 2022). Do not back-calculate from an assumed GFR of 75: in children it missed two thirds of AKI. Any surrogate stages as a surrogate.
 - **Urine output (rate)** — numeric, mL/kg/h, accepts 0 to 10, optional
   - Help: Weight-indexed urine output in mL/kg/h over the collection window. Compute as volume ÷ weight ÷ hours. The rate alone does not give a stage — Table 2 pairs each rate with a duration, so enter the window below as well.
 - **How long that rate has been sustained** — choice of 4, optional
@@ -556,9 +556,9 @@ The methods disagree by ≥ 10 kg in some children and change prescribed tidal v
   - _6 hours to under 12 hours_
   - _12 hours or more_
   - _24 hours or more_
-  - Help: The KDIGO Table 2 window, as bands rather than free-typed hours — the bands are what the table states, and an hours box invites false precision about a figure read off a nursing chart. The boundaries are the guideline's own: 6 hours to under 12 is a different row from 12 or more. Pick '24 hours or more' when the window has reached 24 hours; '12 hours or more' asserts only 12, so it leaves the 24-hour Stage-3 row open — and where that open row could actually raise the stage (a rate below 0.3 mL/kg/h) the result is reported as a lower bound. Where it could not, the result is settled and no bound is shown.
+  - Help: Bands, not free-typed hours: the KDIGO Table 2 rows, with the guideline's own boundaries — 6 to under 12 hours is a different row from 12 or more. Pick '24 hours or more' once the window has reached 24 hours. '12 hours or more' leaves the 24-hour Stage-3 row open; where that could raise the stage (a rate below 0.3 mL/kg/h) the result is reported as a lower bound.
 - **Anuria** — yes/no, optional
-  - Help: Anuria is a row of its own in Table 2 — anuria for 12 hours or more is Stage 3, whatever the rate rows say. Enter it as the clinical finding it is: KDIGO defines no millilitre figure for anuria and nephrology has no agreed one either, so no rate is invented for it here. What it does establish without any number is that the output is below every positive cutoff: there is no urine, so anuria is necessarily under 0.5 mL/kg/h and satisfies the rows built on that threshold too — anuria for 6 hours to under 12 hours is Stage 1. Enter the measured rate as well if you have one; it can only make the answer more specific.
+  - Help: Anuria has its own row in Table 2: anuria for 12 hours or more is Stage 3 whatever the rate rows say. A clinical finding: KDIGO defines no millilitre figure for it and none is invented here. With no urine the output is below every positive cutoff, so anuria for 6 to under 12 hours is Stage 1. Enter a measured rate too if you have one.
 - **Estimated GFR (pediatric, bedside Schwartz)** — numeric, mL/min/1.73m2, accepts 1 to 200, optional
   - Help: Estimated GFR in mL/min/1.73 m² (bedside Schwartz: 0.413 × height[cm] ÷ creatinine[mg/dL]). < 35 forces Stage 3, but only for a patient under 18 years — the age entered above gates it, so an eGFR supplied for an adult is ignored on this branch.
 - **Renal replacement therapy started** — yes/no, optional
@@ -579,7 +579,7 @@ KDIGO stage is the maximum of two independently evaluated axes, never a sum. SER
 
 ### Limitations and notes
 
-Stage 0 means the KDIGO definition is not met on the criteria entered, which is not proof that AKI is absent. Higher stage associates with mortality and renal replacement therapy in the outcome literature, but the staging is a classification, not a treatment threshold. BASELINE CREATININE IS THE HARDEST INPUT. With no prior value, enter the LOWEST creatinine of this admission: in 710 critically ill children with true baselines it detected AKI with sensitivity 87.8% and specificity 71.0% (Lee 2022, 7-day window). Do not back-calculate from an assumed GFR of 75, which is KDIGO’s own appendix suggestion: in the same children it was 31.5% sensitive and missed roughly two thirds of the AKI. The direction reverses between adults and children, so adult reassurance that back-calculation over-diagnoses must not be carried across, and under-staging is the dangerous direction in a PICU. Record which window the entered value came from. KDIGO defines the ≥ 0.3 mg/dL rise as a rise WITHIN 48 HOURS; this calculator applies it as current minus the baseline you enter, with no window, so a baseline from weeks or months back can produce Stage 1 from a rise that was never acute. There is no paediatric modification of the urine-output thresholds. pRIFLE is a separate instrument and is neither reproduced nor blended in here. The bedside Schwartz equation (0.413 × height in cm ÷ serum creatinine in mg/dL) behind the eGFR branch was validated at roughly 1 to 16 years, so do not extrapolate it to neonates. KDIGO does not state which weight indexes the mL/kg/h [NEEDS SOURCE], nor is there a KDIGO-endorsed paediatric baseline rule [NEEDS SOURCE]. Conversion uses 1 mg/dL = 88.42 µmol/L with two-decimal rounding so KDIGO’s printed SI equivalents stage as intended (353.6 µmol/L resolves to 4.00 mg/dL).
+Stage 0 means the KDIGO definition is not met on the criteria entered, which is not proof that AKI is absent. Higher stage associates with mortality and renal replacement therapy in the outcome literature, but the staging is a classification, not a treatment threshold. BASELINE CREATININE IS THE HARDEST INPUT. With no prior value, enter the LOWEST creatinine of this admission: in 710 critically ill children with true baselines it detected AKI with sensitivity 87.8% and specificity 71.0% (Lee 2022, 7-day window). Lee 2022 is DOI 10.23876/j.krcp.21.120. Do not back-calculate from an assumed GFR of 75, which is KDIGO’s own appendix suggestion: in the same children it was 31.5% sensitive, missed roughly two thirds of the AKI, and put AKI incidence at 19.1% against a true 58.7%. The direction reverses between adults and children, so adult reassurance that back-calculation over-diagnoses must not be carried across, and under-staging is the dangerous direction in a PICU. Record which window the entered value came from. KDIGO defines the ≥ 0.3 mg/dL rise as a rise WITHIN 48 HOURS; this calculator applies it as current minus the baseline you enter, with no window, so a baseline from weeks or months back can produce Stage 1 from a rise that was never acute. There is no paediatric modification of the urine-output thresholds. pRIFLE is a separate instrument and is neither reproduced nor blended in here. The bedside Schwartz equation (0.413 × height in cm ÷ serum creatinine in mg/dL) behind the eGFR branch was validated at roughly 1 to 16 years, so do not extrapolate it to neonates. KDIGO does not state which weight indexes the mL/kg/h [NEEDS SOURCE], nor is there a KDIGO-endorsed paediatric baseline rule [NEEDS SOURCE]. Conversion uses 1 mg/dL = 88.42 µmol/L with two-decimal rounding so KDIGO’s printed SI equivalents stage as intended (353.6 µmol/L resolves to 4.00 mg/dL). The urine-output duration is entered as the Table 2 bands rather than free hours because an hours box invites false precision about a figure read off a nursing chart.
 
 ### References
 
@@ -606,7 +606,7 @@ Stage 0 means the KDIGO definition is not met on the criteria entered, which is 
 
 <a id="oxygen-saturation-index"></a>
 
-`oxygen-saturation-index` · v1.1.0 · published · respiratory
+`oxygen-saturation-index` · v1.1.1 · published · respiratory
 
 ### Inputs
 
@@ -655,7 +655,7 @@ OSI substitutes SpO₂ for PaO₂, sparing an arterial draw. It is valid only fo
 
 <a id="oxygenation-index"></a>
 
-`oxygenation-index` · v1.1.0 · published · respiratory
+`oxygenation-index` · v1.1.1 · published · respiratory
 
 ### Inputs
 
@@ -699,7 +699,7 @@ Requires an arterial line, and is defined only on positive-pressure ventilation,
 
 <a id="pim3"></a>
 
-`pim3` · v1.0.0 · published · mortality-severity · interpretation not-applicable
+`pim3` · v1.0.1 · published · mortality-severity · interpretation not-applicable
 
 ### Inputs
 
@@ -708,7 +708,7 @@ Requires an arterial line, and is defined only on positive-pressure ventilation,
 - **Pupils fixed to bright light** — yes/no, required
   - Help: Yes only when BOTH pupils are larger than 3 mm and fixed to bright light. Anything else — reactive, unequal, or not known — is no. A fixed pupil that can be attributed to drugs, toxins or direct injury to the eye is not recorded as abnormal (Straney 2013, Appendix 1, p680).
 - **Mechanically ventilated in the first hour** — yes/no, required
-  - Help: Yes if the child received any of these at any point in the first hour in ICU: invasive ventilation, CPAP by mask or nasal prongs, BiPAP, or negative-pressure ventilation (Straney 2013, Appendix 1, p680). A tracheostomy with unassisted spontaneous breathing is no — that is the ANZPIC Registry's data-entry convention (PIM2 & PIM3 for the ANZPIC Registry — Information Booklet, version January 2019), not a rule stated in the paper, which lists only what the criterion includes.
+  - Help: Yes if the child received any of these at any point in the first hour in ICU: invasive ventilation, CPAP by mask or nasal prongs, BiPAP, or negative-pressure ventilation (Straney 2013, Appendix 1). A tracheostomy with unassisted spontaneous breathing is No — the ANZPIC Registry's data-entry convention (Information Booklet, January 2019), not a rule stated in the paper.
 - **Elective ICU admission** — yes/no, required
   - Help: Yes when the admission could have been put off by more than six hours without harm — the paper's test for elective (Straney 2013, Appendix 1, p680). Planned surgery and planned monitoring or procedures normally meet it; an admission that had to happen now does not.
 - **Recovery from a procedure** — choice of 4, required
@@ -716,7 +716,7 @@ Requires an arterial line, and is defined only on positive-pressure ventilation,
   - _Recovery after a cardiac procedure with cardiopulmonary bypass_
   - _Recovery after a cardiac procedure without bypass_
   - _Recovery after a non-cardiac procedure_
-  - Help: Choose a category only when recovering from the procedure IS the reason for the ICU admission. Radiology procedures and cardiac catheterisation count. Coming from theatre is not enough on its own — a child admitted after insertion of an ICP monitor is admitted for the head injury, not for the procedure (Straney 2013, Appendix 1, p680). The categories are mutually exclusive; a post-procedure admission may also carry a risk diagnosis below.
+  - Help: Choose a category only when recovering from the procedure is the reason for the ICU admission. Radiology procedures and cardiac catheterisation count. Coming from theatre is not enough on its own — a child admitted after ICP-monitor insertion is admitted for the head injury (Straney 2013, Appendix 1). The categories are mutually exclusive; a post-procedure admission may also carry a risk diagnosis below.
 **Risk diagnosis (main reason for admission)**
 
 - **Very high-risk diagnosis** — choice of 6, required
@@ -726,7 +726,7 @@ Requires an arterial line, and is defined only on positive-pressure ventilation,
   - _Leukaemia or lymphoma, after the first induction_
   - _Bone marrow transplant recipient_
   - _Liver failure_
-  - Help: The list is complete as published — five conditions (Straney 2013, Appendix 1, p680). Record one only when it is the MAIN reason for the ICU admission; if you are unsure, record none. Cardiac arrest counts whether it happened inside or outside hospital and needs a documented absent pulse or chest compressions — a past arrest does not count. Leukaemia or lymphoma counts only when the admission is about the malignancy or its treatment. Liver failure may be acute or chronic. THE TWO CUSTODIAN REGISTRIES CODE THE POST-TRANSPLANT CASE OPPOSITELY, and this is not resolvable by reading the paper harder: ANZPICR (Jan 2019) says do NOT include patients admitted for recovery following a liver transplant done for acute or chronic liver failure, and flags that this differs from PIM2; PICANet (v5.4, Nov 2020) says DO include them. ANZICS PSG and PICANet jointly supplied the derivation data, so the disagreement is downstream of Straney 2013 and live in practice. This score follows ANZPICR — the stricter reading, and the custodian of the ratio the model was built to produce — so a planned post-transplant admission is excluded here. Both registries agree that a readmission whose main reason is failure OF THE GRAFT does qualify. If a condition from a lower tier also applies, still record it there: the model applies the highest tier only.
+  - Help: Complete as published (Straney 2013). Record one only when it is the main reason for admission; if unsure, none. Cardiac arrest, in or out of hospital, needs a documented absent pulse or chest compressions; a past arrest does not count. Leukaemia or lymphoma counts only when the admission concerns the malignancy or its treatment. Liver failure may be acute or chronic; planned post-transplant recovery is excluded and graft-failure readmission qualifies.
 - **High-risk diagnosis** — choice of 6, required
   - _None of these_
   - _Spontaneous cerebral haemorrhage_
@@ -734,7 +734,7 @@ Requires an arterial line, and is defined only on positive-pressure ventilation,
   - _Hypoplastic left heart syndrome_
   - _Neurodegenerative disorder_
   - _Necrotising enterocolitis_
-  - Help: The list is complete as published — five conditions (Straney 2013, Appendix 1, p680). Record one only when it is the MAIN reason for the ICU admission; if you are unsure, record none. Cerebral haemorrhage must be spontaneous (aneurysm or arteriovenous malformation): traumatic bleeds are excluded, as are intracranial bleeds outside the brain itself such as a subdural. Hypoplastic left heart syndrome counts at any age, but only where a Norwood or equivalent operation was needed in the newborn period to keep the child alive. Neurodegenerative disorder needs a progressive loss of milestones, or a diagnosis in which that loss is certain, and does not need a name. A very high-risk diagnosis, if also present, takes precedence over this one.
+  - Help: Complete as published (Straney 2013). Record one only when it is the main reason for admission; if unsure, none. Cerebral haemorrhage must be spontaneous (aneurysm or arteriovenous malformation): traumatic and extracerebral bleeds are excluded. Hypoplastic left heart counts only where a Norwood or equivalent was needed as a newborn. Neurodegenerative disorder needs progressive loss of milestones, or a diagnosis in which that loss is certain. Very high-risk takes precedence.
 - **Low-risk diagnosis** — choice of 7, required
   - _None of these_
   - _Asthma_
@@ -743,11 +743,11 @@ Requires an arterial line, and is defined only on positive-pressure ventilation,
   - _Obstructive sleep apnoea_
   - _Diabetic ketoacidosis_
   - _Seizure disorder_
-  - Help: The list is complete as published — six conditions (Straney 2013, Appendix 1, p680). Record one only when it is the MAIN reason for the ICU admission; if you are unsure, record none. Bronchiolitis covers a child presenting with either respiratory distress or central apnoea where the clinical diagnosis is bronchiolitis. Obstructive sleep apnoea covers admission after adenoidectomy or tonsillectomy when the apnoea is the main reason — record the procedure recovery above as well, since such a case carries both terms. Seizure disorder covers status epilepticus, epilepsy, a febrile convulsion or another epileptic syndrome where the admission is to control the seizures or to recover from them or their treatment. A very high-risk or high-risk diagnosis, if also present, takes precedence over this one.
+  - Help: Complete as published (Straney 2013). Record one only when it is the main reason for admission; if unsure, none. Bronchiolitis: respiratory distress or central apnoea with that clinical diagnosis. Obstructive sleep apnoea: admission after adenoidectomy or tonsillectomy for the apnoea — record the procedure recovery above too. Seizure disorder: status epilepticus, epilepsy, febrile convulsion or another epileptic syndrome, admitted to control or recover from seizures. A higher-risk diagnosis takes precedence.
 **Observations at first contact**
 
 - **Systolic blood pressure** — numeric, mmHg, accepts 0 to 300, optional
-  - Help: First systolic BP from first ICU-team contact to one hour after ICU arrival — the first value in that window, not the worst. Three coded entries carry weight and are not measurements: leave blank if unknown (the model substitutes 120), enter 0 if the child was in cardiac arrest at admission, and enter 30 if shocked with a blood pressure that could not be measured (Straney 2013, Appendix 1, p680).
+  - Help: First systolic BP from first ICU-team contact to one hour after ICU arrival — the first value in that window, not the worst. Three coded entries are not measurements: leave blank if unknown (the model substitutes 120); enter 0 if in cardiac arrest at admission; enter 30 if shocked with a blood pressure that could not be measured (Straney 2013, Appendix 1).
 - **Base excess** — numeric, mmol/L, accepts -40 to 40, optional
   - Help: Arterial or capillary base excess in mmol/L. The equation uses its absolute value, so sign does not matter. Leave blank if unknown — the model substitutes 0 (Straney 2013, Appendix 1, p680).
 - **FiO₂ at the time of the PaO₂** — numeric, fraction / %, accepts 0.21 to 1, optional
@@ -769,7 +769,7 @@ PIM3 score (logit) = 3.8233 × pupils + 0.9763 × ventilated − 0.5378 × elect
 
 ### Limitations and notes
 
-PIM3 estimates hospital-mortality probability from data at first ICU contact, for unit-level case-mix and SMR benchmarking. The derivation paper states the limit itself: “These models are not intended for prognostic use on individual patients” (Straney 2013). MEASUREMENT WINDOW AND CODING. Use the FIRST value of each variable from first face-to-face ICU-team contact to 1 hour after ICU arrival, not the worst. Pupils count only when both are larger than 3 mm and fixed to bright light; a drug, toxin or direct eye-injury explanation does not count. Ventilated in the first hour covers invasive ventilation, mask or nasal CPAP, BiPAP and negative-pressure ventilation. A tracheostomy breathing spontaneously without support is no, which is an ANZPIC Registry data-entry convention (January 2019 booklet) rather than a rule in the paper, and the paper is silent on the case. Elective means the admission could have been deferred by more than 6 hours without harm. Each of the three diagnosis-tier lists is complete as published and applies to the main reason for admission; if you are unsure, record none. POST-LIVER-TRANSPLANT ADMISSIONS ARE CODED OPPOSITELY BY THE TWO CUSTODIAN REGISTRIES. ANZPICR excludes planned post-transplant recovery from liver failure; PICANet includes it. This score follows ANZPICR, the stricter reading. Both agree that a readmission for graft failure qualifies. AGE. Read the model as applying to children younger than 16. The paper CONTRADICTS itself here, its abstract saying younger than 18 and its inclusion criteria younger than 16, and the contradiction is in the source rather than resolved here. CALIBRATION TRAVELS FAR WORSE THAN DISCRIMINATION. Italy AUC 0.88 with SMR 0.98; Argentina 0.83 with SMR 1.3; South Africa 0.81 with SMR 1.28, its highest SMR of 6.67 falling in the LOWEST-risk decile. The Gulf has its own evidence. Dubai (n = 583): AUC 0.78 with an overall SMR of 0.53, yet SMR 2.1 in SEPSIS, an under-prediction inside an over-predicting unit, and that sepsis signal is the finding that survives its own paper. Riyadh (n = 3,396): sufficient discrimination, poor calibration, worst in infants under 12 months. Newborns are systematically over-predicted, sitting below the SBP nadir, and haemato-oncology admissions are under-predicted, observed mortality 18.73% against 7.13% predicted. Recalibrate and monitor locally before comparative use. DO NOT MIX COEFFICIENT SETS. ANZICS publishes regional recalibrations, PIM3-anz13 and PIM3-anz15, whose coefficients are entirely different. Registry exports use sentinel values, 999 meaning unknown, so any future import path must map them before scoring. PICANet publishes citable plausibility ranges for systolic BP, PaO₂ and base excess; no registry publishes ranges for platelets, bilirubin, creatinine or MAP, because none collects them.
+PIM3 estimates hospital-mortality probability from data at first ICU contact, for unit-level case-mix and SMR benchmarking. The derivation paper states the limit itself: “These models are not intended for prognostic use on individual patients” (Straney 2013). MEASUREMENT WINDOW AND CODING. Use the FIRST value of each variable from first face-to-face ICU-team contact to 1 hour after ICU arrival, not the worst. Pupils count only when both are larger than 3 mm and fixed to bright light; a drug, toxin or direct eye-injury explanation does not count. Ventilated in the first hour covers invasive ventilation, mask or nasal CPAP, BiPAP and negative-pressure ventilation. A tracheostomy breathing spontaneously without support is no, which is an ANZPIC Registry data-entry convention (January 2019 booklet) rather than a rule in the paper, and the paper is silent on the case. Elective means the admission could have been deferred by more than 6 hours without harm. Each of the three diagnosis-tier lists is complete as published and applies to the main reason for admission; if you are unsure, record none. Where a condition from more than one tier applies, the model applies the highest tier only. POST-LIVER-TRANSPLANT ADMISSIONS ARE CODED OPPOSITELY BY THE TWO CUSTODIAN REGISTRIES. ANZPICR excludes planned post-transplant recovery from liver failure; PICANet includes it. This score follows ANZPICR, the stricter reading. Both agree that a readmission for graft failure qualifies. AGE. Read the model as applying to children younger than 16. The paper CONTRADICTS itself here, its abstract saying younger than 18 and its inclusion criteria younger than 16, and the contradiction is in the source rather than resolved here. CALIBRATION TRAVELS FAR WORSE THAN DISCRIMINATION. Italy AUC 0.88 with SMR 0.98; Argentina 0.83 with SMR 1.3; South Africa 0.81 with SMR 1.28, its highest SMR of 6.67 falling in the LOWEST-risk decile. The Gulf has its own evidence. Dubai (n = 583): AUC 0.78 with an overall SMR of 0.53, yet SMR 2.1 in SEPSIS, an under-prediction inside an over-predicting unit, and that sepsis signal is the finding that survives its own paper. Riyadh (n = 3,396): sufficient discrimination, poor calibration, worst in infants under 12 months. Newborns are systematically over-predicted, sitting below the SBP nadir, and haemato-oncology admissions are under-predicted, observed mortality 18.73% against 7.13% predicted. Recalibrate and monitor locally before comparative use. DO NOT MIX COEFFICIENT SETS. ANZICS publishes regional recalibrations, PIM3-anz13 and PIM3-anz15, whose coefficients are entirely different. Registry exports use sentinel values, 999 meaning unknown, so any future import path must map them before scoring. PICANet publishes citable plausibility ranges for systolic BP, PaO₂ and base excess; no registry publishes ranges for platelets, bilirubin, creatinine or MAP, because none collects them.
 
 ### References
 
@@ -800,7 +800,7 @@ PIM3 estimates hospital-mortality probability from data at first ICU contact, fo
 
 <a id="pf-ratio"></a>
 
-`pf-ratio` · v1.1.0 · published · respiratory
+`pf-ratio` · v1.1.1 · published · respiratory
 
 ### Inputs
 
@@ -841,7 +841,7 @@ The Berlin bands are adult bands and require PEEP or CPAP ≥ 5 cm H₂O. In chi
 
 <a id="burn-resuscitation"></a>
 
-`burn-resuscitation` · v1.0.0 · published · fluids-resuscitation
+`burn-resuscitation` · v1.0.1 · published · fluids-resuscitation
 
 ### Inputs
 
@@ -910,7 +910,7 @@ INPUTS AND RATES. Weight 0.5 to 150 kg; %TBSA 0 to 100; optional time since burn
 
 <a id="pediatric-gcs"></a>
 
-`pediatric-gcs` · v1.0.0 · published · general
+`pediatric-gcs` · v1.0.1 · published · general
 
 ### Inputs
 
@@ -989,7 +989,7 @@ Paediatric literature notes that a total of 5 or less may identify severe injury
 
 <a id="prism"></a>
 
-`prism` · v1.0.0 · published · mortality-severity · blank scores as normal · interpretation not-applicable
+`prism` · v1.0.1 · published · mortality-severity · blank scores as normal · interpretation not-applicable
 
 ### Inputs
 
@@ -998,7 +998,7 @@ Paediatric literature notes that a total of 5 or less may identify severe injury
 - **Model, by the data you collected** — choice of 2, required
   - _PRISM IV (score and mortality probability)_
   - _PRISM III (severity score only)_
-  - Help: CHOOSE BY THE DATA YOU HAVE, NOT BY THE OUTPUT YOU WANT. The two options are two models with two different collection periods, and each is only valid on the data it was built for. Scoring a 12-hour dataset as PRISM IV does not give you a probability for that patient; it gives you a probability computed from variables gathered over the wrong period. WHAT TO COLLECT, AND OVER WHAT PERIOD — this is the part that changes your answer. Enter the single most abnormal value reached inside the period for each variable: the lowest, the highest, or both where a row asks for both. PRISM IV — FIRST 4 HOURS: physiologic variables from the first 4 hours of PICU care ONLY, and laboratory variables from 2 hours BEFORE PICU admission through the first 4 hours. The two halves have different windows and the laboratory one starts before the child arrives — a gas or a chemistry drawn in the referring unit two hours out counts, while a blood pressure from the same moment does not. That split is the authors’ own (Pollack 2013, the ideal-time-interval study) and is exactly how their CPCCRN calculator states it. PRISM III — FIRST 12 OR 24 HOURS: the most abnormal value for each variable within the period you collected, whether that was the first 12 hours of PICU care or the first 24. THE 12- AND 24-HOUR COLLECTIONS ARE ONE OPTION HERE, and it is worth knowing why rather than assuming a field was lost. The SCORE is computed identically for both — same seventeen variables, same age bands, same cut-points — so no choice you could make between them would change a number on this page. What the published literature separates as PRISM III-12 and PRISM III-24 are two MORTALITY MODELS, with different coefficients and different calibration, and this platform ships neither: those equations are not in the source article and are separately licensed. Offering a choice whose only consequence has been removed would suggest the choice still does something. BUT THE PERIOD YOU COLLECTED STILL MATTERS TO HOW THE NUMBER READS. A longer period usually produces a HIGHER score, because it catches more extreme values, never because the arithmetic differs — so a PRISM III collected over 24 hours and one collected over 12 are not directly comparable, and a series should hold the period constant. Record which you used alongside the score if that comparison matters to you. WHAT THE CHOICE DECIDES is whether a mortality estimate can be shown. PRISM IV’s equation is published in full and is shown here, and it produces a probability only once all four admission-context questions have been answered — leave any of them blank and the score still appears while the probability is withheld, because a blank is not an answer of "no". PRISM III gives the score and its two subscores and no probability, because its mortality equations are not published in the source article and are separately licensed. The four admission-context questions belong to PRISM IV alone, so they are asked ONLY when PRISM IV is selected and are not shown at all under PRISM III — they are not hidden answers being ignored, they are questions with no destination there.
+  - Help: Choose by the data collected, not the output wanted; enter each variable's most abnormal value in the period. PRISM IV: physiology from the first 4 PICU hours; labs from 2 hours before admission to 4 hours after (Pollack 2013). PRISM III: the first 12 or 24 hours, scored identically; a longer period scores higher, so keep one per series. PRISM IV alone gives a probability, after its four admission questions.
 - **Age** — numeric, years / months / days, accepts 0 to 18, required
   - Help: Sets the age band for blood pressure, heart rate, creatinine, BUN and PTT, and is separately a term in the PRISM IV equation. PRISM III bands: neonate under 1 month, infant 1 to under 12 months, child 12 months to under 12 years, adolescent 12 years and over.
 **Cardiovascular**
@@ -1043,7 +1043,7 @@ Paediatric literature notes that a total of 5 or less may identify severe injury
 - **Potassium (highest)** — numeric, mEq/L / mmol/L, accepts 0 to 15, optional
   - Help: Above 6.9 scores 3. A whole-blood value should be increased by 0.4 mmol/L before scoring.
 - **Creatinine (highest)** — numeric, mg/dL / µmol/L, accepts 0 to 25, optional
-  - Help: Age-banded; infant and child share one cutoff. Scores 2 above 0.85 mg/dL (neonate), 0.9 (infant and child) or 1.3 (adolescent) — approximately 75, 80 and 115 µmol/L. The comparison is made in mg/dL after conversion, and a value entered in µmol/L is rounded to 2 decimal places on the way, so a µmol reading sitting exactly on a cutoff (115 µmol/L becomes 1.30 mg/dL) does not score, while 1.301 mg/dL entered directly does. The published SI columns are themselves rounded, so treat either unit as a knife-edge at the boundary rather than as an exact equivalence.
+  - Help: Age-banded; infant and child share one cutoff. Scores 2 above 0.85 mg/dL (neonate), 0.9 (infant and child) or 1.3 (adolescent) — about 75, 80 and 115 µmol/L. The comparison is made in mg/dL after conversion, rounded to 2 decimal places, so 115 µmol/L (1.30 mg/dL) does not score while 1.301 mg/dL entered directly does. Treat either unit as a knife-edge at the boundary.
 - **Blood urea nitrogen (highest)** — numeric, mg/dL / mmol/L, accepts 0 to 300, optional
   - Help: A two-band split only: neonates above 11.9 mg/dL, everyone else above 14.9.
 **Haematology**
@@ -1108,7 +1108,7 @@ One physiologic score, one published mortality model. Choose the model by the da
 
 ### Limitations and notes
 
-PRISM is a case-mix and benchmarking instrument for groups of patients, not a bedside prognosis for the child in front of you. PRISM III shows no probability because Pollack 1996 prints the full score sheet and no regression coefficients, and the author note reserves the mortality equations for research use. The authors’ own network (CPCCRN) ships a score-only PRISM III calculator, which this implementation matches. PRISM IV’s coefficients, by contrast, were published with the stated objective of placing the algorithm in the public domain (Pollack 2016). Regional calibration. In the largest Saudi cohort (Riyadh, n = 4,019 admissions) PRISM III under-predicted death: SMR 2.61 overall, 3.96 in infants of 12 months and under, and 1.52 after excluding DNR patients, with AUC 0.81. Discrimination travels between populations; calibration frequently does not. Use the score for severity and case-mix description, and treat any PRISM mortality probability as uncalibrated for this region until it has been locally recalibrated. These evaluations cover PRISM III, not PRISM IV. Known source defects, handled explicitly. The patent’s neonate heart-rate band appears to carry an OCR error, printing 215-255 against a >225 cutoff; 215 to 225 is used here, following an independent reproduction. The glucose row prints 200 mg/dL and 11.0 mmol/L as if equivalent, and the mg/dL limb is authoritative: 200 mg/dL is 11.1 mmol/L. [NEEDS SOURCE]: no published worked example exists for either model, so the test fixtures were constructed from the threshold table, and round-trip reconciliation against the CPCCRN calculators is pending.
+PRISM is a case-mix and benchmarking instrument for groups of patients, not a bedside prognosis for the child in front of you. PRISM III shows no probability because Pollack 1996 prints the full score sheet and no regression coefficients, and the author note reserves the mortality equations for research use. The authors’ own network (CPCCRN) ships a score-only PRISM III calculator, which this implementation matches. PRISM IV’s coefficients, by contrast, were published with the stated objective of placing the algorithm in the public domain (Pollack 2016). Regional calibration. In the largest Saudi cohort (Riyadh, n = 4,019 admissions) PRISM III under-predicted death: SMR 2.61 overall, 3.96 in infants of 12 months and under, and 1.52 after excluding DNR patients, with AUC 0.81. Discrimination travels between populations; calibration frequently does not. Use the score for severity and case-mix description, and treat any PRISM mortality probability as uncalibrated for this region until it has been locally recalibrated. These evaluations cover PRISM III, not PRISM IV. Known source defects, handled explicitly. The patent’s neonate heart-rate band appears to carry an OCR error, printing 215-255 against a >225 cutoff; 215 to 225 is used here, following an independent reproduction. The glucose row prints 200 mg/dL and 11.0 mmol/L as if equivalent, and the mg/dL limb is authoritative: 200 mg/dL is 11.1 mmol/L. [NEEDS SOURCE]: no published worked example exists for either model, so the test fixtures were constructed from the threshold table, and round-trip reconciliation against the CPCCRN calculators is pending. The PRISM IV laboratory window starts 2 hours before PICU admission while its physiologic window starts at admission, so a referring-unit gas or chemistry from two hours out counts and a blood pressure from that same moment does not (Pollack 2013). The 12- and 24-hour collections are one option because PRISM III scores identically for both; the two separately calibrated PRISM III mortality models are not in the source article and are separately licensed. A longer collection usually yields a higher score, so a series should hold the period constant and record which was used. The PRISM IV probability is withheld while any of its four admission-context questions is blank, because a blank is not an answer of “no”, and those four questions are shown only under PRISM IV.
 
 ### References
 
@@ -1141,7 +1141,7 @@ PRISM is a case-mix and benchmarking instrument for groups of patients, not a be
 
 <a id="pelod2"></a>
 
-`pelod2` · v1.0.0 · published · organ-dysfunction · interpretation not-applicable
+`pelod2` · v1.0.1 · published · organ-dysfunction · interpretation not-applicable
 
 ### Inputs
 
@@ -1223,12 +1223,12 @@ Every item is required. Per the source an unmeasured variable is scored normal, 
 
 <a id="fluid-balance"></a>
 
-`fluid-balance` · v1.0.0 · published · fluids-resuscitation · interpretation not-applicable
+`fluid-balance` · v1.0.1 · published · fluids-resuscitation · interpretation not-applicable
 
 ### Inputs
 
 - **Anchor weight (usually ICU admission weight)** — numeric, kg / lb / g, accepts 0.5 to 150, required
-  - Help: The reference weight both forms are measured against — most commonly the ICU admission weight, which is what the published outcome literature used. In NEONATES the common anchor is instead the birthweight during the first two postnatal weeks (ADQI). Accepts kilograms, pounds, or grams. ADQI names the choice of anchor weight an unresolved knowledge gap with no gold standard: it is the denominator, so it scales the whole result. Record which anchor you used.
+  - Help: The reference weight both forms divide by — usually the ICU admission weight, as in the outcome literature; in neonates, the birthweight during the first two postnatal weeks (ADQI). Accepts kilograms, pounds or grams. ADQI calls the choice of anchor an unresolved gap with no gold standard; it scales the whole result, so record which anchor you used.
 - **Cumulative fluid intake since the anchor** — numeric, L / mL, accepts 0 to 200, optional
   - Help: Total fluid in since the anchor point (not a per-day figure). Accepts litres or millilitres. Supply this together with cumulative output to get the fluid-based form; supplying only one of the pair produces no fluid-based value.
 - **Cumulative fluid output since the anchor** — numeric, L / mL, accepts 0 to 200, optional
@@ -1277,7 +1277,7 @@ NO BANDS, DELIBERATELY. The well-known 10% and 20% figures are cohort associatio
 
 <a id="phoenix"></a>
 
-`phoenix` · v1.1.0 · published · sepsis · blank scores as normal
+`phoenix` · v1.1.1 · published · sepsis · blank scores as normal
 
 ### Inputs
 
@@ -1293,7 +1293,7 @@ NO BANDS, DELIBERATELY. The well-known 10% and 20% figures are cohort associatio
   - _No respiratory support_
   - _Non-invasive support (supplemental O₂, high-flow nasal cannula, or non-invasive ventilation)_
   - _Invasive mechanical ventilation_
-  - Help: The 1-point tier needs any support; the 2- and 3-point tiers need invasive mechanical ventilation. A low ratio with no support scores 0. High-flow nasal cannula counts as support here — Phoenix includes it explicitly — while PICANet and ANZPIC both exclude high flow from the ventilation field they collect, so the same child reads as supported on this score and as not ventilated in either registry. Answer from what the child is actually on: entering an FiO₂ above 0.21 alongside 'no respiratory support' is contradictory, and the task force's own extraction code would treat that FiO₂ as support where this calculator takes the answer given.
+  - Help: The 1-point tier needs any support; the 2- and 3-point tiers need invasive mechanical ventilation. A low ratio with no support scores 0. High-flow nasal cannula counts as support — Phoenix includes it explicitly, although PICANet and ANZPIC exclude it from their ventilation field. Answer from what the child is actually on: an FiO₂ above 0.21 with 'no respiratory support' is contradictory, and this calculator takes the answer given.
 - **Arterial PaO₂** — numeric, mmHg / kPa, accepts 20 to 700, optional
   - Help: From an arterial blood gas. Gives the PaO₂:FiO₂ (P/F) ratio. P/F and SpO₂:FiO₂ are evaluated together and either can trigger a tier, so supplying both is not redundant. Accepts mmHg or kPa.
 - **Fraction of inspired oxygen (FiO₂)** — numeric, fraction / %, accepts 0.21 to 1, optional
@@ -1372,7 +1372,7 @@ A diagnostic criterion, not a graded severity ladder. A HALF-ENTERED PHOENIX REA
 
 <a id="psofa"></a>
 
-`psofa` · v1.1.0 · published · organ-dysfunction · blank scores as normal
+`psofa` · v1.1.1 · published · organ-dysfunction · blank scores as normal
 
 ### Inputs
 
@@ -1389,7 +1389,7 @@ A diagnostic criterion, not a graded severity ladder. A HALF-ENTERED PHOENIX REA
 - **Fraction of inspired oxygen (FiO₂)** — numeric, fraction / %, accepts 0.21 to 1, required
   - Help: Room air is 0.21. Accepts a fraction or a percentage. Denominator of the oxygenation ratio.
 - **On respiratory support** — yes/no, required
-  - Help: Invasive or non-invasive support both count here. Table 1 gates respiratory subscores 3–4 on being on respiratory support and never says what counts as support, so treating non-invasive support as sufficient is this calculator's reading rather than the paper's. Without support the respiratory subscore is capped at 2. High-flow nasal cannula falls inside that broad reading and counts here — worth knowing because the major paediatric registries go the other way: PICANet and ANZPIC both exclude high flow from the ventilation field they collect, so the same child counts as supported on this score and as not ventilated in either registry.
+  - Help: Invasive or non-invasive support both count. Table 1 gates respiratory subscores 3–4 on being on respiratory support without defining it, so counting non-invasive support is this calculator's reading, not the paper's. Without support the respiratory subscore is capped at 2. High-flow nasal cannula counts here, although PICANet and ANZPIC exclude it from their ventilation field, so the same child reads as supported here and not ventilated there.
 **Coagulation**
 
 - **Platelet count** — numeric, 10^3/µL / 10^9/L, accepts 1 to 1000, required
@@ -1467,7 +1467,7 @@ Missing data scores that organ 0. That is the paper’s own rule, a variable unm
 
 <a id="serum-osmolality"></a>
 
-`serum-osmolality` · v1.0.0 · published · renal-metabolic
+`serum-osmolality` · v1.0.1 · published · renal-metabolic
 
 ### Inputs
 
@@ -1488,7 +1488,7 @@ Missing data scores that organ 0. That is the paper’s own rule, a variable unm
 | --- | --- | --- | --- |
 | `osm_gap` | [-inf, 10) | < 10 mOsm/kg | Below the reference limit of 10 mOsm/kg for the osmolar gap computed with the Smithline–Gardner formula (Choy 2016). The limit is partly conventional rather than a derived cut-point, and the spread behind it is wider than one number suggests: measured in 321 subjects the gap centres near −2 with an SD of about 6 mOsm, and across different equations the measured gaps ranged from about −5 to +15 (Hoffman 1993); secondary sources render the same distribution as a 95% population range of roughly −14 to +10, whose upper bound is where the cut-off of 10 sits (−2 + 2 SD). A gap below 10 does NOT exclude toxic alcohol ingestion, and the arithmetic above is the reason: an individual's own true baseline may be NEGATIVE, so a patient starting near −14 can acquire more than 20 mOsm/kg of unmeasured osmole and still measure only +10 — at the cut-off rather than far above it. An early presentation before metabolism does the same, and the test is not used in isolation (Lynd 2008). PAEDIATRIC DATA DOES EXIST — an earlier version of this page said none existed and called that absence settled; the claim is WITHDRAWN — and what it shows is a wide normal: across 192 children (median age 6.6 years, 7 days to 17.9 years) the range of normal osmolar gaps is about 22 mOsm whichever equation is used (McQuillen 1999), more than twice the width of the 10 mOsm/kg limit itself. A gap below 10 in a child is therefore unremarkable rather than reassuring. A negative gap is ordinary biological variation, measurement imprecision, or an artefact of an additive formula (which yields osmolarity) being compared with an osmometer (which yields osmolality); it is not a finding in itself. |
 | `osm_gap` | [10, +inf) | ≥ 10 mOsm/kg | At or above the reference limit of 10 mOsm/kg proposed for the Smithline–Gardner osmolar gap (Choy 2016) — the most common clinically applied cut-off (Lynd 2008). The threshold's performance depends on the question asked, and on which ethanol coefficient is used — the same fork this score already emits (1.0 ≡ ÷4.6 ideal; 1.25 ≡ ÷3.7 empiric). In Lynd 2008 a cut-off of 10 identified patients for whom HAEMODIALYSIS was recommended with sensitivity 1.0 (95% CI 0.80–1.00) and negative predictive value 1.0 under BOTH coefficients, at specificity 0.23 (coefficient 1.0) or 0.51 (coefficient 1.25), AUC 0.827 and 0.870. For identifying patients needing ANTIDOTAL THERAPY the same cut-off gave sensitivity 0.90 (95% CI 0.68–0.99) at specificity 0.22 with coefficient 1.0, and sensitivity 0.85 at specificity 0.50 with coefficient 1.25, AUC 0.736 and 0.785. (An earlier version of this page reported 0.90 and 0.85 as a sensitivity/NPV pair for the antidote question; they are two sensitivities, one per ethanol coefficient. Corrected here from the full text.) Suggests osmotically active solute not captured by sodium, glucose, and urea (e.g. a toxic alcohol, ethanol, mannitol, glycerol, propylene glycol, isopropanol, or a pseudo-gap from severe hyperlipidaemia/hyperproteinaemia). Some older sources use a wider normal up to ~14–15, and the measured normal range varies with the formula used: −2 ± 6 in 321 subjects, about −5 to +15 across equations (Hoffman 1993), and roughly −14 to +10 as a 95% population range in secondary renderings of the same data. A value just above 10 therefore sits at the edge of the healthy distribution rather than outside it. PAEDIATRIC DATA DOES EXIST, and this page's earlier claim that it did not — recorded as settled absent — is WITHDRAWN. It widens the same point: in 192 children (median age 6.6 years) the range of normal osmolar gaps is about 22 mOsm (McQuillen 1999), and in 101 children with chronic renal failure the gaps ran 13.7 ± 14.5 mOsm/kg on peritoneal dialysis and 15.2 ± 17.6 after haemodialysis (Dursun 2007). The boundary stays at 10 because that is what the reference-limit literature supports, not because paediatric normals are narrow — a gap a little above 10 in a child is weaker evidence of an unmeasured osmole than the sharpness of the cut-off suggests. The gap does not identify the substance; interpret with the full clinical picture. |
-| `osm_gap_ethanol_explained` | [-inf, +inf) | Accounted for by the measured ethanol | The entered ethanol accounts for more than the whole measured-minus-calculated difference: with the ethanol term added, the residual gap is negative under BOTH published divisors (÷3.7 empiric and ÷4.6 ideal). The raw gap is shown for reference and is not read against the 10 mOsm/kg limit, which applies to a gap the ethanol term has not already absorbed. A negative residual is ordinary biological variation, measurement imprecision, or a formula artefact — the measured normal gap centres near −2, not 0 (Hoffman 1993). This does not exclude a co-ingested toxic alcohol; it says only that no unmeasured osmole is needed to explain this pair of numbers (Lynd 2008). |
+| `osm_gap_ethanol_explained` | [-inf, +inf) | Accounted for by the measured ethanol | The entered ethanol accounts for more than the whole measured-minus-calculated difference: that difference was zero or positive before the ethanol term, and with the term added the residual gap is negative under BOTH published divisors (÷3.7 empiric and ÷4.6 ideal). A gap that was already negative is never labelled this way — there was nothing for the ethanol to account for. The raw gap is shown for reference and is not read against the 10 mOsm/kg limit, which applies to a gap the ethanol term has not already absorbed. A negative residual is ordinary biological variation, measurement imprecision, or a formula artefact — the measured normal gap centres near −2, not 0 (Hoffman 1993). This does not exclude a co-ingested toxic alcohol; it says only that no unmeasured osmole is needed to explain this pair of numbers (Lynd 2008). |
 
 ### Cautions
 
@@ -1500,7 +1500,7 @@ Missing data scores that organ 0. That is the paper’s own rule, a variable unm
 
 ### How it is calculated
 
-Calculated osmolality (Smithline–Gardner, the form Choy recommends and guidelines endorse) = 2 × sodium + glucose ÷ 18 + blood urea nitrogen ÷ 2.8 with mg/dL inputs, equivalently 2 × sodium + glucose + urea with every analyte in mmol/L. Osmolar gap = measured − calculated, and a normal gap is conventionally < 10 mOsm/kg. When a measured ethanol is entered the ethanol term is shown both ways, ÷ 3.7 (Purssell empiric) and ÷ 4.6 (ideal molar mass), and the abnormal-gap flag is suppressed only when the residual is negative under both divisors. BUN is not urea, the two differ by a factor of 2.8, and glucose and BUN must be in mg/dL for the divisors to apply.
+Calculated osmolality (Smithline–Gardner, the form Choy recommends and guidelines endorse) = 2 × sodium + glucose ÷ 18 + blood urea nitrogen ÷ 2.8 with mg/dL inputs, equivalently 2 × sodium + glucose + urea with every analyte in mmol/L. Osmolar gap = measured − calculated, and a normal gap is conventionally < 10 mOsm/kg. When a measured ethanol is entered the ethanol term is shown both ways, ÷ 3.7 (Purssell empiric) and ÷ 4.6 (ideal molar mass), and the abnormal-gap flag is replaced by “Accounted for by the measured ethanol” only when the raw gap was not negative to begin with and the residual is negative under both divisors. A negative raw gap needs no ethanol to explain it, so it keeps its ordinary band whatever the ethanol reading. BUN is not urea, the two differ by a factor of 2.8, and glucose and BUN must be in mg/dL for the divisors to apply.
 
 ### Limitations and notes
 
@@ -1543,7 +1543,7 @@ A gap below 10 does not exclude toxic alcohol ingestion. The measured normal gap
 
 <a id="sf-ratio"></a>
 
-`sf-ratio` · v1.0.0 · published · respiratory
+`sf-ratio` · v1.0.1 · published · respiratory
 
 ### Inputs
 
@@ -1584,7 +1584,7 @@ The 2024 global adult ARDS definition cuts S/F at ≤ 315, so a value between 25
 
 <a id="vis"></a>
 
-`vis` · v1.0.0 · published · fluids-resuscitation · blank scores as normal
+`vis` · v1.0.1 · published · fluids-resuscitation · blank scores as normal
 
 ### Inputs
 

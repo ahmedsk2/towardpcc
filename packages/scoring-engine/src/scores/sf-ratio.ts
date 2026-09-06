@@ -24,7 +24,11 @@ export const sfRatio = defineScore({
   id: "sf-ratio",
   slug: "sf-ratio",
   name: "SpO₂/FiO₂ ratio (S/F)",
-  version: "1.0.0",
+  tagline: defineText(
+    "sf.tagline",
+    "SpO₂ to FiO₂ ratio for non-invasive support, when no blood gas is available",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "respiratory",
   inputs: [
@@ -124,6 +128,13 @@ export const sfRatio = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

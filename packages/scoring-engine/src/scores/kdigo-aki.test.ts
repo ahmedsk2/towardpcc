@@ -987,7 +987,7 @@ describe("kdigo-aki records its settled absences as settled", () => {
   it("declares the version its newest changelog entry describes", () => {
     const newest = kdigoAki.changelog[kdigoAki.changelog.length - 1];
     expect(kdigoAki.version).toBe(newest?.version);
-    expect(kdigoAki.version).toBe("1.2.0");
+    expect(kdigoAki.version).toBe("1.2.1");
   });
 });
 
@@ -1022,7 +1022,7 @@ describe("kdigo-aki keeps its baseline-surrogate guidance", () => {
 
   it("names the lowest admission creatinine as the surrogate to use", () => {
     expect(notes).toMatch(/lowest creatinine of this admission/i);
-    expect(baselineHelp).toMatch(/lowest creatinine measured during this admission/i);
+    expect(baselineHelp).toMatch(/lowest creatinine of this admission/i);
   });
 
   it("warns off KDIGO's own assumed-GFR-75 back-calculation, with the finding", () => {

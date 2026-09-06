@@ -19,7 +19,11 @@ export const correctedSodium = defineScore({
   id: "corrected-sodium",
   slug: "corrected-sodium",
   name: "Corrected sodium for hyperglycemia",
-  version: "1.0.0",
+  tagline: defineText(
+    "corrected-sodium.tagline",
+    "Measured sodium adjusted for hyperglycaemia, by both published factors",
+  ),
+  version: "1.0.1",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -87,6 +91,13 @@ export const correctedSodium = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

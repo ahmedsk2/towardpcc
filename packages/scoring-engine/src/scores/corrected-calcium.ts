@@ -16,7 +16,8 @@ export const correctedCalcium = defineScore({
   id: "corrected-calcium",
   slug: "corrected-calcium",
   name: "Corrected calcium for albumin",
-  version: "1.0.0",
+  tagline: defineText("cca.tagline", "Total calcium adjusted for serum albumin"),
+  version: "1.0.1",
   status: "published",
   category: "renal-metabolic",
   inputs: [
@@ -79,6 +80,13 @@ export const correctedCalcium = defineScore({
       date: "2026-09-03",
       summary: "Initial published text.",
       reason: "initial-release",
+    },
+    {
+      version: "1.0.1",
+      date: "2026-09-06",
+      summary:
+        "Added a one-line description for the catalogue card. No rule, threshold or reference changed.",
+      reason: "clarification",
     },
   ],
   ipStatus: {

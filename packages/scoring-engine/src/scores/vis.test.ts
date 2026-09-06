@@ -152,7 +152,7 @@ describe("vis carries the corrected Gaies 2010 dichotomisation", () => {
       [...dates].sort((a, b) => a.localeCompare(b)),
     );
     expect(vis.version).toBe(vis.changelog[vis.changelog.length - 1]?.version);
-    expect(vis.version).toBe("1.0.0");
+    expect(vis.version).toBe("1.0.1");
   });
 
   it("defines high VIS by BOTH periods, not by a single first-24h number", () => {

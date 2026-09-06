@@ -12,6 +12,7 @@ export const fixtureScore = defineScore({
   id: "fixture-ratio",
   slug: "fixture-ratio",
   name: "Engine test fixture (arithmetic ratio)",
+  tagline: defineText("fixture.tagline", "Internal engine fixture, never displayed"),
   version: "1.0.0",
   status: "draft",
   category: "general",
