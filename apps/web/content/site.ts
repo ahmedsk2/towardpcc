@@ -88,10 +88,15 @@ export const site = {
       "Free, referenced clinical calculators that run entirely in your browser: the start of a shared digital home for pediatric critical care.",
     ctaPrimary: "Explore the calculators",
     ctaSecondary: "Request a Knowledge pilot",
+    // One quiet line under the CTAs, where the status pill, the stat trio and
+    // the feature strip used to be (2026-09-06). Each clause is a claim the
+    // repo enforces: the count is derived at render, "every one referenced"
+    // is registry-gate.test.ts, and the last clause is /trust's promise.
+    heroLine:
+      "{liveCalculators} calculators · every one referenced · nothing you enter leaves your browser",
     heroSceneCoupling: "heart rate rises on inspiration",
     heroSceneLabel:
       "A school-age child's heart and lungs, built from measured pediatric anatomy: airways branching from the carina into alveolar clusters that fill with each breath, four cardiac chambers in their true depth order, and both lungs outlined with the cardiac notch where the heart rests against the left one. It breathes about nineteen times a minute and beats about eighty-one, the way a well child at rest does, and the heart rate rises on inspiration as it does in a real one.",
-    status: "Live. {liveCalculators} referenced calculators.",
     pillarsHeading: "What we are building",
     trust: {
       heading: "How we handle data",
@@ -103,47 +108,6 @@ export const site = {
       link: "Read how we handle data",
       href: "/legal/data-protection",
     },
-    // Hero eyebrow — reflects the live registry count, not a marketing claim.
-    badge: "Live now · {liveCalculators} referenced calculators",
-    heroTrust: [
-      { value: "25", label: "Calculators live" },
-      // Value injected at render from the registry — see app/page.tsx. It was
-      // hardcoded to 89 and the real count is 87; the site overclaimed by two
-      // for as long as anyone had been reading it.
-      { value: CITATIONS, label: "Cited references" },
-      // The boldest claim on the page, so it is the one that carries a link to
-      // its proof. A claim this strong with nothing behind it reads as bluster.
-      { value: "0", label: "Bytes transmitted", href: "/trust", proof: "proven by test" },
-    ],
-    // Four-up strip beneath the hero.
-    features: [
-      {
-        title: "Referenced",
-        // NOT "with PMID and DOI" — that was on the homepage until 2026-07-28,
-        // when only 56 of the then-87 qualified. Some have neither: the APLS
-        // manual is ISBN-only, Mosteller's BSA formula predates both schemes.
-        // What is true of all of them, and enforced by registry-gate.test.ts,
-        // is that each resolves to something a reader can open. The count is
-        // derived from the registry by figures.test.ts, never typed twice.
-        body: `${CITATIONS} citations, every one traceable to its source. Never a number without a reason.`,
-        tone: "crimson" as const,
-      },
-      {
-        title: "Private by design",
-        body: "Computed in your browser. Nothing you type is ever transmitted.",
-        tone: "coral" as const,
-      },
-      {
-        title: "Bedside-ready",
-        body: "Installable, works offline, one-handed on a phone at 3am.",
-        tone: "plum" as const,
-      },
-      {
-        title: "Honest status",
-        body: "Live, piloting or planned. We say which, always.",
-        tone: "moss" as const,
-      },
-    ],
     /**
      * Counters. Every figure is verified against the repo:
      * Registered-score and citation totals are COUNTED from the registry

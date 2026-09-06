@@ -5,7 +5,7 @@ import { CategoryIcon } from "@/components/category-icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@towardpcc/ui";
+import { buttonClasses, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 
 export type MegaGroup = {
@@ -293,7 +293,11 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
 
       <Link
         href="/calculators"
-        className="ms-auto hidden shrink-0 items-center justify-center rounded-full bg-accent px-5 py-2.5 text-sm font-bold text-ink-on-accent transition-colors duration-150 hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:ms-6 lg:inline-flex"
+        className={buttonClasses({
+          variant: "primary",
+          size: "sm",
+          className: "ms-auto hidden shrink-0 lg:ms-6 lg:inline-flex",
+        })}
       >
         {site.nav.headerCta}
       </Link>
@@ -378,9 +382,7 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
             </ul>
             <Link
               href="/calculators"
-              // Matches the header CTA: accent-deep on hover, which holds
-              // 9.05:1 under white where accent-bright would fall to 4.01:1.
-              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-bold text-ink-on-accent transition-[background-color,box-shadow] duration-150 ease-[var(--motion-ease)] hover:bg-accent-deep hover:shadow-[var(--shadow-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
+              className={buttonClasses({ variant: "primary", className: "mt-6" })}
             >
               {site.nav.headerCta}
             </Link>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@towardpcc/db";
+import { buttonClasses } from "@towardpcc/ui";
 import { requireAdmin } from "@/lib/auth/guard";
 import {
   payloadEntries,
@@ -63,10 +64,7 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
         <form action={submissionAction} className="mt-6">
           <input type="hidden" name="id" value={s.id} />
           <input type="hidden" name="intent" value="triage" />
-          <button
-            type="submit"
-            className="inline-flex min-h-11 items-center rounded-md bg-accent px-5 text-[15px] font-semibold text-ink-on-accent hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
+          <button type="submit" className={buttonClasses({ variant: "primary" })}>
             Triage &amp; acknowledge submitter
           </button>
         </form>
@@ -83,7 +81,7 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
               <button
                 type="submit"
                 disabled={st === s.status}
-                className="rounded-md border border-border-strong px-3 py-1.5 text-sm text-ink-strong hover:bg-surface-sunken/60 disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className={buttonClasses({ variant: "secondary", size: "sm" })}
               >
                 {STATUS_LABELS[st]}
               </button>
@@ -111,7 +109,7 @@ export default async function SubmissionDetail({ params }: { params: Promise<{ i
         />
         <button
           type="submit"
-          className="mt-2 rounded-md border border-border-strong px-4 py-2 text-sm font-medium text-ink-strong hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className={buttonClasses({ variant: "secondary", size: "sm", className: "mt-2" })}
         >
           Save notes
         </button>

@@ -12,7 +12,7 @@ export type Crumb = { href?: string; label: string };
 export function Breadcrumbs({ trail }: { trail: Crumb[] }) {
   return (
     <nav aria-label={site.nav.breadcrumbAriaLabel} data-print="hide">
-      <ol className="flex flex-wrap items-center gap-2 font-numeric text-[11px] tracking-[0.06em] text-ink-muted uppercase">
+      <ol className="flex flex-wrap items-center gap-2 font-numeric text-[12px] text-ink-muted">
         <li>
           <Link
             href={HOME_HREF}

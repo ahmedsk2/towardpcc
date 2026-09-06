@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { buttonClasses } from "@towardpcc/ui";
 import { saveSettings, type SaveSettingsState } from "../mail-actions";
 
 export type Field = {
@@ -66,11 +67,7 @@ export function MailForm({ fields }: { fields: readonly Field[] }) {
       </div>
 
       <div className="mt-6 flex items-center gap-4">
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-bold text-ink-on-accent transition-colors duration-150 hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-        >
+        <button type="submit" disabled={pending} className={buttonClasses({ variant: "primary" })}>
           {pending ? "Saving…" : "Save settings"}
         </button>
         <p className="text-xs text-ink-muted">

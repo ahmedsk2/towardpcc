@@ -10,11 +10,13 @@ export function PageHero({
   title,
   lede,
   eyebrow,
+  children,
 }: {
   crumb: string;
   title: string;
   lede?: string;
   eyebrow?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <section className="relative overflow-hidden bg-gradient-hero text-ink-on-dark">
@@ -44,6 +46,7 @@ export function PageHero({
         {lede ? (
           <p className="mt-5 max-w-[58ch] text-lg leading-relaxed text-ink-on-dark/90">{lede}</p>
         ) : null}
+        {children ? <div className="mt-8 max-w-xl">{children}</div> : null}
       </div>
       <svg
         viewBox="0 0 1440 110"

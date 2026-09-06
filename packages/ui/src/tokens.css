@@ -120,6 +120,13 @@
   --gradient-hero: linear-gradient(135deg, #3d1526 0%, #6b1930 45%, #a81f3c 100%);
   --gradient-accent: linear-gradient(135deg, #cf1f3d 0%, #ff7a6b 100%);
   --gradient-soft: linear-gradient(180deg, #fff2ee 0%, #fffaf7 100%);
+  /* THE BUTTON FILL, bounded to the contrast-cleared crimsons (2026-09-06).
+     White text needs 4.5:1 at 15px: accent is 5.36:1, accent-deep 9.05:1,
+     and accent-bright (#ea3a57) only 4.01:1, so the run is accent -> deep and
+     never reaches bright or coral. --gradient-accent stays a SURFACE gradient
+     (bands, rules) and is never a button fill. The hover "slide" is a
+     background-position shift over a 160%-wide paint of this same pair. */
+  --gradient-cta: linear-gradient(120deg, var(--color-accent) 0%, var(--color-accent-deep) 100%);
 
   /* Type roles — all self-hosted, SIL OFL (see ADR-design-direction).
      The families come from next/font (apps/web/app/layout.tsx), which emits a

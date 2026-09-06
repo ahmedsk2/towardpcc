@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { cn } from "@towardpcc/ui";
+import { buttonClasses, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import { shouldOfferInstall, type InstallEnvironment } from "./install-eligibility";
 
@@ -138,39 +138,18 @@ export function InstallPrompt() {
       <p className="mt-1 text-sm leading-relaxed text-ink-body">{p.installPromptBody}</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {deferred ? (
-          <button
-            type="button"
-            onClick={install}
-            className={cn(
-              "inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-medium text-ink-on-accent",
-              "hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-            )}
-          >
+          <button type="button" onClick={install} className={buttonClasses({ variant: "primary" })}>
             {p.installPromptAction}
           </button>
         ) : (
           // No `beforeinstallprompt` means no programmatic install — iOS, or a
           // browser that has not met its own install criteria. Send them to the
           // page that already explains how to do it by hand.
-          <Link
-            href="/install"
-            onClick={dismiss}
-            className={cn(
-              "inline-flex min-h-11 items-center rounded-md bg-accent px-4 text-sm font-medium text-ink-on-accent",
-              "hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-            )}
-          >
+          <Link href="/install" onClick={dismiss} className={buttonClasses({ variant: "primary" })}>
             {p.installPromptHow}
           </Link>
         )}
-        <button
-          type="button"
-          onClick={dismiss}
-          className={cn(
-            "inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-ink-muted",
-            "hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-          )}
-        >
+        <button type="button" onClick={dismiss} className={buttonClasses({ variant: "quiet" })}>
           {p.installPromptDismiss}
         </button>
       </div>
