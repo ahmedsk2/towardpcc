@@ -263,7 +263,7 @@ test.describe("composition panel", () => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await openWithValues(page, "psofa", PSOFA_FRAGMENT);
 
-    await page.getByRole("button", { name: "Copy result summary" }).click();
+    await page.getByRole("button", { name: /^copy summary$/i }).click();
     const copied: string = await page.evaluate(() => navigator.clipboard.readText());
     const lines = copied.split("\n");
 

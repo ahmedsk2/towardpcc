@@ -99,10 +99,11 @@ export default function TrustPage() {
             <p>
               The scoring engine ships to your browser and runs there. What you enter stays in the
               page and is never put into the address bar, so nothing on the page can read it back
-              out. Pressing <em>Copy link with these values</em> builds a shareable link at that
-              moment, and only then; opening one restores the form and immediately clears the values
-              from the address bar again. This is the one guarantee the whole platform is built
-              around, so it is enforced by architecture and not by policy.
+              out. Pressing <em>Copy link</em> on a calculator builds a shareable link carrying the
+              entered values at that moment, and only then; opening one restores the form and
+              immediately clears the values from the address bar again. This is the one guarantee
+              the whole platform is built around, so it is enforced by architecture and not by
+              policy.
             </p>
             {/* The dated TM-013 retraction that stood here from 2026-08-05 was
                 removed on the founder's instruction on 2026-08-07, once it was

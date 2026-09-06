@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import type {
   ComputeResult,
   InterpretationBand,
@@ -9,10 +10,12 @@ import type {
   ScoreInput,
 } from "@towardpcc/scoring-engine";
 import { getScore, matchInterpretationBand, visibleInputs } from "@towardpcc/scoring-engine";
-import { Callout, cn } from "@towardpcc/ui";
+import { buttonClasses, Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { shortName } from "@/content/score-description";
 import { acceptedRange, displayInputError } from "@/lib/accepted-range";
 import { CompositionPanel, DerivedPanel, splitComposition } from "./composition-panel";
+import { FieldHelp } from "./field-help";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
@@ -258,6 +261,9 @@ function CalculatorFormInner({
   const declared = definition.inputs;
   const [state, setState] = useState<FieldState>(() => initialState(declared));
   const [copied, setCopied] = useState(false);
+  // Which field's guidance is pinned open, if any — one at a time, owned here
+  // rather than coordinated between fields, so it is form state like the rest.
+  const [pinnedHelp, setPinnedHelp] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
 
   // Hydrate once on mount from the fragment the inline script in `layout.tsx`
@@ -292,7 +298,7 @@ function CalculatorFormInner({
   // URL — a reload, a restored tab, or Cloudflare's JS Detections reading
   // `document.location.href` at DOMContentLoaded — saw them. The values now
   // live in React state only, and reach a URL solely when the clinician presses
-  // "Copy link with these values", which builds one on demand.
+  // "Copy link", which builds one on demand.
   //
   // The cost is deliberate and was accepted: a reload no longer restores the
   // form. Persisting the rest of the fields to sessionStorage would fix that,
@@ -587,6 +593,7 @@ function CalculatorFormInner({
   const clearAll = useCallback(() => {
     setState(initialState(declared));
     setBlurred(new Set());
+    setPinnedHelp(null);
     setCopied(false);
     setLinkCopied(false);
     dismissCarried();
@@ -677,7 +684,11 @@ function CalculatorFormInner({
                 key={v.id}
                 type="button"
                 onClick={() => applyCarried(v)}
-                className="numeric inline-flex min-h-11 items-center rounded-pill border border-border-strong bg-surface-raised px-3.5 text-sm font-medium text-ink-strong transition-colors duration-[var(--motion-duration-fast)] hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className={buttonClasses({
+                  variant: "secondary",
+                  size: "sm",
+                  className: "numeric",
+                })}
               >
                 {v.label} {v.raw} {v.unit}
               </button>
@@ -685,7 +696,7 @@ function CalculatorFormInner({
             <button
               type="button"
               onClick={dismissCarried}
-              className="min-h-11 rounded-sm px-1 text-sm text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className={buttonClasses({ variant: "quiet", size: "sm" })}
             >
               {c.carriedDismiss}
             </button>
@@ -729,6 +740,8 @@ function CalculatorFormInner({
                 onChange={(patch) => setField(input.id, patch)}
                 onCommit={() => markBlurred(input.id)}
                 missingAsNormal={Boolean(definition.missingAsNormal)}
+                helpPinned={pinnedHelp === input.id}
+                onPinHelp={(on) => setPinnedHelp(on ? input.id : null)}
               />
             ))}
           </fieldset>
@@ -742,7 +755,11 @@ function CalculatorFormInner({
             type="button"
             data-print="hide"
             onClick={clearAll}
-            className="min-h-11 self-start rounded-sm text-sm font-medium text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className={buttonClasses({
+              variant: "quiet",
+              size: "sm",
+              className: "self-start",
+            })}
           >
             {c.clearAllLabel}
           </button>
@@ -917,6 +934,8 @@ function InputField({
   onChange,
   onCommit,
   missingAsNormal,
+  helpPinned,
+  onPinHelp,
 }: {
   input: ScoreInput;
   field: Field;
@@ -928,13 +947,14 @@ function InputField({
   /** The user has finished with this field — see `blurred` above. */
   onCommit: () => void;
   missingAsNormal: boolean;
+  /** Whether this field's guidance is the one pinned open; the form owns it. */
+  helpPinned: boolean;
+  onPinHelp: (on: boolean) => void;
 }) {
   const id = `field-${input.id}`;
-  const hasHint = Boolean(input.helpText) || input.type === "numeric";
-  const describedBy =
-    [error ? `${id}-error` : hasHint ? `${id}-help` : null, notice ? `${id}-notice` : null]
-      .filter(Boolean)
-      .join(" ") || undefined;
+  const help = input.helpText?.en;
+  const helpId = `${id}-help`;
+  const rangeId = `${id}-range`;
   const units = unitOptions(input);
 
   // The accepted range sits in the field itself rather than in a separate list
@@ -954,6 +974,59 @@ function InputField({
     error !== undefined && errorCode !== undefined
       ? displayInputError(input, selectedUnit, { code: errorCode, message: error })
       : error;
+
+  // THE ACCEPTED RANGE HAS TWO HOMES. The placeholder carries it while the
+  // field is empty; once a value is present or rejected this caption carries
+  // it, so it is on screen exactly when a value is being corrected. The
+  // always-visible sentence under every empty field is gone (2026-09-06).
+  const showCaption = range !== null && (field.raw !== "" || Boolean(error));
+
+  // THE DESCRIPTION IS EVERYTHING A SIGHTED READER CAN SEE ABOUT THIS FIELD:
+  // the error when there is one, else the guidance (hidden until asked for,
+  // but aria-describedby reads hidden nodes); the accepted-range caption while
+  // it is on screen; and any notice. The caption used to share the guidance
+  // paragraph and fell out of the description when the two were split — a
+  // review caught the regression before it shipped.
+  const describedBy =
+    [
+      error ? `${id}-error` : help ? helpId : null,
+      showCaption ? rangeId : null,
+      notice ? `${id}-notice` : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
+  // `relative`: FieldHelp anchors its tooltip to this row, and drops its
+  // pinned copy into it as a full-width wrapping item. See field-help.tsx.
+  const labelRow = (text: React.ReactNode, htmlFor?: string) => (
+    <span className="relative flex flex-wrap items-center gap-2">
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className="text-sm font-medium text-ink-strong">
+          {text}
+        </label>
+      ) : (
+        <span className="text-sm font-medium text-ink-strong">{text}</span>
+      )}
+      {help ? (
+        <FieldHelp
+          helpId={helpId}
+          label={input.label.en}
+          text={help}
+          pinned={helpPinned}
+          onPinChange={onPinHelp}
+        />
+      ) : null}
+    </span>
+  );
+
+  // Full `ink-muted`, no opacity modifier: `/85` composited to 4.22:1 at this
+  // size on the page ground, under the 4.5:1 AA needs, and this is the line
+  // that tells a clinician why a value was rejected. Plain ink-muted is 5.92:1.
+  const caption = showCaption ? (
+    <p id={rangeId} className="numeric text-[12px] text-ink-muted">
+      Accepted {range}
+    </p>
+  ) : null;
 
   const noticeLine = notice ? (
     <p
@@ -985,28 +1058,12 @@ function InputField({
       </span>
       {shownError}
     </p>
-  ) : hasHint ? (
-    <p id={`${id}-help`} className="text-sm text-ink-muted">
-      {input.helpText?.en}
-      {input.helpText && range ? " " : null}
-      {/* Persists after typing, unlike the placeholder, so the accepted
-          range is still on screen when a value is being corrected. */}
-      {/* Full `ink-muted`, no opacity modifier. `/85` composited to #847579
-          on the page ground — 4.22:1 at 13px, under the 4.5:1 AA needs.
-          Plain ink-muted is 5.92:1. This is the line that tells a clinician
-          why their value was rejected, on every numeric field of every
-          calculator, so it was the worst possible place to shave contrast
-          for a shade of visual hierarchy. */}
-      {range ? <span className="numeric text-ink-muted">Accepted {range}</span> : null}
-    </p>
   ) : null;
 
   if (input.type === "numeric") {
     return (
       <div className="flex flex-col gap-2">
-        <label htmlFor={id} className="text-sm font-medium text-ink-strong">
-          {input.label.en}
-        </label>
+        {labelRow(input.label.en, id)}
         {/* `flex-wrap`, so on the narrowest phones the unit control drops to
             its own line instead of squeezing the number box. No media query. */}
         <div className="flex flex-wrap items-start gap-2">
@@ -1052,6 +1109,7 @@ function InputField({
           ) : null}
         </div>
         {hint}
+        {caption}
         {noticeLine}
       </div>
     );
@@ -1105,13 +1163,30 @@ function InputField({
       onBlur={onCommit}
       className="flex flex-col gap-2"
     >
-      <legend id={`${id}-legend`} className="text-sm font-medium text-ink-strong">
-        {input.label.en}
-        {!input.required && (
-          <span className="ml-2 font-numeric text-[11px] tracking-[0.09em] text-ink-muted uppercase">
-            {optionalBadge(missingAsNormal, input, c)}
-          </span>
-        )}
+      {/* The legend is the label ROW here — relative and wrapping, so the
+          ⓘ sits beside the text and FieldHelp can anchor its tooltip to it and
+          drop the pinned copy under it (see field-help.tsx). The group's name
+          comes from the inner span, not the legend, so the toggle's "i" and
+          the pinned guidance never join the accessible name. `mb-2` because a
+          legend is not a flex item and the fieldset's gap does not reach it. */}
+      <legend className="relative mb-2 flex w-full flex-wrap items-center gap-2 text-sm font-medium text-ink-strong">
+        <span id={`${id}-legend`}>
+          {input.label.en}
+          {!input.required && (
+            <span className="ml-2 font-numeric text-[11px] tracking-[0.09em] text-ink-muted uppercase">
+              {optionalBadge(missingAsNormal, input, c)}
+            </span>
+          )}
+        </span>
+        {help ? (
+          <FieldHelp
+            helpId={helpId}
+            label={input.label.en}
+            text={help}
+            pinned={helpPinned}
+            onPinChange={onPinHelp}
+          />
+        ) : null}
       </legend>
 
       <div className={horizontal ? "grid max-w-sm grid-cols-2 gap-2" : "flex flex-col gap-2"}>
@@ -1145,6 +1220,7 @@ function InputField({
       )}
 
       {hint}
+      {caption}
       {noticeLine}
     </fieldset>
   );
@@ -1286,7 +1362,10 @@ function ResultPanel({
         className,
       )}
     >
-      <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
+      <h2 className="font-display text-lg font-medium text-ink-strong">
+        {shortName(definition.name)}
+        <span className="sr-only"> — {c.resultHeading}</span>
+      </h2>
 
       {/* HOW MUCH OF THE INSTRUMENT HAS BEEN ANSWERED — composites only.
           A composite that scores blank components as normal reads low while it
@@ -1482,9 +1561,10 @@ function ResultPanel({
                     ) : null}
                   </p>
                   {band && (
-                    <p className="mt-1 text-sm text-ink-body">
-                      <span className="font-medium">{c.interpretationLabel}: </span>
-                      {band.label.en} — {band.description.en}
+                    <p className="mt-1 text-sm leading-relaxed text-ink-body">
+                      <span className="sr-only">{c.interpretationLabel}: </span>
+                      <span className="font-semibold text-ink-strong">{band.label.en}.</span>{" "}
+                      {band.description.en}
                     </p>
                   )}
                   {band && bands.length > 1 ? (
@@ -1533,7 +1613,7 @@ function ResultPanel({
                        state, so an href="#evidence" would wipe everything the
                        clinician had entered. */
                     <p className="mt-1 text-[13px] text-ink-muted">
-                      {c.sourceLabel}: {shortSource} — {c.sourceSuffix}.
+                      {c.sourceLabel}: {shortSource}
                     </p>
                   ) : null}
                 </div>
@@ -1583,39 +1663,45 @@ function ResultPanel({
             <button
               type="button"
               onClick={onCopy}
-              className={cn(
-                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              )}
+              className={buttonClasses({ variant: "secondary", className: "flex-1" })}
             >
               {copied ? c.copied : c.copyResult}
             </button>
             <button
               type="button"
               onClick={onCopyLink}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              )}
+              title={c.copyLinkTitle}
+              className={buttonClasses({ variant: "secondary" })}
             >
               {linkCopied ? c.copied : c.copyLinkLabel}
             </button>
             <button
               type="button"
               onClick={() => window.print()}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              )}
+              aria-label={c.printLabel}
+              className={buttonClasses({ variant: "icon" })}
             >
-              {c.printLabel}
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-[18px]">
+                <path
+                  d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
         </div>
       )}
-      <Callout tone="note" className="mt-6 text-[13px]">
-        {c.privacyLine}
-      </Callout>
+      <p className="mt-6 text-[12.5px] leading-relaxed text-ink-muted" role="note">
+        {c.privacyLine}{" "}
+        <Link
+          href="/trust"
+          className="rounded-sm text-accent-deep underline decoration-accent/40 underline-offset-2 transition-colors duration-150 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {c.privacyLinkLabel}
+        </Link>
+      </p>
 
       {/* THE ANSWER, ON A PHONE.
           The rail above is `lg:sticky`, so on a desktop the number never leaves

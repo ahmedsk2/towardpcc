@@ -928,7 +928,7 @@ export const site = {
     // for a genuinely low score (PRD §6.4 honest partial-result cue).
     partialResultNote:
       "Components left blank are scored as normal. Enter every component that applies for a complete score.",
-    copyResult: "Copy result summary",
+    copyResult: "Copy summary",
     copied: "Copied",
     printLabel: "Print",
     clearAllLabel: "Clear all values",
@@ -939,7 +939,7 @@ export const site = {
     // The label states what the link contains, because the link contains the
     // values. Sharing was always possible — state is mirrored into the
     // fragment — and was invisible, which is the worst of both.
-    copyLinkLabel: "Copy link with these values",
+    copyLinkLabel: "Copy link",
     copyInputsLabel: "Inputs",
     // The composite breakdown in the copied summary, kept on purpose: pSOFA 9
     // from two organs is a different handover from pSOFA 9 across six, and the
@@ -952,11 +952,9 @@ export const site = {
      * subscores rather than measured alongside them.
      */
     copyDerivedLabel: "Derived",
-    // Beside the number. "Full citation in Evidence, below" and NOT a link:
-    // the fragment belongs to field state, so an href="#evidence" would wipe
-    // everything the clinician had entered.
+    // Beside the number, and NOT a link: the fragment belongs to field state,
+    // so an href="#evidence" would wipe everything the clinician had entered.
     sourceLabel: "Source",
-    sourceSuffix: "full citation in Evidence, below",
     // Rendered where a score has no interpretation bands AND says so on
     // purpose vs. has simply not had them authored yet. Two different facts
     // that used to render as the same silence.
@@ -1003,18 +1001,27 @@ export const site = {
     // describes the behaviour that actually holds, and names the two things a
     // clinician will otherwise be surprised by: sharing is an explicit action,
     // and a reload does not bring the form back.
-    privacyLine:
-      "Calculations run entirely in your browser — nothing you enter leaves this device, and values are not put in the address bar. Copy link with these values builds a shareable link when you ask for one; reloading this page starts a blank form.",
+    // ONE SENTENCE, AND A LINK TO THE REST (2026-09-06). The two facts the
+    // long form spelled out — a link carries values only when you ask for
+    // one, and a reload starts blank — live on /trust and on the Copy-link
+    // button's title. Still architecturally true: nothing you enter reaches
+    // the URL or a server until you press Copy link.
+    privacyLine: "Runs entirely in your browser. Nothing you enter leaves this device.",
+    privacyLinkLabel: "How",
+    copyLinkTitle: "Builds a link carrying these values, only when you press it",
     // Validation badge (PRD §6.4 — honest pending state)
     validationPending: "Independent clinical validation: pending",
+    // The same fact in the meta line above the form, where the long form
+    // would run the line to a second row on a phone.
+    validationPendingShort: "Validation pending",
     validationPendingDetail:
       "Two independent clinical validators will be named here once review is complete.",
     validatedByPrefix: "Validated by",
-    formulaHeading: "How it is calculated",
+    formulaHeading: "Formula",
     referencesHeading: "References",
     evidenceHeading: "Evidence",
-    versionHeading: "Version and changelog",
-    limitationsHeading: "Limitations and notes",
+    versionHeading: "Version",
+    limitationsHeading: "Notes",
     // Retained: the ranges themselves moved into the fields, but this heading
     // is still the accessible description of what those hints are.
     acceptedRangesHeading: "Accepted input ranges",

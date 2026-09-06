@@ -121,12 +121,12 @@ test.describe("PRISM collection window", () => {
     await chooseWindow(page, WINDOW.iii);
     await expect(page.locator("#field-cancer")).toHaveCount(0);
 
-    await page.getByRole("button", { name: /copy link with these values/i }).click();
+    await page.getByRole("button", { name: /^copy link$/i }).click();
     const link = await page.evaluate(() => navigator.clipboard.readText());
     expect(link).toContain("collection_window=first_12_24h");
     expect(link).not.toContain("cancer");
 
-    await page.getByRole("button", { name: /copy result summary/i }).click();
+    await page.getByRole("button", { name: /^copy summary$/i }).click();
     const summary = await page.evaluate(() => navigator.clipboard.readText());
     expect(summary).toContain("PRISM III (severity score only)");
     expect(summary).not.toContain("Cancer, acute or chronic");
@@ -209,7 +209,7 @@ test.describe("PRISM collection window", () => {
     await enterRequired(page);
     await answerCovariates(page);
 
-    await page.getByRole("button", { name: /copy result summary/i }).click();
+    await page.getByRole("button", { name: /^copy summary$/i }).click();
     const summary = await page.evaluate(() => navigator.clipboard.readText());
     // The real emitted labels, read off an actual clipboard capture rather than
     // guessed: a first draft of this test asserted "Mortality probability" and

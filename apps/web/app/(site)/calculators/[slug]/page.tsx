@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getScore, listScores } from "@towardpcc/scoring-engine";
-import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
-import { scoreDescription } from "@/content/score-description";
+import { scoreDescription, shortName } from "@/content/score-description";
 import { CalculatorForm } from "@/components/calculator/calculator-form";
 import { ValidationBadge } from "@/components/calculator/validation-badge";
 import { ScoreTabs, type ScoreTab } from "@/components/calculator/score-tabs";
 import { InterpretationTable, IpStatusNote, TrustStrip } from "@/components/calculator/score-meta";
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { breadcrumbSchema, calculatorSchema, graph } from "@/lib/structured-data";
+import { formulaLines } from "@/lib/formula-lines";
 
 const c = site.calculators;
 
@@ -91,7 +91,33 @@ export default async function CalculatorDetailPage({
     {
       id: "formula",
       label: c.formulaHeading,
-      content: <p className="max-w-[58ch] leading-relaxed text-ink-body">{score.formula?.en}</p>,
+      content: (() => {
+        const text = score.formula?.en ?? "";
+        const lines = formulaLines(score.slug, text);
+        if (!lines) return <p className="max-w-[58ch] leading-relaxed text-ink-body">{text}</p>;
+        // Unlabelled lines are paragraphs OUTSIDE the <dl>: a `dl` may wrap
+        // its pairs in <div>s, but every such div must hold a dt and a dd, so
+        // the lead-in and the closing sentence cannot live inside it.
+        const labelled = lines.filter((l) => l.label);
+        const lead = lines[0]?.label ? null : lines[0];
+        const closing = lines.length > 1 && !lines.at(-1)?.label ? lines.at(-1) : null;
+        return (
+          <div className="flex max-w-[64ch] flex-col gap-3 text-[15px] leading-relaxed text-ink-body">
+            {lead ? <p>{lead.text}</p> : null}
+            <dl className="grid grid-cols-[minmax(6ch,max-content)_1fr] gap-x-4 gap-y-2">
+              {labelled.map((l) => (
+                <div key={l.label} className="contents">
+                  <dt className="pt-0.5 font-numeric text-[12px] font-semibold tracking-[0.02em] text-accent-deep">
+                    {l.label}
+                  </dt>
+                  <dd className="m-0">{l.text}</dd>
+                </div>
+              ))}
+            </dl>
+            {closing ? <p>{closing.text}</p> : null}
+          </div>
+        );
+      })(),
     },
     {
       id: "limitations",
@@ -223,16 +249,16 @@ export default async function CalculatorDetailPage({
                   <li key={r.slug}>
                     <Link
                       href={`/calculators/${r.slug}`}
-                      className="group flex h-full flex-col justify-between gap-2 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate] duration-200 hover:-translate-y-1 hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="group flex h-full flex-col gap-1.5 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate,box-shadow] duration-[var(--motion-duration-enter)] ease-[var(--motion-ease)] hover:border-border-strong hover:shadow-xl focus-visible:border-border-strong focus-visible:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:hover:-translate-y-1 motion-reduce:transition-none"
                     >
                       <span className="font-display text-[15px] font-medium text-ink-strong">
-                        {r.name}
+                        {shortName(r.name)}
                       </span>
-                      <span className="font-numeric text-[11px] text-ink-muted">
-                        v{r.version}
-                        <span className="ml-3 text-accent opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                          Open →
-                        </span>
+                      {/* What the sibling is FOR, in the same one line the
+                            catalogue card carries, so stepping sideways is a
+                            choice rather than a guess. */}
+                      <span className="text-[13px] leading-snug text-ink-muted">
+                        {r.tagline.en}
                       </span>
                     </Link>
                   </li>
@@ -241,13 +267,11 @@ export default async function CalculatorDetailPage({
             </section>
           ) : null}
 
-          <section className="mt-12 border-t border-border pt-8">
-            <h2 className="font-display text-lg font-medium text-ink-strong">
-              {c.disclaimerHeading}
-            </h2>
-            <Callout tone="note" className="mt-3 max-w-[58ch]">
+          <section className="mt-12 border-t border-border pt-6">
+            <p className="max-w-[64ch] text-[13px] leading-relaxed text-ink-muted" role="note">
+              <span className="font-semibold text-ink-body">{c.disclaimerHeading}. </span>
               {c.disclaimer}
-            </Callout>
+            </p>
           </section>
         </CalculatorForm>
       </div>

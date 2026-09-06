@@ -52,9 +52,16 @@ test.describe("out-of-range input", () => {
     await glucose.fill("5000");
     await glucose.blur();
     await expect(glucose).toHaveAttribute("aria-invalid", "true");
-    const describedBy = await glucose.getAttribute("aria-describedby");
-    expect(describedBy, "the error must be linked, not just present").toBeTruthy();
-    await expect(page.locator(`#${describedBy}`)).toHaveAttribute("role", "alert");
+    // A space-separated list since 2026-09-07: the error AND the accepted-range
+    // caption, which is on screen whenever a value has been rejected.
+    const describedBy = (await glucose.getAttribute("aria-describedby")) ?? "";
+    const ids = describedBy.split(/\s+/).filter(Boolean);
+    const errorId = ids.find((id) => id.endsWith("-error"));
+    expect(errorId, "the error must be linked, not just present").toBeTruthy();
+    await expect(page.locator(`#${errorId}`)).toHaveAttribute("role", "alert");
+    expect(ids, "the range caption is part of the description too").toContain(
+      "field-glucose-range",
+    );
   });
 
   /**
@@ -99,11 +106,14 @@ test.describe("out-of-range input", () => {
     await page.goto("/calculators/pelod2", { waitUntil: "networkidle" });
     const age = page.locator("#field-age_months");
     await expect(age).toHaveAttribute("placeholder", "0 to under 216 months");
-    await expect(page.getByText("Accepted 0 to under 216 months")).toBeVisible();
+    // The caption only renders once a value is present or rejected
+    // (2026-09-06), so this assertion moves to after the field is filled.
+    await expect(page.getByText("Accepted 0 to under 216 months")).toHaveCount(0);
 
     await age.fill("216");
     await age.blur();
     await expect(page.locator("#field-age_months-error")).toContainText("less than 216 months");
+    await expect(page.getByText("Accepted 0 to under 216 months")).toBeVisible();
 
     await age.fill("215.5");
     await age.blur();

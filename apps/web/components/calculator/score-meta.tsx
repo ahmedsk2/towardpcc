@@ -1,7 +1,7 @@
 import type { InterpretationBand, IpStatus, ScoreDefinition } from "@towardpcc/scoring-engine";
 import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
-import { formatBand } from "./format";
+import { formatBand, humanDate } from "./format";
 
 const c = site.calculators;
 
@@ -18,50 +18,35 @@ const c = site.calculators;
 export function TrustStrip({ score }: { score: ScoreDefinition }) {
   const latest = [...score.changelog].sort((a, b) => b.date.localeCompare(a.date))[0];
   const validated = score.validators.every((v) => v.status === "assigned");
-
+  // "3 Sep 2026", not "2026-09-03": a date a person reads, built by hand so it
+  // is the same string on every server and never "6 Sept 2026" (en-GB's
+  // short September) or "Sep 6, 2026" (en-US's order).
+  const reviewed = latest ? humanDate(latest.date) : null;
+  const items: { key: string; value: string; className?: string | undefined }[] = [
+    { key: "Category", value: c.categoryLabels[score.category] },
+    { key: "Version", value: `v${score.version}` },
+    ...(reviewed ? [{ key: "Reviewed", value: `Reviewed ${reviewed}` }] : []),
+    {
+      key: "Validation",
+      value: validated ? c.validatedByPrefix.replace(/[:\s]+$/, "") : c.validationPendingShort,
+      className: validated ? "text-success-text" : undefined,
+    },
+  ];
   /**
-   * A labelled instrument row rather than four identical grey pills.
-   *
-   * These four facts carry the page's credibility — what kind of score it is,
-   * which version, when it was last reviewed, and whether anyone independent
-   * has checked it — and they were rendered as interchangeable capsules with no
-   * indication of which was which. A reader had to infer that "v1.0.0" was a
-   * version and "Reviewed 2026-07-31" a date from the values alone.
-   *
-   * Static, deliberately. This sits directly above the calculator, and
-   * motion.md revision 4 keeps that zone calm; the improvement here is
-   * legibility and hierarchy, not movement.
+   * ONE QUIET LINE, not four labelled cells (2026-09-06). The keys survive
+   * for screen readers; sighted readers get the values with a dot between.
    */
-  const cell =
-    "flex flex-col gap-0.5 border-s border-border-subtle px-4 first:border-s-0 first:ps-0";
-  const key = "font-numeric text-[10px] font-semibold tracking-[0.1em] text-ink-muted uppercase";
-  const val = "font-numeric text-[12.5px] tracking-[0.02em] text-ink-strong";
-
   return (
-    <ul className="mt-5 flex list-none flex-wrap items-stretch gap-y-3 border-y border-border-subtle py-3">
-      <li className={cell}>
-        <span className={key}>Category</span>
-        <span className={val}>{c.categoryLabels[score.category]}</span>
-      </li>
-      <li className={cell}>
-        <span className={key}>Version</span>
-        <span className={val}>v{score.version}</span>
-      </li>
-      {latest ? (
-        <li className={cell}>
-          <span className={key}>Reviewed</span>
-          <span className={`${val} tabular-nums`}>{latest.date}</span>
+    <ul className="mt-4 flex list-none flex-wrap items-center gap-x-2.5 gap-y-1 font-numeric text-[12.5px] text-ink-muted">
+      {items.map((it, i) => (
+        <li key={it.key} className="flex items-center gap-2.5">
+          {i > 0 ? (
+            <span aria-hidden="true" className="size-[3px] rounded-pill bg-border-strong" />
+          ) : null}
+          <span className="sr-only">{it.key}: </span>
+          <span className={it.className}>{it.value}</span>
         </li>
-      ) : null}
-      <li className={cell}>
-        <span className={key}>Validation</span>
-        {/* Crimson never means a problem on this site, so a pending state is
-            ink-muted and a confirmed one is the semantic green — never the
-            brand accent in either direction. */}
-        <span className={validated ? `${val} text-success-text` : `${val} text-ink-muted`}>
-          {validated ? c.validatedByPrefix.replace(/[:\s]+$/, "") : c.validationPending}
-        </span>
-      </li>
+      ))}
     </ul>
   );
 }

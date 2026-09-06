@@ -25,7 +25,18 @@ test.describe("an accepted-range hint reads low to high", () => {
       .click({ timeout: 3000 })
       .catch(() => {});
 
-    const hrHint = page.locator("#field-hr-help");
+    // The accepted-range caption only renders once a value is present
+    // (2026-09-06), and it is no longer a sibling with a `-help` id — it is
+    // a plain `<p>` beside the field. Fill both fields so the captions render,
+    // then locate each caption by walking up from the input to the field's
+    // wrapper and reading the "Accepted …" text inside it.
+    await page.locator("#field-hr").fill("60");
+    await page.locator("#field-qt").fill("400");
+
+    const hrHint = page
+      .locator("#field-hr")
+      .locator("xpath=../..")
+      .getByText(/^Accepted /);
 
     // Canonical unit: unchanged, and the control case for everything below.
     await expect(hrHint).toContainText("Accepted 30–250 bpm");
@@ -42,6 +53,10 @@ test.describe("an accepted-range hint reads low to high", () => {
     await expect(hrHint).toContainText("Accepted 0.24–2 s");
 
     // A same-direction conversion on the same page must be untouched.
-    await expect(page.locator("#field-qt-help")).toContainText("Accepted 200–700 ms");
+    const qtHint = page
+      .locator("#field-qt")
+      .locator("xpath=../..")
+      .getByText(/^Accepted /);
+    await expect(qtHint).toContainText("Accepted 200–700 ms");
   });
 });
