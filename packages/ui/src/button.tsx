@@ -22,6 +22,13 @@ import { cn } from "./cn";
  * `translate` utilities, which Tailwind v4 compiles to the `translate`
  * property; `background-position` because of the slide. Naming six
  * properties is still not `transition: all`.
+ *
+ * `className` ADDS, it does not override. `cn` is a plain join, so a utility
+ * that conflicts with the base — `hidden` against `inline-flex`, another
+ * radius, another padding — is decided by the stylesheet's order, not by
+ * yours. Margins and responsive extras are fine; for a display or breakpoint
+ * change, wrap the element and put the classes on the wrapper. The header CTA
+ * learned this on 2026-09-06 (main-nav.tsx).
  */
 export type ButtonVariant = "primary" | "secondary" | "quiet" | "icon" | "on-dark" | "ghost-dark";
 export type ButtonSize = "lg" | "md" | "sm";

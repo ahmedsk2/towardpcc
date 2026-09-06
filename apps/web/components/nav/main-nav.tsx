@@ -291,16 +291,16 @@ export function MainNav({ groups }: { groups: MegaGroup[] }) {
         </ul>
       </nav>
 
-      <Link
-        href="/calculators"
-        className={buttonClasses({
-          variant: "primary",
-          size: "sm",
-          className: "ms-auto hidden shrink-0 lg:ms-6 lg:inline-flex",
-        })}
-      >
-        {site.nav.headerCta}
-      </Link>
+      {/* Desktop only, and the WRAPPER carries the breakpoint. `cn` is a plain
+          join, so a `hidden` passed into buttonClasses() cannot beat the
+          family's own `inline-flex`; passed on the link itself, the CTA
+          rendered on phones and every page scrolled 126px sideways at 320px —
+          caught by layout.spec.ts on 2026-09-06, the day the family landed. */}
+      <span className="ms-auto hidden shrink-0 lg:ms-6 lg:inline-flex">
+        <Link href="/calculators" className={buttonClasses({ variant: "primary", size: "sm" })}>
+          {site.nav.headerCta}
+        </Link>
+      </span>
 
       {/* Mobile trigger */}
       <button
