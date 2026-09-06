@@ -5,6 +5,15 @@ import { formatBand } from "./format";
 
 const c = site.calculators;
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** `2026-09-03` → `3 Sep 2026`. Changelog dates are ISO by the engine's gate. */
+function humanDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const month = MONTHS[(m ?? 1) - 1] ?? "";
+  return `${d ?? ""} ${month} ${y ?? ""}`.trim();
+}
+
 /**
  * Metadata chips beside the heading: what this is, which version, when it was
  * last reviewed, and whether a clinician has signed it off.
@@ -18,16 +27,10 @@ const c = site.calculators;
 export function TrustStrip({ score }: { score: ScoreDefinition }) {
   const latest = [...score.changelog].sort((a, b) => b.date.localeCompare(a.date))[0];
   const validated = score.validators.every((v) => v.status === "assigned");
-  // "3 Sep 2026", not "2026-09-03": a date a person reads, rendered on the
-  // server so it is the same string for every visitor.
-  const reviewed = latest
-    ? new Date(`${latest.date}T00:00:00Z`).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      })
-    : null;
+  // "3 Sep 2026", not "2026-09-03": a date a person reads, built by hand so it
+  // is the same string on every server and never "6 Sept 2026" (en-GB's
+  // short September) or "Sep 6, 2026" (en-US's order).
+  const reviewed = latest ? humanDate(latest.date) : null;
   const items: { key: string; value: string; className?: string | undefined }[] = [
     { key: "Category", value: c.categoryLabels[score.category] },
     { key: "Version", value: `v${score.version}` },

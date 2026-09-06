@@ -10,7 +10,7 @@ import type {
   ScoreInput,
 } from "@towardpcc/scoring-engine";
 import { getScore, matchInterpretationBand, visibleInputs } from "@towardpcc/scoring-engine";
-import { Callout, cn } from "@towardpcc/ui";
+import { buttonClasses, Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 import { shortName } from "@/content/score-description";
 import { acceptedRange, displayInputError } from "@/lib/accepted-range";
@@ -20,62 +20,6 @@ import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
 const c = site.calculators;
-
-/**
- * STAND-IN FOR `buttonClasses` FROM `@towardpcc/ui` (2026-09-07).
- *
- * This design revision's PR A rewrote `packages/ui/src/button.tsx` into one
- * pill button family with `secondary` / `quiet` / `icon` (and more) variants —
- * see the `design/buttons-and-marks` branch. This worktree was branched
- * BEFORE that commit merged to `main`, so the shipped `buttonClasses` here
- * still has only the pre-revision `primary` / `secondary` / `ghost` family
- * (rounded-md, no `quiet` or `icon` member) — and this file is not allowed to
- * touch `packages/**` to add them.
- *
- * This mirrors the `secondary` / `quiet` / `icon` recipes of that new family
- * byte-for-byte, scoped to this file, so the result rail matches the design
- * revision now rather than waiting on a merge order this worktree does not
- * control. Delete this once PR A lands and import the real `buttonClasses`
- * from `@towardpcc/ui` instead — every call site below is already shaped
- * for it.
- */
-type ResultBtnVariant = "secondary" | "quiet" | "icon";
-type ResultBtnSize = "md" | "sm";
-
-const resultBtnBase =
-  "inline-flex items-center justify-center gap-2 rounded-pill font-body font-semibold " +
-  "select-none transition-[color,background-color,border-color,box-shadow,translate] " +
-  "duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
-  "active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
-
-const resultBtnVariants: Record<ResultBtnVariant, string> = {
-  secondary:
-    "border border-border-strong bg-surface-raised text-ink-strong " +
-    "hover:border-accent hover:text-accent-deep hover:shadow-[var(--shadow-accent)] motion-safe:hover:-translate-y-px",
-  quiet: "text-accent-deep hover:bg-accent-tint",
-  icon: "border border-border-strong bg-surface-raised text-ink-muted hover:border-accent hover:text-accent",
-};
-
-const resultBtnSizes: Record<ResultBtnSize, string> = {
-  md: "min-h-11 px-5 text-[15px]",
-  sm: "min-h-9 px-3.5 text-sm",
-};
-
-const resultBtnIconSizes: Record<ResultBtnSize, string> = {
-  md: "min-h-11 w-11 px-0",
-  sm: "min-h-9 w-9 px-0",
-};
-
-function resultButtonClasses(opts?: {
-  variant?: ResultBtnVariant | undefined;
-  size?: ResultBtnSize | undefined;
-  className?: string | undefined;
-}): string {
-  const { variant = "secondary", size = "md", className } = opts ?? {};
-  const sizeClass = variant === "icon" ? resultBtnIconSizes[size] : resultBtnSizes[size];
-  return cn(resultBtnBase, resultBtnVariants[variant], sizeClass, className);
-}
 
 /** Raw field state — strings for numerics (so the box can be empty), plus a chosen unit. */
 type Field = { raw: string; unit?: string | undefined };
@@ -736,7 +680,7 @@ function CalculatorFormInner({
                 key={v.id}
                 type="button"
                 onClick={() => applyCarried(v)}
-                className={resultButtonClasses({
+                className={buttonClasses({
                   variant: "secondary",
                   size: "sm",
                   className: "numeric",
@@ -748,7 +692,7 @@ function CalculatorFormInner({
             <button
               type="button"
               onClick={dismissCarried}
-              className={resultButtonClasses({ variant: "quiet", size: "sm" })}
+              className={buttonClasses({ variant: "quiet", size: "sm" })}
             >
               {c.carriedDismiss}
             </button>
@@ -805,7 +749,7 @@ function CalculatorFormInner({
             type="button"
             data-print="hide"
             onClick={clearAll}
-            className={resultButtonClasses({
+            className={buttonClasses({
               variant: "quiet",
               size: "sm",
               className: "self-start",
@@ -1029,8 +973,10 @@ function InputField({
   // always-visible sentence under every empty field is gone (2026-09-06).
   const showCaption = range !== null && (field.raw !== "" || Boolean(error));
 
+  // `relative`: FieldHelp anchors its tooltip to this row, and drops its
+  // pinned copy into it as a full-width wrapping item. See field-help.tsx.
   const labelRow = (text: React.ReactNode, htmlFor?: string) => (
-    <span className="flex flex-wrap items-center gap-2">
+    <span className="relative flex flex-wrap items-center gap-2">
       {htmlFor ? (
         <label htmlFor={htmlFor} className="text-sm font-medium text-ink-strong">
           {text}
@@ -1181,19 +1127,23 @@ function InputField({
       onBlur={onCommit}
       className="flex flex-col gap-2"
     >
-      <legend id={`${id}-legend`} className="text-sm font-medium text-ink-strong">
-        {input.label.en}
-        {!input.required && (
-          <span className="ml-2 font-numeric text-[11px] tracking-[0.09em] text-ink-muted uppercase">
-            {optionalBadge(missingAsNormal, input, c)}
-          </span>
-        )}
-      </legend>
-      {help ? (
-        <span className="-mt-1">
-          <FieldHelp helpId={helpId} label={input.label.en} text={help} />
+      {/* The legend is the label ROW here — relative and wrapping, so the
+          ⓘ sits beside the text and FieldHelp can anchor its tooltip to it and
+          drop the pinned copy under it (see field-help.tsx). The group's name
+          comes from the inner span, not the legend, so the toggle's "i" and
+          the pinned guidance never join the accessible name. `mb-2` because a
+          legend is not a flex item and the fieldset's gap does not reach it. */}
+      <legend className="relative mb-2 flex w-full flex-wrap items-center gap-2 text-sm font-medium text-ink-strong">
+        <span id={`${id}-legend`}>
+          {input.label.en}
+          {!input.required && (
+            <span className="ml-2 font-numeric text-[11px] tracking-[0.09em] text-ink-muted uppercase">
+              {optionalBadge(missingAsNormal, input, c)}
+            </span>
+          )}
         </span>
-      ) : null}
+        {help ? <FieldHelp helpId={helpId} label={input.label.en} text={help} /> : null}
+      </legend>
 
       <div className={horizontal ? "grid max-w-sm grid-cols-2 gap-2" : "flex flex-col gap-2"}>
         {opts.map((o) => (
@@ -1669,7 +1619,7 @@ function ResultPanel({
             <button
               type="button"
               onClick={onCopy}
-              className={resultButtonClasses({ variant: "secondary", className: "flex-1" })}
+              className={buttonClasses({ variant: "secondary", className: "flex-1" })}
             >
               {copied ? c.copied : c.copyResult}
             </button>
@@ -1677,7 +1627,7 @@ function ResultPanel({
               type="button"
               onClick={onCopyLink}
               title={c.copyLinkTitle}
-              className={resultButtonClasses({ variant: "secondary" })}
+              className={buttonClasses({ variant: "secondary" })}
             >
               {linkCopied ? c.copied : c.copyLinkLabel}
             </button>
@@ -1685,7 +1635,7 @@ function ResultPanel({
               type="button"
               onClick={() => window.print()}
               aria-label={c.printLabel}
-              className={resultButtonClasses({ variant: "icon" })}
+              className={buttonClasses({ variant: "icon" })}
             >
               <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-[18px]">
                 <path

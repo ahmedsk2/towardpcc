@@ -60,53 +60,71 @@ export function FieldHelp({
     if (next) document.dispatchEvent(new CustomEvent("tpcc:help-pinned", { detail: helpId }));
   };
 
+  /**
+   * TWO SIBLINGS, NOT ONE WRAPPER — and the ROW is the positioning context.
+   *
+   * The first cut put everything inside one `relative inline-flex` span: the
+   * tooltip anchored to the ⓘ, so on a 375px phone it ran 54px off the right
+   * edge and, laid out even at rest, added 169px of sideways scroll to the
+   * page; and the pinned copy, a `basis-full` item inside a nowrap inline-flex
+   * container, rendered squeezed beside the button instead of under the label
+   * (measured 2026-09-07 with Playwright against the dev server).
+   *
+   * So the caller's label row is `relative flex flex-wrap`: the tooltip is
+   * `absolute start-0 top-full` against THAT row and capped at its width, and
+   * the pinned copy is a second child of the row with `basis-full`, which a
+   * wrapping flex row puts on a line of its own at full width.
+   */
   return (
-    <span className={cn("group/help relative inline-flex", className)} data-print="hide">
-      <button
-        type="button"
-        id={buttonId}
-        onClick={pin}
-        aria-expanded={pinned}
-        aria-controls={helpId}
-        aria-label={`About ${label}`}
-        className={cn(
-          "grid size-6 place-items-center rounded-pill border font-numeric text-[12px] font-semibold",
-          "transition-[color,border-color,background-color] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-          pinned
-            ? "border-accent bg-accent-tint text-accent-deep"
-            : "border-border-strong text-ink-muted hover:border-accent hover:bg-accent-tint hover:text-accent-deep",
-        )}
-      >
-        i
-      </button>
-      {/* Tooltip: shown on hover/focus of the button, never when pinned (the
+    <>
+      <span className={cn("group/help inline-flex", className)} data-print="hide">
+        <button
+          type="button"
+          id={buttonId}
+          onClick={pin}
+          aria-expanded={pinned}
+          aria-controls={helpId}
+          aria-label={`About ${label}`}
+          className={cn(
+            "grid size-6 place-items-center rounded-pill border font-numeric text-[12px] font-semibold",
+            "transition-[color,border-color,background-color] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+            pinned
+              ? "border-accent bg-accent-tint text-accent-deep"
+              : "border-border-strong text-ink-muted hover:border-accent hover:bg-accent-tint hover:text-accent-deep",
+          )}
+        >
+          i
+        </button>
+        {/* Tooltip: shown on hover/focus of the button, never when pinned (the
           inline copy below takes over). `hidden` is not used here because the
           node must stay in the accessibility tree for aria-describedby — it
           is visually collapsed with opacity and pointer-events instead, and
           `aria-hidden` keeps the tooltip copy from being read twice. */}
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute start-0 top-8 z-20 w-max max-w-[min(44ch,calc(100vw-3rem))] rounded-md bg-ink-strong px-3.5 py-2.5 text-[13px] leading-relaxed font-normal text-surface-page shadow-xl",
-          "opacity-0 -translate-y-1 transition-[opacity,translate] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
-          !pinned &&
-            "group-hover/help:opacity-100 group-hover/help:translate-y-0 group-focus-within/help:opacity-100 group-focus-within/help:translate-y-0",
-        )}
-      >
-        {text}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute start-0 top-full z-20 mt-1.5 w-max max-w-[min(44ch,100%)] rounded-md bg-ink-strong px-3.5 py-2.5 text-[13px] leading-relaxed font-normal text-surface-page shadow-xl",
+            "opacity-0 -translate-y-1 transition-[opacity,translate] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
+            !pinned &&
+              "group-hover/help:opacity-100 group-hover/help:translate-y-0 group-focus-within/help:opacity-100 group-focus-within/help:translate-y-0",
+          )}
+        >
+          {text}
+        </span>
       </span>
       {/* The accessible copy. Always in the DOM (aria-describedby reads hidden
-          nodes); visible only when pinned, as a block under the label row.
-          `hidden` toggles display; the parent InputField places this span's
-          block form via `basis-full`. */}
+          nodes); visible only when pinned, on its own full-width line under
+          the label row. `hidden` toggles display (Tailwind's preflight makes
+          the attribute win over any display utility). */}
       <span
         id={helpId}
         hidden={!pinned}
-        className="mt-2 block basis-full rounded-md bg-surface-sunken px-3.5 py-2.5 text-[13px] leading-relaxed font-normal text-ink-body"
+        data-print="hide"
+        className="mt-1 block basis-full rounded-md bg-surface-sunken px-3.5 py-2.5 text-[13px] leading-relaxed font-normal text-ink-body"
       >
         {text}
       </span>
-    </span>
+    </>
   );
 }

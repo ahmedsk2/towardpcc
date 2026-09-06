@@ -11,7 +11,6 @@ import { InterpretationTable, IpStatusNote, TrustStrip } from "@/components/calc
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { breadcrumbSchema, calculatorSchema, graph } from "@/lib/structured-data";
 import { formulaLines } from "@/lib/formula-lines";
-import { inputCountLabel } from "@/lib/input-count";
 
 const c = site.calculators;
 
@@ -243,7 +242,6 @@ export default async function CalculatorDetailPage({
               </h2>
               <ul className="mt-4 grid list-none gap-3 sm:grid-cols-2">
                 {related.map((r) => {
-                  const relatedDef = getScore(r.slug);
                   return (
                     <li key={r.slug}>
                       <Link
@@ -253,15 +251,12 @@ export default async function CalculatorDetailPage({
                         <span className="font-display text-[15px] font-medium text-ink-strong">
                           {shortName(r.name)}
                         </span>
-                        {/* PR B's per-score `tagline` has not merged into this
-                            worktree yet, so the short name plus the honest
-                            input count stands in for it here — swap in
-                            `getScore(r.slug)?.tagline.en` once it lands. */}
-                        {relatedDef ? (
-                          <span className="font-numeric text-[11px] text-ink-muted">
-                            {inputCountLabel(relatedDef)}
-                          </span>
-                        ) : null}
+                        {/* What the sibling is FOR, in the same one line the
+                            catalogue card carries, so stepping sideways is a
+                            choice rather than a guess. */}
+                        <span className="text-[13px] leading-snug text-ink-muted">
+                          {r.tagline.en}
+                        </span>
                       </Link>
                     </li>
                   );
