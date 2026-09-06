@@ -19,6 +19,13 @@ const DIRS = ["app", "components"].map((d) => join(ROOT, d));
 const RECIPE =
   /bg-accent(?:\s+[^"'`]*)?\s+text-ink-on-accent|text-ink-on-accent(?:\s+[^"'`]*)?\s+bg-accent(?=[\s"'`])/;
 
+// ALLOW-LISTED (2026-09-06): the catalogue's selected FilterChip in
+// calculators-index.tsx paints "bg-accent … text-ink-on-accent" on purpose —
+// it is a toggle chip, not a button, so it does not take the button family's
+// classes from `packages/ui/src/button.tsx`. One named entry, not a pattern,
+// so a second offender still fails the guard.
+const ALLOWED = new Set([join(ROOT, "app", "(site)", "calculators", "calculators-index.tsx")]);
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -39,9 +46,9 @@ describe("button idiom", () => {
   it("never hand-rolls the primary fill outside the ui package", () => {
     // `DIRS.flatMap(walk)` would pass flatMap's index as walk's `out` param,
     // clobbering the accumulator default — call it with one argument instead.
-    const offenders = DIRS.flatMap((d) => walk(d)).filter((f) =>
-      RECIPE.test(readFileSync(f, "utf8")),
-    );
+    const offenders = DIRS.flatMap((d) => walk(d))
+      .filter((f) => !ALLOWED.has(f))
+      .filter((f) => RECIPE.test(readFileSync(f, "utf8")));
     expect(offenders.map((f) => f.slice(ROOT.length))).toEqual([]);
   });
 });
