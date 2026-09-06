@@ -295,7 +295,7 @@ function CalculatorFormInner({
   // URL — a reload, a restored tab, or Cloudflare's JS Detections reading
   // `document.location.href` at DOMContentLoaded — saw them. The values now
   // live in React state only, and reach a URL solely when the clinician presses
-  // "Copy link with these values", which builds one on demand.
+  // "Copy link", which builds one on demand.
   //
   // The cost is deliberate and was accepted: a reload no longer restores the
   // form. Persisting the rest of the fields to sessionStorage would fix that,
