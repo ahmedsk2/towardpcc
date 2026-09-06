@@ -99,11 +99,14 @@ test.describe("out-of-range input", () => {
     await page.goto("/calculators/pelod2", { waitUntil: "networkidle" });
     const age = page.locator("#field-age_months");
     await expect(age).toHaveAttribute("placeholder", "0 to under 216 months");
-    await expect(page.getByText("Accepted 0 to under 216 months")).toBeVisible();
+    // The caption only renders once a value is present or rejected
+    // (2026-09-06), so this assertion moves to after the field is filled.
+    await expect(page.getByText("Accepted 0 to under 216 months")).toHaveCount(0);
 
     await age.fill("216");
     await age.blur();
     await expect(page.locator("#field-age_months-error")).toContainText("less than 216 months");
+    await expect(page.getByText("Accepted 0 to under 216 months")).toBeVisible();
 
     await age.fill("215.5");
     await age.blur();

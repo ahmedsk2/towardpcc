@@ -64,7 +64,7 @@ export function ScoreTabs({ items }: { items: readonly ScoreTab[] }) {
         role="tablist"
         aria-label="Score details"
         onKeyDown={onKeyDown}
-        className="flex flex-wrap gap-1 border-b border-border"
+        className="inline-flex flex-wrap gap-1 rounded-pill bg-surface-sunken p-1"
       >
         {items.map((item, i) => (
           <button
@@ -83,31 +83,15 @@ export function ScoreTabs({ items }: { items: readonly ScoreTab[] }) {
             tabIndex={active === i ? 0 : -1}
             onClick={() => setActive(i)}
             className={cn(
-              "group relative -mb-px inline-flex min-h-11 items-center rounded-t-md px-4 py-2.5 text-sm font-medium",
-              "transition-colors duration-150 ease-[var(--motion-ease)]",
+              "inline-flex min-h-10 items-center rounded-pill px-4 text-sm font-medium",
+              "transition-[color,background-color,box-shadow] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              active === i ? "text-accent-deep" : "text-ink-muted hover:text-ink-strong",
+              active === i
+                ? "bg-surface-raised text-ink-strong shadow-sm"
+                : "text-ink-muted hover:text-accent-deep",
             )}
           >
             {item.label}
-            {/* The same trace the nav uses, so the site has one idiom for "this
-                is the current one" rather than a border swap here and a rule
-                there. A 2px border that appears and disappears also shifted the
-                label by 2px on every tab change; a scaled bar never moves it.
-
-                `transition-[scale]`, because Tailwind v4 compiles `scale-x-*`
-                to the `scale` property — naming `transform` would transition
-                nothing, which is what left eight hover lifts inert site-wide. */}
-            <span
-              aria-hidden="true"
-              className={cn(
-                "pointer-events-none absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-accent",
-                "transition-[scale] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none",
-                active === i
-                  ? "origin-left scale-x-100"
-                  : "origin-right scale-x-0 group-hover:origin-left group-hover:scale-x-100",
-              )}
-            />
           </button>
         ))}
       </div>

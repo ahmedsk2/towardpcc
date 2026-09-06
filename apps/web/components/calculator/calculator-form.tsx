@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import type {
   ComputeResult,
   InterpretationBand,
@@ -11,12 +12,70 @@ import type {
 import { getScore, matchInterpretationBand, visibleInputs } from "@towardpcc/scoring-engine";
 import { Callout, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
+import { shortName } from "@/content/score-description";
 import { acceptedRange, displayInputError } from "@/lib/accepted-range";
 import { CompositionPanel, DerivedPanel, splitComposition } from "./composition-panel";
+import { FieldHelp } from "./field-help";
 import { formatBand, shortCite } from "./format";
 import { CARRIED_IDS, useCarriedValues, type CarriedValue } from "./use-carried-values";
 
 const c = site.calculators;
+
+/**
+ * STAND-IN FOR `buttonClasses` FROM `@towardpcc/ui` (2026-09-07).
+ *
+ * This design revision's PR A rewrote `packages/ui/src/button.tsx` into one
+ * pill button family with `secondary` / `quiet` / `icon` (and more) variants —
+ * see the `design/buttons-and-marks` branch. This worktree was branched
+ * BEFORE that commit merged to `main`, so the shipped `buttonClasses` here
+ * still has only the pre-revision `primary` / `secondary` / `ghost` family
+ * (rounded-md, no `quiet` or `icon` member) — and this file is not allowed to
+ * touch `packages/**` to add them.
+ *
+ * This mirrors the `secondary` / `quiet` / `icon` recipes of that new family
+ * byte-for-byte, scoped to this file, so the result rail matches the design
+ * revision now rather than waiting on a merge order this worktree does not
+ * control. Delete this once PR A lands and import the real `buttonClasses`
+ * from `@towardpcc/ui` instead — every call site below is already shaped
+ * for it.
+ */
+type ResultBtnVariant = "secondary" | "quiet" | "icon";
+type ResultBtnSize = "md" | "sm";
+
+const resultBtnBase =
+  "inline-flex items-center justify-center gap-2 rounded-pill font-body font-semibold " +
+  "select-none transition-[color,background-color,border-color,box-shadow,translate] " +
+  "duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
+  "active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
+
+const resultBtnVariants: Record<ResultBtnVariant, string> = {
+  secondary:
+    "border border-border-strong bg-surface-raised text-ink-strong " +
+    "hover:border-accent hover:text-accent-deep hover:shadow-[var(--shadow-accent)] motion-safe:hover:-translate-y-px",
+  quiet: "text-accent-deep hover:bg-accent-tint",
+  icon: "border border-border-strong bg-surface-raised text-ink-muted hover:border-accent hover:text-accent",
+};
+
+const resultBtnSizes: Record<ResultBtnSize, string> = {
+  md: "min-h-11 px-5 text-[15px]",
+  sm: "min-h-9 px-3.5 text-sm",
+};
+
+const resultBtnIconSizes: Record<ResultBtnSize, string> = {
+  md: "min-h-11 w-11 px-0",
+  sm: "min-h-9 w-9 px-0",
+};
+
+function resultButtonClasses(opts?: {
+  variant?: ResultBtnVariant | undefined;
+  size?: ResultBtnSize | undefined;
+  className?: string | undefined;
+}): string {
+  const { variant = "secondary", size = "md", className } = opts ?? {};
+  const sizeClass = variant === "icon" ? resultBtnIconSizes[size] : resultBtnSizes[size];
+  return cn(resultBtnBase, resultBtnVariants[variant], sizeClass, className);
+}
 
 /** Raw field state — strings for numerics (so the box can be empty), plus a chosen unit. */
 type Field = { raw: string; unit?: string | undefined };
@@ -677,7 +736,11 @@ function CalculatorFormInner({
                 key={v.id}
                 type="button"
                 onClick={() => applyCarried(v)}
-                className="numeric inline-flex min-h-11 items-center rounded-pill border border-border-strong bg-surface-raised px-3.5 text-sm font-medium text-ink-strong transition-colors duration-[var(--motion-duration-fast)] hover:bg-accent-tint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className={resultButtonClasses({
+                  variant: "secondary",
+                  size: "sm",
+                  className: "numeric",
+                })}
               >
                 {v.label} {v.raw} {v.unit}
               </button>
@@ -685,7 +748,7 @@ function CalculatorFormInner({
             <button
               type="button"
               onClick={dismissCarried}
-              className="min-h-11 rounded-sm px-1 text-sm text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className={resultButtonClasses({ variant: "quiet", size: "sm" })}
             >
               {c.carriedDismiss}
             </button>
@@ -742,7 +805,11 @@ function CalculatorFormInner({
             type="button"
             data-print="hide"
             onClick={clearAll}
-            className="min-h-11 self-start rounded-sm text-sm font-medium text-ink-muted underline underline-offset-4 hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className={resultButtonClasses({
+              variant: "quiet",
+              size: "sm",
+              className: "self-start",
+            })}
           >
             {c.clearAllLabel}
           </button>
@@ -930,9 +997,10 @@ function InputField({
   missingAsNormal: boolean;
 }) {
   const id = `field-${input.id}`;
-  const hasHint = Boolean(input.helpText) || input.type === "numeric";
+  const help = input.helpText?.en;
+  const helpId = `${id}-help`;
   const describedBy =
-    [error ? `${id}-error` : hasHint ? `${id}-help` : null, notice ? `${id}-notice` : null]
+    [error ? `${id}-error` : help ? helpId : null, notice ? `${id}-notice` : null]
       .filter(Boolean)
       .join(" ") || undefined;
   const units = unitOptions(input);
@@ -954,6 +1022,29 @@ function InputField({
     error !== undefined && errorCode !== undefined
       ? displayInputError(input, selectedUnit, { code: errorCode, message: error })
       : error;
+
+  // THE ACCEPTED RANGE HAS TWO HOMES. The placeholder carries it while the
+  // field is empty; once a value is present or rejected this caption carries
+  // it, so it is on screen exactly when a value is being corrected. The
+  // always-visible sentence under every empty field is gone (2026-09-06).
+  const showCaption = range !== null && (field.raw !== "" || Boolean(error));
+
+  const labelRow = (text: React.ReactNode, htmlFor?: string) => (
+    <span className="flex flex-wrap items-center gap-2">
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className="text-sm font-medium text-ink-strong">
+          {text}
+        </label>
+      ) : (
+        <span className="text-sm font-medium text-ink-strong">{text}</span>
+      )}
+      {help ? <FieldHelp helpId={helpId} label={input.label.en} text={help} /> : null}
+    </span>
+  );
+
+  const caption = showCaption ? (
+    <p className="numeric text-[12px] text-ink-muted">Accepted {range}</p>
+  ) : null;
 
   const noticeLine = notice ? (
     <p
@@ -985,28 +1076,12 @@ function InputField({
       </span>
       {shownError}
     </p>
-  ) : hasHint ? (
-    <p id={`${id}-help`} className="text-sm text-ink-muted">
-      {input.helpText?.en}
-      {input.helpText && range ? " " : null}
-      {/* Persists after typing, unlike the placeholder, so the accepted
-          range is still on screen when a value is being corrected. */}
-      {/* Full `ink-muted`, no opacity modifier. `/85` composited to #847579
-          on the page ground — 4.22:1 at 13px, under the 4.5:1 AA needs.
-          Plain ink-muted is 5.92:1. This is the line that tells a clinician
-          why their value was rejected, on every numeric field of every
-          calculator, so it was the worst possible place to shave contrast
-          for a shade of visual hierarchy. */}
-      {range ? <span className="numeric text-ink-muted">Accepted {range}</span> : null}
-    </p>
   ) : null;
 
   if (input.type === "numeric") {
     return (
       <div className="flex flex-col gap-2">
-        <label htmlFor={id} className="text-sm font-medium text-ink-strong">
-          {input.label.en}
-        </label>
+        {labelRow(input.label.en, id)}
         {/* `flex-wrap`, so on the narrowest phones the unit control drops to
             its own line instead of squeezing the number box. No media query. */}
         <div className="flex flex-wrap items-start gap-2">
@@ -1052,6 +1127,7 @@ function InputField({
           ) : null}
         </div>
         {hint}
+        {caption}
         {noticeLine}
       </div>
     );
@@ -1113,6 +1189,11 @@ function InputField({
           </span>
         )}
       </legend>
+      {help ? (
+        <span className="-mt-1">
+          <FieldHelp helpId={helpId} label={input.label.en} text={help} />
+        </span>
+      ) : null}
 
       <div className={horizontal ? "grid max-w-sm grid-cols-2 gap-2" : "flex flex-col gap-2"}>
         {opts.map((o) => (
@@ -1145,6 +1226,7 @@ function InputField({
       )}
 
       {hint}
+      {caption}
       {noticeLine}
     </fieldset>
   );
@@ -1286,7 +1368,10 @@ function ResultPanel({
         className,
       )}
     >
-      <h2 className="font-display text-lg font-medium text-ink-strong">{c.resultHeading}</h2>
+      <h2 className="font-display text-lg font-medium text-ink-strong">
+        {shortName(definition.name)}
+        <span className="sr-only"> — {c.resultHeading}</span>
+      </h2>
 
       {/* HOW MUCH OF THE INSTRUMENT HAS BEEN ANSWERED — composites only.
           A composite that scores blank components as normal reads low while it
@@ -1482,9 +1567,10 @@ function ResultPanel({
                     ) : null}
                   </p>
                   {band && (
-                    <p className="mt-1 text-sm text-ink-body">
-                      <span className="font-medium">{c.interpretationLabel}: </span>
-                      {band.label.en} — {band.description.en}
+                    <p className="mt-1 text-sm leading-relaxed text-ink-body">
+                      <span className="sr-only">{c.interpretationLabel}: </span>
+                      <span className="font-semibold text-ink-strong">{band.label.en}.</span>{" "}
+                      {band.description.en}
                     </p>
                   )}
                   {band && bands.length > 1 ? (
@@ -1533,7 +1619,7 @@ function ResultPanel({
                        state, so an href="#evidence" would wipe everything the
                        clinician had entered. */
                     <p className="mt-1 text-[13px] text-ink-muted">
-                      {c.sourceLabel}: {shortSource} — {c.sourceSuffix}.
+                      {c.sourceLabel}: {shortSource}
                     </p>
                   ) : null}
                 </div>
@@ -1583,39 +1669,45 @@ function ResultPanel({
             <button
               type="button"
               onClick={onCopy}
-              className={cn(
-                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              )}
+              className={resultButtonClasses({ variant: "secondary", className: "flex-1" })}
             >
               {copied ? c.copied : c.copyResult}
             </button>
             <button
               type="button"
               onClick={onCopyLink}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              )}
+              title={c.copyLinkTitle}
+              className={resultButtonClasses({ variant: "secondary" })}
             >
               {linkCopied ? c.copied : c.copyLinkLabel}
             </button>
             <button
               type="button"
               onClick={() => window.print()}
-              className={cn(
-                "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border-strong px-4 text-sm font-medium text-ink-strong",
-                "transition-colors duration-150 hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-              )}
+              aria-label={c.printLabel}
+              className={resultButtonClasses({ variant: "icon" })}
             >
-              {c.printLabel}
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-[18px]">
+                <path
+                  d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
         </div>
       )}
-      <Callout tone="note" className="mt-6 text-[13px]">
-        {c.privacyLine}
-      </Callout>
+      <p className="mt-6 text-[12.5px] leading-relaxed text-ink-muted" role="note">
+        {c.privacyLine}{" "}
+        <Link
+          href="/trust"
+          className="rounded-sm text-accent-deep underline decoration-accent/40 underline-offset-2 transition-colors duration-150 hover:decoration-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          {c.privacyLinkLabel}
+        </Link>
+      </p>
 
       {/* THE ANSWER, ON A PHONE.
           The rail above is `lg:sticky`, so on a desktop the number never leaves

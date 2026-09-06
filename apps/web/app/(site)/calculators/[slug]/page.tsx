@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getScore, listScores } from "@towardpcc/scoring-engine";
-import { Callout } from "@towardpcc/ui";
 import { site } from "@/content/site";
-import { scoreDescription } from "@/content/score-description";
+import { scoreDescription, shortName } from "@/content/score-description";
 import { CalculatorForm } from "@/components/calculator/calculator-form";
 import { ValidationBadge } from "@/components/calculator/validation-badge";
 import { ScoreTabs, type ScoreTab } from "@/components/calculator/score-tabs";
 import { InterpretationTable, IpStatusNote, TrustStrip } from "@/components/calculator/score-meta";
 import { Breadcrumbs } from "@/components/nav/breadcrumbs";
 import { breadcrumbSchema, calculatorSchema, graph } from "@/lib/structured-data";
+import { formulaLines } from "@/lib/formula-lines";
+import { inputCountLabel } from "@/lib/input-count";
 
 const c = site.calculators;
 
@@ -91,7 +92,29 @@ export default async function CalculatorDetailPage({
     {
       id: "formula",
       label: c.formulaHeading,
-      content: <p className="max-w-[58ch] leading-relaxed text-ink-body">{score.formula?.en}</p>,
+      content: (() => {
+        const text = score.formula?.en ?? "";
+        const lines = formulaLines(text);
+        if (!lines) return <p className="max-w-[58ch] leading-relaxed text-ink-body">{text}</p>;
+        return (
+          <dl className="grid max-w-[64ch] grid-cols-[minmax(6ch,max-content)_1fr] gap-x-4 gap-y-2 text-[15px] leading-relaxed">
+            {lines.map((l, i) =>
+              l.label ? (
+                <div key={i} className="contents">
+                  <dt className="pt-0.5 font-numeric text-[12px] font-semibold tracking-[0.02em] text-accent-deep">
+                    {l.label}
+                  </dt>
+                  <dd className="m-0 text-ink-body">{l.text}</dd>
+                </div>
+              ) : (
+                <div key={i} className="col-span-2 text-ink-body">
+                  {l.text}
+                </div>
+              ),
+            )}
+          </dl>
+        );
+      })(),
     },
     {
       id: "limitations",
@@ -219,35 +242,39 @@ export default async function CalculatorDetailPage({
                 Other {c.categoryLabels[score.category].toLowerCase()} scores
               </h2>
               <ul className="mt-4 grid list-none gap-3 sm:grid-cols-2">
-                {related.map((r) => (
-                  <li key={r.slug}>
-                    <Link
-                      href={`/calculators/${r.slug}`}
-                      className="group flex h-full flex-col justify-between gap-2 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate] duration-200 hover:-translate-y-1 hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    >
-                      <span className="font-display text-[15px] font-medium text-ink-strong">
-                        {r.name}
-                      </span>
-                      <span className="font-numeric text-[11px] text-ink-muted">
-                        v{r.version}
-                        <span className="ml-3 text-accent opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                          Open →
+                {related.map((r) => {
+                  const relatedDef = getScore(r.slug);
+                  return (
+                    <li key={r.slug}>
+                      <Link
+                        href={`/calculators/${r.slug}`}
+                        className="group flex h-full flex-col gap-1.5 rounded-lg border border-border bg-surface-raised px-5 py-4 transition-[border-color,translate,box-shadow] duration-[var(--motion-duration-enter)] ease-[var(--motion-ease)] hover:border-border-strong hover:shadow-xl focus-visible:border-border-strong focus-visible:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-safe:hover:-translate-y-1 motion-reduce:transition-none"
+                      >
+                        <span className="font-display text-[15px] font-medium text-ink-strong">
+                          {shortName(r.name)}
                         </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+                        {/* PR B's per-score `tagline` has not merged into this
+                            worktree yet, so the short name plus the honest
+                            input count stands in for it here — swap in
+                            `getScore(r.slug)?.tagline.en` once it lands. */}
+                        {relatedDef ? (
+                          <span className="font-numeric text-[11px] text-ink-muted">
+                            {inputCountLabel(relatedDef)}
+                          </span>
+                        ) : null}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ) : null}
 
-          <section className="mt-12 border-t border-border pt-8">
-            <h2 className="font-display text-lg font-medium text-ink-strong">
-              {c.disclaimerHeading}
-            </h2>
-            <Callout tone="note" className="mt-3 max-w-[58ch]">
+          <section className="mt-12 border-t border-border pt-6">
+            <p className="max-w-[64ch] text-[13px] leading-relaxed text-ink-muted" role="note">
+              <span className="font-semibold text-ink-body">{c.disclaimerHeading}. </span>
               {c.disclaimer}
-            </Callout>
+            </p>
           </section>
         </CalculatorForm>
       </div>
