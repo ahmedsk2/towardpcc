@@ -23,15 +23,9 @@ const truth = {
 const numeric = (v: string | number) => Number(String(v).replace(/[^\d]/g, ""));
 
 describe("public figures match the registry", () => {
-  it("hero: cited references", () => {
-    const stat = site.home.heroTrust.find((t) => /cited references/i.test(t.label));
-    expect(stat, "the hero should still carry a citation figure").toBeDefined();
-    expect(numeric(stat!.value)).toBe(truth.citations);
-  });
-
-  it("hero: calculators live", () => {
-    const stat = site.home.heroTrust.find((t) => /calculators live/i.test(t.label));
-    expect(numeric(stat!.value)).toBe(truth.scores);
+  it("hero line derives its count rather than typing it", () => {
+    expect(site.home.heroLine).toContain("{liveCalculators}");
+    expect(site.home.heroLine).not.toMatch(/\b\d{2,}\b/);
   });
 
   it("proof band: literature citations", () => {
@@ -110,14 +104,6 @@ describe("public figures match the registry", () => {
     ).toContain(`${spelled} Tier-A PICU scores`);
   });
 
-  it("no figure in the copy is typed as a literal that could drift", () => {
-    // The citation count is the one that got out of step, so it is the one
-    // pinned here: it must not appear as a hardcoded numeral anywhere in the
-    // content module.
-    const src = String(site.home.features.map((f) => f.body).join(" "));
-    expect(src).toContain(String(truth.citations));
-  });
-
   /**
    * A count can be right while the sentence around it is false.
    *
@@ -138,7 +124,10 @@ describe("public figures match the registry", () => {
       (n, s) => n + s.references.filter((r) => "pmid" in r && "doi" in r).length,
       0,
     );
-    const copy = site.home.features.map((f) => f.body).join(" ");
+    // The feature strip that used to carry this claim is gone (2026-09-06);
+    // scanning the whole `home` block rather than one field keeps the guard
+    // alive against wherever such a claim might be written next.
+    const copy = JSON.stringify(site.home);
     const claimsBoth = /citations?[^.]*\bwith PMID and DOI/i.test(copy);
     expect(
       claimsBoth && withBoth !== truth.citations,

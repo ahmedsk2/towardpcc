@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@towardpcc/ui";
+import { buttonClasses, cn } from "@towardpcc/ui";
 import { site } from "@/content/site";
 
 const e = site.home.evidence;
@@ -123,7 +123,7 @@ export function EvidenceCarousel() {
           type="button"
           onClick={() => nudge(-1)}
           disabled={pos.atStart}
-          className={arrow}
+          className={buttonClasses({ variant: "icon" })}
           aria-controls="evidence-track"
         >
           <span className="sr-only">Previous</span>
@@ -176,7 +176,7 @@ export function EvidenceCarousel() {
           type="button"
           onClick={() => nudge(1)}
           disabled={pos.atEnd}
-          className={arrow}
+          className={buttonClasses({ variant: "icon" })}
           aria-controls="evidence-track"
         >
           <span className="sr-only">Next</span>
@@ -194,15 +194,3 @@ export function EvidenceCarousel() {
     </div>
   );
 }
-
-const arrow =
-  "grid size-11 place-items-center rounded-full border-2 border-border-strong bg-surface-raised text-ink-strong " +
-  "transition-[color,background-color,border-color,scale] duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none " +
-  "hover:border-accent hover:bg-accent hover:text-ink-on-accent motion-safe:active:scale-90 " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
-  // At the ends the button is disabled, so it must stop offering hover
-  // feedback too — a control that lights up and then does nothing is the thing
-  // that reads as broken. Kept focusable-looking rather than hidden so the
-  // rail's shape does not shift as you scroll.
-  "disabled:cursor-default disabled:border-border disabled:bg-transparent disabled:text-ink-muted/40 " +
-  "disabled:hover:border-border disabled:hover:bg-transparent disabled:hover:text-ink-muted/40";

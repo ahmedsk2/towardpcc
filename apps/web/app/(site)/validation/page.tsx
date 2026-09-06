@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listScores, registry } from "@towardpcc/scoring-engine";
-import { Callout } from "@towardpcc/ui";
+import { buttonClasses, Callout } from "@towardpcc/ui";
 import { PageHero } from "@/components/page-hero";
 import { ReviewChip } from "@/components/trust/evidence-chip";
 import { site } from "@/content/site";
@@ -171,7 +171,7 @@ export default function ValidationPage() {
           </div>
           <Link
             href="/contact"
-            className="mt-6 inline-flex min-h-12 items-center rounded-full bg-accent px-6 text-[15px] font-bold text-ink-on-accent transition-colors duration-150 hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className={buttonClasses({ variant: "primary", size: "lg", className: "mt-6" })}
           >
             Offer to review a score
           </Link>

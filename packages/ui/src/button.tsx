@@ -1,82 +1,120 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "./cn";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
-type ButtonSize = "md" | "sm";
+/**
+ * THE ONE BUTTON FAMILY (2026-09-06).
+ *
+ * Until this revision the site ran three idioms — marketing pills, square
+ * outlined form buttons and underlined text resets — each with its own hover,
+ * press and focus recipe. Every button and button-shaped link now takes its
+ * classes from here, and `content/button-idiom.test.ts` fails the suite if the
+ * primary fill is written anywhere else.
+ *
+ * Shape is pill in every variant. Inputs and cards stay soft-rectangle, so a
+ * control you type into looks different from one you press.
+ *
+ * The primary fill is `--gradient-cta`, bounded to accent -> accent-deep
+ * (white text 5.36:1 and 9.05:1). Hover slides the paint to its deeper end —
+ * a `background-position` shift over a 160%-wide paint — adds the accent
+ * glow and lifts 1px. Never `accent-bright`: white on it is 4.01:1.
+ *
+ * `translate` is named in the transition because the lift and the press are
+ * `translate` utilities, which Tailwind v4 compiles to the `translate`
+ * property; `background-position` because of the slide. Naming six
+ * properties is still not `transition: all`.
+ *
+ * `className` ADDS, it does not override. `cn` is a plain join, so a utility
+ * that conflicts with the base — `hidden` against `inline-flex`, another
+ * radius, another padding — is decided by the stylesheet's order, not by
+ * yours. Margins and responsive extras are fine; for a display or breakpoint
+ * change, wrap the element and put the classes on the wrapper. The header CTA
+ * learned this on 2026-09-06 (main-nav.tsx).
+ */
+export type ButtonVariant = "primary" | "secondary" | "quiet" | "icon" | "on-dark" | "ghost-dark";
+export type ButtonSize = "lg" | "md" | "sm";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** `primary` (crimson) is the single most important action — once per screen. */
+  /** `primary` is the single most important action — once per screen. */
   variant?: ButtonVariant;
   size?: ButtonSize;
 }
 
-/**
- * `translate` is named alongside the colours because the 1px press is a
- * `translate` utility, and Tailwind v4 compiles those to the `translate`
- * property — `transition-colors` alone left the press snapping. Same class of
- * bug that made eight hover lifts inert across the site.
- *
- * `box-shadow` is here for the response glow below. Naming three properties is
- * still not `transition: all`, which stays banned: the point of the rule is
- * that a reader can see what moves.
- */
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-md font-body font-semibold " +
-  "transition-[color,background-color,border-color,box-shadow,translate] duration-150 " +
-  "ease-[var(--motion-ease)] select-none motion-reduce:transition-none " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent " +
+  "group/btn inline-flex items-center justify-center gap-2 rounded-pill font-body font-semibold " +
+  "select-none transition-[color,background-color,background-position,border-color,box-shadow,translate] " +
+  "duration-150 ease-[var(--motion-ease)] motion-reduce:transition-none " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 " +
   "active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
 
 const variants: Record<ButtonVariant, string> = {
-  /**
-   * Hover keeps `accent-deep` (9.05:1 under white) and gains a crimson glow.
-   * NOT `accent-bright`, which is the obvious-looking choice and fails: white
-   * on #ea3a57 is 4.01:1, under the 4.5:1 this text size needs.
-   */
-  primary: "bg-accent text-ink-on-accent hover:bg-accent-deep hover:shadow-[var(--shadow-accent)]",
-  // A button outline identifies a control, so it takes the 3:1 tier
-  // (WCAG 1.4.11) rather than a tinted ink. Hover moves to the accent.
-  //
-  // The fill stays `surface-sunken/60` — about 1.04:1 against the raised
-  // ground, so it is atmosphere and cannot be the cue. The border carries the
-  // state, which is why it moves to full accent rather than a tint.
+  primary:
+    "bg-gradient-cta [background-size:160%_100%] [background-position:0%_0%] text-ink-on-accent " +
+    "hover:[background-position:100%_0%] hover:shadow-[var(--shadow-accent)] motion-safe:hover:-translate-y-px " +
+    "focus-visible:outline-accent",
+  // A button outline identifies a control, so it takes the 3:1 tier (WCAG
+  // 1.4.11). The border carries the state and moves to full accent on hover.
   secondary:
-    "border border-border-strong bg-surface-raised text-ink-strong hover:border-accent hover:bg-surface-sunken/60 hover:shadow-[var(--shadow-accent)]",
-  // Ghost has no border and no fill worth the name — accent-tint is 1.09:1 on
-  // white. The ink darkening to full accent is the honest cue here, so it is
-  // stated rather than left to a background nobody can see.
-  ghost: "text-accent-deep hover:bg-accent-tint hover:text-accent",
+    "border border-border-strong bg-surface-raised text-ink-strong " +
+    "hover:border-accent hover:text-accent-deep hover:shadow-[var(--shadow-accent)] motion-safe:hover:-translate-y-px " +
+    "focus-visible:outline-accent",
+  // No border, no fill at rest. The tint on hover is 1.29:1 against white,
+  // visible; the ink is already accent-deep (9.05:1) so it needs no change.
+  // No lift and no glow on quiet or icon: a text action and a single glyph
+  // are subordinate controls, and lifting them would rank them with the CTA.
+  quiet: "text-accent-deep hover:bg-accent-tint focus-visible:outline-accent",
+  // A 44px circle for a single glyph; give it an accessible name (aria-label
+  // or an sr-only span).
+  icon:
+    "border border-border-strong bg-surface-raised text-ink-muted " +
+    "hover:border-accent hover:text-accent focus-visible:outline-accent",
+  // For the hero and the crimson CTA band: white on the gradient, tint on hover.
+  "on-dark":
+    "bg-surface-raised text-accent hover:bg-accent-tint hover:text-accent-deep " +
+    "motion-safe:hover:-translate-y-px focus-visible:outline-coral",
+  "ghost-dark":
+    "border-2 border-white/50 text-ink-on-dark hover:border-white hover:bg-white/10 " +
+    "motion-safe:hover:-translate-y-px focus-visible:outline-coral",
 };
 
 const sizes: Record<ButtonSize, string> = {
+  lg: "min-h-12 px-6 text-[15px]",
   md: "min-h-11 px-5 text-[15px]",
   sm: "min-h-9 px-3.5 text-sm",
+};
+
+/** The icon variant is a circle: width matches the height of its size. */
+const iconSizes: Record<ButtonSize, string> = {
+  lg: "min-h-12 w-12 px-0",
+  md: "min-h-11 w-11 px-0",
+  sm: "min-h-9 w-9 px-0",
 };
 
 /**
  * The button's classes, without the button.
  *
- * `<Button>` is used in exactly one place in this app — app/error.tsx — while
- * roughly a dozen real buttons are hand-rolled, each carrying its own copy of
- * "inline-flex min-h-11 items-center justify-center rounded-md bg-accent…".
- * That is why they had drifted apart and why improving the component alone
- * changed nothing anyone could see.
- *
- * Most of them cannot become `<Button>` and should not: several are `<Link>`,
- * several are form submits with their own pending state. Exporting the class
- * string lets every one of them share the same hover, press and focus
- * behaviour while staying whatever element it needs to be.
+ * Most buttons on the site are `<Link>`s or form submits with their own
+ * pending state and cannot be `<Button>`; exporting the class string lets
+ * every one of them share the same hover, press and focus behaviour while
+ * staying whatever element it needs to be.
  */
 export function buttonClasses(opts?: {
-  // `| undefined` spelled out because exactOptionalPropertyTypes is on, and
-  // Button forwards its own optional props straight through.
   variant?: ButtonVariant | undefined;
   size?: ButtonSize | undefined;
   className?: string | undefined;
 }): string {
   const { variant = "secondary", size = "md", className } = opts ?? {};
-  return cn(base, variants[variant], sizes[size], className);
+  const sizeClass = variant === "icon" ? iconSizes[size] : sizes[size];
+  return cn(base, variants[variant], sizeClass, className);
 }
+
+/**
+ * The travelling arrow for a primary or on-dark CTA. Sits inside the button
+ * and moves 2px on hover (`translate-x-0.5`, the same step the nav's "All"
+ * arrow already uses) via the `group/btn` on the base classes.
+ */
+export const buttonArrowClasses =
+  "size-3.5 transition-[translate] duration-150 ease-[var(--motion-ease)] " +
+  "group-hover/btn:translate-x-0.5 group-focus-visible/btn:translate-x-0.5 motion-reduce:transition-none";
 
 export function Button({
   variant = "secondary",

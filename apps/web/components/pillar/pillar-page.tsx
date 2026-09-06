@@ -76,8 +76,7 @@ export function PillarPage({
           <div className="[&_a]:text-ink-on-dark/70 [&_[aria-current]]:text-ink-on-dark">
             <Breadcrumbs trail={[{ label: crumb }]} />
           </div>
-          <p className="mt-8 mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-[13px] font-semibold">
-            <span aria-hidden="true" className="size-2 rounded-full bg-coral" />
+          <p className="mt-8 mb-5 font-numeric text-eyebrow tracking-[0.14em] text-coral uppercase">
             {badge}
           </p>
           {/* display-2, deliberately a step below the home hero: an inner page

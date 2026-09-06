@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { cn } from "@towardpcc/ui";
+import { buttonClasses, cn } from "@towardpcc/ui";
 import { loginAction, type LoginResult } from "./actions";
 
 const field =
@@ -61,14 +61,7 @@ export function LoginForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className={cn(
-          "inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-5 text-[15px] font-semibold text-ink-on-accent",
-          "transition-colors duration-150 hover:bg-accent-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60",
-        )}
-      >
+      <button type="submit" disabled={pending} className={buttonClasses({ variant: "primary" })}>
         {pending ? "Signing in…" : "Sign in"}
       </button>
     </form>

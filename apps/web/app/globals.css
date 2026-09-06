@@ -135,6 +135,10 @@
   background-color: var(--color-surface-page);
   background-image: var(--gradient-soft);
 }
+.bg-gradient-cta {
+  background-color: var(--color-accent);
+  background-image: var(--gradient-cta);
+}
 
 body {
   background: var(--color-surface-page);

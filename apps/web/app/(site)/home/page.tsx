@@ -18,7 +18,7 @@ export const metadata = { robots: { index: false, follow: false } };
 
 import Link from "next/link";
 import { listScores } from "@towardpcc/scoring-engine";
-import { cn } from "@towardpcc/ui";
+import { buttonArrowClasses, buttonClasses, cn } from "@towardpcc/ui";
 import { Reveal } from "@/components/reveal";
 import { Eyebrow } from "@/components/eyebrow";
 import { CardiopulmonaryScene } from "@/components/home/cardiopulmonary-scene";
@@ -30,14 +30,23 @@ import { withCounts } from "@/lib/published-counts";
 
 const h = site.home;
 
-// The four pillars, each carrying its real state and its real figures.
-const pillars = [
+// The four pillars, each carrying its real state and its real figures. State
+// now lives in the meta row below the body (`status?`), not a chip on the
+// media plate: "Piloting" for knowledge and data, omitted where a pillar is
+// simply live.
+const pillars: Array<{
+  href: string;
+  title: string;
+  body: string;
+  status?: string;
+  media: string;
+  stats: { label: string; value: string }[];
+  cta: string;
+}> = [
   {
     href: "/calculators",
     title: site.pillars.calculators.title,
     body: "Twenty-five Tier-A PICU scores. Every computation runs in your browser, proven by an automated zero-network test on every release.",
-    chip: "Live now",
-    chipTone: "live" as const,
     media: "from-accent-deep via-accent to-coral",
     stats: [
       { label: "Scores", value: "25" },
@@ -54,8 +63,7 @@ const pillars = [
     href: "/knowledge",
     title: site.pillars.knowledge.title,
     body: "The PedsCC Library: your unit's own protocols and guidelines, searchable down to the exact page. Piloting with PICU physicians across the Gulf.",
-    chip: "In production · piloting",
-    chipTone: "pilot" as const,
+    status: "Piloting",
     media: "from-surface-hero-raised via-accent-deep to-accent",
     stats: [
       { label: "Documents", value: "2,425" },
@@ -68,8 +76,7 @@ const pillars = [
     href: "/data",
     title: site.pillars.data.title,
     body: "A PICU registry, currently piloting in one unit in the Gulf region, built on the same validated engine as the public calculators.",
-    chip: "Pilot underway",
-    chipTone: "pilot" as const,
+    status: "Piloting",
     media: "from-accent-deep via-accent to-coral-soft",
     stats: [
       { label: "Pilot units", value: "1" },
@@ -81,8 +88,6 @@ const pillars = [
     href: "/services",
     title: site.pillars.services.title,
     body: "Research aid, biostatistics, and AI-assisted research guidance for fellows. Free of charge, queued honestly, with no SLA we can't keep.",
-    chip: "Free · capacity-based",
-    chipTone: "neutral" as const,
     media: "from-success-text to-success-text/60",
     stats: [
       { label: "Cost", value: "Free" },
@@ -91,26 +96,6 @@ const pillars = [
     cta: "Request support",
   },
 ];
-
-const featureTone: Record<string, string> = {
-  crimson: "bg-gradient-accent",
-  coral: "bg-linear-135 from-coral to-coral-soft",
-  plum: "bg-linear-135 from-surface-hero-raised to-accent-deep",
-  moss: "bg-linear-135 from-success-text to-success-text/70",
-};
-
-// The pill CTAs — the largest, most-clicked buttons on the site. They lift a
-// touch on hover and press 1px on click. `translate` is named in the transition
-// because both the lift and the press are `translate` utilities, and Tailwind
-// v4 compiles those to the `translate` property: under `transition-colors` the
-// press was inert and snapped, like the eight hover lifts fixed earlier. The
-// lift is the universal cue here — it reads on the dark hero and the crimson
-// CTA band alike, where a crimson glow would vanish into the ground.
-const ctaBase =
-  "inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-[15px] font-bold " +
-  "transition-[translate,background-color,border-color,box-shadow,color] duration-150 ease-[var(--motion-ease)] " +
-  "motion-safe:hover:-translate-y-0.5 active:translate-y-px motion-reduce:transition-none " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral";
 
 export default function HomePage() {
   return (
@@ -121,18 +106,8 @@ export default function HomePage() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(600px_400px_at_12%_18%,rgba(255,122,107,0.3),transparent_70%),radial-gradient(700px_500px_at_88%_78%,rgba(234,58,87,0.34),transparent_70%)]"
         />
-        <div className="relative z-10 mx-auto grid max-w-[1280px] items-center gap-12 px-6 pt-20 pb-28 lg:grid-cols-[1.02fr_0.98fr]">
+        <div className="relative z-10 mx-auto grid max-w-[1280px] items-center gap-12 px-6 pt-20 pb-20 lg:grid-cols-[1.02fr_0.98fr]">
           <div>
-            <p
-              className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/15 px-4 py-2 text-[13px] font-semibold motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
-              style={{ animationDelay: "40ms" }}
-            >
-              <span
-                aria-hidden="true"
-                className="size-2 rounded-full bg-success-bg motion-safe:animate-[ping_2.4s_ease-in-out_infinite]"
-              />
-              {withCounts(h.badge)}
-            </p>
             {/* The page's thesis, so it gets the one display step nothing else
                 uses. Fluid rather than a 3rem→4rem jump at a single breakpoint,
                 which left every width in between with whichever size fit worst. */}
@@ -154,52 +129,37 @@ export default function HomePage() {
             >
               <Link
                 href="/calculators"
-                className={cn(
-                  ctaBase,
-                  "bg-surface-raised text-accent hover:bg-accent-tint hover:text-accent-deep",
-                )}
+                className={buttonClasses({ variant: "on-dark", size: "lg" })}
               >
                 {h.ctaPrimary}
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                  className={buttonArrowClasses}
+                >
+                  <path
+                    d="M2 8h11M9 4l4 4-4 4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </Link>
               <Link
                 href="/knowledge"
-                className={cn(
-                  ctaBase,
-                  "border-2 border-white/50 text-ink-on-dark hover:border-white hover:bg-white/10",
-                )}
+                className={buttonClasses({ variant: "ghost-dark", size: "lg" })}
               >
                 {h.ctaSecondary}
               </Link>
             </div>
-
-            <dl
-              className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-white/20 pt-6 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
+            <p
+              className="mt-8 text-[14px] text-ink-on-dark/75 motion-safe:animate-[heroRise_var(--motion-duration-reveal)_var(--motion-ease)_both]"
               style={{ animationDelay: "420ms" }}
             >
-              {h.heroTrust.map((t) => (
-                <div key={t.label}>
-                  <dt className="sr-only">{t.label}</dt>
-                  <dd className="m-0">
-                    <span className="block font-numeric text-2xl font-semibold text-ink-on-dark tabular-nums">
-                      {t.value}
-                    </span>
-                    <span className="text-[13px] text-ink-on-dark/70">{t.label}</span>
-                    {/* Only the strongest claim carries a proof link. Putting
-                        one on all three would make it decoration; putting one
-                        on "0 bytes transmitted" turns the boldest statement on
-                        the page into the most checkable. */}
-                    {"href" in t && t.href ? (
-                      <Link
-                        href={t.href}
-                        className="mt-0.5 block rounded-sm font-numeric text-[11.5px] text-coral underline decoration-coral/40 underline-offset-2 transition-colors duration-150 hover:decoration-coral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
-                      >
-                        {t.proof} →
-                      </Link>
-                    ) : null}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+              {withCounts(h.heroLine)}
+            </p>
           </div>
 
           <div className="relative">
@@ -234,39 +194,6 @@ export default function HomePage() {
           />
         </svg>
       </section>
-
-      {/* ── FEATURE STRIP (overlaps the hero) ───────────────────────── */}
-      <div className="relative z-20 mx-auto -mt-16 max-w-[1280px] px-6">
-        <ul className="grid list-none gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {h.features.map((f, i) => (
-            <li key={f.title}>
-              {/* `group` on the Reveal wrapper, which is the element that gains
-                  data-shown — so the rule below draws itself from CSS when the
-                  card enters view, with no second observer and no extra JS. */}
-              <Reveal className="group h-full" delay={Math.min(i, 6) * 45}>
-                <div className="relative h-full overflow-hidden rounded-lg border border-border bg-surface-raised p-7 shadow-xl transition-[translate] duration-200 hover:-translate-y-2">
-                  <span
-                    aria-hidden="true"
-                    data-rule
-                    className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-gradient-accent transition-[scale] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[shown]:scale-x-100 motion-reduce:scale-x-100 motion-reduce:transition-none"
-                  />
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "mb-4 grid size-13 place-items-center rounded-2xl",
-                      featureTone[f.tone],
-                    )}
-                  >
-                    <FeatureIcon tone={f.tone} />
-                  </span>
-                  <h2 className="font-display text-lg font-semibold text-ink-strong">{f.title}</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-muted">{f.body}</p>
-                </div>
-              </Reveal>
-            </li>
-          ))}
-        </ul>
-      </div>
 
       {/* ── MISSION ─────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-[1280px] px-6 py-24">
@@ -328,10 +255,7 @@ export default function HomePage() {
               </ul>
               <Link
                 href="/about"
-                className={cn(
-                  ctaBase,
-                  "mt-8 bg-accent text-ink-on-accent hover:bg-accent-deep focus-visible:outline-accent",
-                )}
+                className={buttonClasses({ variant: "primary", className: "mt-8" })}
               >
                 Read our story
               </Link>
@@ -484,22 +408,16 @@ export default function HomePage() {
                          PICTURE inside a still frame; this plate is a linear
                          gradient, and a gradient scaled 4% shows no motion at
                          all. What did move was everything riding on top of it:
-                         the status chip drifted, and `PillarIcon` — which
-                         already carries its own `group-hover:scale-110` over
-                         300ms — compounded to ~1.144 across two mismatched
-                         durations. The icon is this plate's media and already
-                         has the gesture; the chip is metadata and must hold
-                         still. */
+                         the status chip that used to sit here drifted, and
+                         `PillarIcon` — which already carries its own
+                         `group-hover:scale-110` over 300ms — compounded to
+                         ~1.144 across two mismatched durations. The icon is
+                         this plate's media and already has the gesture; the
+                         chip is gone (2026-09-06 — its state now lives in the
+                         meta row as `p.status`), which resolves the drift
+                         rather than merely explaining it. */
                       className={cn("relative grid h-44 place-items-center bg-linear-140", p.media)}
                     >
-                      <span
-                        className={cn(
-                          "absolute top-4 left-4 rounded-full bg-surface-raised px-3 py-1.5 font-numeric text-[10.5px] font-semibold tracking-[0.09em] uppercase",
-                          p.chipTone === "live" ? "text-success-text" : "text-accent-deep",
-                        )}
-                      >
-                        {p.chip}
-                      </span>
                       <PillarIcon href={p.href} />
                     </span>
                     <span className="flex flex-1 flex-col p-7">
@@ -510,6 +428,12 @@ export default function HomePage() {
                         {p.body}
                       </span>
                       <span className="mt-5 flex flex-wrap gap-x-6 gap-y-2 border-t border-dashed border-border-subtle pt-4">
+                        {p.status ? (
+                          <span className="font-numeric text-[11px] text-ink-muted">
+                            Status
+                            <span className="block text-[15px] text-ink-body">{p.status}</span>
+                          </span>
+                        ) : null}
                         {p.stats.map((s) => (
                           <span key={s.label} className="font-numeric text-[11px] text-ink-muted">
                             {s.label}
@@ -582,10 +506,7 @@ export default function HomePage() {
           </p>
           <Link
             href="/calculators"
-            className={cn(
-              ctaBase,
-              "mt-8 bg-surface-raised text-accent hover:bg-accent-tint hover:text-accent-deep",
-            )}
+            className={buttonClasses({ variant: "on-dark", size: "lg", className: "mt-8" })}
           >
             {h.ctaBand.cta}
           </Link>
@@ -611,50 +532,6 @@ function CheckIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function FeatureIcon({ tone }: { tone: string }) {
-  const paths: Record<string, React.ReactNode> = {
-    crimson: (
-      <>
-        <path d="M5 3h14v18H5z" stroke="currentColor" strokeWidth="2" />
-        <path
-          d="M8 8h8M8 12h3M8 16h3"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </>
-    ),
-    coral: (
-      <path
-        d="M12 3l7 4v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V7l7-4z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    ),
-    plum: (
-      <path
-        d="M3 12h4l2-7 4 14 3-9 2 2h3"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    ),
-    moss: (
-      <>
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-        <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </>
-    ),
-  };
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-6 text-ink-on-accent">
-      {paths[tone]}
     </svg>
   );
 }

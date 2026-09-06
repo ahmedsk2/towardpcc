@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { buttonClasses } from "@towardpcc/ui";
 import { sendTestEmail, type TestMailState } from "./mail-actions";
 
 /**
@@ -20,7 +21,7 @@ export function TestMailButton({ recipient }: { recipient: string | undefined })
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex min-h-11 items-center rounded-full border border-border-strong px-4 text-sm font-semibold text-ink-strong transition-colors duration-150 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+          className={buttonClasses({ variant: "secondary" })}
         >
           {pending ? "Sending…" : "Send a test email"}
         </button>

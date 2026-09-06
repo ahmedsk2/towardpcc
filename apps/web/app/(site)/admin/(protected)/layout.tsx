@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonClasses } from "@towardpcc/ui";
 import { requireAdmin } from "@/lib/auth/guard";
 import { signOutAction } from "./actions";
 
@@ -40,10 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="flex items-center gap-3">
             <span className="font-numeric text-xs text-ink-muted">{user.email}</span>
             <form action={signOutAction}>
-              <button
-                type="submit"
-                className="rounded-md border border-border-strong px-3 py-1.5 text-sm font-medium text-ink-strong hover:bg-surface-sunken/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
+              <button type="submit" className={buttonClasses({ variant: "secondary", size: "sm" })}>
                 Sign out
               </button>
             </form>
