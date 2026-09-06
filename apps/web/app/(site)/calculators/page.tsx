@@ -1,5 +1,4 @@
 import { getScore, listScores } from "@towardpcc/scoring-engine";
-import { PageHero } from "@/components/page-hero";
 import { inputCountLabel } from "@/lib/input-count";
 import { site } from "@/content/site";
 import { CalculatorsIndex } from "./calculators-index";
@@ -25,15 +24,7 @@ export default function CalculatorsPage() {
 
   return (
     <>
-      <PageHero
-        crumb={site.nav.calculators}
-        eyebrow={`${scores.length} live · every one referenced`}
-        title={site.calculators.indexHeading}
-        lede={site.calculators.indexLede}
-      />
-      <div className="mx-auto max-w-[1280px] px-6 pb-24">
-        <CalculatorsIndex scores={scores} inputCounts={inputCounts} />
-      </div>
+      <CalculatorsIndex scores={scores} inputCounts={inputCounts} />
     </>
   );
 }

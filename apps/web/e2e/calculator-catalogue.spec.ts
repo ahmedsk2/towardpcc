@@ -66,4 +66,20 @@ test.describe("calculator catalogue", () => {
     await search.type("P/F");
     await expect(search).toHaveValue("P/F");
   });
+
+  test("a card says what the score is for, and its star is its own control", async ({ page }) => {
+    const card = page.locator("article").filter({ hasText: "PELOD-2" }).first();
+    await expect(card).toBeVisible();
+    await expect(card.getByRole("link", { name: /PELOD-2/ })).toBeVisible();
+    // The tagline is the second line, and it is not the version number.
+    await expect(card).toContainText(/organ dysfunction/i);
+    await expect(card).not.toContainText(/v\d+\.\d+\.\d+/);
+
+    const star = card.getByRole("button", { name: /favorites/i });
+    await expect(star).toHaveAttribute("aria-pressed", "false");
+    await star.click();
+    await expect(star).toHaveAttribute("aria-pressed", "true");
+    // Still on the catalogue: the star did not follow the stretched link.
+    await expect(page).toHaveURL(/\/calculators$/);
+  });
 });

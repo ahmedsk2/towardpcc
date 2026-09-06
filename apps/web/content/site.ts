@@ -873,7 +873,7 @@ export const site = {
     indexHeading: "PICU calculators",
     indexLede:
       "Free, clinically referenced pediatric critical care scores. Every calculation runs in your browser and cites its published source.",
-    searchPlaceholder: "Search calculators",
+    searchPlaceholder: "Search by name, condition or drug",
     searchLabel: "Search calculators by name, condition or drug. Press slash to jump here.",
     noResults: "No calculators match your search.",
     noFavorites: "You have not starred any calculators yet.",
